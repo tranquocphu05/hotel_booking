@@ -9,13 +9,18 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
-    {
-        Schema::create('phong', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
-        });
-    }
+public function up(): void
+{
+    Schema::create('phong', function (Blueprint $table) {
+        $table->id();
+        $table->foreignId('loai_phong_id')->constrained('loai_phong')->onDelete('cascade');
+        $table->string('ten_phong', 100)->nullable();
+        $table->text('mo_ta')->nullable();
+        $table->decimal('gia', 15, 2)->nullable();
+        $table->enum('trang_thai', ['trong', 'da_dat', 'bao_tri'])->default('trong');
+        $table->string('img', 255)->nullable();
+    });
+}
 
     /**
      * Reverse the migrations.

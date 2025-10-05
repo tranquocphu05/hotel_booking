@@ -9,13 +9,18 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
-    {
-        Schema::create('hoa_don', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
-        });
-    }
+public function up(): void
+{
+    Schema::create('hoa_don', function (Blueprint $table) {
+        $table->id();
+        $table->foreignId('dat_phong_id')->constrained('dat_phong')->onDelete('cascade');
+        $table->timestamp('ngay_tao')->useCurrent();
+        $table->decimal('tong_tien', 15, 2)->nullable();
+        $table->enum('phuong_thuc', ['tien_mat', 'chuyen_khoan', 'momo', 'vnpay'])->nullable();
+        $table->enum('trang_thai', ['cho_thanh_toan', 'da_thanh_toan', 'hoan_tien'])->default('cho_thanh_toan');
+    });
+}
+
 
     /**
      * Reverse the migrations.
