@@ -33,18 +33,25 @@ class RegisteredUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'cccd' => ['nullable', 'string', 'max:20'],
+            'sdt' => ['nullable', 'string', 'max:20'],
+            'dia_chi' => ['nullable', 'string', 'max:255'],
         ]);
 
         $user = User::create([
-            'name' => $request->name,
+            'ho_ten' => $request->name,
             'email' => $request->email,
+            'cccd' => $request->cccd,
+            'sdt' => $request->sdt,
+            'dia_chi' => $request->dia_chi,
             'password' => Hash::make($request->password),
+            'vai_tro' => 'khach_hang',
+            'trang_thai' => 'hoat_dong',
         ]);
 
         event(new Registered($user));
 
-        Auth::login($user);
-
-        return redirect(route('dashboard', absolute: false));
+        // Do not auto-login the user. Redirect to the login page so the user can authenticate.
+        return redirect()->route('login')->with('status', 'Registration successful. Please login.');
     }
 }

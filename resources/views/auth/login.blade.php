@@ -8,8 +8,11 @@
         <!-- Email Address -->
         <div>
             <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
+            <x-text-input id="email" class="block mt-1 w-full" type="text" name="email" :value="old('email')" required autofocus autocomplete="username" placeholder="Email or Username" />
+                    <x-input-error :messages="$errors->get('email')" class="mt-2" />
+                    @if(session('login_error'))
+                        <p class="text-red-600 mt-2">{{ session('login_error') }}</p>
+                    @endif
         </div>
 
         <!-- Password -->
@@ -42,6 +45,10 @@
             <x-primary-button class="ms-3">
                 {{ __('Log in') }}
             </x-primary-button>
+        </div>
+
+        <div class="flex items-center justify-center mt-4">
+            <a href="{{ route('register') }}" class="text-sm text-indigo-600 hover:underline">Don't have an account? Register</a>
         </div>
     </form>
 </x-guest-layout>
