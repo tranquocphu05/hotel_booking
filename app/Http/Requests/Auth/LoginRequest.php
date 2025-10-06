@@ -6,8 +6,12 @@ use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class LoginRequest extends FormRequest
 {
@@ -27,7 +31,9 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'email'],
+            // keep the field name 'email' for the login input (Breeze uses this),
+            // but allow it to be either the email address or username depending on DB schema
+            'email' => ['required', 'string'],
             'password' => ['required', 'string'],
         ];
     }
@@ -40,12 +46,45 @@ class LoginRequest extends FormRequest
     public function authenticate(): void
     {
         $this->ensureIsNotRateLimited();
+        // determine login column (email or username)
+        $userModel = new User();
+        $table = $userModel->getTable();
+        $loginColumn = Schema::hasColumn($table, 'email') ? 'email' : 'username';
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        $credentials = [ $loginColumn => $this->input('email'), 'password' => $this->input('password') ];
+
+        if (! Auth::attempt($credentials, $this->boolean('remember'))) {
+            // attempt fallback for legacy hash formats (e.g. MD5 hex) by manual check
+            $userQuery = DB::table($table)->where($loginColumn, $this->input('email'))->first();
+            if ($userQuery && isset($userQuery->password)) {
+                $stored = $userQuery->password;
+                // detect 32-char hex MD5
+                if (preg_match('/^[0-9a-f]{32}$/i', $stored)) {
+                    if (md5($this->input('password')) === strtolower($stored) || md5($this->input('password')) === $stored) {
+                        // rehash to bcrypt and update user record
+                        try {
+                            $id = $userQuery->id;
+                            DB::table($table)->where('id', $id)->update(['password' => Hash::make($this->input('password'))]);
+                            // now attempt to login again
+                            if (Auth::attempt($credentials, $this->boolean('remember'))) {
+                                RateLimiter::clear($this->throttleKey());
+                                return;
+                            }
+                        } catch (\Throwable $e) {
+                            // ignore and continue to standard failure handling
+                        }
+                    }
+                }
+            }
+
             RateLimiter::hit($this->throttleKey());
 
+            // provide a clearer error message and store a session key for blade to display
+            $message = trans('auth.failed');
+            session()->flash('login_error', $message);
+
             throw ValidationException::withMessages([
-                'email' => trans('auth.failed'),
+                'email' => [$message],
             ]);
         }
 
@@ -80,6 +119,12 @@ class LoginRequest extends FormRequest
      */
     public function throttleKey(): string
     {
-        return Str::transliterate(Str::lower($this->string('email')).'|'.$this->ip());
+        // use the same login field for throttling (email or username)
+        $userModel = new User();
+        $table = $userModel->getTable();
+        $loginColumn = Schema::hasColumn($table, 'email') ? 'email' : 'username';
+
+        $loginValue = $this->input('email');
+        return Str::transliterate(Str::lower($loginValue).'|'.$this->ip());
     }
 }

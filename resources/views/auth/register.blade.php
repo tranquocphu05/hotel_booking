@@ -16,6 +16,27 @@
             <x-input-error :messages="$errors->get('email')" class="mt-2" />
         </div>
 
+        <!-- CCCD -->
+        <div class="mt-4">
+            <x-input-label for="cccd" :value="__('CCCD')" />
+            <x-text-input id="cccd" class="block mt-1 w-full" type="text" name="cccd" :value="old('cccd')" />
+            <x-input-error :messages="$errors->get('cccd')" class="mt-2" />
+        </div>
+
+        <!-- Phone -->
+        <div class="mt-4">
+            <x-input-label for="sdt" :value="__('Phone')" />
+            <x-text-input id="sdt" class="block mt-1 w-full" type="text" name="sdt" :value="old('sdt')" />
+            <x-input-error :messages="$errors->get('sdt')" class="mt-2" />
+        </div>
+
+        <!-- Address -->
+        <div class="mt-4">
+            <x-input-label for="dia_chi" :value="__('Address')" />
+            <x-text-input id="dia_chi" class="block mt-1 w-full" type="text" name="dia_chi" :value="old('dia_chi')" />
+            <x-input-error :messages="$errors->get('dia_chi')" class="mt-2" />
+        </div>
+
         <!-- Password -->
         <div class="mt-4">
             <x-input-label for="password" :value="__('Password')" />

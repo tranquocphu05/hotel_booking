@@ -17,10 +17,20 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
+    protected $table = 'nguoi_dung';
+
+    public $timestamps = false;
+
     protected $fillable = [
-        'name',
+        'username',
         'email',
         'password',
+        'ho_ten',
+        'sdt',
+        'dia_chi',
+        'cccd',
+        'vai_tro',
+        'trang_thai',
     ];
 
     /**
@@ -30,7 +40,6 @@ class User extends Authenticatable
      */
     protected $hidden = [
         'password',
-        'remember_token',
     ];
 
     /**
@@ -38,11 +47,7 @@ class User extends Authenticatable
      *
      * @return array<string, string>
      */
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
-    }
+    protected $casts = [
+        // if you have datetime fields, map them here
+    ];
 }
