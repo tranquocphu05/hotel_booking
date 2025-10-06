@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
 use App\Http\Controllers\Admin\LoaiPhongController;
 use Illuminate\Support\Facades\Route;
@@ -32,7 +33,8 @@ require __DIR__.'/auth.php';
 Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin::class])->group(function () {
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
     // Loai phong CRUD
-    Route::resource('loai_phong', LoaiPhongController::class)->names('loai_phong');
+    // Route::resource('loai_phong', LoaiPhongController::class)->names('loai_phong');
+    Route::resource('Invoice', InvoiceController::class)->names('invoice');
 
     // Users CRUD (admin only)
     Route::resource('users', \App\Http\Controllers\Admin\UserController::class)->names('users');
