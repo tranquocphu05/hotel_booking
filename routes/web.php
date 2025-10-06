@@ -7,6 +7,7 @@ use App\Http\Controllers\Client\DashboardController as ClientDashboardController
 use App\Http\Controllers\Admin\LoaiPhongController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\Admin\VoucherController;
 
 // Serve client dashboard at the site root as requested
 Route::get('/', [ClientDashboardController::class, 'index'])->name('client.dashboard')->middleware([\App\Http\Middleware\AllowClient::class]);
@@ -34,10 +35,27 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
     Route::resource('users', \App\Http\Controllers\Admin\UserController::class)->names('users');
+<<<<<<< HEAD
     Route::post('impersonate/{user}', [\App\Http\Controllers\Admin\ImpersonationController::class, 'impersonate'])->name('impersonate');
     Route::post('impersonate/stop', [\App\Http\Controllers\Admin\ImpersonationController::class, 'stop'])->name('impersonate.stop');
 });
 Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\AllowClient::class])->group(function () {
     Route::get('/dashboard', [ClientDashboardController::class, 'index'])->name('dashboard');
 });
+=======
+
+     Route::resource('voucher', VoucherController::class)->names('voucher');
+     
+    // impersonation: admin can impersonate a client user
+    Route::post('impersonate/{user}', [\App\Http\Controllers\Admin\ImpersonationController::class, 'impersonate'])->name('impersonate');
+    Route::post('impersonate/stop', [\App\Http\Controllers\Admin\ImpersonationController::class, 'stop'])->name('impersonate.stop');
+});
+
+// Client routes (client and admin allowed). Keep legacy /client/dashboard for compatibility.
+
+
+// Also make root ('/') available for client dashboard (already defined above). Old links to /client/dashboard still work.
+
+// public (authenticated) route that allows current user to stop impersonation and return to admin
+>>>>>>> 7ffcfe7 (Cập nhật quản lý voucher)
 Route::middleware('auth')->post('/impersonate/stop', [\App\Http\Controllers\Admin\ImpersonationController::class, 'stop'])->name('impersonate.stop.public');
