@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
 
@@ -38,7 +39,22 @@ class RegisteredUserController extends Controller
             'dia_chi' => ['nullable', 'string', 'max:255'],
         ]);
 
+        // Generate a safe username from the email (prefix before @). Ensure uniqueness.
+        $base = Str::before($request->email, '@');
+        // keep only alphanumeric and underscores
+        $base = preg_replace('/[^A-Za-z0-9_]/', '', $base);
+        if (empty($base)) {
+            $base = 'user';
+        }
+        $username = $base;
+        $i = 1;
+        while (User::where('username', $username)->exists()) {
+            $username = $base . $i;
+            $i++;
+        }
+
         $user = User::create([
+            'username' => $username,
             'ho_ten' => $request->name,
             'email' => $request->email,
             'cccd' => $request->cccd,
