@@ -15,8 +15,15 @@ return new class extends Migration
         $table->id();
         $table->foreignId('nguoi_dung_id')->constrained('nguoi_dung')->onDelete('cascade');
         $table->foreignId('phong_id')->constrained('phong')->onDelete('cascade');
-        $table->dateTime('ngay_dat')->useCurrent();
-        $table->date('ngay_nhan');
+    $table->dateTime('ngay_dat')->useCurrent();
+
+    // Booking contact information
+    $table->string('username')->nullable();
+    $table->string('email')->nullable();
+    $table->string('sdt')->nullable();
+    $table->string('cccd')->nullable();
+
+    $table->date('ngay_nhan');
         $table->date('ngay_tra');
         $table->integer('so_nguoi')->nullable();
         $table->decimal('tong_tien', 15, 2)->nullable();

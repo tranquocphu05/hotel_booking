@@ -5,7 +5,10 @@
 @section('admin_content')
     <div class="flex items-center justify-between mb-4">
         <h1 class="text-xl font-semibold">Users</h1>
-        <a href="{{ route('admin.users.create') }}" class="px-3 py-1 bg-blue-600 text-white rounded">Create</a>
+        <!-- Make the create button more visible -->
+        <a href="{{ route('admin.users.create') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded shadow"> 
+            + Create
+        </a>
     </div>
 
     <div class="bg-white shadow overflow-hidden sm:rounded-lg">
