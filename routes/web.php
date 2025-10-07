@@ -33,8 +33,8 @@ require __DIR__.'/auth.php';
 Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin::class])->group(function () {
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
     // Loai phong CRUD
-    // Route::resource('loai_phong', LoaiPhongController::class)->names('loai_phong');
-    Route::resource('Invoice', InvoiceController::class)->names('invoice');
+     Route::resource('loai_phong', LoaiPhongController::class)->names('loai_phong');
+    Route::resource('invoices', InvoiceController::class)->names('invoices');
 
     // Users CRUD (admin only)
     Route::resource('users', \App\Http\Controllers\Admin\UserController::class)->names('users');
