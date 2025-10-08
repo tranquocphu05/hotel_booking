@@ -13,7 +13,7 @@
         <div class="flex justify-start ml-8 ">
             <a href="{{ route('admin.loai_phong.create') }}"
             class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-dark font-medium px-6 py-2 rounded-full shadow transition">
-                Thêm loại phòng
+                + Add
             </a>
         </div>
 

@@ -12,7 +12,7 @@
         </h2>
         <a href="{{ route('admin.loai_phong.index') }}"
            class="px-4 py-2 text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition">
-            <i class="bi bi-arrow-left"></i> Quay lại
+            <i class="bi bi-arrow-left"></i> Go back
         </a>
     </div>
 
@@ -63,11 +63,11 @@
         <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
             <a href="{{ route('admin.loai_phong.index') }}"
                class="px-5 py-2.5 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition">
-                Hủy
+                Cancel
             </a>
             <button type="submit"
                     class="px-5 py-2.5 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition">
-                <i class="bi bi-save2 me-1"></i> Thêm
+                <i class="bi bi-save2 me-1"></i> Add
             </button>
         </div>
     </form>
