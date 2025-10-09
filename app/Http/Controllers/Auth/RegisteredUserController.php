@@ -54,6 +54,7 @@ class RegisteredUserController extends Controller
         }
 
         $user = User::create([
+
             'username' => $username,
             'ho_ten' => $request->name,
             'email' => $request->email,
