@@ -35,14 +35,12 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
     Route::resource('users', \App\Http\Controllers\Admin\UserController::class)->names('users');
-<<<<<<< HEAD
     Route::post('impersonate/{user}', [\App\Http\Controllers\Admin\ImpersonationController::class, 'impersonate'])->name('impersonate');
     Route::post('impersonate/stop', [\App\Http\Controllers\Admin\ImpersonationController::class, 'stop'])->name('impersonate.stop');
 });
 Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\AllowClient::class])->group(function () {
     Route::get('/dashboard', [ClientDashboardController::class, 'index'])->name('dashboard');
 });
-=======
 
      Route::resource('voucher', VoucherController::class)->names('voucher');
      
@@ -57,5 +55,4 @@ Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\Allow
 // Also make root ('/') available for client dashboard (already defined above). Old links to /client/dashboard still work.
 
 // public (authenticated) route that allows current user to stop impersonation and return to admin
->>>>>>> 7ffcfe7 (Cập nhật quản lý voucher)
 Route::middleware('auth')->post('/impersonate/stop', [\App\Http\Controllers\Admin\ImpersonationController::class, 'stop'])->name('impersonate.stop.public');
