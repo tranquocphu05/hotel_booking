@@ -34,6 +34,8 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
     Route::resource('users', \App\Http\Controllers\Admin\UserController::class)->names('users');
+     Route::resource('loai_phong', LoaiPhongController::class);
+     Route::resource('invoices', InvoiceController::class);
     Route::post('impersonate/{user}', [\App\Http\Controllers\Admin\ImpersonationController::class, 'impersonate'])->name('impersonate');
     Route::post('impersonate/stop', [\App\Http\Controllers\Admin\ImpersonationController::class, 'stop'])->name('impersonate.stop');
 });
