@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\CommentController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -17,4 +18,11 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-require __DIR__.'/auth.php';
+Route::prefix('reviews')->group(function () {
+    Route::get('/', [CommentController::class, 'index'])->name('reviews.index');
+    Route::get('/{id}', [CommentController::class, 'show'])->name('reviews.show');
+    Route::put('/{id}/reply', [CommentController::class, 'reply'])->name('reviews.reply');
+    Route::put('/{id}/toggle', [CommentController::class, 'toggleStatus'])->name('reviews.toggle');
+});
+
+require __DIR__ . '/auth.php';
