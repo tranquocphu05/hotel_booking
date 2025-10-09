@@ -18,4 +18,8 @@ class LoaiPhong extends Model
         'gia_co_ban',
         'trang_thai',
     ];
+
+    // The loai_phong table currently doesn't have timestamp columns.
+    // Disable automatic timestamps to avoid SQL errors when inserting.
+    public $timestamps = false;
 }
