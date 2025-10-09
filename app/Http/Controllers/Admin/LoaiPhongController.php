@@ -24,14 +24,14 @@ class LoaiPhongController extends Controller
     // Lưu loại phòng mới
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'ten_loai' => 'required|string|max:255',
             'mo_ta' => 'nullable|string',
             'gia_co_ban' => 'required|numeric|min:0',
             'trang_thai' => 'required|in:hoat_dong,ngung',
         ]);
 
-        LoaiPhong::create($request->all());
+        LoaiPhong::create($validated);
 
         return redirect()->route('admin.loai_phong.index')->with('success', 'Thêm loại phòng thành công!');
     }
@@ -46,7 +46,7 @@ class LoaiPhongController extends Controller
     // Cập nhật loại phòng
     public function update(Request $request, $id)
     {
-        $request->validate([
+        $validated = $request->validate([
             'ten_loai' => 'required|string|max:255',
             'mo_ta' => 'nullable|string',
             'gia_co_ban' => 'required|numeric|min:0',
@@ -54,7 +54,7 @@ class LoaiPhongController extends Controller
         ]);
 
         $loaiPhong = LoaiPhong::findOrFail($id);
-        $loaiPhong->update($request->all());
+        $loaiPhong->update($validated);
 
         return redirect()->route('admin.loai_phong.index')->with('success', 'Cập nhật thành công!');
     }
