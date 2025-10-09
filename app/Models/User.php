@@ -50,4 +50,5 @@ class User extends Authenticatable
     protected $casts = [
         // if you have datetime fields, map them here
     ];
+    
 }
