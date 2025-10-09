@@ -37,12 +37,12 @@
                 <label class="block mb-1 font-medium">Loại phòng áp dụng</label>
                 <select name="loai_phong_id" class="w-full border rounded px-3 py-2" required>
                     <option value="">-- Chọn loại phòng --</option>
-                    {{-- @foreach ($loaiPhongs as $lp)
+                     @foreach ($loaiPhongs as $lp)
                         <option value="{{ $lp->id }}"
                             {{ old('loai_phong_id', $voucher->loai_phong_id ?? '') == $lp->id ? 'selected' : '' }}>
                             {{ $lp->ten_loai }}
                         </option>
-                    @endforeach --}}
+                    @endforeach 
                 </select>
             </div>
             <div class="mb-4">

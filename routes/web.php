@@ -2,12 +2,12 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
-use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
 use App\Http\Controllers\Admin\LoaiPhongController;
+use App\Http\Controllers\Admin\VoucherController;
+use App\Http\Controllers\Admin\InvoiceController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
-use App\Http\Controllers\Admin\VoucherController;
 
 // Serve client dashboard at the site root as requested
 Route::get('/', [ClientDashboardController::class, 'index'])->name('client.dashboard')->middleware([\App\Http\Middleware\AllowClient::class]);
@@ -33,29 +33,27 @@ require __DIR__.'/auth.php';
 // Admin routes (only admin role)
 Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin::class])->group(function () {
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+    // Loai phong CRUD
+    Route::resource('loai_phong', LoaiPhongController::class)->names('loai_phong');
+    // Voucher CRUD
+    Route::resource('voucher', VoucherController::class)->names('voucher');
 
+    // Invoice CRUD
+    Route::resource('invoices', InvoiceController::class)->names('invoices');
+
+    // Users CRUD (admin only)
     Route::resource('users', \App\Http\Controllers\Admin\UserController::class)->names('users');
-<<<<<<< HEAD
-    Route::post('impersonate/{user}', [\App\Http\Controllers\Admin\ImpersonationController::class, 'impersonate'])->name('impersonate');
-    Route::post('impersonate/stop', [\App\Http\Controllers\Admin\ImpersonationController::class, 'stop'])->name('impersonate.stop');
-});
-Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\AllowClient::class])->group(function () {
-    Route::get('/dashboard', [ClientDashboardController::class, 'index'])->name('dashboard');
-});
-=======
-
-     Route::resource('voucher', VoucherController::class)->names('voucher');
-     
     // impersonation: admin can impersonate a client user
     Route::post('impersonate/{user}', [\App\Http\Controllers\Admin\ImpersonationController::class, 'impersonate'])->name('impersonate');
     Route::post('impersonate/stop', [\App\Http\Controllers\Admin\ImpersonationController::class, 'stop'])->name('impersonate.stop');
 });
 
 // Client routes (client and admin allowed). Keep legacy /client/dashboard for compatibility.
-
+Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\AllowClient::class])->group(function () {
+    Route::get('/dashboard', [ClientDashboardController::class, 'index'])->name('dashboard');
+});
 
 // Also make root ('/') available for client dashboard (already defined above). Old links to /client/dashboard still work.
 
 // public (authenticated) route that allows current user to stop impersonation and return to admin
->>>>>>> 7ffcfe7 (Cập nhật quản lý voucher)
 Route::middleware('auth')->post('/impersonate/stop', [\App\Http\Controllers\Admin\ImpersonationController::class, 'stop'])->name('impersonate.stop.public');
