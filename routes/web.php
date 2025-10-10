@@ -50,15 +50,9 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin
     Route::post('impersonate/stop', [\App\Http\Controllers\Admin\ImpersonationController::class, 'stop'])
         ->name('impersonate.stop');
 });
-
-// =======================
-// Client routes
-// =======================
 Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\AllowClient::class])->group(function () {
     Route::get('/dashboard', [ClientDashboardController::class, 'index'])->name('dashboard');
 });
-
-// Public impersonation stop (in case admin is impersonating)
 Route::middleware('auth')->post(
     '/impersonate/stop',
     [\App\Http\Controllers\Admin\ImpersonationController::class, 'stop']
