@@ -19,7 +19,7 @@ class VoucherController extends Controller
 
     public function create()
     {
-        $loaiPhongs = LoaiPhong::all();
+       $loaiPhongs = LoaiPhong::where('trang_thai', 'hoat_dong')->get();
         return view('admin.voucher.create', compact('loaiPhongs'));
     }
 
@@ -42,7 +42,11 @@ class VoucherController extends Controller
 
     public function edit(Voucher $voucher)
     {
-       return view('admin.voucher.edit', compact('voucher'));
+    
+  $loaiPhongs = \App\Models\LoaiPhong::all();
+
+    // Trả dữ liệu ra view
+    return view('admin.voucher.edit', compact('voucher', 'loaiPhongs'));
     }
 
     public function update(Request $request, Voucher $voucher)
