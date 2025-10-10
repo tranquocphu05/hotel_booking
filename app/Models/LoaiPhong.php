@@ -18,4 +18,5 @@ class LoaiPhong extends Model
         'gia_co_ban',
         'trang_thai',
     ];
+    public $timestamps = false;
 }
