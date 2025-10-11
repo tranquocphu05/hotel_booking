@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\VoucherController;
 use App\Http\Controllers\Admin\DatPhongController;
 use App\Http\Controllers\Admin\LoaiPhongController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\PhongController;
 use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
 
 // Serve client dashboard at the site root
