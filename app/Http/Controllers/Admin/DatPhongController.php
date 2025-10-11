@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use Carbon\Carbon;
+use App\Models\Phong;
 use App\Models\DatPhong;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
@@ -99,14 +100,17 @@ class DatPhongController extends Controller
     public function edit($id)
     {
         $booking = DatPhong::with(['phong', 'phong.loaiPhong', 'voucher'])->findOrFail($id);
-        
+
+        // Lấy danh sách phòng để hiển thị trong form sửa
+        $rooms = Phong::all();
+
         // Chỉ cho phép sửa đơn đang chờ xác nhận
         if ($booking->trang_thai !== 'cho_xac_nhan') {
             return redirect()->route('admin.dat_phong.show', $booking->id)
                 ->with('error', 'Chỉ có thể sửa đơn đặt phòng đang chờ xác nhận');
         }
 
-        return view('admin.dat_phong.edit', compact('booking'));
+        return view('admin.dat_phong.edit', compact('booking', 'rooms'));
     }
 
     public function update(Request $request, $id)
@@ -119,22 +123,43 @@ class DatPhongController extends Controller
         }
 
         $request->validate([
+            'phong_id' => 'required|exists:phong,id',
+            'trang_thai' => 'required|in:cho_xac_nhan,da_xac_nhan,da_huy,da_tra',
             'ngay_nhan' => 'required|date|after_or_equal:today',
             'ngay_tra' => 'required|date|after_or_equal:ngay_nhan',
-            'so_nguoi' => 'required|integer|min:1'
+            'so_nguoi' => 'required|integer|min:1',
+            'username' => 'required|string|max:255',
+            'email' => 'required|email|max:255',
+            'sdt' => 'required|string|max:20',
+            'cccd' => 'required|string|max:20'
         ], [
+            'phong_id.required' => 'Vui lòng chọn phòng',
+            'phong_id.exists' => 'Phòng không tồn tại',
+            'trang_thai.required' => 'Vui lòng chọn trạng thái',
+            'trang_thai.in' => 'Trạng thái không hợp lệ',
             'ngay_nhan.required' => 'Vui lòng chọn ngày nhận phòng',
             'ngay_nhan.after_or_equal' => 'Ngày nhận phòng phải từ hôm nay trở đi',
             'ngay_tra.required' => 'Vui lòng chọn ngày trả phòng',
             'ngay_tra.after_or_equal' => 'Ngày trả phòng phải sau hoặc bằng ngày nhận phòng',
             'so_nguoi.required' => 'Vui lòng nhập số người',
-            'so_nguoi.min' => 'Số người phải lớn hơn 0'
+            'so_nguoi.min' => 'Số người phải lớn hơn 0',
+            'username.required' => 'Vui lòng nhập tên khách hàng',
+            'email.required' => 'Vui lòng nhập email',
+            'email.email' => 'Email không hợp lệ',
+            'sdt.required' => 'Vui lòng nhập số điện thoại',
+            'cccd.required' => 'Vui lòng nhập CCCD/CMND'
         ]);
 
         $booking->update([
+            'phong_id' => $request->phong_id,
+            'trang_thai' => $request->trang_thai,
             'ngay_nhan' => $request->ngay_nhan,
             'ngay_tra' => $request->ngay_tra,
-            'so_nguoi' => $request->so_nguoi
+            'so_nguoi' => $request->so_nguoi,
+            'username' => $request->username,
+            'email' => $request->email,
+            'sdt' => $request->sdt,
+            'cccd' => $request->cccd
         ]);
 
         return redirect()->route('admin.dat_phong.index')

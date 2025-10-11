@@ -33,9 +33,15 @@ class DatPhong extends Model
         'ngay_nhan',
         'ngay_tra',
         'so_nguoi',
+        'trang_thai',
         'tong_tien',
         'voucher_id',
-        'trang_thai'
+        'ly_do_huy',
+        'ngay_huy',
+        'username',   // Thêm các trường mới
+        'email',
+        'sdt',
+        'cccd'
     ];
 
     /**
