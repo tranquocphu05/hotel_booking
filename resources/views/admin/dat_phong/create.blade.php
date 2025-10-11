@@ -26,7 +26,7 @@
                                                     peer-checked:border-blue-500 peer-checked:ring-2 peer-checked:ring-blue-500
                                                     hover:bg-gray-50">
                                                 <div class="space-y-2">
-                                                    <img src="{{ asset('storage/' . $room->img) }}" 
+                                                    <img src="{{ asset( $room->img) }}" 
                                                         alt="{{ $room->ten_phong }}"
                                                         class="w-full h-40 object-cover rounded-lg mb-2">
                                                     <h4 class="font-semibold text-gray-900">{{ $room->ten_phong }}</h4>
