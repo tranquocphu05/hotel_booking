@@ -137,7 +137,7 @@ class DatPhongController extends Controller
             'so_nguoi' => $request->so_nguoi
         ]);
 
-        return redirect()->route('admin.dat_phong.show', $booking->id)
+        return redirect()->route('admin.dat_phong.index')
             ->with('success', 'Cập nhật thông tin đặt phòng thành công');
     }
 }
