@@ -6,7 +6,7 @@
     <div class="py-6">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="mb-6 flex justify-between items-center">
-                <h2 class="text-2xl font-semibold text-gray-800">Chi tiết đặt phòng #{{ $booking->id }}</h2>
+                <h2 class="text-2xl font-semibold text-gray-800">Chi tiết đặt phòng <b>{{ $booking->phong->ten_phong }}</b></h2>
                 <span class="px-3 py-1 rounded-full text-sm font-medium
                     @if ($booking->trang_thai === 'da_xac_nhan') bg-green-100 text-green-800
                     @elseif($booking->trang_thai === 'cho_xac_nhan') bg-yellow-100 text-yellow-800

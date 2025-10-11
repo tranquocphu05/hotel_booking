@@ -34,14 +34,47 @@
                                     </div>
 
                                     <div>
-                                        <label for="trang_thai" class="block text-sm font-medium text-gray-700">Trạng thái</label>
-                                        <select name="trang_thai" id="trang_thai" 
-                                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                                            <option value="cho_xac_nhan" {{ $booking->trang_thai == 'cho_xac_nhan' ? 'selected' : '' }}>Chờ xác nhận</option>
-                                            <option value="da_xac_nhan" {{ $booking->trang_thai == 'da_xac_nhan' ? 'selected' : '' }}>Đã xác nhận</option>
-                                            <option value="da_huy" {{ $booking->trang_thai == 'da_huy' ? 'selected' : '' }}>Đã hủy</option>
-                                            <option value="da_tra" {{ $booking->trang_thai == 'da_tra' ? 'selected' : '' }}>Đã trả phòng</option>
-                                        </select>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Trạng thái hiện tại: 
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                                @if ($booking->trang_thai === 'da_xac_nhan') bg-green-100 text-green-800
+                                                @elseif($booking->trang_thai === 'cho_xac_nhan') bg-yellow-100 text-yellow-800
+                                                @elseif($booking->trang_thai === 'da_huy') bg-red-100 text-red-800
+                                                @else bg-blue-100 text-blue-800 @endif">
+                                                {{ $booking->trang_thai === 'cho_xac_nhan' ? 'Chờ xác nhận' : 
+                                                   ($booking->trang_thai === 'da_xac_nhan' ? 'Đã xác nhận' : 
+                                                   ($booking->trang_thai === 'da_huy' ? 'Đã hủy' : 'Đã trả phòng')) }}
+                                            </span>
+                                        </label>
+                                        
+                                        <div class="mt-2 space-x-2">
+                                            @if($booking->trang_thai === 'cho_xac_nhan')
+                                                <button type="button" onclick="document.getElementById('trang_thai_input').value = 'da_xac_nhan'; this.form.submit();"
+                                                    class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                    Xác nhận đặt phòng
+                                                </button>
+                                                <a href="{{ route('admin.dat_phong.cancel', $booking->id) }}"
+                                                    class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                    Hủy đặt phòng
+                                                </a>
+                                            @elseif($booking->trang_thai === 'da_xac_nhan')
+                                                <button type="button" onclick="document.getElementById('trang_thai_input').value = 'da_tra'; this.form.submit();"
+                                                    class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                    </svg>
+                                                    Xác nhận trả phòng
+                                                </button>
+                                            @else
+                                                <p class="text-sm text-gray-500 italic">Không thể thay đổi trạng thái</p>
+                                            @endif
+                                        </div>
+                                        <input type="hidden" name="trang_thai" id="trang_thai_input" value="{{ $booking->trang_thai }}">
                                         @error('trang_thai')
                                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                         @enderror
