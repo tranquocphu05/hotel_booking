@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 
 class PhongController extends Controller
 {
-    // Hiển thị danh sách phòng
+    // Danh sách phòng
     public function index(Request $request)
     {
         $query = Phong::with('loaiPhong');
@@ -28,7 +28,7 @@ class PhongController extends Controller
         return view('admin.phong.index', compact('phongs', 'loaiPhongs'));
     }
 
-    // Form thêm phòng
+    // Form thêm
     public function create()
     {
         $loaiPhongs = LoaiPhong::all();
@@ -41,8 +41,8 @@ class PhongController extends Controller
         $request->validate([
             'ten_phong' => 'required|string|max:255',
             'mo_ta' => 'nullable|string',
-            'gia' => 'required|numeric|min:0',
-            'trang_thai' => 'required|in:trong,da_dat,bao_tri',
+            'gia' => 'required|numeric|min:0|max:999999999',
+            'trang_thai' => 'required|in:hien,an,bao_tri',
             'loai_phong_id' => 'required|exists:loai_phong,id',
             'img' => 'nullable|image|max:2048'
         ]);
@@ -61,7 +61,7 @@ class PhongController extends Controller
         return redirect()->route('admin.phong.index')->with('success', 'Thêm phòng thành công!');
     }
 
-    // Form sửa phòng
+    // Form chỉnh sửa
     public function edit($id)
     {
         $phong = Phong::findOrFail($id);
@@ -75,8 +75,8 @@ class PhongController extends Controller
         $request->validate([
             'ten_phong' => 'required|string|max:255',
             'mo_ta' => 'nullable|string',
-            'gia' => 'required|numeric|min:0',
-            'trang_thai' => 'required|in:trong,da_dat,bao_tri',
+            'gia' => 'required|numeric|min:0|max:999999999',
+            'trang_thai' => 'required|in:hien,an,bao_tri',
             'loai_phong_id' => 'required|exists:loai_phong,id',
             'img' => 'nullable|image|max:2048'
         ]);
@@ -100,7 +100,7 @@ class PhongController extends Controller
         return redirect()->route('admin.phong.index')->with('success', 'Cập nhật phòng thành công!');
     }
 
-    // Xóa phòng
+    // Xóa
     public function destroy($id)
     {
         $phong = Phong::findOrFail($id);

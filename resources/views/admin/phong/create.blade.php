@@ -7,7 +7,7 @@
     {{-- Header --}}
     <div class="flex justify-between items-center mb-8">
         <h2 class="text-2xl font-semibold text-green-600 flex items-center gap-2">
-            <i class="bi bi-plus-circle text-green-600"></i> Thêm phòng mới
+            <i class="bi bi-plus-circle"></i> Thêm phòng mới
         </h2>
         <a href="{{ route('admin.phong.index') }}"
            class="px-4 py-2 text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition">
@@ -31,8 +31,8 @@
             </div>
 
             <div>
-                <label for="gia" class="block text-gray-700 font-medium mb-1">Giá thuê (₫)</label>
-                <input type="number" name="gia" id="gia" value="{{ old('gia') }}"
+                <label for="gia" class="block text-gray-700 font-medium mb-1">Giá (₫)</label>
+                <input type="number" name="gia" id="gia" value="{{ old('gia') }}" maxlength="9"
                        class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500" required>
                 @error('gia')
                     <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
@@ -62,8 +62,8 @@
                 <label for="trang_thai" class="block text-gray-700 font-medium mb-1">Trạng thái</label>
                 <select name="trang_thai" id="trang_thai"
                         class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500" required>
-                    <option value="trong" {{ old('trang_thai') == 'trong' ? 'selected' : '' }}>Trống</option>
-                    <option value="da_dat" {{ old('trang_thai') == 'da_dat' ? 'selected' : '' }}>Đã đặt</option>
+                    <option value="hien" {{ old('trang_thai') == 'hien' ? 'selected' : '' }}>Hiện</option>
+                    <option value="an" {{ old('trang_thai') == 'an' ? 'selected' : '' }}>Ẩn</option>
                     <option value="bao_tri" {{ old('trang_thai') == 'bao_tri' ? 'selected' : '' }}>Bảo trì</option>
                 </select>
             </div>
@@ -81,14 +81,7 @@
                 <label for="img" class="block text-gray-700 font-medium mb-1">Ảnh phòng</label>
                 <input type="file" name="img" id="img"
                        class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500">
-                @error('img')
-                    <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
-                @enderror
-
-                {{-- Preview ảnh --}}
-                <div class="mt-3">
-                    <img id="preview" class="hidden w-32 h-32 object-cover rounded-lg shadow">
-                </div>
+                <img id="preview" class="hidden w-[120px] h-[90px] object-cover rounded-lg border border-gray-300 shadow-sm mt-3">
             </div>
         </div>
 
@@ -106,14 +99,14 @@
     </form>
 </div>
 
-{{-- JS hiển thị ảnh preview --}}
+{{-- JS Preview ảnh --}}
 <script>
-document.getElementById('img').addEventListener('change', function (e) {
-    const preview = document.getElementById('preview');
+document.getElementById('img').addEventListener('change', function(e) {
     const file = e.target.files[0];
+    const preview = document.getElementById('preview');
     if (file) {
         const reader = new FileReader();
-        reader.onload = function (event) {
+        reader.onload = event => {
             preview.src = event.target.result;
             preview.classList.remove('hidden');
         };
