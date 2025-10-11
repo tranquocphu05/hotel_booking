@@ -89,4 +89,55 @@ class DatPhongController extends Controller
         return redirect()->route('admin.dat_phong.index')
             ->with('success', 'Đã hủy đặt phòng thành công');
     }
+
+    public function show($id)
+    {
+        $booking = DatPhong::with(['phong', 'phong.loaiPhong', 'voucher'])->findOrFail($id);
+        return view('admin.dat_phong.show', compact('booking'));
+    }
+
+    public function edit($id)
+    {
+        $booking = DatPhong::with(['phong', 'phong.loaiPhong', 'voucher'])->findOrFail($id);
+        
+        // Chỉ cho phép sửa đơn đang chờ xác nhận
+        if ($booking->trang_thai !== 'cho_xac_nhan') {
+            return redirect()->route('admin.dat_phong.show', $booking->id)
+                ->with('error', 'Chỉ có thể sửa đơn đặt phòng đang chờ xác nhận');
+        }
+
+        return view('admin.dat_phong.edit', compact('booking'));
+    }
+
+    public function update(Request $request, $id)
+    {
+        $booking = DatPhong::findOrFail($id);
+        
+        if ($booking->trang_thai !== 'cho_xac_nhan') {
+            return redirect()->route('admin.dat_phong.show', $booking->id)
+                ->with('error', 'Chỉ có thể sửa đơn đặt phòng đang chờ xác nhận');
+        }
+
+        $request->validate([
+            'ngay_nhan' => 'required|date|after_or_equal:today',
+            'ngay_tra' => 'required|date|after_or_equal:ngay_nhan',
+            'so_nguoi' => 'required|integer|min:1'
+        ], [
+            'ngay_nhan.required' => 'Vui lòng chọn ngày nhận phòng',
+            'ngay_nhan.after_or_equal' => 'Ngày nhận phòng phải từ hôm nay trở đi',
+            'ngay_tra.required' => 'Vui lòng chọn ngày trả phòng',
+            'ngay_tra.after_or_equal' => 'Ngày trả phòng phải sau hoặc bằng ngày nhận phòng',
+            'so_nguoi.required' => 'Vui lòng nhập số người',
+            'so_nguoi.min' => 'Số người phải lớn hơn 0'
+        ]);
+
+        $booking->update([
+            'ngay_nhan' => $request->ngay_nhan,
+            'ngay_tra' => $request->ngay_tra,
+            'so_nguoi' => $request->so_nguoi
+        ]);
+
+        return redirect()->route('admin.dat_phong.show', $booking->id)
+            ->with('success', 'Cập nhật thông tin đặt phòng thành công');
+    }
 }

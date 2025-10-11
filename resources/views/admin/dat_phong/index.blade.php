@@ -185,6 +185,7 @@
                                                     class="font-medium text-indigo-600">{{ $booking->voucher ? $booking->voucher->ma_voucher : 'Không có' }}</span></span>
                                         </div>
                                     @endif
+                                    
                                     {{-- Ngày đặt --}}
                                     <div class="flex items-center text-sm">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500 mr-2"
@@ -194,6 +195,25 @@
                                         </svg>
                                         <span class="text-gray-600">Ngày đặt: <span
                                                 class="font-medium">{{ date('d/m/Y H:i', strtotime($booking->ngay_dat)) }}</span></span>
+                                    </div>
+
+                                    {{-- Sửa thông tin đặt phòng --}}
+                                    <div class="flex items-center text-sm">
+                                        <a href="{{ route('admin.dat_phong.edit', $booking->id) }}"
+                                            class="text-blue-600 hover:text-blue-800 font-medium">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline mr-1"
+                                                fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                            Sửa thông tin đặt phòng
+                                        </a>
+                                        <div class="ml-4">
+                                            <a href="{{ route('admin.dat_phong.show', $booking->id) }}"
+                                                class="text-gray-600 hover:text-gray-800 font-medium">
+                                                Xem chi tiết
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
 
