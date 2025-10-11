@@ -1,13 +1,14 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\InvoiceController;
-use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
 use App\Http\Controllers\Admin\LoaiPhongController;
+use App\Http\Controllers\Admin\PhongController;
 use App\Http\Controllers\Admin\VoucherController;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
+use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 
 // Serve client dashboard at the site root
 Route::get('/', [ClientDashboardController::class, 'index'])
@@ -41,6 +42,7 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin
 
     Route::resource('users', \App\Http\Controllers\Admin\UserController::class)->names('users');
     Route::resource('loai_phong', LoaiPhongController::class)->names('loai_phong');
+    Route::resource('phong', PhongController::class)->names('phong');
     Route::resource('invoices', InvoiceController::class)->names('invoices');
     Route::resource('voucher', VoucherController::class)->names('voucher');
 
