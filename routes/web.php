@@ -42,6 +42,7 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin
 
     Route::resource('users', \App\Http\Controllers\Admin\UserController::class)->names('users');
     Route::resource('loai_phong', LoaiPhongController::class)->names('loai_phong');
+    Route::resource('phong', PhongController::class)->names('phong');
     Route::resource('invoices', InvoiceController::class)->names('invoices');
     Route::resource('voucher', VoucherController::class)->names('voucher');
 
