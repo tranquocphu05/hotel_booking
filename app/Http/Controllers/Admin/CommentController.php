@@ -10,75 +10,48 @@ use Illuminate\Support\Str;
 
 class CommentController extends Controller
 {
-    protected function search($keyword = null, $rating = null, $isActive = null)
-    {
-        $query = Comment::query();
 
-        if ($keyword) {
-            $query->where(function ($q) use ($keyword) {
-                $q->where('content', 'like', "%{$keyword}%")
-                    ->orWhereHas('user', function ($userQuery) use ($keyword) {
-                        $userQuery->where('name', 'like', "%{$keyword}%")
-                            ->orWhere('email', 'like', "%{$keyword}%");
-                    });
-            });
-        }
-
-        if ($rating) {
-            $query->where('rating', $rating);
-        }
-
-        if (in_array($isActive, ['0', '1', 0, 1], true)) {
-            $query->where('is_active', (bool) $isActive);
-        }
-
-        return $query
-            ->with('user:id,name,email')
-            ->orderByDesc('id')
-            ->paginate(10);
-    }
-
-
+    // public function index(Request $request)
+    // {
+    //     $comments = Comment::with('user')
+    //         ->orderBy('id', 'asc')
+    //         ->paginate(7);
+    //     return view('admin.reviews.index', compact('comments'));
+    // }
 
     public function index(Request $request)
     {
-        try {
-            $keyword = $request->input('keyword');
-            $rating = $request->input('rating');
-            $isActive = $request->input('is_active');
+        $keyword = $request->input('keyword');
+        $rating = $request->input('rating');
+        $isActive = $request->input('is_active');
 
-            $comments = $this->search($keyword, $rating, $isActive);
-            $comments->transform(function ($comment) {
-                return [
-                    'id' => $comment->id,
-                    'rating' => $comment->rating,
-                    'content_preview' => Str::limit(strip_tags($comment->content), 80),
-                    'is_active' => $comment->is_active,
-                    'is_updated' => $comment->is_updated,
-                    'has_reply' => !empty($comment->reply),
-                    'created_at' => Carbon::parse($comment->created_at)->format('d/m/Y H:i'),
-                ];
-            });
-            return response()->json([
-                'message' => 'Success',
-                'pagination' => [
-                    'current_page' => $comments->currentPage(),
-                    'last_page' => $comments->lastPage(),
-                    'total' => $comments->total(),
-                ],
-                'data' => $comments->items()
-            ], 200);
-        } catch (\Throwable $th) {
-            return response()->json([
-                'message' => $th->getMessage(),
-            ], 404);
-        }
+        $comments = Comment::with('user:id,username,email')
+            ->when($keyword, function ($query) use ($keyword) {
+                $query->where('content', 'like', "%{$keyword}%")
+                    ->orWhereHas('user', function ($q) use ($keyword) {
+                        $q->where('username', 'like', "%{$keyword}%")
+                            ->orWhere('email', 'like', "%{$keyword}%");
+                    });
+            })
+            ->when($rating, function ($query) use ($rating) {
+                $query->where('rating', $rating);
+            })
+            ->when($isActive !== null && $isActive !== '', function ($query) use ($isActive) {
+                $query->where('is_active', $isActive);
+            })
+            ->orderBy('id', 'asc')
+            ->paginate(7)
+            ->appends($request->all());
+
+        return view('admin.reviews.index', compact('comments'));
     }
+
 
     public function show(Comment $comment, $id)
     {
         try {
-            $comment = Comment::with(['user', 'booking', 'room_booking'])->findOrFail($id);
+            // $comment = Comment::with(['user','booking','room_booking'])->findOrFail($id);
+            $comment = Comment::with(['user'])->findOrFail($id);
             $avatar = $comment->user?->avatar
                 ? $comment->user->avatar
                 : 'jpg';
@@ -129,46 +102,45 @@ class CommentController extends Controller
 
     public function reply(Request $request, $id)
     {
-        try {
-            $validated = $request->validate([
-                'reply' => 'required|string|min:5|max:3000'
-            ], [
-                'reply.required' => 'Nội dung phản hồi không được để trống.',
-                'reply.string' => 'Nội dung phản hồi không hợp lệ.',
-                'reply.min' => 'Phản hồi quá ngắn (tối thiểu 5 ký tự).',
-                'reply.max' => 'Phản hồi không được vượt quá 3000 ký tự.'
-            ]);
+        $validated = $request->validate([
+            'reply' => 'required|string|min:5|max:3000'
+        ]);
 
-            $comment = Comment::find($id);
+        $review = Comment::findOrFail($id);
 
-            // dd($comment);
+        // Cập nhật phản hồi (dù là lần đầu hay chỉnh sửa)
+        $review->update([
+            'reply' => $validated['reply'],
+            'reply_at' => now(),
+        ]);
 
-            if (!$comment) {
-                return response()->json([
-                    'message' => 'Không tìm thấy đánh giá.'
-                ], 404);
-            }
-
-            if (!empty($comment->reply)) {
-                return response()->json([
-                    'message' => 'Đánh giá này đã được phản hồi.'
-                ], 400);
-            }
-            $comment->timestamps = false;
-            $comment->reply = $validated['reply'];
-            $comment->reply_at = now();
-            $comment->save();
-
-            return response()->json([
-                'message' => 'Success',
-                'data' => $comment
-            ], 200);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Failed',
-            ], 500);
-        }
+        return response()->json([
+            'message' => 'Phản hồi đã được thêm/cập nhật thành công.',
+            'data' => [
+                'reply' => $validated['reply'],
+                'reply_at' => $review->reply_at->format('d/m/Y H:i'),
+            ],
+        ], 200);
     }
+
+    // Xóa phản hồi
+    public function deleteReply($id)
+    {
+        $review = Comment::findOrFail($id);
+
+        if (empty($review->reply)) {
+            return response()->json(['message' => 'Đánh giá này chưa có phản hồi.'], 400);
+        }
+
+        $review->update([
+            'reply' => null,
+            'reply_at' => null,
+        ]);
+
+        return response()->json(['message' => 'Phản hồi đã được xóa thành công.'], 200);
+    }
+
+
 
 
     public function statusToggle(Request $request, $id)

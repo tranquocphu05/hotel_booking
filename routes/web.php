@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\CommentController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\InvoiceController;
@@ -43,7 +44,15 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin
     Route::resource('loai_phong', LoaiPhongController::class)->names('loai_phong');
     Route::resource('invoices', InvoiceController::class)->names('invoices');
     Route::resource('voucher', VoucherController::class)->names('voucher');
-
+    Route::prefix('reviews')
+        ->name('reviews.')
+        ->group(function () {
+            Route::get('/', [CommentController::class, 'index'])->name('index');
+            Route::get('/{id}', [CommentController::class, 'show'])->name('show');
+            Route::put('/{id}/reply', [CommentController::class, 'reply'])->name('reviews.reply');
+            Route::delete('/{id}/reply', [CommentController::class, 'deleteReply'])->name('reviews.reply.delete');
+            Route::put('/{id}/toggle', [CommentController::class, 'statusToggle'])->name('toggle');
+        });
     // impersonation
     Route::post('impersonate/{user}', [\App\Http\Controllers\Admin\ImpersonationController::class, 'impersonate'])
         ->name('impersonate');
