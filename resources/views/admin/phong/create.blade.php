@@ -81,7 +81,7 @@
                 <label for="img" class="block text-gray-700 font-medium mb-1">Ảnh phòng</label>
                 <input type="file" name="img" id="img"
                        class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500">
-                <img id="preview" class="hidden w-[120px] h-[90px] object-cover rounded-lg border border-gray-300 shadow-sm mt-3">
+<img id="preview" class="hidden w-[120px] h-[90px] object-cover rounded-lg border border-gray-300 shadow-sm mt-3">
             </div>
         </div>
 

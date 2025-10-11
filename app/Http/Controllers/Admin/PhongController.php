@@ -13,18 +13,14 @@ class PhongController extends Controller
     public function index(Request $request)
     {
         $query = Phong::with('loaiPhong');
-
         if ($request->filled('loai_phong_id')) {
             $query->where('loai_phong_id', $request->loai_phong_id);
         }
-
         if ($request->filled('trang_thai')) {
             $query->where('trang_thai', $request->trang_thai);
         }
-
         $phongs = $query->orderBy('id', 'desc')->get();
         $loaiPhongs = LoaiPhong::all();
-
         return view('admin.phong.index', compact('phongs', 'loaiPhongs'));
     }
 
@@ -46,18 +42,14 @@ class PhongController extends Controller
             'loai_phong_id' => 'required|exists:loai_phong,id',
             'img' => 'nullable|image|max:2048'
         ]);
-
         $data = $request->all();
-
         if ($request->hasFile('img')) {
             $file = $request->file('img');
             $filename = time() . '_' . $file->getClientOriginalName();
             $file->move(public_path('uploads/phong'), $filename);
             $data['img'] = 'uploads/phong/' . $filename;
         }
-
         Phong::create($data);
-
         return redirect()->route('admin.phong.index')->with('success', 'Thêm phòng thành công!');
     }
 
@@ -80,23 +72,18 @@ class PhongController extends Controller
             'loai_phong_id' => 'required|exists:loai_phong,id',
             'img' => 'nullable|image|max:2048'
         ]);
-
         $phong = Phong::findOrFail($id);
         $data = $request->all();
-
         if ($request->hasFile('img')) {
             if ($phong->img && file_exists(public_path($phong->img))) {
                 unlink(public_path($phong->img));
             }
-
             $file = $request->file('img');
             $filename = time() . '_' . $file->getClientOriginalName();
             $file->move(public_path('uploads/phong'), $filename);
             $data['img'] = 'uploads/phong/' . $filename;
         }
-
         $phong->update($data);
-
         return redirect()->route('admin.phong.index')->with('success', 'Cập nhật phòng thành công!');
     }
 
@@ -108,7 +95,6 @@ class PhongController extends Controller
             unlink(public_path($phong->img));
         }
         $phong->delete();
-
         return redirect()->route('admin.phong.index')->with('success', 'Xóa phòng thành công!');
     }
 }

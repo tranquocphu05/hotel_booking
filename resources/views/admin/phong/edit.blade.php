@@ -78,7 +78,7 @@
                         <img src="{{ asset($phong->img) }}" class="w-32 h-32 object-cover rounded-lg shadow mb-2">
                     </div>
                 @endif
-                <img id="preview" class="hidden w-[120px] h-[90px] object-cover rounded-lg border border-gray-300 shadow-sm mt-3">
+<img id="preview" class="hidden w-[120px] h-[90px] object-cover rounded-lg border border-gray-300 shadow-sm mt-3">
             </div>
         </div>
 

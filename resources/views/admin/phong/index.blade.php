@@ -18,7 +18,6 @@
             {{ session('success') }}
         </div>
     @endif
-
     <form method="GET" class="flex flex-wrap gap-4 mb-6">
         <select name="loai_phong_id" class="border rounded-lg p-2">
             <option value="">-- Loại phòng --</option>
