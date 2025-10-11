@@ -49,6 +49,13 @@
             <div class="mb-6">
                 <div class="flex space-x-4">
                     <div>
+                        <label for="search" class="block text-sm font-medium text-gray-700">Tìm theo tên phòng</label>
+                        <input type="text" id="search" 
+                            class="filter-input mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                            placeholder="Nhập tên phòng..."
+                            value="{{ request('search') }}">
+                    </div>
+                    <div>
                         <label for="status" class="block text-sm font-medium text-gray-700">Trạng thái</label>
                         <select id="status"
                             class="filter-input mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
@@ -75,55 +82,6 @@
                     </div>
                 </div>
             </div>
-
-            @push('scripts')
-                <script>
-                    document.addEventListener('DOMContentLoaded', function() {
-                        let filterInputs = document.querySelectorAll('.filter-input');
-                        let filterTimeout;
-                        let contentContainer = document.querySelector('[data-content-container]');
-
-                        filterInputs.forEach(input => {
-                            input.addEventListener('change', function() {
-                                clearTimeout(filterTimeout);
-                                filterTimeout = setTimeout(applyFilters, 300);
-                            });
-                        });
-
-                        function applyFilters() {
-                            let status = document.getElementById('status').value;
-                            let fromDate = document.getElementById('from_date').value;
-                            let toDate = document.getElementById('to_date').value;
-
-                            let url = new URL(window.location.href);
-                            url.searchParams.set('status', status);
-                            url.searchParams.set('from_date', fromDate);
-                            url.searchParams.set('to_date', toDate);
-                            url.searchParams.set('page', '1'); // Reset to first page when filtering
-
-                            fetch(url)
-                                .then(response => response.text())
-                                .then(html => {
-                                    const parser = new DOMParser();
-                                    const doc = parser.parseFromString(html, 'text/html');
-
-                                    // Update both the grid and pagination
-                                    const newContent = doc.querySelector('[data-content-container]');
-                                    if (newContent && contentContainer) {
-                                        contentContainer.innerHTML = newContent.innerHTML;
-                                    }
-
-                                    // Update URL without refreshing the page
-                                    window.history.pushState({}, '', url);
-                                })
-                                .catch(error => {
-                                    console.error('Error:', error);
-                                    alert('Có lỗi xảy ra khi lọc dữ liệu. Vui lòng thử lại.');
-                                });
-                        }
-                    });
-                </script>
-            @endpush
 
             <div data-content-container>
                 @if ($bookings->isEmpty())
@@ -241,14 +199,14 @@
 
                                 @if ($booking->trang_thai === 'cho_xac_nhan')
                                     <div class="px-4 py-3 bg-gray-50 text-right">
-                                        <button class="text-red-600 hover:text-red-800 font-medium text-sm">
+                                        <a href="{{ route('admin.dat_phong.cancel', $booking->id) }}" class="text-red-600 hover:text-red-800 font-medium text-sm">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline mr-1"
                                                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                             </svg>
                                             Hủy đặt phòng
-                                        </button>
+                                        </a>
                                     </div>
                                 @endif
                             </div>
@@ -260,4 +218,55 @@
                 @endif
             </div>
         </div>
-    @endsection
+    </div>
+@endsection
+@push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            let filterInputs = document.querySelectorAll('.filter-input');
+            let filterTimeout;
+            let contentContainer = document.querySelector('[data-content-container]');
+
+            filterInputs.forEach(input => {
+                input.addEventListener('change', function() {
+                    clearTimeout(filterTimeout);
+                    filterTimeout = setTimeout(applyFilters, 300);
+                });
+            });
+
+            function applyFilters() {
+                let search = document.getElementById('search').value;
+                let status = document.getElementById('status').value;
+                let fromDate = document.getElementById('from_date').value;
+                let toDate = document.getElementById('to_date').value;
+
+                let url = new URL(window.location.href);
+                url.searchParams.set('search', search);
+                url.searchParams.set('status', status);
+                url.searchParams.set('from_date', fromDate);
+                url.searchParams.set('to_date', toDate);
+                url.searchParams.set('page', '1'); // Reset to first page when filtering
+
+                fetch(url)
+                    .then(response => response.text())
+                    .then(html => {
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+
+                        // Update both the grid and pagination
+                        const newContent = doc.querySelector('[data-content-container]');
+                        if (newContent && contentContainer) {
+                            contentContainer.innerHTML = newContent.innerHTML;
+                        }
+
+                        // Update URL without refreshing the page
+                        window.history.pushState({}, '', url);
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Có lỗi xảy ra khi lọc dữ liệu. Vui lòng thử lại.');
+                    });
+            }
+        });
+    </script>
+@endpush

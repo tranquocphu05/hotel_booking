@@ -60,6 +60,8 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin
         Route::get('/{id}/edit', [DatPhongController::class, 'edit'])->name('edit');
         Route::put('/{id}', [DatPhongController::class, 'update'])->name('update');
         Route::delete('/{id}', [DatPhongController::class, 'destroy'])->name('destroy');
+        Route::get('/{id}/cancel', [DatPhongController::class, 'showCancelForm'])->name('cancel');
+        Route::post('/{id}/cancel', [DatPhongController::class, 'submitCancel'])->name('cancel.submit');
     });
 });
 
