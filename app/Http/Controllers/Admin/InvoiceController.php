@@ -31,7 +31,7 @@ class InvoiceController extends Controller
 
     public function show(Invoice $invoice)
     {
-        $invoice->load('datPhong.nguoiDung', 'datPhong.phong.loaiPhong');
+        $invoice->load('datPhong.user', 'datPhong.phong.loaiPhong');
         return view('admin.invoices.show', compact('invoice'));
     }
 

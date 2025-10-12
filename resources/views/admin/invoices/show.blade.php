@@ -43,15 +43,15 @@
                             <dl class="mt-4 space-y-2">
                                 <div class="flex justify-between">
                                     <dt class="text-sm font-medium text-gray-500">Họ và tên</dt>
-                                    <dd class="text-sm text-gray-900">{{ $invoice->datPhong->nguoiDung->ho_ten }}</dd>
+                                    <dd class="text-sm text-gray-900">{{ $invoice->datPhong->user->ho_ten }}</dd>
                                 </div>
                                 <div class="flex justify-between">
                                     <dt class="text-sm font-medium text-gray-500">Email</dt>
-                                    <dd class="text-sm text-gray-900">{{ $invoice->datPhong->nguoiDung->email }}</dd>
+                                    <dd class="text-sm text-gray-900">{{ $invoice->datPhong->user->email }}</dd>
                                 </div>
                                 <div class="flex justify-between">
                                     <dt class="text-sm font-medium text-gray-500">Số điện thoại</dt>
-                                    <dd class="text-sm text-gray-900">{{ $invoice->datPhong->nguoiDung->sdt }}</dd>
+                                    <dd class="text-sm text-gray-900">{{ $invoice->datPhong->user->sdt }}</dd>
                                 </div>
                             </dl>
                         </div>
