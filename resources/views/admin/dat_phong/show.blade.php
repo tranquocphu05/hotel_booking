@@ -32,7 +32,7 @@
                     </div>
                     <div class="p-4">
                         <div class="space-y-3">
-                            <img src="{{ asset('storage/' . $booking->phong->img) }}" 
+                            <img src="{{ asset( $booking->phong->img) }}" 
                                 alt="{{ $booking->phong->ten_phong }}"
                                 class="w-full h-48 object-cover rounded-lg">
                             <p class="text-sm text-gray-600">Tên phòng: <span class="font-medium">{{ $booking->phong->ten_phong }}</span></p>
