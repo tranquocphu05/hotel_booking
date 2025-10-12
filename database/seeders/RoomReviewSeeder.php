@@ -35,15 +35,32 @@ class RoomReviewSeeder extends Seeder
         //     'price' => 1200000,
         // ]);
 
-        $booking = new stdClass();
-        $booking->id = 1;
+        // 🏨 Nếu chưa có bảng booking thật, tạo 5 đối tượng giả
+        $bookings = [];
+        for ($i = 1; $i <= 5; $i++) {
+            $booking = new stdClass();
+            $booking->id = $i;
+            $booking->booking_code = 'BOOK-' . rand(1000, 9999);
+            $bookings[] = $booking;
+        }
 
+        // 🔗 Tạo danh sách room_booking giả
+        $roomBookings = [];
+        for ($i = 1; $i <= 5; $i++) {
+            $room_booking = new stdClass();
+            $room_booking->id = $i;
+            $room_booking->booking_id = rand(1, 5);
+            $room_booking->room_id = rand(1, 5);
+            $roomBookings[] = $room_booking;
+        }
 
-        $room_booking = new stdClass();
-        $room_booking->id = 1;
-
-        $room = new stdClass();
-        $room->id = 1;
+        // 🏠 Tạo danh sách room giả (chỉ id)
+        $rooms = [];
+        for ($i = 1; $i <= 5; $i++) {
+            $room = new stdClass();
+            $room->id = $i;
+            $rooms[] = $room;
+        }
 
         for ($i = 1; $i <= 10; $i++) {
             Comment::create([
