@@ -93,6 +93,7 @@
                                     </p>
                                 </td>
                                 <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm text-right">
+                                    <a href="{{ route('admin.invoices.show', $invoice->id) }}" class="text-blue-600 hover:text-blue-900 mr-3">Chi tiết</a>
                                     <a href="{{ route('admin.invoices.edit', $invoice->id) }}" class="text-indigo-600 hover:text-indigo-900">Sửa</a>
                                 </td>
                             </tr>

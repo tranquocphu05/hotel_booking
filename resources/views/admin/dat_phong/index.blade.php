@@ -8,7 +8,7 @@
             <div class="mb-6 flex justify-between items-center">
                 <h2 class="text-2xl font-semibold text-gray-800">Danh sách đặt phòng của bạn</h2>
                 {{-- Nút để tạo đặt phòng mới --}}
-                <a href="{{ route('client.dashboard') }}"
+                <a href="{{ route('admin.dat_phong.create') }}"
                     class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor">

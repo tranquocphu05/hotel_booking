@@ -9,26 +9,22 @@ use Illuminate\Http\Request;
 
 class PhongController extends Controller
 {
-    // Hiển thị danh sách phòng
+    // Danh sách phòng
     public function index(Request $request)
     {
         $query = Phong::with('loaiPhong');
-
         if ($request->filled('loai_phong_id')) {
             $query->where('loai_phong_id', $request->loai_phong_id);
         }
-
         if ($request->filled('trang_thai')) {
             $query->where('trang_thai', $request->trang_thai);
         }
-
         $phongs = $query->orderBy('id', 'desc')->get();
         $loaiPhongs = LoaiPhong::all();
-
         return view('admin.phong.index', compact('phongs', 'loaiPhongs'));
     }
 
-    // Form thêm phòng
+    // Form thêm
     public function create()
     {
         $loaiPhongs = LoaiPhong::all();
@@ -41,27 +37,23 @@ class PhongController extends Controller
         $request->validate([
             'ten_phong' => 'required|string|max:255',
             'mo_ta' => 'nullable|string',
-            'gia' => 'required|numeric|min:0',
-            'trang_thai' => 'required|in:trong,da_dat,bao_tri',
+            'gia' => 'required|numeric|min:0|max:999999999',
+            'trang_thai' => 'required|in:hien,an,bao_tri',
             'loai_phong_id' => 'required|exists:loai_phong,id',
             'img' => 'nullable|image|max:2048'
         ]);
-
         $data = $request->all();
-
         if ($request->hasFile('img')) {
             $file = $request->file('img');
             $filename = time() . '_' . $file->getClientOriginalName();
             $file->move(public_path('uploads/phong'), $filename);
             $data['img'] = 'uploads/phong/' . $filename;
         }
-
         Phong::create($data);
-
         return redirect()->route('admin.phong.index')->with('success', 'Thêm phòng thành công!');
     }
 
-    // Form sửa phòng
+    // Form chỉnh sửa
     public function edit($id)
     {
         $phong = Phong::findOrFail($id);
@@ -75,32 +67,27 @@ class PhongController extends Controller
         $request->validate([
             'ten_phong' => 'required|string|max:255',
             'mo_ta' => 'nullable|string',
-            'gia' => 'required|numeric|min:0',
-            'trang_thai' => 'required|in:trong,da_dat,bao_tri',
+            'gia' => 'required|numeric|min:0|max:999999999',
+            'trang_thai' => 'required|in:hien,an,bao_tri',
             'loai_phong_id' => 'required|exists:loai_phong,id',
             'img' => 'nullable|image|max:2048'
         ]);
-
         $phong = Phong::findOrFail($id);
         $data = $request->all();
-
         if ($request->hasFile('img')) {
             if ($phong->img && file_exists(public_path($phong->img))) {
                 unlink(public_path($phong->img));
             }
-
             $file = $request->file('img');
             $filename = time() . '_' . $file->getClientOriginalName();
             $file->move(public_path('uploads/phong'), $filename);
             $data['img'] = 'uploads/phong/' . $filename;
         }
-
         $phong->update($data);
-
         return redirect()->route('admin.phong.index')->with('success', 'Cập nhật phòng thành công!');
     }
 
-    // Xóa phòng
+    // Xóa
     public function destroy($id)
     {
         $phong = Phong::findOrFail($id);
@@ -108,7 +95,6 @@ class PhongController extends Controller
             unlink(public_path($phong->img));
         }
         $phong->delete();
-
         return redirect()->route('admin.phong.index')->with('success', 'Xóa phòng thành công!');
     }
 }

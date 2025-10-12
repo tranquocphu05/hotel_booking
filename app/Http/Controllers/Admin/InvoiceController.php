@@ -29,6 +29,12 @@ class InvoiceController extends Controller
         return view('admin.invoices.index', compact('invoices', 'users'));
     }
 
+    public function show(Invoice $invoice)
+    {
+        $invoice->load('datPhong.nguoiDung', 'datPhong.phong.loaiPhong');
+        return view('admin.invoices.show', compact('invoice'));
+    }
+
     public function edit($id)
     {
         $invoice = Invoice::findOrFail($id);
