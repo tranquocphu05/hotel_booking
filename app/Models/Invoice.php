@@ -18,5 +18,10 @@ class Invoice extends Model
         'trang_thai',
     ];
 
-  
+    public function datPhong()
+    {
+        return $this->belongsTo(DatPhong::class, 'dat_phong_id');
+    }
+    
+
 }
