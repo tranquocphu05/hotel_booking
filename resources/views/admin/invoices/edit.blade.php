@@ -27,7 +27,7 @@
                         @method('PATCH')
 
                         <div class="mb-4">
-                            <p><strong>Khách hàng:</strong> {{ $invoice->datPhong->nguoiDung->ho_ten ?? 'N/A' }}</p>
+                            <p><strong>Khách hàng:</strong> {{ $invoice->datPhong->user->ho_ten ?? 'N/A' }}</p>
                             <p><strong>Tổng tiền:</strong> {{ number_format($invoice->tong_tien, 0, ',', '.') }} VNĐ</p>
                             <p><strong>Ngày tạo:</strong> {{ $invoice->ngay_tao->format('d/m/Y H:i') }}</p>
                         </div>
