@@ -11,7 +11,7 @@ class InvoiceController extends Controller
 
     public function index(Request $request)
     {
-        $query = Invoice::with('datPhong.nguoiDung');
+        $query = Invoice::with('datPhong.user');
 
         if ($request->filled('user_id')) {
             $query->whereHas('datPhong', function ($q) use ($request) {
@@ -31,7 +31,7 @@ class InvoiceController extends Controller
 
     public function show(Invoice $invoice)
     {
-        $invoice->load('datPhong.nguoiDung', 'datPhong.phong.loaiPhong');
+        $invoice->load('datPhong.user', 'datPhong.phong.loaiPhong');
         return view('admin.invoices.show', compact('invoice'));
     }
 
