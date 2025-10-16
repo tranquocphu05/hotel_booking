@@ -29,7 +29,7 @@
                         <td class="px-6 py-4">{{ $u->id }}</td>
                         <td class="px-6 py-4">{{ $u->username }}</td>
                         <td class="px-6 py-4">{{ $u->email }}</td>
-                        <td class="px-6 py-4">{{ $u->vai_tro }}</td>
+                        <td class="px-6 py-4">{{ $u->vai_tro }}<`/td>
                         <td class="px-6 py-4">
                             @if($u->trang_thai === 'hoat_dong')
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">Active</span>
