@@ -47,7 +47,7 @@
                 <select name="loai_phong_id" id="loai_phong_id"
                         class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500" required>
                     <option value="">-- Chọn loại phòng --</option>
-                    @foreach ($loaiPhongs as $loai)
+                    @foreach ($loaiPhongs as $loai) 
                         <option value="{{ $loai->id }}" {{ old('loai_phong_id') == $loai->id ? 'selected' : '' }}>
                             {{ $loai->ten_loai }}
                         </option>

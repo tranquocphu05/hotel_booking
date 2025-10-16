@@ -12,9 +12,9 @@ use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\PhongController;
 use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
 
-// Serve client dashboard at the site root
+// Serve client dashboard at the site root 'dashboard"
 Route::get('/', [ClientDashboardController::class, 'index'])
-    ->name('client.dashboard')
+    ->name('client.home')
     ->middleware([\App\Http\Middleware\AllowClient::class]);
 
 Route::get('/dashboard', function () {
