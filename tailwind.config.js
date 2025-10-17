@@ -12,7 +12,18 @@ export default {
     theme: {
         extend: {
             fontFamily: {
+                // Giữ nguyên cấu hình font sans (Figtree)
                 sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+                
+                // THÊM CẤU HÌNH FONT SERIF (Lý do lỗi dấu)
+                // Đặt 'Times New Roman' lên đầu để ưu tiên font hỗ trợ tiếng Việt tốt nhất
+                serif: [
+                    'Cambria', 
+                    '"Times New Roman"', 
+                    'Times', 
+                    'Georgia', 
+                    ...defaultTheme.fontFamily.serif
+                ],
             },
         },
     },
