@@ -1,15 +1,19 @@
 <!doctype html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>@yield('title', config('app.name'))</title>
-
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+        integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
 </head>
+
 <body class="min-h-screen bg-gray-100 text-gray-800">
     @include('partials.nav')
 
@@ -22,7 +26,11 @@
         @yield('fullwidth_header')
     @endif
 
-    <div class="@hasSection('fullwidth') w-full px-0 mt-6 @else max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 @endif">
+    <div class="@hasSection('fullwidth')
+w-full px-0 mt-6
+@else
+max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6
+@endif">
         @yield('content')
     </div>
 
@@ -31,7 +39,7 @@
         @yield('fullwidth_footer')
     @endif
 
-    @unless(View::hasSection('hideGlobalFooter'))
+    @unless (View::hasSection('hideGlobalFooter'))
         @include('partials.footer')
     @endunless
 
@@ -42,11 +50,11 @@
 
     <script>
         // Coordinate mobile sidebar slide-in/out and aria state
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             var btn = document.getElementById('admin-menu-toggle');
             var sidebar = document.getElementById('admin-sidebar') || document.querySelector('aside.w-64');
             if (btn && sidebar) {
-                btn.addEventListener('click', function (e) {
+                btn.addEventListener('click', function(e) {
                     var expanded = btn.getAttribute('aria-expanded') === 'true';
                     btn.setAttribute('aria-expanded', (!expanded).toString());
                     // toggle transform class for slide-in
@@ -70,4 +78,5 @@
         });
     </script>
 </body>
+
 </html>

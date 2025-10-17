@@ -1,8 +1,12 @@
-@extends('layouts.client')
+@extends('layouts.client') 
 
-@section('title','Dashboard')
+{{-- 1. BANNER/HEADER (FULL-WIDTH) --}}
+@section('fullwidth_header')
+    @include('client.header.header') 
+@endsection
 
-@section('client_content')
-    <h1>Client Dashboard</h1>
-    <p>Welcome, user.</p>
+{{-- 2. NỘI DUNG CHÍNH (CONTAINER GIỚI HẠN) --}}
+@section('client_content') 
+    
+  @include('client.content.content')
 @endsection
