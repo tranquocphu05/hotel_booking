@@ -9,17 +9,49 @@ use Illuminate\Http\Request;
 
 class VoucherController extends Controller
 {
-    // Hiển thị danh sách
-    public function index()
+    // Hiển thị danh sách Vouchers và xử lý LỌC
+    public function index(Request $request)
     {
-        $vouchers = Voucher::orderBy('id', 'desc')->paginate(10);
-        return view('admin.voucher.index', compact('vouchers'));
+        // 1. Lấy tất cả Loại phòng để truyền sang view (cho dropdown Lọc)
+        $loaiPhongs = LoaiPhong::all();
+
+        // 2. Bắt đầu query Builder cho Voucher
+        $vouchersQuery = Voucher::query();
+
+        // Luôn eager load mối quan hệ loaiPhong để hiển thị trong bảng
+        $vouchersQuery->with('loaiPhong');
+
+        // =================================================================
+        //                 XỬ LÝ LOGIC LỌC TỪ REQUEST
+        // =================================================================
+
+        // Lọc theo Loại phòng áp dụng (loai_phong_id)
+        if ($request->filled('loai_phong_id')) {
+            $vouchersQuery->where('loai_phong_id', $request->loai_phong_id);
+        }
+
+        // Lọc theo Trạng thái (trang_thai)
+        if ($request->filled('trang_thai')) {
+            $vouchersQuery->where('trang_thai', $request->trang_thai);
+        }
+
+        // Sắp xếp theo ID giảm dần (mới nhất trước)
+        $vouchersQuery->orderBy('id', 'desc');
+
+        // Lấy kết quả đã lọc và phân trang
+        $vouchers = $vouchersQuery->paginate(10);
+
+        // Điều chỉnh lại đường dẫn phân trang để giữ lại các tham số lọc
+        $vouchers->appends($request->all());
+
+        // Truyền dữ liệu cần thiết sang view Blade
+        return view('admin.voucher.index', compact('vouchers', 'loaiPhongs'));
     }
 
     // Form thêm mới
     public function create()
     {
-        $loaiPhongs = LoaiPhong::where('trang_thai', 'hoat_dong')->get();
+        $loaiPhongs = LoaiPhong::all();
         return view('admin.voucher.create', compact('loaiPhongs'));
     }
 
@@ -59,7 +91,7 @@ class VoucherController extends Controller
     // Form sửa voucher
     public function edit(Voucher $voucher)
     {
-        $loaiPhongs = LoaiPhong::where('trang_thai', 'hoat_dong')->get();
+        $loaiPhongs = LoaiPhong::all();
         return view('admin.voucher.edit', compact('voucher', 'loaiPhongs'));
     }
 
@@ -67,7 +99,7 @@ class VoucherController extends Controller
     public function update(Request $request, Voucher $voucher)
     {
         $request->validate([
-            'ma_voucher'     => 'required|string|max:50|unique:voucher,ma_voucher',
+            'ma_voucher'     => 'required|string|max:50|unique:voucher,ma_voucher,' . $voucher->id,
             'gia_tri'        => 'required|numeric|min:1|max:100',
             'ngay_bat_dau'   => 'required|date',
             'ngay_ket_thuc'  => 'required|date|after_or_equal:ngay_bat_dau',
