@@ -52,7 +52,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm font-medium text-gray-600 mb-1">Doanh thu</p>
-                        <p class="text-3xl font-bold text-gray-900" data-target="{{ App\Models\Invoice::sum('tong_tien') ?? 0 }}">0</p>
+                        <p class="text-3xl font-bold text-gray-900" data-target="{{ App\Models\DatPhong::sum('tong_tien') ?? 0 }}">0</p>
                         <div class="flex items-center mt-2">
                             <span class="text-green-600 text-sm font-medium flex items-center">
                                 <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -76,10 +76,16 @@
                         <p class="text-sm font-medium text-gray-600 mb-1">Tổng phòng</p>
                         <p class="text-3xl font-bold text-gray-900" data-target="{{ App\Models\Phong::count() }}">0</p>
                         <div class="flex items-center mt-2">
-                            <span class="text-blue-600 text-sm font-medium flex items-center">
+                            <a href="{{ route('admin.phong.available') }}" class="text-blue-600 text-sm font-medium flex items-center hover:text-blue-800 transition-colors">
                                 <i class="fas fa-bed mr-1"></i>
-                                {{ App\Models\Phong::where('trang_thai', 'available')->count() }} trống
-                            </span>
+                                @php
+                                    $totalRooms = App\Models\Phong::where('trang_thai', 'hien')->count();
+                                    $bookedRooms = App\Models\DatPhong::whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])->pluck('phong_id')->unique()->count();
+                                    $availableRooms = max(0, $totalRooms - $bookedRooms);
+                                @endphp
+                                {{ $availableRooms }} trống
+                                <i class="fas fa-external-link-alt ml-1 text-xs"></i>
+                            </a>
                         </div>
                     </div>
                     <div class="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center">
@@ -128,7 +134,14 @@
                 <div class="flex items-center justify-between mb-6">
                     <h3 class="text-lg font-semibold text-gray-900">Tỷ lệ lấp đầy phòng</h3>
                     <div class="text-right">
-                        <p class="text-2xl font-bold text-green-600">85%</p>
+                        @php
+                            $totalRooms = App\Models\Phong::where('trang_thai', 'hien')->count();
+                            $bookedRooms = App\Models\DatPhong::whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])->pluck('phong_id')->unique()->count();
+                            $occupancyRate = $totalRooms > 0 ? round(($bookedRooms / $totalRooms) * 100) : 0;
+                            // Đảm bảo occupancy rate không vượt quá 100%
+                            $occupancyRate = min($occupancyRate, 100);
+                        @endphp
+                        <p class="text-2xl font-bold text-green-600">{{ $occupancyRate }}%</p>
                         <p class="text-sm text-gray-500">Tháng này</p>
                     </div>
                 </div>
@@ -164,7 +177,7 @@
                                 </div>
                             </div>
                             <div class="text-right">
-                                <p class="text-sm font-medium text-gray-900">{{ number_format($booking->tong_tien ?? 0) }} VNĐ</p>
+                                <p class="text-sm font-medium text-gray-900">{{ number_format($booking->tong_tien ?? 0, 0, ',', '.') }} VNĐ</p>
                                 <p class="text-xs text-gray-500">{{ \Carbon\Carbon::parse($booking->ngay_dat)->format('d/m/Y') }}</p>
                             </div>
                         </div>
@@ -242,7 +255,7 @@
                 labels: ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'],
                 datasets: [{
                     label: 'Doanh thu (VNĐ)',
-                    data: [12000000, 19000000, 15000000, 25000000, 22000000, 30000000, 28000000, 32000000, 26000000, 35000000, 30000000, 40000000],
+                    data: [{{ App\Models\DatPhong::whereMonth('ngay_dat', 1)->sum('tong_tien') }}, {{ App\Models\DatPhong::whereMonth('ngay_dat', 2)->sum('tong_tien') }}, {{ App\Models\DatPhong::whereMonth('ngay_dat', 3)->sum('tong_tien') }}, {{ App\Models\DatPhong::whereMonth('ngay_dat', 4)->sum('tong_tien') }}, {{ App\Models\DatPhong::whereMonth('ngay_dat', 5)->sum('tong_tien') }}, {{ App\Models\DatPhong::whereMonth('ngay_dat', 6)->sum('tong_tien') }}, {{ App\Models\DatPhong::whereMonth('ngay_dat', 7)->sum('tong_tien') }}, {{ App\Models\DatPhong::whereMonth('ngay_dat', 8)->sum('tong_tien') }}, {{ App\Models\DatPhong::whereMonth('ngay_dat', 9)->sum('tong_tien') }}, {{ App\Models\DatPhong::whereMonth('ngay_dat', 10)->sum('tong_tien') }}, {{ App\Models\DatPhong::whereMonth('ngay_dat', 11)->sum('tong_tien') }}, {{ App\Models\DatPhong::whereMonth('ngay_dat', 12)->sum('tong_tien') }}],
                     borderColor: 'rgb(99, 102, 241)',
                     backgroundColor: revenueGradient,
                     borderWidth: 3,
@@ -275,7 +288,13 @@
                         },
                         ticks: {
                             callback: function(value) {
-                                return (value / 1000000).toFixed(0) + 'M';
+                                if (value >= 1000000) {
+                                    return (value / 1000000).toFixed(0) + 'M VNĐ';
+                                } else if (value >= 1000) {
+                                    return (value / 1000).toFixed(0) + 'K VNĐ';
+                                } else {
+                                    return value.toLocaleString('vi-VN') + ' VNĐ';
+                                }
                             }
                         }
                     },
@@ -299,7 +318,7 @@
             data: {
                 labels: ['Đã đặt', 'Trống'],
                 datasets: [{
-                    data: [85, 15],
+                    data: [{{ $occupancyRate }}, {{ 100 - $occupancyRate }}],
                     backgroundColor: [
                         'rgba(34, 197, 94, 0.8)',
                         'rgba(229, 231, 235, 0.8)'
@@ -343,7 +362,12 @@
                 const eased = 1 - Math.pow(1 - progress, 3); // easeOutCubic
                 const current = start + (to - start) * eased;
                 
-                if (String(el.getAttribute('data-target')).includes('.')) {
+                // Check if this is the revenue element by looking for the dollar sign icon
+                const isRevenueCard = el.closest('.bg-white').querySelector('.fa-dollar-sign');
+                if (isRevenueCard) {
+                    // Format as currency with proper Vietnamese formatting
+                    el.textContent = Math.floor(current).toLocaleString('vi-VN') + ' VNĐ';
+                } else if (String(el.getAttribute('data-target')).includes('.')) {
                     el.textContent = current.toFixed(2) + '%';
                 } else {
                     el.textContent = Math.floor(current).toLocaleString('vi-VN');
@@ -360,7 +384,7 @@
         document.querySelectorAll('[data-target]').forEach((el, index) => {
             setTimeout(() => {
                 const target = parseFloat(el.getAttribute('data-target')) || 0;
-                animateCount(el, target);
+            animateCount(el, target);
             }, index * 200);
         });
 

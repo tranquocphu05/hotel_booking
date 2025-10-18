@@ -54,82 +54,60 @@
                 </form>
             </div>
             {{-- Bảng danh sách Voucher --}}
-            <div class="rounded-xl overflow-x-auto border border-gray-200">
-                <table class="min-w-full divide-y divide-gray-200 text-sm">
-                    <thead class="bg-gray-50">
+            <div class="rounded-xl border border-gray-200 overflow-x-auto">
+                <table class="voucher-table w-full">
+                    <thead>
                         <tr>
-                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">MÃ
-                                VOUCHER</th>
-                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">GIẢM
-                                (%)</th>
-                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">NGÀY
-                                BẮT ĐẦU</th>
-                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">NGÀY
-                                KẾT THÚC</th>
-                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">SỐ
-                                LƯỢNG</th>
-                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">ĐIỀU
-                                KIỆN</th>
-                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">LOẠI
-                                PHÒNG ÁP DỤNG</th>
-                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">TRẠNG
-                                THÁI</th>
-                            <th class="px-4 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">HÀNH
-                                ĐỘNG</th>
+                            <th>MÃ VOUCHER</th>
+                            <th>GIẢM (%)</th>
+                            <th>NGÀY BẮT ĐẦU</th>
+                            <th>NGÀY KẾT THÚC</th>
+                            <th>SỐ LƯỢNG</th>
+                            <th>ĐIỀU KIỆN</th>
+                            <th>LOẠI PHÒNG ÁP DỤNG</th>
+                            <th>TRẠNG THÁI</th>
+                            <th>HÀNH ĐỘNG</th>
                         </tr>
                     </thead>
 
-                    <tbody class="bg-white divide-y divide-gray-100">
+                    <tbody>
                         @forelse ($vouchers as $voucher)
-                            <tr class="hover:bg-gray-50 transition">
-                                <td class="px-4 py-3 font-medium text-gray-800 whitespace-nowrap">{{ $voucher->ma_voucher }}
-                                </td>
-                                <td class="px-4 py-3 text-gray-700 whitespace-nowrap">
-                                    {{ rtrim(rtrim($voucher->gia_tri, '0'), '.') }}%</td>
-                                <td class="px-4 py-3 text-gray-600 whitespace-nowrap">{{ $voucher->ngay_bat_dau }}</td>
-                                <td class="px-4 py-3 text-gray-600 whitespace-nowrap">{{ $voucher->ngay_ket_thuc }}</td>
-                                <td class="px-4 py-3 text-center text-gray-600 whitespace-nowrap">{{ $voucher->so_luong }}
-                                </td>
-
-                                {{-- Điều kiện --}}
-                                <td class="px-4 py-3 text-gray-600 max-w-[180px] overflow-hidden text-ellipsis">
-                                    {{ $voucher->dieu_kien ?? 'Không có' }}
-                                </td>
-
-                                {{-- Loại phòng áp dụng (Hiển thị tên loại phòng) --}}
-                                <td class="px-4 py-3 text-gray-600 whitespace-nowrap">
-                                    {{ $voucher->loaiPhong->ten_loai ?? 'Tất cả' }}
-                                </td>
-
-                                <td class="px-4 py-3">
+                            <tr>
+                                <td>{{ $voucher->ma_voucher }}</td>
+                                <td>{{ rtrim(rtrim($voucher->gia_tri, '0'), '.') }}%</td>
+                                <td>{{ $voucher->ngay_bat_dau }}</td>
+                                <td>{{ $voucher->ngay_ket_thuc }}</td>
+                                <td>{{ $voucher->so_luong }}</td>
+                                <td>{{ $voucher->dieu_kien ?? 'Không có' }}</td>
+                                <td>{{ $voucher->loaiPhong->ten_loai ?? 'Tất cả' }}</td>
+                                <td>
                                     @php
-                                        $statusClass =
-                                            [
-                                                'con_han' => 'text-green-600',
-                                                'het_han' => 'text-red-600',
-                                                'huy' => 'text-gray-800',
-                                            ][$voucher->trang_thai] ?? 'text-gray-600';
-                                        $statusText =
-                                            [
-                                                'con_han' => 'Còn hạn',
-                                                'het_han' => 'Hết hạn',
-                                                'huy' => 'Hủy',
-                                            ][$voucher->trang_thai] ?? 'Không rõ';
+                                        $statusClass = [
+                                            'con_han' => 'text-green-600',
+                                            'het_han' => 'text-red-600',
+                                            'huy' => 'text-gray-800',
+                                        ][$voucher->trang_thai] ?? 'text-gray-600';
+                                        
+                                        $statusText = [
+                                            'con_han' => 'Còn hạn',
+                                            'het_han' => 'Hết hạn',
+                                            'huy' => 'Hủy',
+                                        ][$voucher->trang_thai] ?? 'Không rõ';
                                     @endphp
-                                    <span class="font-medium text-sm {{ $statusClass }}">
+                                    <span class="font-medium {{ $statusClass }}">
                                         {{ $statusText }}
                                     </span>
                                 </td>
-                                <td class="px-4 py-3 text-center whitespace-nowrap">
+                                <td>
                                     <a href="{{ route('admin.voucher.edit', $voucher) }}"
-                                        class="text-blue-500 hover:text-blue-700 font-medium text-sm mr-2">
+                                        class="text-blue-500 hover:text-blue-700 font-medium mr-2">
                                         Sửa
                                     </a>
                                     <form method="POST" action="{{ route('admin.voucher.destroy', $voucher) }}"
                                         class="inline" onsubmit="return confirm('Xóa voucher này?')">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="text-red-500 hover:text-red-700 font-medium text-sm">
+                                        <button type="submit" class="text-red-500 hover:text-red-700 font-medium">
                                             Xóa
                                         </button>
                                     </form>

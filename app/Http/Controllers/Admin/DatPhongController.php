@@ -169,10 +169,8 @@ class DatPhongController extends Controller
 
     public function create()
     {
-        // Lấy danh sách phòng còn trống
-        $rooms = Phong::where('trang_thai', 'trong')
-            ->with('loaiPhong')
-            ->get();
+        // Lấy tất cả phòng (không lọc theo trạng thái để admin có thể đặt bất kỳ phòng nào)
+        $rooms = Phong::with('loaiPhong')->get();
 
         // Lấy danh sách voucher còn hiệu lực
         $vouchers = Voucher::where('trang_thai', 'con_han')
@@ -211,11 +209,10 @@ class DatPhongController extends Controller
             'cccd.required' => 'Vui lòng nhập CCCD/CMND'
         ]);
 
-        // Kiểm tra phòng có còn trống không
+        // Kiểm tra phòng có tồn tại không
         $room = Phong::findOrFail($request->phong_id);
-        if ($room->trang_thai !== 'trong') {
-            return back()->with('error', 'Phòng đã được đặt, vui lòng chọn phòng khác.');
-        }
+        
+        // Admin có thể đặt bất kỳ phòng nào, không cần kiểm tra trạng thái
 
         // Lấy tổng tiền đã được tính toán ở client-side (đã bao gồm giảm giá nếu có)
         $tongTien = $request->tong_tien;
@@ -254,10 +251,30 @@ class DatPhongController extends Controller
             'cccd' => $request->cccd
         ]);
 
-        // Cập nhật trạng thái phòng
-        $room->update(['trang_thai' => 'da_dat']);
+        // Cập nhật trạng thái phòng (không cần thay đổi vì admin có thể đặt bất kỳ phòng nào)
+        // $room->update(['trang_thai' => 'da_dat']); // Bỏ comment vì không cần thay đổi trạng thái phòng
 
         return redirect()->route('admin.dat_phong.index')
             ->with('success', 'Đặt phòng thành công!');
+    }
+
+    public function blockRoom($id)
+    {
+        $booking = DatPhong::findOrFail($id);
+        
+        // Chỉ cho phép chống phòng khi đã xác nhận
+        if ($booking->trang_thai !== 'da_xac_nhan') {
+            return redirect()->route('admin.dat_phong.index')
+                ->with('error', 'Chỉ có thể chống phòng đã xác nhận');
+        }
+        
+        // Cập nhật trạng thái phòng thành "chống"
+        $booking->phong->update(['trang_thai' => 'chong']);
+        
+        // Cập nhật trạng thái đặt phòng thành "đã chống"
+        $booking->update(['trang_thai' => 'da_chong']);
+        
+        return redirect()->route('admin.dat_phong.index')
+            ->with('success', 'Đã chống phòng thành công! Phòng không thể đặt được cho đến khi hủy chống.');
     }
 }

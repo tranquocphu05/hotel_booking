@@ -6,6 +6,8 @@
     <title>@yield('title', 'Admin Dashboard')</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- CKEditor CDN -->
+    <script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -965,6 +967,199 @@
         .dark .pagination .active {
             background-color: #6366f1 !important;
             color: #ffffff !important;
+        }
+        
+        /* Enhanced Input Styling */
+        input[type="text"], 
+        input[type="number"], 
+        input[type="email"], 
+        input[type="password"], 
+        input[type="search"],
+        textarea, 
+        select {
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        input[type="text"]:focus, 
+        input[type="number"]:focus, 
+        input[type="email"]:focus, 
+        input[type="password"]:focus, 
+        input[type="search"]:focus,
+        textarea:focus, 
+        select:focus {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        input[type="file"] {
+            transition: all 0.3s ease;
+        }
+        
+        input[type="file"]:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* File input styling */
+        input[type="file"]::file-selector-button {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            margin-right: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        input[type="file"]::file-selector-button:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+        
+        /* Label styling */
+        label {
+            font-weight: 600;
+            letter-spacing: 0.025em;
+        }
+        
+        /* Form group spacing */
+        .space-y-6 > div {
+            margin-bottom: 1.5rem;
+        }
+        
+        /* Enhanced focus states */
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #10b981;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        }
+        
+        /* Placeholder styling */
+        input::placeholder, textarea::placeholder {
+            color: #9ca3af;
+            font-style: italic;
+        }
+        
+        /* Error state styling */
+        .border-red-300:focus {
+            border-color: #ef4444 !important;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+        }
+        
+        /* CKEditor Styling */
+        .ck-editor__editable {
+            min-height: 300px !important;
+            border: 1px solid #d1d5db !important;
+            border-radius: 0.5rem !important;
+        }
+        
+        .ck-editor__editable:focus {
+            border-color: #10b981 !important;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1) !important;
+        }
+        
+        .ck-toolbar {
+            border: 1px solid #d1d5db !important;
+            border-bottom: none !important;
+            border-radius: 0.5rem 0.5rem 0 0 !important;
+        }
+        
+        .ck-editor {
+            border-radius: 0.5rem !important;
+            overflow: hidden !important;
+        }
+        
+        /* Ensure CKEditor is visible */
+        .ck-editor__main {
+            display: block !important;
+        }
+        
+        .ck-editor__editable_inline {
+            padding: 1rem !important;
+        }
+        
+        /* Description column styling */
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        /* Table description cell - Fixed width */
+        .table-description {
+            width: 192px; /* w-48 = 12rem = 192px */
+            max-width: 192px;
+            min-width: 192px;
+            word-wrap: break-word;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        /* Description column in table */
+        table th:nth-child(5),
+        table td:nth-child(5) {
+            width: 200px;
+            max-width: 200px;
+            min-width: 200px;
+        }
+        
+        /* Description tooltip */
+        .description-tooltip {
+            position: relative;
+            cursor: help;
+        }
+        
+        .description-tooltip:hover::after {
+            content: attr(title);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1f2937;
+            color: white;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            z-index: 1000;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Voucher table styling - Clean layout */
+        .voucher-table {
+            table-layout: auto;
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .voucher-table th,
+        .voucher-table td {
+            padding: 12px 8px;
+            vertical-align: middle;
+            border: 1px solid #e5e7eb;
+            text-align: left;
+        }
+        
+        .voucher-table th {
+            background-color: #f9fafb;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .voucher-table td {
+            font-size: 0.875rem;
+        }
+        
+        .voucher-table tr:hover {
+            background-color: #f9fafb;
         }
     </style>
     

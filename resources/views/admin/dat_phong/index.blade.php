@@ -122,6 +122,7 @@
                                         @if ($booking->trang_thai === 'da_xac_nhan') bg-green-100 text-green-800
                                         @elseif($booking->trang_thai === 'cho_xac_nhan') bg-yellow-100 text-yellow-800
                                         @elseif($booking->trang_thai === 'da_huy') bg-red-100 text-red-800
+                                        @elseif($booking->trang_thai === 'da_chong') bg-orange-100 text-orange-800
                                         @else bg-blue-100 text-blue-800 @endif">
                                             @php
                                                 $statuses = [
@@ -129,6 +130,7 @@
                                                     'da_xac_nhan' => 'Đã xác nhận',
                                                     'da_huy' => 'Đã hủy',
                                                     'da_tra' => 'Đã trả phòng',
+                                                    'da_chong' => 'Đã chống',
                                                 ];
                                             @endphp
                                             {{ $statuses[$booking->trang_thai] ?? $booking->trang_thai }}
@@ -231,6 +233,20 @@
                                             Hủy đặt phòng
                                         </a>
                                     </div>
+                                @elseif ($booking->trang_thai === 'da_xac_nhan')
+                                    <div class="px-4 py-3 bg-green-50 text-right">
+                                        <div class="flex items-center justify-center text-green-600 font-medium text-sm">
+                                            <i class="fas fa-check-circle mr-2"></i>
+                                            Phòng đã được đặt và xác nhận
+                                        </div>
+                                    </div>
+                                @elseif ($booking->trang_thai === 'da_chong')
+                                    <div class="px-4 py-3 bg-orange-50 text-right">
+                                        <div class="flex items-center justify-center text-orange-600 font-medium text-sm">
+                                            <i class="fas fa-ban mr-2"></i>
+                                            Phòng đã bị chống
+                                        </div>
+                                    </div>
                                 @endif
                             </div>
                         @endforeach
@@ -291,5 +307,33 @@
                     });
             }
         });
+
+        // Function to block room
+        function blockRoom(bookingId) {
+            if (confirm('Bạn có chắc chắn muốn chống phòng này? Phòng sẽ không thể đặt được cho đến khi bạn hủy chống.')) {
+                // Create form to submit block request
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `/admin/dat_phong/${bookingId}/block`;
+                
+                // Add CSRF token
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = '_token';
+                csrfInput.value = csrfToken;
+                form.appendChild(csrfInput);
+                
+                // Add method override for PUT
+                const methodInput = document.createElement('input');
+                methodInput.type = 'hidden';
+                methodInput.name = '_method';
+                methodInput.value = 'PUT';
+                form.appendChild(methodInput);
+                
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
     </script>
-@endpush
+    @endpush
