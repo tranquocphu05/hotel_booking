@@ -97,20 +97,29 @@
 </div>
 
 {{-- JS Preview ảnh --}}
+@endsection
+
+@push('scripts')
 <script>
-document.getElementById('img').addEventListener('change', function(e) {
-    const file = e.target.files[0];
+document.addEventListener('DOMContentLoaded', function() {
+    const imgInput = document.getElementById('img');
     const preview = document.getElementById('preview');
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = event => {
-            preview.src = event.target.result;
-            preview.classList.remove('hidden');
-        };
-        reader.readAsDataURL(file);
-    } else {
-        preview.classList.add('hidden');
+    
+    if (imgInput && preview) {
+        imgInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    preview.src = event.target.result;
+                    preview.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            } else {
+                preview.classList.add('hidden');
+            }
+        });
     }
 });
 </script>
-@endsection
+@endpush

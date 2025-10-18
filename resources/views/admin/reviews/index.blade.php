@@ -98,7 +98,7 @@
     </div>
 
     {{-- Modal hiển thị chi tiết --}}
-    <div id="modalOverlay" class="hidden fixed inset-0 bg-black/40 flex justify-center items-center z-50">
+    <div id="modalOverlay" class="hidden fixed inset-0 bg-black/40 flex justify-center items-center z-50" style="display: none !important;">
         <div class="bg-white rounded-2xl shadow-lg p-6 w-[420px] max-w-[90%]">
             <h5 id="modalTitle" class="text-lg font-semibold mb-3">Chi tiết đánh giá</h5>
             <div id="modalContent" class="text-sm text-gray-700 mb-4"></div>
@@ -108,146 +108,167 @@
         </div>
     </div>
 
-    <script>
-        document.getElementById('searchBox').addEventListener('input', function() {
-            this.form.submit(); // mỗi lần gõ sẽ tự submit GET
-        });
-
-        // --- TOGGLE STATUS ---
-        function toggleStatus(id, status) {
-            if (!status) {
-                // Nếu là ẩn → hỏi lý do
-                const reason = prompt('Nhập lý do ẩn đánh giá:');
-                if (!reason) {
-                    alert('Bạn phải nhập lý do để ẩn đánh giá!');
-                    return;
-                }
-                sendToggleRequest(id, status, reason);
-            } else {
-                // Nếu là hiển thị → không cần lý do
-                sendToggleRequest(id, status, null);
-            }
-        }
-
-        function sendToggleRequest(id, status, reason = null) {
-            fetch(`/admin/reviews/${id}/toggle`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    },
-                    body: JSON.stringify({
-                        status: status,
-                        reason: reason
-                    })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.message === 'Success') {
-                        alert(status ? 'Đánh giá đã được hiển thị lại.' : 'Đánh giá đã được ẩn.');
-                        location.reload();
-                    } else {
-                        alert(data.message || 'Có lỗi xảy ra.');
-                    }
-                })
-                .catch(() => alert('Không thể kết nối đến máy chủ.'));
-        }
-
-        function showDetail(id) {
-            fetch(`/admin/reviews/${id}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.message === 'Success') {
-                        const r = data.data;
-                        const html = `
-                        <p><b>Người dùng:</b> ${r.name}</p>
-                        <p><b>Đánh giá:</b> ${'⭐'.repeat(r.review.rating)}</p>
-                        <p class="mt-2">${r.review.content}</p>
-                        <p><b>Trạng thái:</b> ${r.moderation.is_active ? 'Hiển thị' : 'Ẩn'}</p>
-                        <p><b>Ngày tạo:</b> ${r.review.created_at}</p>
-                    `;
-                        openModal('Chi tiết đánh giá', html);
-                    }
-                });
-        }
-
-        function showReply(id) {
-            fetch(`/admin/reviews/${id}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.message === 'Success') {
-                        const r = data.data;
-                        const reply = r.moderation.reply ?? '';
-                        const hasReply = reply.trim() !== '';
-
-                        let html = `
-                    <textarea id="replyText" class="w-full border rounded-lg p-2 mb-3" rows="4" placeholder="Nhập phản hồi...">${reply}</textarea>
-                    <div class="flex gap-2">
-                        <button onclick="submitReply(${id})" class="flex-1 bg-blue-600 text-white rounded-lg py-2 hover:bg-blue-700">
-                            ${hasReply ? 'Cập nhật phản hồi' : 'Gửi phản hồi'}
-                        </button>
-                        ${hasReply ? `
-                                                                                            <button onclick="deleteReply(${id})" class="flex-1 bg-red-500 text-white rounded-lg py-2 hover:bg-red-600">
-                                                                                                Xóa phản hồi
-                                                                                            </button>` : ''}
-                    </div>
-                `;
-
-                        openModal('Phản hồi đánh giá', html);
-                    }
-                });
-        }
-
-        function submitReply(id) {
-            const text = document.getElementById('replyText').value.trim();
-            if (!text) return alert('Vui lòng nhập phản hồi!');
-
-            fetch(`/admin/reviews/${id}/reply`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    },
-                    body: JSON.stringify({
-                        reply: text
-                    })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    alert(data.message || 'Đã gửi phản hồi!');
-                    closeModal();
-                    location.reload();
-                })
-                .catch(() => alert('Lỗi phản hồi.'));
-        }
-
-
-        function deleteReply(id) {
-            if (!confirm('Bạn có chắc muốn xóa phản hồi này?')) return;
-
-            fetch(`/admin/reviews/${id}/reply`, {
-                    method: 'DELETE',
-                    headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    }
-                })
-                .then(res => res.json())
-                .then(data => {
-                    alert(data.message || 'Đã xóa phản hồi.');
-                    closeModal();
-                    location.reload();
-                })
-                .catch(() => alert('Không thể xóa phản hồi.'));
-        }
-
-        function openModal(title, content) {
-            document.getElementById('modalTitle').innerText = title;
-            document.getElementById('modalContent').innerHTML = content;
-            document.getElementById('modalOverlay').classList.remove('hidden');
-        }
-
-        function closeModal() {
-            document.getElementById('modalOverlay').classList.add('hidden');
-        }
-    </script>
 @endsection
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Đảm bảo modal ẩn khi trang load
+        const modalOverlay = document.getElementById('modalOverlay');
+        if (modalOverlay) {
+            modalOverlay.classList.remove('show');
+        }
+        
+        // Search functionality
+        const searchInput = document.querySelector('input[name="keyword"]');
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                this.form.submit();
+            });
+        }
+    });
+
+    // Toggle status function
+    function toggleStatus(id, status) {
+        if (!status) {
+            const reason = prompt('Nhập lý do ẩn đánh giá:');
+            if (!reason) {
+                alert('Bạn phải nhập lý do để ẩn đánh giá!');
+                return;
+            }
+            sendToggleRequest(id, status, reason);
+        } else {
+            sendToggleRequest(id, status, null);
+        }
+    }
+
+    function sendToggleRequest(id, status, reason = null) {
+        fetch(`/admin/reviews/${id}/toggle`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    status: status,
+                    reason: reason
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.message === 'Success') {
+                    alert(status ? 'Đánh giá đã được hiển thị lại.' : 'Đánh giá đã được ẩn.');
+                    location.reload();
+                } else {
+                    alert(data.message || 'Có lỗi xảy ra.');
+                }
+            })
+            .catch(() => alert('Không thể kết nối đến máy chủ.'));
+    }
+
+    function showDetail(id) {
+        fetch(`/admin/reviews/${id}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.message === 'Success') {
+                    const r = data.data;
+                    const html = `
+                    <p><b>Người dùng:</b> ${r.name}</p>
+                    <p><b>Đánh giá:</b> ${'⭐'.repeat(r.review.rating)}</p>
+                    <p class="mt-2">${r.review.content}</p>
+                    <p><b>Trạng thái:</b> ${r.moderation.is_active ? 'Hiển thị' : 'Ẩn'}</p>
+                    <p><b>Ngày tạo:</b> ${r.review.created_at}</p>
+                `;
+                    openModal('Chi tiết đánh giá', html);
+                }
+            });
+    }
+
+    function showReply(id) {
+        fetch(`/admin/reviews/${id}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.message === 'Success') {
+                    const r = data.data;
+                    const reply = r.moderation.reply ?? '';
+                    const hasReply = reply.trim() !== '';
+
+                    let html = `
+                <textarea id="replyText" class="w-full border rounded-lg p-2 mb-3" rows="4" placeholder="Nhập phản hồi...">${reply}</textarea>
+                <div class="flex gap-2">
+                    <button onclick="submitReply(${id})" class="flex-1 bg-blue-600 text-white rounded-lg py-2 hover:bg-blue-700">
+                        ${hasReply ? 'Cập nhật phản hồi' : 'Gửi phản hồi'}
+                    </button>
+                    ${hasReply ? `
+                        <button onclick="deleteReply(${id})" class="flex-1 bg-red-500 text-white rounded-lg py-2 hover:bg-red-600">
+                            Xóa phản hồi
+                        </button>` : ''}
+                </div>
+            `;
+
+                    openModal('Phản hồi đánh giá', html);
+                }
+            });
+    }
+
+    function submitReply(id) {
+        const text = document.getElementById('replyText').value.trim();
+        if (!text) return alert('Vui lòng nhập phản hồi!');
+
+        fetch(`/admin/reviews/${id}/reply`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    reply: text
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert(data.message || 'Đã gửi phản hồi!');
+                closeModal();
+                location.reload();
+            })
+            .catch(() => alert('Lỗi phản hồi.'));
+    }
+
+    function deleteReply(id) {
+        if (!confirm('Bạn có chắc muốn xóa phản hồi này?')) return;
+
+        fetch(`/admin/reviews/${id}/reply`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert(data.message || 'Đã xóa phản hồi.');
+                closeModal();
+                location.reload();
+            })
+            .catch(() => alert('Không thể xóa phản hồi.'));
+    }
+
+    function openModal(title, content) {
+        const modalOverlay = document.getElementById('modalOverlay');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalContent = document.getElementById('modalContent');
+        
+        if (modalTitle) modalTitle.innerText = title;
+        if (modalContent) modalContent.innerHTML = content;
+        if (modalOverlay) {
+            modalOverlay.classList.add('show');
+        }
+    }
+
+    function closeModal() {
+        const modalOverlay = document.getElementById('modalOverlay');
+        if (modalOverlay) {
+            modalOverlay.classList.remove('show');
+        }
+    }
+</script>
+@endpush
