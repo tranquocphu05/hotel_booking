@@ -89,6 +89,10 @@ Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\Allow
 
     Route::get('/lien-he', [ClientContactController::class, 'index'])->name('lienhe');
     Route::get('/gioi-thieu', [ClientGioiThieuController::class, 'index'])->name('gioithieu');
+
+    // Routes for Payment
+    Route::get('/thanh-toan/{datPhong}', [\App\Http\Controllers\Client\ThanhToanController::class, 'show'])->name('thanh-toan.show');
+    Route::post('/thanh-toan/{datPhong}', [\App\Http\Controllers\Client\ThanhToanController::class, 'store'])->name('thanh-toan.store');
 });
 
 // Public impersonation stop (in case admin is impersonating)
