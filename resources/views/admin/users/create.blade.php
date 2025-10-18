@@ -58,6 +58,6 @@
                 <option value="khoa">khoa</option>
             </select>
         </div>
-        <button class="px-3 py-1 bg-green-600 text-white rounded">Save</button>
+        <button class="btn-success btn-animate btn-pulse">Save User</button>
     </form>
 @endsection
