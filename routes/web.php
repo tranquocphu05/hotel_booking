@@ -55,6 +55,8 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin
 
     Route::resource('users', \App\Http\Controllers\Admin\UserController::class)->names('users');
     Route::resource('loai_phong', LoaiPhongController::class)->names('loai_phong');
+    Route::get('phong/available', [PhongController::class, 'available'])->name('phong.available');
+    Route::put('phong/{id}/block', [PhongController::class, 'blockRoom'])->name('phong.block');
     Route::resource('phong', PhongController::class)->names('phong');
     Route::resource('invoices', InvoiceController::class)->names('invoices');
     Route::resource('voucher', VoucherController::class)->names('voucher');
@@ -84,6 +86,7 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin
         Route::delete('/{id}', [DatPhongController::class, 'destroy'])->name('destroy');
         Route::get('/{id}/cancel', [DatPhongController::class, 'showCancelForm'])->name('cancel');
         Route::post('/{id}/cancel', [DatPhongController::class, 'submitCancel'])->name('cancel.submit');
+        Route::put('/{id}/block', [DatPhongController::class, 'blockRoom'])->name('block');
     });
 });
 
