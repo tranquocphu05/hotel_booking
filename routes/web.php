@@ -11,10 +11,13 @@ use App\Http\Controllers\Admin\LoaiPhongController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\PhongController;
 use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
+use App\Http\Controllers\Client\PhongController as ClientPhongController;
+use App\Http\Controllers\Client\ContactController as ClientContactController;
+use App\Http\Controllers\Client\GioiThieuController as ClientGioiThieuController;
 
-// Serve client dashboard at the site root
+// Serve client dashboard at the site root 'dashboard"
 Route::get('/', [ClientDashboardController::class, 'index'])
-    ->name('client.dashboard')
+    ->name('client.home')
     ->middleware([\App\Http\Middleware\AllowClient::class]);
 
 Route::get('/dashboard', function () {
@@ -81,6 +84,11 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin
 // =======================
 Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\AllowClient::class])->group(function () {
     Route::get('/dashboard', [ClientDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/phong', [ClientPhongController::class, 'index'])->name('phong');
+    Route::get('/phong/{id}', [ClientPhongController::class, 'show'])->name('phong.show');
+
+    Route::get('/lien-he', [ClientContactController::class, 'index'])->name('lienhe');
+    Route::get('/gioi-thieu', [ClientGioiThieuController::class, 'index'])->name('gioithieu');
 });
 
 // Public impersonation stop (in case admin is impersonating)
