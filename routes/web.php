@@ -1,21 +1,26 @@
 <?php
 
-use App\Http\Controllers\Admin\CommentController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProfileController;
+
+// Admin Controllers
+use App\Http\Controllers\Admin\CommentController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\VoucherController;
 use App\Http\Controllers\Admin\DatPhongController;
 use App\Http\Controllers\Admin\LoaiPhongController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\PhongController;
+
+// Client Controllers 
 use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
 use App\Http\Controllers\Client\PhongController as ClientPhongController;
 use App\Http\Controllers\Client\ContactController as ClientContactController;
 use App\Http\Controllers\Client\GioiThieuController as ClientGioiThieuController;
+use App\Http\Controllers\Client\TinTucController as ClientTinTucController; 
 
-// Serve client dashboard at the site root 'dashboard"
+
 Route::get('/', [ClientDashboardController::class, 'index'])
     ->name('client.home')
     ->middleware([\App\Http\Middleware\AllowClient::class]);
@@ -89,6 +94,10 @@ Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\Allow
 
     Route::get('/lien-he', [ClientContactController::class, 'index'])->name('lienhe');
     Route::get('/gioi-thieu', [ClientGioiThieuController::class, 'index'])->name('gioithieu');
+
+
+    Route::get('/tin-tuc', [ClientTinTucController::class, 'index'])->name('tintuc'); 
+    Route::get('/tin-tuc/{slug}', [ClientTinTucController::class, 'chitiettintuc'])->name('tintuc.show'); 
 });
 
 // Public impersonation stop (in case admin is impersonating)
