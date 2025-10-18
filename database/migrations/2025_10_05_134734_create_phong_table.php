@@ -22,7 +22,7 @@ public function up(): void
         $table->string('ten_phong', 100)->nullable();
         $table->text('mo_ta')->nullable();
         $table->decimal('gia', 15, 2)->nullable();
-        $table->enum('trang_thai', ['trong', 'da_dat', 'bao_tri'])->default('trong');
+        $table->enum('trang_thai', ['hien', 'an', 'Bảo Trì'])->default('hien');
         $table->string('img', 255)->nullable();
     });
 }
