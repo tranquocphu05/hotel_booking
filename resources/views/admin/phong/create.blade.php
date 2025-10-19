@@ -25,18 +25,12 @@
                 <label for="ten_phong" class="block text-gray-700 font-medium mb-1">Tên phòng</label>
                 <input type="text" name="ten_phong" id="ten_phong" value="{{ old('ten_phong') }}"
                        class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500" required>
-                @error('ten_phong')
-                    <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
-                @enderror
             </div>
 
             <div>
                 <label for="gia" class="block text-gray-700 font-medium mb-1">Giá (₫)</label>
                 <input type="number" name="gia" id="gia" value="{{ old('gia') }}" maxlength="9"
                        class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500" required>
-                @error('gia')
-                    <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
-                @enderror
             </div>
         </div>
 
@@ -53,9 +47,6 @@
                         </option>
                     @endforeach
                 </select>
-                @error('loai_phong_id')
-                    <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
-                @enderror
             </div>
 
             <div>
@@ -73,15 +64,14 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
                 <label for="mo_ta" class="block text-gray-700 font-medium mb-1">Mô tả</label>
-                <textarea name="mo_ta" id="mo_ta" rows="4"
-                          class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500">{{ old('mo_ta') }}</textarea>
+                <textarea name="mo_ta" id="mo_ta" rows="8" class="w-full border-gray-300 rounded-lg shadow-sm">{{ old('mo_ta') }}</textarea>
             </div>
 
             <div>
                 <label for="img" class="block text-gray-700 font-medium mb-1">Ảnh phòng</label>
                 <input type="file" name="img" id="img"
                        class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500">
-<img id="preview" class="hidden w-[120px] h-[90px] object-cover rounded-lg border border-gray-300 shadow-sm mt-3">
+                <img id="preview" class="hidden w-[120px] h-[90px] object-cover rounded-lg border border-gray-300 shadow-sm mt-3">
             </div>
         </div>
 
@@ -99,21 +89,32 @@
     </form>
 </div>
 
-{{-- JS Preview ảnh --}}
+{{-- JS Preview ảnh + TinyMCE --}}
+<script src="https://cdn.jsdelivr.net/npm/tinymce@6.8.2/tinymce.min.js"></script>
 <script>
-document.getElementById('img').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    const preview = document.getElementById('preview');
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = event => {
-            preview.src = event.target.result;
-            preview.classList.remove('hidden');
-        };
-        reader.readAsDataURL(file);
-    } else {
-        preview.classList.add('hidden');
-    }
-});
+  tinymce.init({
+    selector: 'textarea[name="mo_ta"]',
+    height: 400,
+    menubar: false,
+    plugins: 'lists link image table code',
+    toolbar: 'undo redo | bold italic underline | bullist numlist | link image | table | code',
+    branding: false,
+    content_style: 'body { font-family:Inter, sans-serif; font-size:14px }'
+  });
+
+  document.getElementById('img').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      const preview = document.getElementById('preview');
+      if (file) {
+          const reader = new FileReader();
+          reader.onload = event => {
+              preview.src = event.target.result;
+              preview.classList.remove('hidden');
+          };
+          reader.readAsDataURL(file);
+      } else {
+          preview.classList.add('hidden');
+      }
+  });
 </script>
 @endsection

@@ -46,6 +46,7 @@
                     <th class="px-6 py-3 text-center border-b">Tên phòng</th>
                     <th class="px-6 py-3 text-center border-b">Loại</th>
                     <th class="px-6 py-3 text-center border-b">Giá</th>
+                    <th class="px-6 py-3 text-center border-b">Mô tả</th>
                     <th class="px-6 py-3 text-center border-b">Ảnh</th>
                     <th class="px-6 py-3 text-center border-b">Trạng thái</th>
                     <th class="px-6 py-3 text-center border-b">Thao tác</th>
@@ -58,6 +59,9 @@
                         <td class="px-6 py-3 text-center font-medium">{{ $phong->ten_phong }}</td>
                         <td class="px-6 py-3 text-center">{{ $phong->loaiPhong->ten_loai ?? '-' }}</td>
                         <td class="px-6 py-3 text-center text-blue-600 font-semibold">{{ number_format($phong->gia, 0, ',', '.') }}₫</td>
+                        <td class="px-6 py-3 text-left text-gray-600">
+                            {!! Str::limit($phong->mo_ta, 50) !!}
+                        </td>
                         <td class="px-6 py-3 text-center">
                             @if($phong->img)
                                 <img src="{{ asset($phong->img) }}" class="w-14 h-14 object-cover rounded-lg mx-auto shadow">
