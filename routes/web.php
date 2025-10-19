@@ -100,6 +100,10 @@ Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\Allow
 
     Route::get('/lien-he', [ClientContactController::class, 'index'])->name('lienhe');
     Route::get('/gioi-thieu', [ClientGioiThieuController::class, 'index'])->name('gioithieu');
+
+    // Tin tức routes
+    Route::get('/tintuc', [ClientTinTucController::class, 'index'])->name('tintuc');
+    Route::get('/tintuc/{id}', [ClientTinTucController::class, 'show'])->name('tintuc.show');
 });
 
 // Public impersonation stop (in case admin is impersonating)
