@@ -1,146 +1,144 @@
 @extends('layouts.admin')
-
-@section('title','Danh sách Hóa đơn')
+@section('title', 'Danh sách Hóa đơn')
 
 @section('admin_content')
-<div class="container mx-auto px-4 sm:px-8">
-    <div class="py-8">
-        <div>
-            <h2 class="text-2xl font-semibold leading-tight">Danh sách Hóa đơn</h2>
-        </div>
+<div class="bg-white rounded-2xl shadow p-6 mt-8 mb-8 w-full">
+  {{-- Header --}}
+  <div class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+    <h2 class="text-3xl font-semibold text-gray-800 flex items-center gap-2">
+      <i class="fas fa-file-invoice text-blue-600 text-3xl"></i> Danh sách Hóa đơn
+    </h2>
+  </div>
 
-        @if (session('success'))
-            <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
-                <span class="block sm:inline">{{ session('success') }}</span>
-            </div>
-        @endif
-
-        <div class="my-2 flex sm:flex-row flex-col">
-            <form action="{{ route('admin.invoices.index') }}" method="GET" class="flex flex-col sm:flex-row">
-                <div class="flex flex-row mb-1 sm:mb-0">
-                    <div class="relative">
-                        <select name="user_id" class="h-full rounded-l border block appearance-none w-full bg-white border-gray-400 text-gray-700 py-2 px-4 pr-8 leading-tight focus:outline-none focus:bg-white focus:border-gray-500">
-                            <option value="">Tất cả Khách hàng</option>
-                            @foreach($users as $user)
-                                <option value="{{ $user->id }}" {{ request('user_id') == $user->id ? 'selected' : '' }}>{{ $user->ho_ten ?? $user->username }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="relative">
-                        <select name="status" class="h-full rounded-r border-t sm:rounded-r-none sm:border-r-0 border-r border-b block appearance-none w-full bg-white border-gray-400 text-gray-700 py-2 px-4 pr-8 leading-tight focus:outline-none focus:bg-white focus:border-gray-500">
-                            <option value="">Tất cả Trạng thái</option>
-                            <option value="cho_thanh_toan" {{ request('status') == 'cho_thanh_toan' ? 'selected' : '' }}>Chờ thanh toán</option>
-                            <option value="da_thanh_toan" {{ request('status') == 'da_thanh_toan' ? 'selected' : '' }}>Đã thanh toán</option>
-                            <option value="hoan_tien" {{ request('status') == 'hoan_tien' ? 'selected' : '' }}>Hoàn tiền</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="block relative ml-2">
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Lọc</button>
-                </div>
-            </div>
-        </form>
-        </div>
-        <div class="-mx-4 sm:-mx-8 px-4 sm:px-8 py-4 overflow-x-auto">
-            <div class="inline-block min-w-full shadow rounded-lg overflow-hidden">
-                <table class="min-w-full leading-normal">
-                    <thead>
-                        <tr>
-                            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                ID
-                            </th>
-                            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                Khách hàng
-                            </th>
-                            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                CCCD
-                            </th>
-
-                            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                Tên Phòng
-                            </th>
-                            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                Tổng tiền
-                            </th>
-                            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                Phương thức thanh toán
-                            </th>
-                            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                Trạng thái
-                            </th>
-                            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                Ngày tạo
-                            </th>
-                            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                Thao Tác
-                            </th>
-
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse ($invoices as $invoice)
-                            <tr>
-                                <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                                    <p class="text-gray-900 whitespace-no-wrap">{{ $invoice->id }}</p>
-                                </td>
-                                <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                                    <p class="text-gray-900 whitespace-no-wrap">{{ $invoice->datPhong->user->ho_ten ?? 'N/A' }}</p>
-                                </td>
-                                <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                                    <p class="text-gray-900 whitespace-no-wrap">{{ $invoice->datPhong->user->cccd  }}</p>
-                                </td>
-
-                                <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                                    <p class="text-gray-900 whitespace-no-wrap">{{ $invoice->datPhong->phong->ten_phong ?? 'N/A' }}</p>
-                                </td>
-                                <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                                    <p class="text-gray-900 whitespace-no-wrap">{{ number_format($invoice->tong_tien, 0, ',', '.') }} VNĐ</p>
-                                </td>
-                                <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                                    <p class="text-gray-900 whitespace-no-wrap">{{ $invoice->phuong_thuc }}</p>
-                                </td>
-                                <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                                    <span class="relative inline-block px-3 py-1 font-semibold text-green-900 leading-tight">
-                                        <span aria-hidden class="absolute inset-0 {{ $invoice->trang_thai == 'da_thanh_toan' ? 'bg-green-200' : ($invoice->trang_thai == 'cho_thanh_toan' ? 'bg-yellow-200' : 'bg-red-200') }} opacity-50 rounded-full"></span>
-                                        <span class="relative">{{ $invoice->trang_thai }}</span>
-                                    </span>
-                                </td>
-                                <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                                    <p class="text-gray-900 whitespace-no-wrap">
-                                        {{ $invoice->ngay_tao->format('d/m/Y H:i') }}
-                                    </p>
-                                </td>
-                                <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm text-right">
-                                    <div class="flex justify-end items-center">
-                                        <a href="{{ route('admin.invoices.show', $invoice->id) }}" class="text-blue-600 hover:text-blue-900 mr-3">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                            </svg>
-                                        </a>
-                                        <a href="{{ route('admin.invoices.edit', $invoice->id) }}" class="text-indigo-600 hover:text-indigo-900 mr-3">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                            </svg>
-                                        </a>
-
-                                    </div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="7" class="px-5 py-5 border-b border-gray-200 bg-white text-sm text-center">
-                                    <p class="text-gray-900 whitespace-no-wrap">Không có hóa đơn nào</p>
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-                <div class="px-5 py-5 bg-white border-t flex flex-col xs:flex-row items-center xs:justify-between">
-                    {{ $invoices->links() }}
-                </div>
-            </div>
-        </div>
+  {{-- Success --}}
+  @if(session('success'))
+    <div class="mb-6 p-4 rounded-lg bg-green-100 text-green-800 text-sm font-medium shadow-sm">
+      {{ session('success') }}
     </div>
--,</div>
+  @endif
+
+  {{-- Filter --}}
+  <div class="mb-6 bg-gray-50 p-4 rounded-lg">
+    <form action="{{ route('admin.invoices.index') }}" method="GET" class="flex flex-col sm:flex-row gap-4">
+      <div class="flex-1">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Khách hàng</label>
+        <select name="user_id" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-700">
+          <option value="">Tất cả Khách hàng</option>
+          @foreach($users as $u)
+            <option value="{{ $u->id }}" @selected(request('user_id')==$u->id)>{{ $u->ho_ten ?? $u->username }}</option>
+          @endforeach
+        </select>
+      </div>
+
+      <div class="flex-1">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Trạng thái</label>
+        <select name="status" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-700">
+          <option value="">Tất cả Trạng thái</option>
+          <option value="cho_thanh_toan"  @selected(request('status')=='cho_thanh_toan')>Chờ thanh toán</option>
+          <option value="da_thanh_toan"   @selected(request('status')=='da_thanh_toan')>Đã thanh toán</option>
+          <option value="hoan_tien"       @selected(request('status')=='hoan_tien')>Hoàn tiền</option>
+        </select>
+      </div>
+
+      <div class="flex items-end">
+        <button type="submit" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-all hover:scale-105 shadow-sm">
+          <i class="fas fa-filter mr-2"></i>Lọc
+        </button>
+      </div>
+    </form>
+  </div>
+
+  {{-- Table --}}
+  <div class="overflow-x-auto w-full">
+    <table class="w-full text-sm text-gray-700 border border-gray-200 rounded-lg shadow-sm">
+      <thead class="bg-gray-100 text-gray-800 text-xs uppercase font-semibold">
+        <tr>
+          <th class="px-6 py-3 text-center border-b">ID</th>
+          <th class="px-6 py-3 text-center border-b">Khách hàng</th>
+          <th class="px-6 py-3 text-center border-b">CCCD</th>
+          <th class="px-6 py-3 text-center border-b">Loại Phòng</th>
+          <th class="px-6 py-3 text-center border-b">Tên Phòng</th>
+          <th class="px-6 py-3 text-center border-b">Tổng tiền</th>
+          <th class="px-6 py-3 text-center border-b">Phương thức</th>
+          <th class="px-6 py-3 text-center border-b">Trạng thái</th>
+          <th class="px-6 py-3 text-center border-b">Ngày tạo</th>
+          <th class="px-6 py-3 text-center border-b">Thao Tác</th>
+        </tr>
+      </thead>
+
+      <tbody class="divide-y divide-gray-100">
+        @forelse($invoices as $inv)
+          <tr class="hover:bg-gray-50 transition">
+            <td class="px-6 py-4 text-center font-semibold text-gray-900">#{{ $inv->id }}</td>
+
+            <td class="px-6 py-4 text-center font-medium">
+              {{ $inv->datPhong->user->ho_ten ?? 'N/A' }}
+            </td>
+
+            <td class="px-6 py-4 text-center text-gray-600">
+              {{ $inv->datPhong->user->cccd ?? 'N/A' }}
+            </td>
+
+            <td class="px-6 py-4 text-center font-medium">
+              {{ $inv->datPhong->phong->loaiPhong->ten_loai ?? 'N/A' }}
+            </td>
+
+            <td class="px-6 py-4 text-center font-medium">
+              {{ $inv->datPhong->phong->ten_phong ?? 'N/A' }}
+            </td>
+
+            <td class="px-6 py-4 text-center text-blue-600 font-semibold">
+              {{ number_format($inv->tong_tien, 0, ',', '.') }} VNĐ
+            </td>
+
+            {{-- Phương thức --}}
+            @php($pm = $inv->phuong_thuc_ui)
+            <td class="px-6 py-4 text-center align-middle">
+              <x-badge :label="$pm['label']" :bg="$pm['bg']" :text="$pm['text']" min="min-w-[105px]" />
+            </td>
+
+            {{-- Trạng thái --}}
+            @php($st = $inv->trang_thai_ui)
+            <td class="px-6 py-4 text-center align-middle">
+              <x-badge :label="$st['label']" :bg="$st['bg']" :text="$st['text']" :icon="$st['icon']" min="min-w-[140px]" />
+            </td>
+
+            <td class="px-6 py-4 text-center text-gray-600">
+              <div class="flex flex-col">
+                <span>{{ $inv->ngay_tao->format('d/m/Y') }}</span>
+                <span class="text-xs text-gray-400">{{ $inv->ngay_tao->format('H:i') }}</span>
+              </div>
+            </td>
+
+            <td class="px-6 py-4 text-center">
+              <div class="flex justify-center items-center gap-2">
+                <a href="{{ route('admin.invoices.show', $inv->id) }}" class="text-blue-600 hover:text-blue-700 text-xs inline-flex items-center gap-1">
+                  <i class="fas fa-eye"></i>
+                </a>
+                <a href="{{ route('admin.invoices.edit', $inv->id) }}" class="text-amber-600 hover:text-amber-700 text-xs inline-flex items-center gap-1">
+                  <i class="fas fa-edit"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+        @empty
+          <tr>
+            <td colspan="10" class="px-6 py-12 text-center">
+              <div class="flex flex-col items-center justify-center">
+                <i class="fas fa-file-invoice text-gray-300 text-6xl mb-4"></i>
+                <p class="text-gray-500 text-lg font-medium">Không có hóa đơn nào</p>
+                <p class="text-gray-400 text-sm mt-2">Các hóa đơn sẽ xuất hiện ở đây khi có đặt phòng</p>
+              </div>
+            </td>
+          </tr>
+        @endforelse
+      </tbody>
+    </table>
+  </div>
+
+  {{-- Pagination --}}
+  @if($invoices->hasPages())
+    <div class="mt-6">{{ $invoices->links() }}</div>
+  @endif
+</div>
 @endsection
