@@ -24,18 +24,18 @@
         {{-- Hàng 1: Tên loại & Giá cơ bản --}}
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
-                <label for="ten_loai" class="block text-gray-700 font-medium mb-1">Tên loại phòng</label>
+                <label for="ten_loai" class="block text-gray-700 font-medium mb-2 text-sm">Tên loại phòng</label>
                 <input type="text" name="ten_loai" id="ten_loai" value="{{ old('ten_loai', $loaiPhong->ten_loai) }}"
-                       class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-amber-500 focus:border-amber-500" required>
+                       class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 hover:border-gray-300 bg-white text-gray-700 placeholder-gray-400" required>
                 @error('ten_loai')
                     <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
                 @enderror
             </div>
 
             <div>
-                <label for="gia_co_ban" class="block text-gray-700 font-medium mb-1">Giá cơ bản (₫)</label>
+                <label for="gia_co_ban" class="block text-gray-700 font-medium mb-2 text-sm">Giá cơ bản (₫)</label>
                 <input type="number" name="gia_co_ban" id="gia_co_ban" value="{{ old('gia_co_ban', $loaiPhong->gia_co_ban) }}"
-                       class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-amber-500 focus:border-amber-500" required>
+                       class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 hover:border-gray-300 bg-white text-gray-700 placeholder-gray-400" required>
                 @error('gia_co_ban')
                     <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
                 @enderror
@@ -45,15 +45,15 @@
         {{-- Hàng 2: Mô tả & Trạng thái --}}
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
-                <label for="mo_ta" class="block text-gray-700 font-medium mb-1">Mô tả</label>
+                <label for="mo_ta" class="block text-gray-700 font-medium mb-2 text-sm">Mô tả</label>
                 <textarea name="mo_ta" id="mo_ta" rows="4"
-                          class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-amber-500 focus:border-amber-500">{{ old('mo_ta', $loaiPhong->mo_ta) }}</textarea>
+                          class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 hover:border-gray-300 bg-white text-gray-700 placeholder-gray-400 resize-none">{{ old('mo_ta', $loaiPhong->mo_ta) }}</textarea>
             </div>
 
             <div>
-                <label for="trang_thai" class="block text-gray-700 font-medium mb-1">Trạng thái</label>
+                <label for="trang_thai" class="block text-gray-700 font-medium mb-2 text-sm">Trạng thái</label>
                 <select name="trang_thai" id="trang_thai"
-                        class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-amber-500 focus:border-amber-500">
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 hover:border-gray-300 bg-white text-gray-700">
                     <option value="hoat_dong" {{ old('trang_thai', $loaiPhong->trang_thai) == 'hoat_dong' ? 'selected' : '' }}>Hoạt động</option>
                     <option value="ngung" {{ old('trang_thai', $loaiPhong->trang_thai) == 'ngung' ? 'selected' : '' }}>Ngừng</option>
                 </select>

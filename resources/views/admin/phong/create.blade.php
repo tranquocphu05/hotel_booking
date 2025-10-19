@@ -22,18 +22,18 @@
         {{-- Hàng 1: Tên phòng & Giá --}}
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
-                <label for="ten_phong" class="block text-gray-700 font-medium mb-1">Tên phòng</label>
+                <label for="ten_phong" class="block text-gray-700 font-medium mb-2 text-sm">Tên phòng</label>
                 <input type="text" name="ten_phong" id="ten_phong" value="{{ old('ten_phong') }}"
-                       class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500" required>
+                       class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-300 hover:border-gray-300 bg-white text-gray-700 placeholder-gray-400" required>
                 @error('ten_phong')
                     <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
                 @enderror
             </div>
 
             <div>
-                <label for="gia" class="block text-gray-700 font-medium mb-1">Giá (₫)</label>
+                <label for="gia" class="block text-gray-700 font-medium mb-2 text-sm">Giá (₫)</label>
                 <input type="number" name="gia" id="gia" value="{{ old('gia') }}" maxlength="9"
-                       class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500" required>
+                       class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-300 hover:border-gray-300 bg-white text-gray-700 placeholder-gray-400" required>
                 @error('gia')
                     <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
                 @enderror
@@ -43,9 +43,9 @@
         {{-- Hàng 2: Loại phòng & Trạng thái --}}
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
-                <label for="loai_phong_id" class="block text-gray-700 font-medium mb-1">Loại phòng</label>
+                <label for="loai_phong_id" class="block text-gray-700 font-medium mb-2 text-sm">Loại phòng</label>
                 <select name="loai_phong_id" id="loai_phong_id"
-                        class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500" required>
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-300 hover:border-gray-300 bg-white text-gray-700" required>
                     <option value="">-- Chọn loại phòng --</option>
                     @foreach ($loaiPhongs as $loai) 
                         <option value="{{ $loai->id }}" {{ old('loai_phong_id') == $loai->id ? 'selected' : '' }}>
@@ -59,9 +59,9 @@
             </div>
 
             <div>
-                <label for="trang_thai" class="block text-gray-700 font-medium mb-1">Trạng thái</label>
+                <label for="trang_thai" class="block text-gray-700 font-medium mb-2 text-sm">Trạng thái</label>
                 <select name="trang_thai" id="trang_thai"
-                        class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500" required>
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-300 hover:border-gray-300 bg-white text-gray-700" required>
                     <option value="hien" {{ old('trang_thai') == 'hien' ? 'selected' : '' }}>Hiện</option>
                     <option value="an" {{ old('trang_thai') == 'an' ? 'selected' : '' }}>Ẩn</option>
                     <option value="bao_tri" {{ old('trang_thai') == 'bao_tri' ? 'selected' : '' }}>Bảo trì</option>
@@ -72,15 +72,17 @@
         {{-- Hàng 3: Mô tả & Ảnh --}}
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
-                <label for="mo_ta" class="block text-gray-700 font-medium mb-1">Mô tả</label>
+                <label for="mo_ta" class="block text-gray-700 font-medium mb-2 text-sm">Mô tả</label>
                 <textarea name="mo_ta" id="mo_ta" rows="4"
                           class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500">{{ old('mo_ta') }}</textarea>
             </div>
 
             <div>
-                <label for="img" class="block text-gray-700 font-medium mb-1">Ảnh phòng</label>
-                <input type="file" name="img" id="img"
-                       class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500">
+                <label for="img" class="block text-gray-700 font-medium mb-2 text-sm">Ảnh phòng</label>
+                <div class="relative">
+                    <input type="file" name="img" id="img" accept="image/*"
+                           class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-300 hover:border-gray-300 bg-white text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
+                </div>
 <img id="preview" class="hidden w-[120px] h-[90px] object-cover rounded-lg border border-gray-300 shadow-sm mt-3">
             </div>
         </div>
@@ -99,21 +101,73 @@
     </form>
 </div>
 
-{{-- JS Preview ảnh --}}
+@endsection
+
+@push('scripts')
 <script>
-document.getElementById('img').addEventListener('change', function(e) {
-    const file = e.target.files[0];
+document.addEventListener('DOMContentLoaded', function() {
+    // CKEditor initialization
+    ClassicEditor
+        .create(document.querySelector('#mo_ta'), {
+            toolbar: {
+                items: [
+                    'heading', '|',
+                    'bold', 'italic', 'underline', '|',
+                    'bulletedList', 'numberedList', '|',
+                    'outdent', 'indent', '|',
+                    'blockQuote', 'insertTable', '|',
+                    'undo', 'redo'
+                ]
+            },
+            language: 'vi',
+            height: 300,
+            table: {
+                contentToolbar: [
+                    'tableColumn',
+                    'tableRow',
+                    'mergeTableCells'
+                ]
+            },
+            // Ensure proper styling
+            ui: {
+                viewportOffset: {
+                    top: 0,
+                    right: 0,
+                    bottom: 0,
+                    left: 0
+                }
+            }
+        })
+        .then(editor => {
+            console.log('CKEditor initialized successfully');
+            // Ensure the editor is properly displayed
+            editor.ui.view.editable.element.style.minHeight = '300px';
+        })
+        .catch(error => {
+            console.error('CKEditor initialization failed:', error);
+            // Fallback: show the textarea if CKEditor fails
+            document.querySelector('#mo_ta').style.display = 'block';
+        });
+    
+    // Image preview functionality
+    const imgInput = document.getElementById('img');
     const preview = document.getElementById('preview');
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = event => {
-            preview.src = event.target.result;
-            preview.classList.remove('hidden');
-        };
-        reader.readAsDataURL(file);
-    } else {
-        preview.classList.add('hidden');
+    
+    if (imgInput && preview) {
+        imgInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    preview.src = event.target.result;
+                    preview.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            } else {
+                preview.classList.add('hidden');
+            }
+        });
     }
 });
 </script>
-@endsection
+@endpush

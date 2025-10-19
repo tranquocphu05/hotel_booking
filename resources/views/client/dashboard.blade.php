@@ -1,12 +1,17 @@
-@extends('layouts.client') 
+{{-- resources/views/client/dashboard.blade.php (Hoặc home.blade.php) --}}
 
-{{-- 1. BANNER/HEADER (FULL-WIDTH) --}}
+@extends('layouts.base') 
+{{-- extends file layout vừa sửa --}}
+
+{{-- ĐẨY HEADER LÊN @yield('fullwidth_header') --}}
 @section('fullwidth_header')
     @include('client.header.header') 
 @endsection
 
-{{-- 2. NỘI DUNG CHÍNH (CONTAINER GIỚI HẠN) --}}
-@section('client_content') 
-    
-  @include('client.content.content')
+{{-- NỘI DUNG CHÍNH (Chứa các khối giới hạn) LÊN @yield('content') --}}
+@section('content')
+    <div class="main">
+        {{-- Bằng cách @include ở đây, nội dung giới hạn sẽ nằm trong div.main --}}
+        @include('client.content.content')
+    </div>
 @endsection

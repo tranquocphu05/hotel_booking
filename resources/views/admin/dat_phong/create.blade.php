@@ -19,12 +19,12 @@
                                     @foreach($rooms as $room)
                                         <div class="relative">
                                             <input type="radio" name="phong_id" id="room_{{ $room->id }}" 
-                                                value="{{ $room->id }}" class="hidden peer" required
+                                                value="{{ $room->id }}" class="sr-only peer" required
                                                 data-loai-phong-id="{{ $room->loai_phong_id }}">
                                             <label for="room_{{ $room->id }}" 
-                                                class="block p-4 bg-white border rounded-lg cursor-pointer 
-                                                    peer-checked:border-blue-500 peer-checked:ring-2 peer-checked:ring-blue-500
-                                                    hover:bg-gray-50">
+                                                class="block p-4 bg-white border-2 border-gray-200 rounded-xl cursor-pointer transition-all duration-300
+                                                    peer-checked:border-blue-500 peer-checked:ring-2 peer-checked:ring-blue-500 peer-checked:bg-blue-50
+                                                    hover:bg-gray-50 hover:border-gray-300 hover:shadow-md">
                                                 <div class="space-y-2">
                                                     <img src="{{ asset( $room->img) }}" 
                                                         alt="{{ $room->ten_phong }}"
@@ -36,11 +36,11 @@
                                                     </p>
                                                     <div class="flex items-center space-x-2 text-sm">
                                                         <span class="px-2 py-1 rounded-full text-xs
-                                                            @if($room->trang_thai === 'trong') bg-green-100 text-green-800
-                                                            @elseif($room->trang_thai === 'da_dat') bg-red-100 text-red-800
+                                                            @if($room->trang_thai === 'hien') bg-green-100 text-green-800
+                                                            @elseif($room->trang_thai === 'an') bg-red-100 text-red-800
                                                             @else bg-yellow-100 text-yellow-800 @endif">
-                                                            {{ $room->trang_thai === 'trong' ? 'Còn trống' : 
-                                                               ($room->trang_thai === 'da_dat' ? 'Đã đặt' : 'Bảo trì') }}
+                                                            {{ $room->trang_thai === 'hien' ? 'Hiện' : 
+                                                               ($room->trang_thai === 'an' ? 'Ẩn' : 'Khác') }}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -88,25 +88,35 @@
                                     </div>
 
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">Chọn mã giảm giá (nếu có)</label>
-                                        <div class="grid grid-cols-2 gap-2 mb-2">
+                                        <label class="block text-sm font-medium text-gray-700 mb-3">Chọn mã giảm giá (nếu có)</label>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                                             @foreach($vouchers as $voucher)
                                                 <div class="relative">
                                                     <input type="radio" name="voucher" id="voucher_{{ $voucher->id }}" 
-                                                        value="{{ $voucher->ma_voucher }}" class="hidden peer voucher-radio"
+                                                        value="{{ $voucher->ma_voucher }}" class="sr-only peer voucher-radio"
                                                         data-value="{{ $voucher->gia_tri }}"
                                                         data-loai-phong="{{ $voucher->loai_phong_id }}"
                                                         disabled>
                                                     <label for="voucher_{{ $voucher->id }}" 
-                                                        class="block p-3 bg-white border rounded-lg cursor-pointer relative
-                                                            peer-checked:border-blue-500 peer-checked:ring-1 peer-checked:ring-blue-500
-                                                            hover:bg-gray-50">
-                                                        <div class="absolute inset-0 bg-gray-200 bg-opacity-50 flex items-center justify-center transition-opacity"
-                                                             :class="{ 'opacity-100': document.getElementById('voucher_{{ $voucher->id }}').disabled, 'opacity-0': !document.getElementById('voucher_{{ $voucher->id }}').disabled }">
+                                                        class="block p-4 bg-white border-2 border-gray-200 rounded-xl cursor-pointer relative transition-all duration-300
+                                                            peer-checked:border-green-500 peer-checked:ring-2 peer-checked:ring-green-500 peer-checked:bg-green-50
+                                                            hover:bg-gray-50 hover:border-gray-300 hover:shadow-md
+                                                            disabled:opacity-50 disabled:cursor-not-allowed">
+                                                        <div class="absolute inset-0 bg-gray-200 bg-opacity-50 flex items-center justify-center transition-opacity rounded-xl"
+                                                             id="overlay_{{ $voucher->id }}">
                                                             <span class="text-gray-500 text-sm font-medium">Không áp dụng</span>
-                                                        </div>>
-                                                        <div class="space-y-1">
-                                                            <p class="text-sm font-medium text-blue-600">{{ $voucher->ma_voucher }}</p>
+                                                        </div>
+                                                        <div class="space-y-2">
+                                                            <div class="flex items-center justify-between">
+                                                                <p class="text-sm font-bold text-green-600">{{ $voucher->ma_voucher }}</p>
+                                                                <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                                                                    @if($voucher->gia_tri <= 100)
+                                                                        {{ $voucher->gia_tri }}%
+                                                                    @else
+                                                                        {{ number_format($voucher->gia_tri, 0, ',', '.') }}₫
+                                                                    @endif
+                                                                </span>
+                                                            </div>
                                                             <p class="text-xs text-gray-600">
                                                                 @if($voucher->gia_tri <= 100)
                                                                     Giảm {{ $voucher->gia_tri }}%
@@ -115,10 +125,12 @@
                                                                 @endif
                                                             </p>
                                                             @if($voucher->dieu_kien)
-                                                                <p class="text-xs text-gray-500">{{ $voucher->dieu_kien }}</p>
+                                                                <p class="text-xs text-gray-500 bg-gray-100 p-2 rounded">{{ $voucher->dieu_kien }}</p>
                                                             @endif
-                                                            <p class="text-xs text-gray-500">Còn lại: {{ $voucher->so_luong }}</p>
-                                                            <p class="text-xs text-gray-500">HSD: {{ date('d/m/Y', strtotime($voucher->ngay_het_han)) }}</p>
+                                                            <div class="flex justify-between text-xs text-gray-500">
+                                                                <span>Còn lại: {{ $voucher->so_luong }}</span>
+                                                                <span>HSD: {{ date('d/m/Y', strtotime($voucher->ngay_ket_thuc)) }}</span>
+                                                            </div>
                                                         </div>
                                                     </label>
                                                 </div>
@@ -154,43 +166,61 @@
                                 <h3 class="text-lg font-medium text-gray-900 mb-4">Thông tin người đặt</h3>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <label for="username" class="block text-sm font-medium text-gray-700">Họ và tên</label>
+                                        <label for="username" class="block text-sm font-medium text-gray-700 mb-2">Họ và tên</label>
                                         <input type="text" name="username" id="username" 
-                                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                            required>
+                                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 hover:border-gray-300 bg-white text-gray-700 placeholder-gray-400"
+                                            placeholder="Nhập họ và tên" required>
                                         @error('username')
                                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                         @enderror
                                     </div>
 
                                     <div>
-                                        <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+                                        <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
                                         <input type="email" name="email" id="email" 
-                                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                            required>
+                                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 hover:border-gray-300 bg-white text-gray-700 placeholder-gray-400"
+                                            placeholder="Nhập email" required>
                                         @error('email')
                                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                         @enderror
                                     </div>
 
                                     <div>
-                                        <label for="sdt" class="block text-sm font-medium text-gray-700">Số điện thoại</label>
+                                        <label for="sdt" class="block text-sm font-medium text-gray-700 mb-2">Số điện thoại</label>
                                         <input type="text" name="sdt" id="sdt" 
-                                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                            required>
+                                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 hover:border-gray-300 bg-white text-gray-700 placeholder-gray-400"
+                                            placeholder="Nhập số điện thoại" required>
                                         @error('sdt')
                                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                         @enderror
                                     </div>
 
                                     <div>
-                                        <label for="cccd" class="block text-sm font-medium text-gray-700">CCCD/CMND</label>
+                                        <label for="cccd" class="block text-sm font-medium text-gray-700 mb-2">CCCD/CMND</label>
                                         <input type="text" name="cccd" id="cccd" 
-                                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                            required>
+                                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 hover:border-gray-300 bg-white text-gray-700 placeholder-gray-400"
+                                            placeholder="Nhập CCCD/CMND" required>
                                         @error('cccd')
                                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                         @enderror
+                                    </div>
+                                </div>
+                                
+                                <!-- Thông báo lỗi validation -->
+                                <div id="validation-errors" class="hidden mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                                    <div class="flex">
+                                        <div class="flex-shrink-0">
+                                            <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                            </svg>
+                                        </div>
+                                        <div class="ml-3">
+                                            <h3 class="text-sm font-medium text-red-800">Thông tin không hợp lệ</h3>
+                                            <div class="mt-2 text-sm text-red-700">
+                                                <ul id="error-list" class="list-disc list-inside space-y-1">
+                                                </ul>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -263,14 +293,16 @@
                         voucherInputs.forEach(v => {
                             const voucherRoomType = v.dataset.loaiPhong;
                             const voucherLabel = document.querySelector(`label[for="${v.id}"]`);
+                            const overlay = document.getElementById(`overlay_${v.id}`);
+                            
                             if (!voucherRoomType || voucherRoomType === roomTypeId) {
                                 v.disabled = false;
-                                voucherLabel.classList.remove('opacity-30');
-                                voucherLabel.querySelector('.absolute').classList.add('hidden');
+                                voucherLabel.classList.remove('opacity-50');
+                                if (overlay) overlay.classList.add('hidden');
                             } else {
                                 v.disabled = true;
-                                voucherLabel.classList.add('opacity-30');
-                                voucherLabel.querySelector('.absolute').classList.remove('hidden');
+                                voucherLabel.classList.add('opacity-50');
+                                if (overlay) overlay.classList.remove('hidden');
                             }
                         });
                     }
@@ -364,6 +396,64 @@
 
             // Tính toán ban đầu
             calculateTotal();
+            
+            // Validation function
+            function validateForm() {
+                const errors = [];
+                const username = document.getElementById('username').value.trim();
+                const email = document.getElementById('email').value.trim();
+                const sdt = document.getElementById('sdt').value.trim();
+                const cccd = document.getElementById('cccd').value.trim();
+                
+                // Validate username
+                if (!username) {
+                    errors.push('Họ và tên không được để trống');
+                } else if (username.length < 2) {
+                    errors.push('Họ và tên phải có ít nhất 2 ký tự');
+                }
+                
+                // Validate email
+                if (!email) {
+                    errors.push('Email không được để trống');
+                } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                    errors.push('Email không hợp lệ');
+                }
+                
+                // Validate phone
+                if (!sdt) {
+                    errors.push('Số điện thoại không được để trống');
+                } else if (!/^[0-9]{10,11}$/.test(sdt.replace(/\D/g, ''))) {
+                    errors.push('Số điện thoại phải có 10-11 chữ số');
+                }
+                
+                // Validate CCCD
+                if (!cccd) {
+                    errors.push('CCCD/CMND không được để trống');
+                } else if (!/^[0-9]{9,12}$/.test(cccd.replace(/\D/g, ''))) {
+                    errors.push('CCCD/CMND phải có 9-12 chữ số');
+                }
+                
+                // Show errors if any
+                const errorContainer = document.getElementById('validation-errors');
+                const errorList = document.getElementById('error-list');
+                
+                if (errors.length > 0) {
+                    errorList.innerHTML = errors.map(error => `<li>${error}</li>`).join('');
+                    errorContainer.classList.remove('hidden');
+                    return false;
+                } else {
+                    errorContainer.classList.add('hidden');
+                    return true;
+                }
+            }
+            
+            // Add form validation on submit
+            document.querySelector('form').addEventListener('submit', function(e) {
+                if (!validateForm()) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
         });
     </script>
     @endpush

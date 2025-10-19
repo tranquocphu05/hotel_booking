@@ -6,56 +6,67 @@
     <div class="flex items-center justify-between mb-4">
         <h1 class="text-xl font-semibold">Users</h1>
         <!-- Make the create button more visible -->
-        <a href="{{ route('admin.users.create') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded shadow"> 
-            + Create
+        <a href="{{ route('admin.users.create') }}" class="btn-primary btn-animate inline-flex items-center gap-2"> 
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            Create User
         </a>
     </div>
 
-    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-                @foreach($users as $u)
+    <div class="bg-white rounded-2xl shadow p-6 mt-8 mb-8 w-full">
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm text-left text-gray-600 border border-gray-200 rounded-lg">
+                <thead class="bg-gray-100 text-gray-700 uppercase text-xs">
                     <tr>
-                        <td class="px-6 py-4">{{ $u->id }}</td>
-                        <td class="px-6 py-4">{{ $u->username }}</td>
-                        <td class="px-6 py-4">{{ $u->email }}</td>
-                        <td class="px-6 py-4">{{ $u->vai_tro }}<`/td>
-                        <td class="px-6 py-4">
-                            @if($u->trang_thai === 'hoat_dong')
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">Active</span>
-                            @else
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">Locked</span>
-                            @endif
-                        </td>
-                        <td class="px-6 py-4">
-                            <a href="{{ route('admin.users.edit', $u) }}" class="text-blue-600 mr-2">Edit</a>
-                            <!-- Impersonate button: admin can impersonate other users -->
-                            @if(auth()->user() && auth()->user()->id !== $u->id)
-                                <form method="POST" action="{{ route('admin.impersonate', $u->id) }}" style="display:inline">
-                                    @csrf
-                                    <button type="submit" class="text-indigo-600 mr-2">Impersonate</button>
-                                </form>
-                            @endif
-
-                            <form method="POST" action="{{ route('admin.users.destroy', $u) }}" style="display:inline">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="text-red-600">Delete</button>
-                            </form>
-                        </td>
+                        <th class="px-4 py-3">ID</th>
+                        <th class="px-4 py-3">USERNAME</th>
+                        <th class="px-4 py-3">EMAIL</th>
+                        <th class="px-4 py-3">SĐT</th>
+                        <th class="px-4 py-3">CCCD</th>
+                        <th class="px-4 py-3">ROLE</th>
+                        <th class="px-4 py-3">STATUS</th>
+                        <th class="px-4 py-3 text-center">ACTIONS</th>
                     </tr>
-                @endforeach
-            </tbody>
-        </table>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    @forelse($users as $u)
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-2">{{ $u->id }}</td>
+                            <td class="px-4 py-2">{{ $u->username }}</td>
+                            <td class="px-4 py-2">{{ $u->email }}</td>
+                            <td class="px-4 py-2">{{ $u->sdt ?? 'Chưa cập nhật' }}</td>
+                            <td class="px-4 py-2">{{ $u->cccd ?? 'Chưa cập nhật' }}</td>
+                            <td class="px-4 py-2">{{ $u->vai_tro }}</td>
+                            <td class="px-4 py-2">
+                                @if($u->trang_thai === 'hoat_dong')
+                                    <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">Active</span>
+                                @else
+                                    <span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-700">Locked</span>
+                                @endif
+                            </td>
+                            <td class="px-4 py-2 text-center space-x-2">
+                                <a href="{{ route('admin.users.edit', $u) }}" class="table-btn btn-info link-hover">Edit</a>
+                                @if(auth()->user() && auth()->user()->id !== $u->id)
+                                    <form method="POST" action="{{ route('admin.impersonate', $u->id) }}" style="display:inline">
+                                        @csrf
+                                        <button type="submit" class="table-btn btn-warning btn-animate">Impersonate</button>
+                                    </form>
+                                @endif
+                                <form method="POST" action="{{ route('admin.users.destroy', $u) }}" style="display:inline">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="table-btn btn-danger btn-animate" onclick="return confirm('Bạn có chắc muốn xóa user này?')">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="8" class="text-center py-4 text-gray-400">Không có user nào.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
 @endsection

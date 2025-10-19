@@ -3,6 +3,10 @@
 @section('title', 'Client - ' . ($title ?? 'Dashboard'))
 
 @section('content')
+    
+    {{-- 📢 SECTION FULL-WIDTH MỚI - Đặt ngoài div.main --}}
+    @yield('fullwidth_content')
+
     <div class="main">
         @if(session('impersonator_id'))
             <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4">
@@ -15,7 +19,8 @@
                 </div>
             </div>
         @endif
-
+        
+        {{-- SECTION NỘI DUNG GIỚI HẠN (Sẽ được gọi sau) --}}
         @yield('client_content')
     </div>
 @endsection

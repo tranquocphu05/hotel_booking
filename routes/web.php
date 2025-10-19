@@ -1,21 +1,26 @@
 <?php
 
-use App\Http\Controllers\Admin\CommentController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProfileController;
+
+// Admin Controllers
+use App\Http\Controllers\Admin\CommentController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\VoucherController;
 use App\Http\Controllers\Admin\DatPhongController;
 use App\Http\Controllers\Admin\LoaiPhongController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\PhongController;
+
+// Client Controllers
 use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
 use App\Http\Controllers\Client\PhongController as ClientPhongController;
 use App\Http\Controllers\Client\ContactController as ClientContactController;
 use App\Http\Controllers\Client\GioiThieuController as ClientGioiThieuController;
+use App\Http\Controllers\Client\TinTucController as ClientTinTucController;
 
-// Serve client dashboard at the site root 'dashboard"
+
 Route::get('/', [ClientDashboardController::class, 'index'])
     ->name('client.home')
     ->middleware([\App\Http\Middleware\AllowClient::class]);
@@ -44,9 +49,14 @@ require __DIR__ . '/auth.php';
 // =======================
 Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin::class])->group(function () {
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/test', function () {
+        return view('admin.test');
+    })->name('test');
 
     Route::resource('users', \App\Http\Controllers\Admin\UserController::class)->names('users');
     Route::resource('loai_phong', LoaiPhongController::class)->names('loai_phong');
+    Route::get('phong/available', [PhongController::class, 'available'])->name('phong.available');
+    Route::put('phong/{id}/block', [PhongController::class, 'blockRoom'])->name('phong.block');
     Route::resource('phong', PhongController::class)->names('phong');
     Route::resource('invoices', InvoiceController::class)->names('invoices');
     Route::resource('voucher', VoucherController::class)->names('voucher');
@@ -76,6 +86,7 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin
         Route::delete('/{id}', [DatPhongController::class, 'destroy'])->name('destroy');
         Route::get('/{id}/cancel', [DatPhongController::class, 'showCancelForm'])->name('cancel');
         Route::post('/{id}/cancel', [DatPhongController::class, 'submitCancel'])->name('cancel.submit');
+        Route::put('/{id}/block', [DatPhongController::class, 'blockRoom'])->name('block');
     });
 });
 
@@ -89,10 +100,6 @@ Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\Allow
 
     Route::get('/lien-he', [ClientContactController::class, 'index'])->name('lienhe');
     Route::get('/gioi-thieu', [ClientGioiThieuController::class, 'index'])->name('gioithieu');
-
-    // Routes for Payment
-    Route::get('/thanh-toan/{datPhong}', [\App\Http\Controllers\Client\ThanhToanController::class, 'show'])->name('thanh-toan.show');
-    Route::post('/thanh-toan/{datPhong}', [\App\Http\Controllers\Client\ThanhToanController::class, 'store'])->name('thanh-toan.store');
 });
 
 // Public impersonation stop (in case admin is impersonating)
