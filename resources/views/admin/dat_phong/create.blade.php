@@ -36,11 +36,11 @@
                                                     </p>
                                                     <div class="flex items-center space-x-2 text-sm">
                                                         <span class="px-2 py-1 rounded-full text-xs
-                                                            @if($room->trang_thai === 'trong') bg-green-100 text-green-800
-                                                            @elseif($room->trang_thai === 'da_dat') bg-red-100 text-red-800
+                                                            @if($room->trang_thai === 'hien') bg-green-100 text-green-800
+                                                            @elseif($room->trang_thai === 'an') bg-red-100 text-red-800
                                                             @else bg-yellow-100 text-yellow-800 @endif">
-                                                            {{ $room->trang_thai === 'trong' ? 'Còn trống' : 
-                                                               ($room->trang_thai === 'da_dat' ? 'Đã đặt' : 'Bảo trì') }}
+                                                            {{ $room->trang_thai === 'hien' ? 'Hiện' : 
+                                                               ($room->trang_thai === 'an' ? 'Ẩn' : 'Bảo trì') }}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -157,6 +157,7 @@
                                         <label for="username" class="block text-sm font-medium text-gray-700">Họ và tên</label>
                                         <input type="text" name="username" id="username" 
                                             class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                            value="{{ Auth::user()->username }}"
                                             required>
                                         @error('username')
                                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -167,6 +168,7 @@
                                         <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
                                         <input type="email" name="email" id="email" 
                                             class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                            value="{{ Auth::user()->email }}"
                                             required>
                                         @error('email')
                                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -177,6 +179,7 @@
                                         <label for="sdt" class="block text-sm font-medium text-gray-700">Số điện thoại</label>
                                         <input type="text" name="sdt" id="sdt" 
                                             class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                            value="{{ Auth::user()->sdt }}"
                                             required>
                                         @error('sdt')
                                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -187,6 +190,7 @@
                                         <label for="cccd" class="block text-sm font-medium text-gray-700">CCCD/CMND</label>
                                         <input type="text" name="cccd" id="cccd" 
                                             class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                            value="{{ Auth::user()->cccd }}"
                                             required>
                                         @error('cccd')
                                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>

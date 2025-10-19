@@ -170,7 +170,7 @@ class DatPhongController extends Controller
     public function create()
     {
         // Lấy danh sách phòng còn trống
-        $rooms = Phong::where('trang_thai', 'trong')
+        $rooms = Phong::where('trang_thai', 'hien')
             ->with('loaiPhong')
             ->get();
 
@@ -213,7 +213,7 @@ class DatPhongController extends Controller
 
         // Kiểm tra phòng có còn trống không
         $room = Phong::findOrFail($request->phong_id);
-        if ($room->trang_thai !== 'trong') {
+        if ($room->trang_thai !== 'hien') {
             return back()->with('error', 'Phòng đã được đặt, vui lòng chọn phòng khác.');
         }
 
@@ -253,9 +253,6 @@ class DatPhongController extends Controller
             'sdt' => $request->sdt,
             'cccd' => $request->cccd
         ]);
-
-        // Cập nhật trạng thái phòng
-        $room->update(['trang_thai' => 'da_dat']);
 
         return redirect()->route('admin.dat_phong.index')
             ->with('success', 'Đặt phòng thành công!');
