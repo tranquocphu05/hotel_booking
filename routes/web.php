@@ -1,18 +1,20 @@
 <?php
 
-use App\Http\Controllers\Admin\CommentController;
+use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Admin\PhongController;
+use App\Http\Controllers\Admin\CommentController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\VoucherController;
 use App\Http\Controllers\Admin\DatPhongController;
 use App\Http\Controllers\Admin\LoaiPhongController;
-use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
-use App\Http\Controllers\Admin\PhongController;
-use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
+use App\Http\Controllers\Client\ClientDatPhongController;
 use App\Http\Controllers\Client\PhongController as ClientPhongController;
 use App\Http\Controllers\Client\ContactController as ClientContactController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
 use App\Http\Controllers\Client\GioiThieuController as ClientGioiThieuController;
 
 // Serve client dashboard at the site root 'dashboard"
@@ -89,6 +91,8 @@ Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\Allow
 
     Route::get('/lien-he', [ClientContactController::class, 'index'])->name('lienhe');
     Route::get('/gioi-thieu', [ClientGioiThieuController::class, 'index'])->name('gioithieu');
+    Route::get('/dat-phong', [ClientDatPhongController::class, 'index'])->name('datphong');
+    Route::get('/da-dat-phong', [ClientDatPhongController::class, 'daDatPhong'])->name('da_dat_phong');
 });
 
 // Public impersonation stop (in case admin is impersonating)

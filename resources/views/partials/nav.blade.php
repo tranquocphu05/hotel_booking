@@ -64,6 +64,7 @@
                 <a href="{{ route('client.gioithieu') }}" class="text-gray-600 hover:text-red-600 transition duration-300">Giới Thiệu</a>
                 <a href="#" class="text-gray-600 hover:text-red-600 transition duration-300">Pages</a>
                 <a href="#" class="text-gray-600 hover:text-red-600 transition duration-300">News</a>
+                <a href="{{ route('client.datphong') }}" class="text-gray-600 hover:text-red-600 transition duration-300">Đặt phòng</a>
                 <a href="{{ route('client.lienhe') }}" class="text-gray-600 hover:text-red-600 transition duration-300">Liên Hệ</a>
             </div>
 
