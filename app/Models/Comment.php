@@ -8,46 +8,28 @@ use Illuminate\Database\Eloquent\Model;
 class Comment extends Model
 {
     use HasFactory;
-    protected $table = 'room_reviews';
+
+    protected $table = 'danh_gia';
 
     protected $fillable = [
-        'booking_id',
-        'room_booking_id',
-        'room_id',
-        'user_id',
-        'rating',
-        'content',
-        'images',
-        'reply',
-        'is_active',
-        'hidden_reason',
-        'is_updated',
-        'reply_at',
+        'nguoi_dung_id',
+        'phong_id',
+        'noi_dung',
+        'so_sao',
+        'img',
+        'ngay_danh_gia',
+        'trang_thai',
     ];
 
-    protected $casts = [
-        'images' => 'array',
-        'is_active' => 'boolean',
-        'is_updated' => 'boolean',
-    ];
+    public $timestamps = false;
 
     public function user()
     {
-        return $this->belongsTo(User::class, 'user_id', 'id');
+        return $this->belongsTo(\App\Models\User::class, 'nguoi_dung_id');
     }
 
-    // public function booking()
-    // {
-    //     return $this->belongsTo(Booking::class);
-    // }
-
-    // public function room_booking()
-    // {
-    //     return $this->belongsTo(Room_booking::class);
-    // }
-
-    // public function user()
-    // {
-    //     return $this->belongsTo(User::class, 'user_id', 'id');
-    // }
+    public function room()
+    {
+        return $this->belongsTo(\App\Models\Phong::class, 'phong_id', 'id');
+    }
 }

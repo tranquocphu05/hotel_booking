@@ -11,7 +11,7 @@ use App\Http\Controllers\Admin\DatPhongController;
 use App\Http\Controllers\Admin\LoaiPhongController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\PhongController;
-
+use App\Http\Controllers\Client\CommentController as ClientCommentController;
 // Client Controllers 
 use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
 use App\Http\Controllers\Client\PhongController as ClientPhongController;
@@ -82,9 +82,9 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin
         ->group(function () {
             Route::get('/', [CommentController::class, 'index'])->name('index');
             Route::get('/{id}', [CommentController::class, 'show'])->name('show');
-            Route::put('/{id}/reply', [CommentController::class, 'reply'])->name('reviews.reply');
-            Route::delete('/{id}/reply', [CommentController::class, 'deleteReply'])->name('reviews.reply.delete');
             Route::put('/{id}/toggle', [CommentController::class, 'statusToggle'])->name('toggle');
+            Route::put('/{id}/reply', [CommentController::class, 'reply'])->name('reply');
+            Route::delete('/{id}/reply', [CommentController::class, 'deleteReply'])->name('reply.delete');
         });
     // impersonation
     Route::post('impersonate/{user}', [\App\Http\Controllers\Admin\ImpersonationController::class, 'impersonate'])
@@ -121,6 +121,14 @@ Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\Allow
 
     Route::get('/tin-tuc', [ClientTinTucController::class, 'index'])->name('tintuc'); 
     Route::get('/tin-tuc/{slug}', [ClientTinTucController::class, 'chitiettintuc'])->name('tintuc.show'); 
+
+
+    Route::get('/danh-gia', [ClientCommentController::class, 'index'])->name('comment.index');
+    Route::post('/danh-gia', [ClientCommentController::class, 'store'])->name('comment.store');
+    Route::get('/danh-gia/{id}/edit', [ClientCommentController::class, 'edit'])->name('comment.edit');
+    Route::post('/danh-gia/{id}/update', [ClientCommentController::class, 'update'])->name('comment.update');
+    Route::delete('/danh-gia/{id}', [ClientCommentController::class, 'destroy'])->name('comment.destroy');
+
 });
 
 // Public impersonation stop (in case admin is impersonating)
