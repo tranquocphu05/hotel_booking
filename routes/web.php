@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\BookingController;
 // Admin Controllers
 use App\Http\Controllers\Admin\CommentController;
 use App\Http\Controllers\Admin\InvoiceController;
@@ -41,6 +42,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar'])->name('profile.avatar.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+
+// Simple booking demo routes (public)
+Route::get('/booking/{phong}', [BookingController::class, 'showForm'])->name('booking.form')->middleware('auth');
+Route::post('/booking', [BookingController::class, 'submit'])->name('booking.submit')->middleware('auth');
 
 require __DIR__ . '/auth.php';
 
@@ -117,9 +122,11 @@ Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\Allow
 
     Route::get('/lien-he', [ClientContactController::class, 'index'])->name('lienhe');
     Route::get('/gioi-thieu', [ClientGioiThieuController::class, 'index'])->name('gioithieu');
-
-    Route::get('/thanh-toan/{datPhong}', [\App\Http\Controllers\Client\ThanhToanController::class, 'show'])->name('thanh-toan.show');
-    Route::post('/thanh-toan/{datPhong}', [\App\Http\Controllers\Client\ThanhToanController::class, 'store'])->name('thanh-toan.store');
+    // Use BookingController for client booking flow
+    Route::get('/{phong}/dat-phong', [BookingController::class, 'showForm'])->name('phong.create_booking');
+    Route::post('/{phong}/dat-phong', [BookingController::class, 'submit'])->name('phong.store_booking');
+    Route::get('/thanh-toan/{datPhong}', [ClientThanhToanController::class, 'show'])->name('thanh-toan.show');
+    Route::post('/thanh-toan/{datPhong}', [ClientThanhToanController::class, 'store'])->name('thanh-toan.store');
     Route::get('/tin-tuc', [ClientTinTucController::class, 'index'])->name('tintuc');
     Route::get('/tin-tuc/{slug}', [ClientTinTucController::class, 'chitiettintuc'])->name('tintuc.show');
 });
