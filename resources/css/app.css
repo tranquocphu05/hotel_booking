@@ -2,6 +2,34 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ==============================================
+   PERFORMANCE OPTIMIZATIONS
+   ============================================== */
+
+/* Lazy Loading Image Styles */
+@layer utilities {
+    img[data-src] {
+        opacity: 0;
+        transition: opacity 0.3s ease-in;
+    }
+    
+    img.lazy-loaded {
+        opacity: 1;
+    }
+    
+    /* Placeholder for images while loading */
+    img[data-src]:not(.lazy-loaded) {
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 200% 100%;
+        animation: loading 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes loading {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+}
+
 /* Full width and height layout */
 @layer base {
     html, body {
