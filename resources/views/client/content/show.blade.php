@@ -29,7 +29,7 @@
                 {{-- Room Image Gallery --}}
                 <div class="mb-12">
                     <div class="bg-white rounded-lg shadow-md overflow-hidden">
-                        <img src="{{ $room->img ? asset('uploads/phong/' . $room->img) : asset('img/room/room-1.jpg') }}" 
+                        <img src="{{ $room->img ? asset($room->img) : asset('img/room/room-1.jpg') }}" 
                              alt="{{ $room->ten_phong }}" 
                              class="w-full h-96 object-cover">
                     </div>

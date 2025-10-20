@@ -61,7 +61,7 @@
                     <div class="flex">
                         {{-- Image --}}
                         <div class="w-1/3 h-64 relative overflow-hidden">
-                            <img src="{{ $phong->img ? asset('uploads/phong/' . $phong->img) : asset('img/room/room-1.jpg') }}" 
+                            <img src="{{ $phong->img ? asset($phong->img) : asset('img/room/room-1.jpg') }}" 
                                  alt="{{ $phong->ten_phong }}" 
                                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                             <div class="absolute top-4 left-4">
