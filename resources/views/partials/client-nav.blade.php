@@ -40,9 +40,13 @@
                     {{-- Client User Dropdown --}}
                     <div class="relative group">
                         <button class="flex items-center space-x-2 text-sm text-gray-600 hover:text-red-600 focus:outline-none">
-                            <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
-                                <i class="fas fa-user text-red-600"></i>
-                            </div>
+                            @if(auth()->user()->img)
+                                <img src="{{ asset(auth()->user()->img) }}" alt="{{ auth()->user()->ho_ten }}" class="w-8 h-8 rounded-full object-cover border-2 border-red-200">
+                            @else
+                                <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center border-2 border-red-200">
+                                    <span class="text-red-600 font-semibold text-xs">{{ strtoupper(substr(auth()->user()->ho_ten ?? 'U', 0, 1)) }}</span>
+                                </div>
+                            @endif
                             <span>{{ auth()->user()->ten ?? auth()->user()->ho_ten ?? 'User' }}</span>
                             <i class="fas fa-chevron-down text-xs"></i>
                         </button>
@@ -54,7 +58,7 @@
                                 <p class="text-xs text-gray-500">Khách hàng</p>
                             </div>
                             
-                            <a href="{{ route('dashboard') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                 <i class="fas fa-user mr-2"></i>Thông tin cá nhân
                             </a>
                             <a href="{{ route('client.dashboard') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
@@ -63,7 +67,7 @@
                             <a href="{{ route('client.phong') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                 <i class="fas fa-bed mr-2"></i>Đặt phòng
                             </a>
-                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            <a href="{{ route('profile.edit') }}#lich-su" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                 <i class="fas fa-calendar-check mr-2"></i>Lịch sử đặt phòng
                             </a>
                             <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">

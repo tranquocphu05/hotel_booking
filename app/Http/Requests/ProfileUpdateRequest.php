@@ -16,15 +16,18 @@ class ProfileUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
+            'ho_ten' => ['required', 'string', 'max:255'],
             'email' => [
                 'required',
                 'string',
                 'lowercase',
                 'email',
                 'max:255',
-                Rule::unique(User::class)->ignore($this->user()->id),
+                Rule::unique('nguoi_dung')->ignore($this->user()->id),
             ],
+            'sdt' => ['nullable', 'string', 'max:15'],
+            'cccd' => ['nullable', 'string', 'max:20'],
+            'dia_chi' => ['nullable', 'string', 'max:500'],
         ];
     }
 }
