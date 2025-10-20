@@ -5,6 +5,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Phong;
 use App\Models\LoaiPhong;
 use Illuminate\Http\Request;
+use App\Models\Comment;
 
 class PhongController extends Controller
 {
@@ -58,7 +59,17 @@ class PhongController extends Controller
             ->limit(4)
             ->get();
 
-        return view('client.content.show', compact('room', 'relatedRooms'));
+        //Danh Gia cua Binh 
+        $comments = Comment::where('phong_id', $room->id)
+            ->where('trang_thai', 1)
+            ->latest('ngay_danh_gia')
+            ->get();
+
+        // Tính trung bình số sao
+        $averageRating = $comments->avg('so_sao');
+
+
+        return view('client.content.show', compact('room', 'relatedRooms','comments', 'averageRating'));
     }
 
     // API endpoint để lấy danh sách phòng (cho AJAX)

@@ -63,9 +63,8 @@
         {{-- Hàng 3: Mô tả & Ảnh --}}
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
-                <label class="block text-gray-700 font-medium mb-2 text-sm">Mô tả</label>
-                <textarea name="mo_ta" id="mo_ta" rows="4"
-                          class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-amber-500 focus:border-amber-500">{{ old('mo_ta', $phong->mo_ta) }}</textarea>
+                <label class="block text-gray-700 font-medium mb-1">Mô tả</label>
+                <textarea name="mo_ta" rows="8" class="w-full border-gray-300 rounded-lg shadow-sm">{{ old('mo_ta', $phong->mo_ta) }}</textarea>
             </div>
 
             <div>
@@ -80,7 +79,7 @@
                         <img src="{{ asset($phong->img) }}" class="w-32 h-32 object-cover rounded-lg shadow mb-2">
                     </div>
                 @endif
-<img id="preview" class="hidden w-[120px] h-[90px] object-cover rounded-lg border border-gray-300 shadow-sm mt-3">
+                <img id="preview" class="hidden w-[120px] h-[90px] object-cover rounded-lg border border-gray-300 shadow-sm mt-3">
             </div>
         </div>
 
@@ -98,74 +97,32 @@
     </form>
 </div>
 
-{{-- JS Preview ảnh --}}
-@endsection
-
-@push('scripts')
+{{-- JS Preview ảnh + TinyMCE --}}
+<script src="https://cdn.jsdelivr.net/npm/tinymce@6.8.2/tinymce.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // CKEditor initialization
-    ClassicEditor
-        .create(document.querySelector('#mo_ta'), {
-            toolbar: {
-                items: [
-                    'heading', '|',
-                    'bold', 'italic', 'underline', '|',
-                    'bulletedList', 'numberedList', '|',
-                    'outdent', 'indent', '|',
-                    'blockQuote', 'insertTable', '|',
-                    'undo', 'redo'
-                ]
-            },
-            language: 'vi',
-            height: 300,
-            table: {
-                contentToolbar: [
-                    'tableColumn',
-                    'tableRow',
-                    'mergeTableCells'
-                ]
-            },
-            // Ensure proper styling
-            ui: {
-                viewportOffset: {
-                    top: 0,
-                    right: 0,
-                    bottom: 0,
-                    left: 0
-                }
-            }
-        })
-        .then(editor => {
-            console.log('CKEditor initialized successfully');
-            // Ensure the editor is properly displayed
-            editor.ui.view.editable.element.style.minHeight = '300px';
-        })
-        .catch(error => {
-            console.error('CKEditor initialization failed:', error);
-            // Fallback: show the textarea if CKEditor fails
-            document.querySelector('#mo_ta').style.display = 'block';
-        });
-    
-    // Image preview functionality
-    const imgInput = document.getElementById('img');
-    const preview = document.getElementById('preview');
-    
-    if (imgInput && preview) {
-        imgInput.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    preview.src = event.target.result;
-                    preview.classList.remove('hidden');
-                };
-                reader.readAsDataURL(file);
-            } else {
-                preview.classList.add('hidden');
-            }
-        });
-    }
-});
+  tinymce.init({
+    selector: 'textarea[name="mo_ta"]',
+    height: 400,
+    menubar: false,
+    plugins: 'lists link image table code',
+    toolbar: 'undo redo | bold italic underline | bullist numlist | link image | table | code',
+    branding: false,
+    content_style: 'body { font-family:Inter, sans-serif; font-size:14px }'
+  });
+
+  document.getElementById('img').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      const preview = document.getElementById('preview');
+      if (file) {
+          const reader = new FileReader();
+          reader.onload = event => {
+              preview.src = event.target.result;
+              preview.classList.remove('hidden');
+          };
+          reader.readAsDataURL(file);
+      } else {
+          preview.classList.add('hidden');
+      }
+  });
 </script>
 @endpush

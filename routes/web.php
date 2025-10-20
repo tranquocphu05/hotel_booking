@@ -12,8 +12,13 @@ use App\Http\Controllers\Admin\DatPhongController;
 use App\Http\Controllers\Admin\LoaiPhongController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\PhongController;
+<<<<<<< HEAD
 
 // Client Controllers
+=======
+use App\Http\Controllers\Client\CommentController as ClientCommentController;
+// Client Controllers
+>>>>>>> cbf85bcab50c3479bfdfda760a9c75968d9473c7
 use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
 use App\Http\Controllers\Client\PhongController as ClientPhongController;
 use App\Http\Controllers\Client\ContactController as ClientContactController;
@@ -87,9 +92,9 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin
         ->group(function () {
             Route::get('/', [CommentController::class, 'index'])->name('index');
             Route::get('/{id}', [CommentController::class, 'show'])->name('show');
-            Route::put('/{id}/reply', [CommentController::class, 'reply'])->name('reviews.reply');
-            Route::delete('/{id}/reply', [CommentController::class, 'deleteReply'])->name('reviews.reply.delete');
             Route::put('/{id}/toggle', [CommentController::class, 'statusToggle'])->name('toggle');
+            Route::put('/{id}/reply', [CommentController::class, 'reply'])->name('reply');
+            Route::delete('/{id}/reply', [CommentController::class, 'deleteReply'])->name('reply.delete');
         });
     // impersonation
     Route::post('impersonate/{user}', [\App\Http\Controllers\Admin\ImpersonationController::class, 'impersonate'])
