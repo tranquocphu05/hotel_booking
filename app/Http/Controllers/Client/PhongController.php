@@ -2,94 +2,95 @@
 namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
+use App\Models\Phong;
+use App\Models\LoaiPhong;
+use Illuminate\Http\Request;
 
 class PhongController extends Controller
 {
-    private $rooms = [
-        [
-            'id' => 1,
-            'name' => 'Premium King Room',
-            'img' => 'img/room/room-1.jpg',
-            'price' => 1590000,
-            'desc' => 'Phòng sang trọng với giường King, view đẹp và đầy đủ tiện nghi.',
-            'size' => '30m²',
-            'capacity' => '3 người',
-            'bed' => '1 King Bed',
-            'services' => 'WiFi, Tivi, Điều hòa, Phòng tắm riêng'
-        ],
-        [
-            'id' => 2,
-            'name' => 'Deluxe Room',
-            'img' => 'img/room/room-2.jpg',
-            'price' => 1200000,
-            'desc' => 'Phòng thoải mái với tiện nghi hiện đại và view tuyệt đẹp.',
-            'size' => '25m²',
-            'capacity' => '2 người',
-            'bed' => '1 Queen Bed',
-            'services' => 'WiFi, Tivi, Điều hòa'
-        ],
-        [
-            'id' => 3,
-            'name' => 'Double Room',
-            'img' => 'img/room/room-3.jpg',
-            'price' => 1100000,
-            'desc' => 'Phòng đôi rộng rãi, phù hợp cho 2 khách.',
-            'size' => '28m²',
-            'capacity' => '2 người',
-            'bed' => '2 Single Beds',
-            'services' => 'WiFi, Tivi'
-        ],
-        [
-            'id' => 4,
-            'name' => 'Luxury Room',
-            'img' => 'img/room/room-4.jpg',
-            'price' => 2000000,
-            'desc' => 'Phòng sang trọng với thiết kế hiện đại, view hướng biển.',
-            'size' => '35m²',
-            'capacity' => '3 người',
-            'bed' => '1 King Bed',
-            'services' => 'WiFi, Tivi, Điều hòa, Minibar, Phòng tắm riêng'
-        ],
-        [
-            'id' => 5,
-            'name' => 'Room With View',
-            'img' => 'img/room/room-5.jpg',
-            'price' => 1800000,
-            'desc' => 'Phòng đẹp với view hướng ra thành phố, thiết kế hiện đại.',
-            'size' => '32m²',
-            'capacity' => '2 người',
-            'bed' => '1 Queen Bed',
-            'services' => 'WiFi, Tivi, Điều hòa, Balcony'
-        ],
-        [
-            'id' => 6,
-            'name' => 'Small View',
-            'img' => 'img/room/room-6.jpg',
-            'price' => 900000,
-            'desc' => 'Phòng nhỏ gọn, tiết kiệm nhưng vẫn đầy đủ tiện nghi.',
-            'size' => '20m²',
-            'capacity' => '1 người',
-            'bed' => '1 Single Bed',
-            'services' => 'WiFi, Tivi'
-        ],
-    ];
-
     // Danh sách phòng
-    public function index()
+    public function index(Request $request)
     {
-        $rooms = $this->rooms;
-        return view('client.content.phong', compact('rooms'));
+        $query = Phong::with('loaiPhong')
+            ->where('trang_thai', 'hien');
+
+        // Lọc theo loại phòng
+        if ($request->has('loai_phong') && $request->loai_phong) {
+            $query->where('loai_phong_id', $request->loai_phong);
+        }
+
+        // Lọc theo giá
+        if ($request->has('gia_min') && $request->gia_min) {
+            $query->where('gia', '>=', $request->gia_min);
+        }
+        if ($request->has('gia_max') && $request->gia_max) {
+            $query->where('gia', '<=', $request->gia_max);
+        }
+
+        // Sắp xếp
+        $sortBy = $request->get('sort', 'id');
+        $sortOrder = $request->get('order', 'asc');
+        $query->orderBy($sortBy, $sortOrder);
+
+        $rooms = $query->paginate(12)->appends(request()->query());
+        $loaiPhongs = LoaiPhong::where('trang_thai', 'hoat_dong')->get();
+
+        return view('client.content.phong', compact('rooms', 'loaiPhongs'));
     }
 
     // Chi tiết phòng
     public function show($id)
     {
-        $room = collect($this->rooms)->firstWhere('id', $id);
+        $room = Phong::with('loaiPhong')
+            ->where('id', $id)
+            ->where('trang_thai', 'hien')
+            ->first();
 
         if (!$room) {
             abort(404, 'Phòng không tồn tại');
         }
 
-        return view('client.content.show', compact('room'));
+        // Lấy các phòng liên quan (cùng loại)
+        $relatedRooms = Phong::with('loaiPhong')
+            ->where('loai_phong_id', $room->loai_phong_id)
+            ->where('id', '!=', $room->id)
+            ->where('trang_thai', 'hien')
+            ->limit(4)
+            ->get();
+
+        return view('client.content.show', compact('room', 'relatedRooms'));
+    }
+
+    // API endpoint để lấy danh sách phòng (cho AJAX)
+    public function getRooms(Request $request)
+    {
+        $query = Phong::with('loaiPhong')
+            ->where('trang_thai', 'hien');
+
+        // Lọc theo loại phòng
+        if ($request->has('loai_phong') && $request->loai_phong) {
+            $query->where('loai_phong_id', $request->loai_phong);
+        }
+
+        // Lọc theo giá
+        if ($request->has('gia_min') && $request->gia_min) {
+            $query->where('gia', '>=', $request->gia_min);
+        }
+        if ($request->has('gia_max') && $request->gia_max) {
+            $query->where('gia', '<=', $request->gia_max);
+        }
+
+        // Sắp xếp
+        $sortBy = $request->get('sort', 'id');
+        $sortOrder = $request->get('order', 'asc');
+        $query->orderBy($sortBy, $sortOrder);
+
+        $rooms = $query->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $rooms,
+            'total' => $rooms->count()
+        ]);
     }
 }

@@ -1,6 +1,6 @@
 @extends('layouts.client')
 
-@section('title', $post['title'] ?? 'Chi tiết Tin tức')
+@section('title', $post->tieu_de ?? 'Chi tiết Tin tức')
 
 @section('client_content')
 
@@ -18,15 +18,15 @@
             <span class="font-bold text-gray-900 
                          max-w-full md:max-w-lg lg:max-w-xl 
                          overflow-hidden line-clamp-1" 
-                  title="{{ $post['title'] ?? 'N/A' }}">
-                {{ $post['title'] ?? 'Đang tải...' }}
+                  title="{{ $post->tieu_de ?? 'N/A' }}">
+                {{ $post->tieu_de ?? 'Đang tải...' }}
             </span>
         </div>
     </div>
 </div>
 
 <section class="relative py-24 md:py-32 bg-cover bg-center" 
-    style="background-image: url('{{ asset($post['img'] ?? 'img/blog/blog-details/blog-details-hero.jpg') }}');">
+    style="background-image: url('{{ $post->hinh_anh ? asset($post->hinh_anh) : asset('img/blog/blog-details/blog-details-hero.jpg') }}');">
     
     <div class="absolute inset-0 bg-black bg-opacity-40"></div>
     
@@ -35,17 +35,20 @@
             <div class="w-full lg:w-10/12 xl:w-8/12 text-center text-white">
                 <div class="bd-hero-text">
                     <span class="inline-block bg-red-600 text-white text-sm uppercase px-3 py-1 mb-4 font-semibold rounded-full tracking-wider">
-                        {{ $post['tag'] ?? 'Du lịch & Cắm trại' }}
+                        Tin tức
                     </span>
                     <h1 class="text-4xl md:text-5xl font-serif font-bold mb-5 leading-tight">
-                        {{ $post['title'] ?? 'Tiêu đề bài viết' }}
+                        {{ $post->tieu_de ?? 'Tiêu đề bài viết' }}
                     </h1>
                     <ul class="flex justify-center items-center space-x-6 text-sm opacity-90">
                         <li class="flex items-center">
-                            <i class="fa fa-clock mr-2 text-red-400"></i> {{ $post['time'] ?? 'Ngày đăng' }}
+                            <i class="fa fa-clock mr-2 text-red-400"></i> {{ $post->created_at->format('d/m/Y') }}
                         </li>
                         <li class="flex items-center">
-                            <i class="fa fa-user mr-2 text-red-400"></i> Tác giả
+                            <i class="fa fa-user mr-2 text-red-400"></i> {{ $post->admin->ho_ten ?? 'Admin' }}
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fa fa-eye mr-2 text-red-400"></i> {{ number_format($post->luot_xem) }} lượt xem
                         </li>
                     </ul>
                 </div>
@@ -60,14 +63,10 @@
                 <div class="blog-details-text space-y-8">
                     
                     <div class="bd-title prose max-w-none text-lg text-gray-700 leading-relaxed space-y-6">
-                        <p>{!! $post['content'] ?? 'Nội dung đang được cập nhật...' !!}</p>
-                        
-                        <p>Bạn đang nghĩ về một chuyến phiêu lưu ở nước ngoài? Bạn đã cân nhắc những địa điểm tốt nhất
-                            để đi khi nói đến du lịch phiêu lưu ở nước ngoài chưa? Nepal là một trong những nơi phổ biến
-                            nhất, khi bạn ghé thăm đất nước huyền diệu này, bạn sẽ có những cuộc phiêu lưu tuyệt vời
-                            ngay trước ngưỡng cửa của mình.</p>
-                        <p>Ở Nepal, chuyến du lịch phiêu lưu nước ngoài của bạn sẽ rất hấp dẫn. Bạn sẽ được chiêm ngưỡng
-                            dãy núi Himalaya và trải nghiệm tất cả những gì văn hóa Nepal phong phú mang lại.</p>
+                        <p class="text-xl font-semibold text-gray-800 mb-4">{{ $post->tom_tat }}</p>
+                        <div class="content">
+                            {!! nl2br(e($post->noi_dung)) !!}
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 py-4">
@@ -95,15 +94,12 @@
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-t border-b border-gray-200 py-6 space-y-4 md:space-y-0">
                         <div class="tags flex flex-wrap gap-2">
                             <span class="font-semibold text-gray-800 mr-2">Thẻ (Tags):</span>
-                            {{-- Lặp qua các tag nếu có --}}
-                            @if (!empty($post['tag']))
-                                @php $tags = explode('&', $post['tag']); @endphp
-                                @foreach ($tags as $tag)
-                                    <a href="#" class="text-sm bg-gray-100 hover:bg-red-100 text-gray-700 px-3 py-1 rounded-full transition duration-300">
-                                        {{ trim($tag) }}
-                                    </a>
-                                @endforeach
-                            @endif
+                            <a href="#" class="text-sm bg-gray-100 hover:bg-red-100 text-gray-700 px-3 py-1 rounded-full transition duration-300">
+                                Tin tức
+                            </a>
+                            <a href="#" class="text-sm bg-gray-100 hover:bg-red-100 text-gray-700 px-3 py-1 rounded-full transition duration-300">
+                                Khách sạn
+                            </a>
                         </div>
                         <div class="social-share flex items-center space-x-3">
                             <span class="font-semibold text-gray-800">Chia sẻ:</span>
@@ -165,37 +161,37 @@
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             
-            @php 
-                $recommended_posts = [
-                    ['tag' => 'Du lịch', 'title' => 'Tremblant ở Canada', 'time' => '15 Thg 4, 2019', 'img' => 'img/blog/blog-1.jpg', 'slug' => 'tremblant-in-canada'],
-                    ['tag' => 'Cắm trại', 'title' => 'Chọn một nhà lưu động tĩnh', 'time' => '15 Thg 4, 2019', 'img' => 'img/blog/blog-2.jpg', 'slug' => 'choosing-a-static-caravan'],
-                    ['tag' => 'Sự kiện', 'title' => 'Hẻm núi Đồng', 'time' => '21 Thg 4, 2019', 'img' => 'img/blog/blog-3.jpg', 'slug' => 'copper-canyon'],
-                ];
-            @endphp
-            
-            @foreach ($recommended_posts as $item)
-                <div class="relative h-80 rounded-lg overflow-hidden shadow-xl group">
-                    <div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105" 
-                        style="background-image: url('{{ asset($item['img']) }}');">
-                    </div>
-                    
-                    {{-- Overlay & Nội dung --}}
-                    <div class="absolute inset-0 bg-black bg-opacity-40 group-hover:bg-opacity-20 transition duration-300"></div>
-                    
-                    <div class="absolute bottom-0 left-0 p-5 text-white z-10">
-                        <span class="inline-block bg-red-600 text-white text-xs uppercase px-3 py-1 mb-2 font-semibold rounded-full tracking-wider">
-                            {{ $item['tag'] }}
-                        </span>
-                        <h4 class="text-xl font-serif font-bold leading-snug hover:text-red-300 transition">
-                            {{-- Sử dụng route đã định nghĩa để tạo liên kết --}}
-                            <a href="{{ route('client.tintuc.show', $item['slug']) ?? '#' }}">{{ $item['title'] }}</a>
-                        </h4>
-                        <div class="text-sm mt-1 flex items-center opacity-90">
-                            <i class="fa fa-clock mr-2 text-red-400"></i> {{ $item['time'] }}
+            @if(isset($relatedPosts) && $relatedPosts->count() > 0)
+                @foreach ($relatedPosts as $item)
+                    <div class="relative h-80 rounded-lg overflow-hidden shadow-xl group">
+                        <div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105" 
+                            style="background-image: url('{{ $item->hinh_anh ? asset($item->hinh_anh) : 'https://placehold.co/600x400/D9D9D9/333333?text=Hotel+Blog' }}');">
+                        </div>
+                        
+                        {{-- Overlay & Nội dung --}}
+                        <div class="absolute inset-0 bg-black bg-opacity-40 group-hover:bg-opacity-20 transition duration-300"></div>
+                        
+                        <div class="absolute bottom-0 left-0 p-5 text-white z-10">
+                            <span class="inline-block bg-red-600 text-white text-xs uppercase px-3 py-1 mb-2 font-semibold rounded-full tracking-wider">
+                                Tin tức
+                            </span>
+                            <h4 class="text-xl font-serif font-bold leading-snug hover:text-red-300 transition">
+                                <a href="{{ route('client.tintuc.show', $item->slug) }}">{{ $item->tieu_de }}</a>
+                            </h4>
+                            <div class="text-sm mt-1 flex items-center opacity-90">
+                                <i class="fa fa-clock mr-2 text-red-400"></i> {{ $item->created_at->format('d/m/Y') }}
+                            </div>
+                            <div class="text-sm mt-1 flex items-center opacity-90">
+                                <i class="fa fa-eye mr-2 text-red-400"></i> {{ number_format($item->luot_xem) }} lượt xem
+                            </div>
                         </div>
                     </div>
+                @endforeach
+            @else
+                <div class="col-span-full text-center text-gray-500">
+                    <p>Chưa có bài viết liên quan nào.</p>
                 </div>
-            @endforeach
+            @endif
             
         </div>
     </div>

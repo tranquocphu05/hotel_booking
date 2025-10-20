@@ -31,6 +31,9 @@ class User extends Authenticatable
         'cccd',
         'vai_tro',
         'trang_thai',
+        'google_id',
+        'img',
+        'email_verified_at',
     ];
 
     /**
