@@ -22,13 +22,13 @@
         {{-- Hàng 1: Tên phòng & Giá --}}
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
-                <label for="ten_phong" class="block text-gray-700 font-medium mb-1">Tên phòng</label>
+                <label for="ten_phong" class="block text-gray-700 font-medium mb-2 text-sm">Tên phòng</label>
                 <input type="text" name="ten_phong" id="ten_phong" value="{{ old('ten_phong') }}"
                        class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500" required>
             </div>
 
             <div>
-                <label for="gia" class="block text-gray-700 font-medium mb-1">Giá (₫)</label>
+                <label for="gia" class="block text-gray-700 font-medium mb-2 text-sm">Giá (₫)</label>
                 <input type="number" name="gia" id="gia" value="{{ old('gia') }}" maxlength="9"
                        class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500" required>
             </div>
@@ -37,9 +37,9 @@
         {{-- Hàng 2: Loại phòng & Trạng thái --}}
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
-                <label for="loai_phong_id" class="block text-gray-700 font-medium mb-1">Loại phòng</label>
+                <label for="loai_phong_id" class="block text-gray-700 font-medium mb-2 text-sm">Loại phòng</label>
                 <select name="loai_phong_id" id="loai_phong_id"
-                        class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500" required>
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-300 hover:border-gray-300 bg-white text-gray-700" required>
                     <option value="">-- Chọn loại phòng --</option>
                     @foreach ($loaiPhongs as $loai) 
                         <option value="{{ $loai->id }}" {{ old('loai_phong_id') == $loai->id ? 'selected' : '' }}>
@@ -50,9 +50,9 @@
             </div>
 
             <div>
-                <label for="trang_thai" class="block text-gray-700 font-medium mb-1">Trạng thái</label>
+                <label for="trang_thai" class="block text-gray-700 font-medium mb-2 text-sm">Trạng thái</label>
                 <select name="trang_thai" id="trang_thai"
-                        class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500" required>
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-300 hover:border-gray-300 bg-white text-gray-700" required>
                     <option value="hien" {{ old('trang_thai') == 'hien' ? 'selected' : '' }}>Hiện</option>
                     <option value="an" {{ old('trang_thai') == 'an' ? 'selected' : '' }}>Ẩn</option>
                     <option value="bao_tri" {{ old('trang_thai') == 'bao_tri' ? 'selected' : '' }}>Bảo trì</option>
@@ -117,4 +117,4 @@
       }
   });
 </script>
-@endsection
+@endpush

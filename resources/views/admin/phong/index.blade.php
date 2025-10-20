@@ -8,9 +8,16 @@
         <h2 class="text-3xl font-semibold text-blue-600 flex items-center gap-2">
             <i class="bi bi-building"></i> Quản lý phòng
         </h2>
-        <a href="{{ route('admin.phong.create') }}" class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2 rounded-full shadow transition">
-            + Add
-        </a>
+        <div class="flex gap-3">
+            <a href="{{ route('admin.phong.available') }}" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-full shadow transition">
+                <i class="fas fa-search"></i>
+                Phòng trống
+            </a>
+            <a href="{{ route('admin.phong.create') }}" class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2 rounded-full shadow transition">
+                <i class="fas fa-plus"></i>
+                Thêm phòng
+            </a>
+        </div>
     </div>
 
     @if (session('success'))
@@ -63,6 +70,18 @@
                             {!! Str::limit($phong->mo_ta, 50) !!}
                         </td>
                         <td class="px-6 py-3 text-center">
+                            @if($phong->mo_ta)
+                                <div class="table-description mx-auto">
+                                    <div class="text-xs text-gray-600 description-tooltip" 
+                                         title="{{ strip_tags($phong->mo_ta) }}">
+                                        {{ Str::limit(strip_tags($phong->mo_ta), 30) }}
+                                    </div>
+                                </div>
+                            @else
+                                <span class="text-gray-400 text-xs italic">Chưa có mô tả</span>
+                            @endif
+                        </td>
+                        <td class="px-6 py-3 text-center">
                             @if($phong->img)
                                 <img src="{{ asset($phong->img) }}" class="w-14 h-14 object-cover rounded-lg mx-auto shadow">
                             @else
@@ -74,19 +93,26 @@
                                 <span class="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">Hiện</span>
                             @elseif ($phong->trang_thai === 'an')
                                 <span class="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs font-medium rounded-full">Ẩn</span>
+                            @elseif ($phong->trang_thai === 'chong')
+                                <span class="px-2 py-1 bg-orange-100 text-orange-700 text-xs font-medium rounded-full">Chống</span>
                             @else
                                 <span class="px-2 py-1 bg-red-100 text-red-700 text-xs font-medium rounded-full">Bảo trì</span>
                             @endif
                         </td>
                         <td class="px-6 py-3 text-center">
-                            <div class="flex justify-center items-center gap-4">
-                                <a href="{{ route('admin.phong.edit', $phong->id) }}" class="text-amber-600 hover:text-amber-700 flex items-center gap-1 transition">
+                            <div class="flex justify-center items-center gap-2">
+                                <a href="{{ route('admin.phong.edit', $phong->id) }}" class="text-amber-600 hover:text-amber-700 flex items-center gap-1 transition text-xs">
                                     <i class="bi bi-pencil-square"></i> Edit
                                 </a>
+                                @if($phong->trang_thai === 'hien' && !\App\Models\DatPhong::where('phong_id', $phong->id)->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])->exists())
+                                    <button onclick="blockRoomDirect({{ $phong->id }})" class="text-orange-600 hover:text-orange-700 flex items-center gap-1 transition text-xs">
+                                        <i class="fas fa-ban"></i> Chống
+                                    </button>
+                                @endif
                                 <form action="{{ route('admin.phong.destroy', $phong->id) }}" method="POST" onsubmit="return confirm('Xác nhận xóa phòng này?')">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="text-red-600 hover:text-red-700 flex items-center gap-1 transition">
+                                    <button type="submit" class="text-red-600 hover:text-red-700 flex items-center gap-1 transition text-xs">
                                         <i class="bi bi-trash3"></i> Delete
                                     </button>
                                 </form>
@@ -95,7 +121,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="px-6 py-6 text-center text-gray-500">
+                        <td colspan="8" class="px-6 py-6 text-center text-gray-500">
                             Chưa có phòng nào được thêm.
                         </td>
                     </tr>
@@ -105,3 +131,35 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    // Function to block room directly from room list
+    function blockRoomDirect(roomId) {
+        if (confirm('Bạn có chắc chắn muốn chống phòng này? Phòng sẽ không thể đặt được cho đến khi bạn hủy chống.')) {
+            // Create form to submit block request
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `/admin/phong/${roomId}/block`;
+            
+            // Add CSRF token
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = '_token';
+            csrfInput.value = csrfToken;
+            form.appendChild(csrfInput);
+            
+            // Add method override for PUT
+            const methodInput = document.createElement('input');
+            methodInput.type = 'hidden';
+            methodInput.name = '_method';
+            methodInput.value = 'PUT';
+            form.appendChild(methodInput);
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+</script>
+@endpush

@@ -97,4 +97,75 @@ class PhongController extends Controller
         $phong->delete();
         return redirect()->route('admin.phong.index')->with('success', 'Xóa phòng thành công!');
     }
+
+    // Hiển thị phòng trống theo thời gian
+    public function available(Request $request)
+    {
+        $ngayNhan = $request->input('ngay_nhan', now()->format('Y-m-d'));
+        $ngayTra = $request->input('ngay_tra', now()->addDay()->format('Y-m-d'));
+        
+        // Lấy tất cả phòng
+        $allRooms = Phong::with('loaiPhong')->get();
+        
+        // Lấy các phòng đã được đặt trong khoảng thời gian này
+        $bookedRoomIds = \App\Models\DatPhong::where(function($query) use ($ngayNhan, $ngayTra) {
+            $query->where(function($q) use ($ngayNhan, $ngayTra) {
+                // Đặt phòng bắt đầu trong khoảng thời gian
+                $q->whereBetween('ngay_nhan', [$ngayNhan, $ngayTra])
+                  ->orWhereBetween('ngay_tra', [$ngayNhan, $ngayTra])
+                  // Hoặc đặt phòng bao trùm khoảng thời gian
+                  ->orWhere(function($subQ) use ($ngayNhan, $ngayTra) {
+                      $subQ->where('ngay_nhan', '<=', $ngayNhan)
+                           ->where('ngay_tra', '>=', $ngayTra);
+                  });
+            });
+        })
+        ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
+        ->pluck('phong_id')
+        ->toArray();
+        
+        // Lấy phòng trống (không bị đặt và không bị chống)
+        $availableRooms = $allRooms->filter(function($room) use ($bookedRoomIds) {
+            return !in_array($room->id, $bookedRoomIds) && 
+                   $room->trang_thai === 'hien' && 
+                   $room->trang_thai !== 'chong';
+        });
+        
+        // Lấy loại phòng để filter
+        $loaiPhongs = LoaiPhong::all();
+        
+        // Đếm số phòng đã đặt
+        $bookedCount = count($bookedRoomIds);
+        
+        return view('admin.phong.available', compact('availableRooms', 'loaiPhongs', 'ngayNhan', 'ngayTra', 'bookedRoomIds', 'bookedCount'));
+    }
+
+    // Hiển thị chi tiết phòng
+    public function show($id)
+    {
+        $phong = Phong::with('loaiPhong')->findOrFail($id);
+        return view('admin.phong.show', compact('phong'));
+    }
+
+    // Chống phòng trực tiếp
+    public function blockRoom($id)
+    {
+        $phong = Phong::findOrFail($id);
+        
+        // Kiểm tra phòng có đang được đặt không
+        $hasActiveBooking = \App\Models\DatPhong::where('phong_id', $id)
+            ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
+            ->exists();
+            
+        if ($hasActiveBooking) {
+            return redirect()->route('admin.phong.index')
+                ->with('error', 'Không thể chống phòng đang được đặt');
+        }
+        
+        // Cập nhật trạng thái phòng thành "chong"
+        $phong->update(['trang_thai' => 'chong']);
+        
+        return redirect()->route('admin.phong.index')
+            ->with('success', 'Đã chống phòng thành công! Phòng không thể đặt được cho đến khi hủy chống.');
+    }
 }

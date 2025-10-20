@@ -10,7 +10,7 @@
         @csrf
         @method('PUT')
         <div class="flex justify-end">
-            <button type="submit" class="px-3 py-1 bg-green-600 text-white rounded">Update</button>
+            <button type="submit" class="btn-success btn-animate">Update User</button>
         </div>
         <div>
             <label class="block text-sm">Username</label>
@@ -23,6 +23,22 @@
         <div>
             <label class="block text-sm">Password (leave blank to keep)</label>
             <input name="password" type="password" class="border p-2 w-full" />
+        </div>
+        <div>
+            <label class="block text-sm">Full name</label>
+            <input name="ho_ten" value="{{ $user->ho_ten }}" class="border p-2 w-full" />
+        </div>
+        <div>
+            <label class="block text-sm">SĐT</label>
+            <input name="sdt" value="{{ $user->sdt }}" class="border p-2 w-full" />
+        </div>
+        <div>
+            <label class="block text-sm">CCCD</label>
+            <input name="cccd" value="{{ $user->cccd }}" class="border p-2 w-full" />
+        </div>
+        <div>
+            <label class="block text-sm">Address</label>
+            <input name="dia_chi" value="{{ $user->dia_chi }}" class="border p-2 w-full" />
         </div>
         <div>
             <label class="block text-sm">Role</label>
@@ -39,13 +55,13 @@
                 <option value="khoa" {{ $user->trang_thai=='khoa'?'selected':'' }}>khoa</option>
             </select>
         </div>
-        <button class="px-3 py-1 bg-green-600 text-white rounded">Update</button>
+        <button class="btn-success btn-animate">Update User</button>
     </form>
 
     <!-- Sticky submit bar (mobile/long pages) -->
     <div class="fixed bottom-0 left-0 right-0 bg-white border-t p-3 shadow-lg z-50">
         <div class="max-w-7xl mx-auto flex justify-end">
-            <button form="user-form" type="submit" class="px-4 py-2 bg-green-600 text-white rounded">Update</button>
+            <button form="user-form" type="submit" class="btn-success btn-animate">Update User</button>
         </div>
     </div>
 @endsection

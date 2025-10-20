@@ -23,24 +23,24 @@
         {{-- Hàng 1: Tên phòng & Giá --}}
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
-                <label class="block text-gray-700 font-medium mb-1">Tên phòng</label>
+                <label class="block text-gray-700 font-medium mb-2 text-sm">Tên phòng</label>
                 <input type="text" name="ten_phong" value="{{ old('ten_phong', $phong->ten_phong) }}"
-                       class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-amber-500 focus:border-amber-500" required>
+                       class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 hover:border-gray-300 bg-white text-gray-700 placeholder-gray-400" required>
             </div>
 
             <div>
-                <label class="block text-gray-700 font-medium mb-1">Giá (₫)</label>
+                <label class="block text-gray-700 font-medium mb-2 text-sm">Giá (₫)</label>
                 <input type="number" name="gia" value="{{ old('gia', $phong->gia) }}" maxlength="9"
-                       class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-amber-500 focus:border-amber-500" required>
+                       class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 hover:border-gray-300 bg-white text-gray-700 placeholder-gray-400" required>
             </div>
         </div>
 
         {{-- Hàng 2: Loại phòng & Trạng thái --}}
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
-                <label class="block text-gray-700 font-medium mb-1">Loại phòng</label>
+                <label class="block text-gray-700 font-medium mb-2 text-sm">Loại phòng</label>
                 <select name="loai_phong_id"
-                        class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-amber-500 focus:border-amber-500" required>
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 hover:border-gray-300 bg-white text-gray-700" required>
                     @foreach ($loaiPhongs as $loai)
                         <option value="{{ $loai->id }}" {{ old('loai_phong_id', $phong->loai_phong_id) == $loai->id ? 'selected' : '' }}>
                             {{ $loai->ten_loai }}
@@ -50,9 +50,9 @@
             </div>
 
             <div>
-                <label class="block text-gray-700 font-medium mb-1">Trạng thái</label>
+                <label class="block text-gray-700 font-medium mb-2 text-sm">Trạng thái</label>
                 <select name="trang_thai"
-                        class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-amber-500 focus:border-amber-500" required>
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 hover:border-gray-300 bg-white text-gray-700" required>
                     <option value="hien" {{ old('trang_thai', $phong->trang_thai) == 'hien' ? 'selected' : '' }}>Hiện</option>
                     <option value="an" {{ old('trang_thai', $phong->trang_thai) == 'an' ? 'selected' : '' }}>Ẩn</option>
                     <option value="bao_tri" {{ old('trang_thai', $phong->trang_thai) == 'bao_tri' ? 'selected' : '' }}>Bảo trì</option>
@@ -68,9 +68,11 @@
             </div>
 
             <div>
-                <label class="block text-gray-700 font-medium mb-1">Ảnh phòng</label>
-                <input type="file" name="img" id="img"
-                       class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-amber-500 focus:border-amber-500">
+                <label class="block text-gray-700 font-medium mb-2 text-sm">Ảnh phòng</label>
+                <div class="relative">
+                    <input type="file" name="img" id="img" accept="image/*"
+                           class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 hover:border-gray-300 bg-white text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100">
+                </div>
                 @if ($phong->img)
                     <div class="mt-3">
                         <p class="text-gray-600 text-sm mb-1">Ảnh hiện tại:</p>
@@ -123,4 +125,4 @@
       }
   });
 </script>
-@endsection
+@endpush

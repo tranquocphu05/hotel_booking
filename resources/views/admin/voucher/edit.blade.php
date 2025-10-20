@@ -23,9 +23,9 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                     {{-- Mã voucher --}}
                     <div>
-                        <label class="block mb-1 font-medium text-gray-700">Mã voucher:</label>
+                        <label class="block mb-2 text-sm font-medium text-gray-700">Mã voucher:</label>
                         <input type="text" name="ma_voucher"
-                            class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-green-500 focus:border-green-500"
+                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-300 hover:border-gray-300 bg-white text-gray-700 placeholder-gray-400"
                             value="{{ old('ma_voucher', $voucher->ma_voucher) }}" placeholder="Nhập mã voucher">
                         @error('ma_voucher')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
@@ -34,9 +34,9 @@
 
                     {{-- Giảm (%) --}}
                     <div>
-                        <label class="block mb-1 font-medium text-gray-700">Giảm (%):</label>
+                        <label class="block mb-2 text-sm font-medium text-gray-700">Giảm (%):</label>
                         <input type="number" name="gia_tri"
-                            class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-green-500 focus:border-green-500"
+                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-300 hover:border-gray-300 bg-white text-gray-700 placeholder-gray-400"
                             value="{{ old('gia_tri', $voucher->gia_tri) }}" min="1" max="100"
                             placeholder="Giá trị giảm (1-100)">
                         @error('gia_tri')
