@@ -19,7 +19,7 @@ use App\Http\Controllers\Client\PhongController as ClientPhongController;
 use App\Http\Controllers\Client\ContactController as ClientContactController;
 use App\Http\Controllers\Client\GioiThieuController as ClientGioiThieuController;
 use App\Http\Controllers\Client\TinTucController as ClientTinTucController;
-
+use App\Http\Controllers\Client\ThanhToanController as ClientThanhToanController;
 
 Route::get('/', [ClientDashboardController::class, 'index'])
     ->name('client.home')
@@ -101,7 +101,8 @@ Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\Allow
     Route::get('/lien-he', [ClientContactController::class, 'index'])->name('lienhe');
     Route::get('/gioi-thieu', [ClientGioiThieuController::class, 'index'])->name('gioithieu');
 
-
+    Route::get('/thanh-toan/{datPhong}', [\App\Http\Controllers\Client\ThanhToanController::class, 'show'])->name('thanh-toan.show');
+    Route::post('/thanh-toan/{datPhong}', [\App\Http\Controllers\Client\ThanhToanController::class, 'store'])->name('thanh-toan.store');
     Route::get('/tin-tuc', [ClientTinTucController::class, 'index'])->name('tintuc');
     Route::get('/tin-tuc/{slug}', [ClientTinTucController::class, 'chitiettintuc'])->name('tintuc.show');
 });

@@ -37,11 +37,7 @@ class ThanhToanController extends Controller
         ]);
 
         $invoice = $datPhong->invoice;
-        // if (!$invoice) {
-        //     // This case should ideally not happen if 'show' method is always called first
-        //     return redirect()->back()->with('error', 'Hóa đơn không tồn tại.');
-        // }
-
+       
         // Update invoice with payment method
           $invoice->update([
             'phuong_thuc' => $request->phuong_thuc,
