@@ -7,7 +7,7 @@
     {{-- 📢 SECTION FULL-WIDTH MỚI - Đặt ngoài div.main --}}
     @yield('fullwidth_content')
 
-    <div class="main">
+    <div class="main w-full">
         @if(session('impersonator_id'))
             <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4">
                 <div class="flex items-center justify-between">
