@@ -12,13 +12,8 @@ use App\Http\Controllers\Admin\DatPhongController;
 use App\Http\Controllers\Admin\LoaiPhongController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\PhongController;
-<<<<<<< HEAD
-
-// Client Controllers
-=======
 use App\Http\Controllers\Client\CommentController as ClientCommentController;
 // Client Controllers
->>>>>>> cbf85bcab50c3479bfdfda760a9c75968d9473c7
 use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
 use App\Http\Controllers\Client\PhongController as ClientPhongController;
 use App\Http\Controllers\Client\ContactController as ClientContactController;
@@ -127,13 +122,18 @@ Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\Allow
 
     Route::get('/lien-he', [ClientContactController::class, 'index'])->name('lienhe');
     Route::get('/gioi-thieu', [ClientGioiThieuController::class, 'index'])->name('gioithieu');
-    // Use BookingController for client booking flow
+
     Route::get('/{phong}/dat-phong', [BookingController::class, 'showForm'])->name('phong.create_booking');
     Route::post('/{phong}/dat-phong', [BookingController::class, 'submit'])->name('phong.store_booking');
     Route::get('/thanh-toan/{datPhong}', [ClientThanhToanController::class, 'show'])->name('thanh-toan.show');
     Route::post('/thanh-toan/{datPhong}', [ClientThanhToanController::class, 'store'])->name('thanh-toan.store');
     Route::get('/tin-tuc', [ClientTinTucController::class, 'index'])->name('tintuc');
     Route::get('/tin-tuc/{slug}', [ClientTinTucController::class, 'chitiettintuc'])->name('tintuc.show');
+     Route::get('/danh-gia', [ClientCommentController::class, 'index'])->name('comment.index');
+    Route::post('/danh-gia', [ClientCommentController::class, 'store'])->name('comment.store');
+    Route::get('/danh-gia/{id}/edit', [ClientCommentController::class, 'edit'])->name('comment.edit');
+    Route::post('/danh-gia/{id}/update', [ClientCommentController::class, 'update'])->name('comment.update');
+    Route::delete('/danh-gia/{id}', [ClientCommentController::class, 'destroy'])->name('comment.destroy');
 });
 
 // Public impersonation stop (in case admin is impersonating)

@@ -50,15 +50,15 @@
                             <div class="space-y-2">
                                 <div class="flex justify-between">
                                     <span class="text-gray-600">Họ tên:</span>
-                                    <span class="font-medium">{{ $datPhong->user->ho_ten }}</span>
+                                    <span class="font-medium">{{ $datPhong->username ?? ($datPhong->user->ho_ten ?? 'Khách ẩn danh') }}</span>
                                 </div>
                                 <div class="flex justify-between">
                                     <span class="text-gray-600">Email:</span>
-                                    <span class="font-medium">{{ $datPhong->user->email }}</span>
+                                    <span class="font-medium">{{ $datPhong->email ?? ($datPhong->user->email ?? 'Chưa cập nhật') }}</span>
                                 </div>
                                 <div class="flex justify-between">
                                     <span class="text-gray-600">SĐT:</span>
-                                    <span class="font-medium">{{ $datPhong->user->sdt }}</span>
+                                    <span class="font-medium">{{ $datPhong->sdt ?? ($datPhong->user->sdt ?? 'Chưa cập nhật') }}</span>
                                 </div>
                                 <div class="flex justify-between">
                                     <span class="text-gray-600">CCCD:</span>
