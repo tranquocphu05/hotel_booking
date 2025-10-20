@@ -203,6 +203,10 @@
         @endif
     </div>
 </section>
+{{-- Phần đánh giá phòng --}}
+<div class="mt-20">
+    @include('client.content.comment', ['comments' => $comments, 'room' => $room])
+</div>
 
 <script>
 function handleBooking(event, roomId) {
