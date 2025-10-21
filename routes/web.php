@@ -144,6 +144,7 @@ Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\Allow
     Route::get('/danh-gia/{id}/edit', [ClientCommentController::class, 'edit'])->name('comment.edit');
     Route::post('/danh-gia/{id}/update', [ClientCommentController::class, 'update'])->name('comment.update');
     Route::delete('/danh-gia/{id}', [ClientCommentController::class, 'destroy'])->name('comment.destroy');
+    Route::get('/voucher', [ClientVoucherController::class, 'getVoucher'])->name('voucher'); 
 });
 
 // Public impersonation stop (in case admin is impersonating)

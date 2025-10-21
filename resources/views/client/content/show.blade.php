@@ -246,4 +246,3 @@ function handleBooking(event) {
 </script>
 
 @endsection
-@endsection
