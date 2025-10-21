@@ -38,7 +38,7 @@ class PhongController extends Controller
             'ten_phong' => 'required|string|max:255',
             'mo_ta' => 'nullable|string',
             'gia' => 'required|numeric|min:0|max:999999999',
-            'trang_thai' => 'required|in:hien,an,bao_tri',
+            'trang_thai' => 'required|in:hien,an,bao_tri,chong',
             'loai_phong_id' => 'required|exists:loai_phong,id',
             'img' => 'nullable|image|max:2048'
         ]);
@@ -68,7 +68,7 @@ class PhongController extends Controller
             'ten_phong' => 'required|string|max:255',
             'mo_ta' => 'nullable|string',
             'gia' => 'required|numeric|min:0|max:999999999',
-            'trang_thai' => 'required|in:hien,an,bao_tri',
+            'trang_thai' => 'required|in:hien,an,bao_tri,chong',
             'loai_phong_id' => 'required|exists:loai_phong,id',
             'img' => 'nullable|image|max:2048'
         ]);

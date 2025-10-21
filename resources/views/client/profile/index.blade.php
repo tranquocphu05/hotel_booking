@@ -29,6 +29,15 @@
             </div>
         @endif
 
+        @if(session('error'))
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
+                <div class="flex items-center">
+                    <i class="fas fa-exclamation-circle text-red-500 text-xl mr-3"></i>
+                    <p class="text-red-800 font-medium">{{ session('error') }}</p>
+                </div>
+            </div>
+        @endif
+
         <div class="grid lg:grid-cols-3 gap-8">
             
             <!-- Sidebar -->
@@ -187,13 +196,27 @@
                     @if($bookings->count() > 0)
                         <div class="space-y-6">
                             @foreach($bookings as $booking)
-                            <div class="bg-gradient-to-r from-white to-gray-50 border-l-4 
+                            <div class="booking-item bg-gradient-to-r from-white to-gray-50 border-l-4 
                                 @if($booking->trang_thai == 'da_xac_nhan') border-green-500
                                 @elseif($booking->trang_thai == 'da_huy') border-red-500
                                 @elseif($booking->trang_thai == 'da_tra') border-blue-500
                                 @else border-yellow-500
                                 @endif
-                                rounded-lg shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden">
+                                rounded-lg shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden"
+                                data-booking-id="{{ $booking->id }}"
+                                data-room-name="{{ $booking->phong->ten_phong ?? 'N/A' }}"
+                                data-room-type="{{ $booking->phong->loaiPhong->ten_loai ?? 'N/A' }}"
+                                data-room-price="{{ number_format($booking->phong->gia ?? 0, 0, ',', '.') }}"
+                                data-room-desc="{{ strip_tags($booking->phong->mo_ta ?? '') }}"
+                                data-room-img="{{ asset($booking->phong->img ?? 'img/room/room-1.jpg') }}"
+                                data-checkin="{{ \Carbon\Carbon::parse($booking->ngay_nhan)->format('d/m/Y') }}"
+                                data-checkout="{{ \Carbon\Carbon::parse($booking->ngay_tra)->format('d/m/Y') }}"
+                                data-booking-date="{{ \Carbon\Carbon::parse($booking->ngay_dat)->format('d/m/Y H:i') }}"
+                                data-guests="{{ $booking->so_nguoi }}"
+                                data-total="{{ number_format($booking->tong_tien, 0, ',', '.') }}"
+                                data-status="{{ $booking->trang_thai }}"
+                                data-cancel-reason="{{ $booking->ly_do_huy ?? '' }}"
+                                data-cancel-date="{{ $booking->ngay_huy ? \Carbon\Carbon::parse($booking->ngay_huy)->format('d/m/Y H:i') : '' }}">
                                 
                                 <!-- Header -->
                                 <div class="p-6 border-b border-gray-100">
@@ -243,7 +266,7 @@
                                 
                                 <!-- Body -->
                                 <div class="p-6">
-                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                                         <!-- Check-in -->
                                         <div class="bg-white rounded-lg p-4 border border-gray-200">
                                             <div class="flex items-center gap-3">
@@ -289,14 +312,56 @@
                                             </div>
                                         </div>
                                     </div>
+                                    
+                                    @if($booking->ly_do_huy)
+                                        <!-- Lý do hủy -->
+                                        <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                                            <div class="flex items-start gap-3">
+                                                <i class="fas fa-info-circle text-red-500 mt-1"></i>
+                                                <div>
+                                                    <p class="text-sm font-semibold text-red-800 mb-1">Lý do hủy phòng:</p>
+                                                    <p class="text-sm text-red-700">{{ $booking->ly_do_huy }}</p>
+                                                    @if($booking->ngay_huy)
+                                                        <p class="text-xs text-red-600 mt-1">Ngày hủy: {{ \Carbon\Carbon::parse($booking->ngay_huy)->format('d/m/Y H:i') }}</p>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
+                                    
+                                    <!-- Action buttons -->
+                                    <div class="flex justify-end gap-3">
+                                        <!-- Nút xem chi tiết (luôn hiển thị) -->
+                                        <button onclick="showBookingDetail({{ $booking->id }})" 
+                                            class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors font-medium flex items-center gap-2">
+                                            <i class="fas fa-eye"></i>
+                                            Xem chi tiết
+                                        </button>
+                                        
+                                        <!-- Nút hủy phòng (chỉ cho phòng chờ xác nhận) -->
+                                        @if($booking->trang_thai === 'cho_xac_nhan')
+                                            <button onclick="showCancelModal({{ $booking->id }})" 
+                                                class="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg transition-colors font-medium flex items-center gap-2">
+                                                <i class="fas fa-times-circle"></i>
+                                                Hủy đặt phòng
+                                            </button>
+                                        @endif
+                                    </div>
+                                    
+                                    @if($booking->trang_thai === 'da_xac_nhan')
+                                        <div class="mt-3 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 text-blue-700 text-sm">
+                                            <i class="fas fa-info-circle mr-2"></i>
+                                            Đặt phòng đã được xác nhận, không thể hủy
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
                             @endforeach
                         </div>
 
                         @if($bookings->hasPages())
-                            <div class="mt-6">
-                                {{ $bookings->links() }}
+                            <div class="mt-8">
+                                {{ $bookings->links('pagination.custom') }}
                             </div>
                         @endif
                     @else
@@ -357,6 +422,82 @@
         </div>
     </div>
 </section>
+
+<!-- Modal chi tiết đặt phòng -->
+<div id="detailModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" onclick="closeDetailModalOnOutsideClick(event)">
+    <div class="bg-white rounded-lg shadow-2xl max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+        <div class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4 rounded-t-lg flex items-center justify-between sticky top-0 z-10">
+            <h3 class="text-xl font-bold flex items-center gap-2">
+                <i class="fas fa-info-circle"></i>
+                Chi tiết đặt phòng
+            </h3>
+            <button onclick="closeDetailModal()" class="text-white hover:text-gray-200 transition-colors">
+                <i class="fas fa-times text-2xl"></i>
+            </button>
+        </div>
+        
+        <div id="detailContent" class="p-6">
+            <!-- Content will be loaded dynamically -->
+        </div>
+    </div>
+</div>
+
+<!-- Modal hủy đặt phòng -->
+<div id="cancelModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" onclick="closeCancelModalOnOutsideClick(event)">
+    <div class="bg-white rounded-lg shadow-2xl max-w-md w-full mx-4" onclick="event.stopPropagation()">
+        <div class="bg-red-500 text-white px-6 py-4 rounded-t-lg flex items-center justify-between">
+            <h3 class="text-xl font-bold flex items-center gap-2">
+                <i class="fas fa-exclamation-triangle"></i>
+                Hủy đặt phòng
+            </h3>
+            <button onclick="closeCancelModal()" class="text-white hover:text-gray-200 transition-colors">
+                <i class="fas fa-times text-2xl"></i>
+            </button>
+        </div>
+        
+        <form id="cancelForm" method="POST" action="">
+            @csrf
+            @method('POST')
+            
+            <div class="p-6">
+                <p class="text-gray-700 mb-4">
+                    <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                    Bạn có chắc chắn muốn hủy đặt phòng này không? Vui lòng nhập lý do hủy phòng.
+                </p>
+                
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Lý do hủy phòng <span class="text-red-500">*</span>
+                    </label>
+                    <textarea 
+                        name="ly_do_huy" 
+                        id="ly_do_huy"
+                        rows="4" 
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none" 
+                        placeholder="Vui lòng nhập lý do hủy đặt phòng..."
+                        required></textarea>
+                    <p class="text-xs text-gray-500 mt-1">
+                        <i class="fas fa-lightbulb text-yellow-500 mr-1"></i>
+                        Ví dụ: Thay đổi kế hoạch, tìm được khách sạn khác, v.v.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="bg-gray-50 px-6 py-4 rounded-b-lg flex justify-end gap-3">
+                <button type="button" onclick="closeCancelModal()" 
+                    class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    Quay lại
+                </button>
+                <button type="submit" 
+                    class="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium">
+                    <i class="fas fa-check mr-2"></i>
+                    Xác nhận hủy
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <script>
 function toggleEdit() {
@@ -444,6 +585,153 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         }
     });
 });
+
+// Cancel booking modal functions
+function showCancelModal(bookingId) {
+    const modal = document.getElementById('cancelModal');
+    const form = document.getElementById('cancelForm');
+    const textarea = document.getElementById('ly_do_huy');
+    
+    // Set form action
+    form.action = `/profile/booking/${bookingId}/cancel`;
+    
+    // Clear textarea
+    textarea.value = '';
+    
+    // Show modal
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    
+    // Focus on textarea
+    setTimeout(() => {
+        textarea.focus();
+    }, 100);
+    
+    // Prevent body scroll
+    document.body.style.overflow = 'hidden';
+}
+
+function closeCancelModal() {
+    const modal = document.getElementById('cancelModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    
+    // Restore body scroll
+    document.body.style.overflow = '';
+}
+
+function closeCancelModalOnOutsideClick(event) {
+    if (event.target.id === 'cancelModal') {
+        closeCancelModal();
+    }
+}
+
+// Close modal on ESC key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeCancelModal();
+        closeDetailModal();
+    }
+});
+
+// Booking detail modal functions
+function showBookingDetail(bookingId) {
+    const bookingItem = document.querySelector(`.booking-item[data-booking-id="${bookingId}"]`);
+    if (!bookingItem) return;
+    
+    const data = bookingItem.dataset;
+    const statusMap = {
+        'cho_xac_nhan': { text: 'Chờ xác nhận', class: 'bg-yellow-100 text-yellow-800', icon: 'fa-clock' },
+        'da_xac_nhan': { text: 'Đã xác nhận', class: 'bg-green-100 text-green-800', icon: 'fa-check-circle' },
+        'da_huy': { text: 'Đã hủy', class: 'bg-red-100 text-red-800', icon: 'fa-times-circle' },
+        'da_tra': { text: 'Đã trả phòng', class: 'bg-blue-100 text-blue-800', icon: 'fa-check-double' }
+    };
+    
+    const status = statusMap[data.status] || statusMap['cho_xac_nhan'];
+    
+    let content = `
+        <div class="space-y-6">
+            <!-- Hình ảnh phòng -->
+            <div class="rounded-lg overflow-hidden">
+                <img src="${data.roomImg}" alt="${data.roomName}" class="w-full h-64 object-cover">
+            </div>
+            
+            <!-- Thông tin phòng -->
+            <div class="bg-gray-50 rounded-lg p-6">
+                <h3 class="text-2xl font-bold text-gray-900 mb-2">${data.roomName}</h3>
+                <p class="text-gray-600 mb-4"><i class="fas fa-bed mr-2"></i>${data.roomType}</p>
+                ${data.roomDesc ? `<p class="text-gray-700 text-sm leading-relaxed">${data.roomDesc}</p>` : ''}
+            </div>
+            
+            <!-- Trạng thái -->
+            <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                <span class="text-gray-700 font-medium">Trạng thái:</span>
+                <span class="px-4 py-2 rounded-full text-sm font-semibold ${status.class}">
+                    <i class="fas ${status.icon} mr-1"></i> ${status.text}
+                </span>
+            </div>
+            
+            <!-- Chi tiết đặt phòng -->
+            <div class="grid md:grid-cols-2 gap-4">
+                <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border-l-4 border-green-500">
+                    <p class="text-xs text-green-700 mb-1">Ngày nhận phòng</p>
+                    <p class="text-lg font-bold text-green-900"><i class="fas fa-calendar-check mr-2"></i>${data.checkin}</p>
+                </div>
+                <div class="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-4 border-l-4 border-red-500">
+                    <p class="text-xs text-red-700 mb-1">Ngày trả phòng</p>
+                    <p class="text-lg font-bold text-red-900"><i class="fas fa-calendar-times mr-2"></i>${data.checkout}</p>
+                </div>
+                <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border-l-4 border-blue-500">
+                    <p class="text-xs text-blue-700 mb-1">Ngày đặt</p>
+                    <p class="text-lg font-bold text-blue-900"><i class="fas fa-receipt mr-2"></i>${data.bookingDate}</p>
+                </div>
+                <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border-l-4 border-purple-500">
+                    <p class="text-xs text-purple-700 mb-1">Số người</p>
+                    <p class="text-lg font-bold text-purple-900"><i class="fas fa-users mr-2"></i>${data.guests} người</p>
+                </div>
+            </div>
+            
+            ${data.cancelReason ? `
+            <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
+                <p class="text-sm font-semibold text-red-800 mb-2"><i class="fas fa-info-circle mr-2"></i>Lý do hủy:</p>
+                <p class="text-sm text-red-700">${data.cancelReason}</p>
+                ${data.cancelDate ? `<p class="text-xs text-red-600 mt-2">Ngày hủy: ${data.cancelDate}</p>` : ''}
+            </div>
+            ` : ''}
+            
+            <!-- Tổng tiền -->
+            <div class="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg p-6 text-white">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-sm opacity-90 mb-1">Mã đặt phòng: #${data.bookingId}</p>
+                        <p class="text-lg font-semibold">Giá phòng: ${data.roomPrice} đ/đêm</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm opacity-90 mb-1">Tổng thanh toán</p>
+                        <p class="text-3xl font-bold">${data.total} đ</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('detailContent').innerHTML = content;
+    document.getElementById('detailModal').classList.remove('hidden');
+    document.getElementById('detailModal').classList.add('flex');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeDetailModal() {
+    document.getElementById('detailModal').classList.add('hidden');
+    document.getElementById('detailModal').classList.remove('flex');
+    document.body.style.overflow = '';
+}
+
+function closeDetailModalOnOutsideClick(event) {
+    if (event.target.id === 'detailModal') {
+        closeDetailModal();
+    }
+}
 </script>
 
 @endsection

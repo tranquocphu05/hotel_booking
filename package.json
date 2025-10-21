@@ -4,7 +4,9 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "prod": "npm run build && npm run cache",
+        "cache": "php artisan optimize && php artisan view:cache && php artisan route:cache && php artisan config:cache"
     },
     "devDependencies": {
         "@tailwindcss/forms": "^0.5.2",

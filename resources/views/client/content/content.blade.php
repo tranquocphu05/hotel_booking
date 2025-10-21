@@ -1,3 +1,74 @@
+<!-- Thông báo thành công -->
+@if(session('success'))
+    <div class="fixed top-20 right-4 z-50 max-w-md animate-slide-in-right" id="successToast">
+        <div class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-4 rounded-lg shadow-2xl">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                        <i class="fas fa-check-circle text-white text-xl"></i>
+                    </div>
+                </div>
+                <div class="ml-3 flex-1">
+                    <h3 class="font-bold text-lg mb-1">Thành công!</h3>
+                    <p class="text-sm text-white/90">{{ session('success') }}</p>
+                </div>
+                <button onclick="closeToast()" class="ml-4 text-white/80 hover:text-white transition-colors">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function closeToast() {
+            const toast = document.getElementById('successToast');
+            if (toast) {
+                toast.classList.add('animate-slide-out-right');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }
+        }
+        
+        // Auto close after 5 seconds
+        setTimeout(() => {
+            closeToast();
+        }, 5000);
+    </script>
+    
+    <style>
+        @keyframes slide-in-right {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slide-out-right {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+        
+        .animate-slide-in-right {
+            animation: slide-in-right 0.3s ease-out;
+        }
+        
+        .animate-slide-out-right {
+            animation: slide-out-right 0.3s ease-in;
+        }
+    </style>
+@endif
+
 <section id="about-us">
 
     <section class="container mx-auto px-4 py-16">
@@ -129,23 +200,57 @@
         <p class="text-sm uppercase tracking-widest text-red-600 mb-2">Ý KIẾN KHÁCH HÀNG</p>
         <h2 class="text-3xl font-bold text-gray-800 mb-8">Khách Hàng Nói Gì?</h2>
 
-        <div class="max-w-3xl mx-auto px-4">
-            <p class="text-gray-600 italic mb-6">
-                "Chúng tôi rất hài lòng với chất lượng dịch vụ và không gian sang trọng tại đây. Các đường nét thiết kế
-                sạch sẽ và kiểu chữ sắc nét thực sự rất ấn tượng, và chúng tôi hoàn toàn hài lòng với những công cụ vô giá
-                mà dịch vụ này đã cung cấp."
-            </p>
-            <div class="flex justify-center mb-4">
-                <i class="fas fa-star text-yellow-500 mx-1"></i>
-                <i class="fas fa-star text-yellow-500 mx-1"></i>
-                <i class="fas fa-star text-yellow-500 mx-1"></i>
-                <i class="fas fa-star text-yellow-500 mx-1"></i>
-                <i class="fas fa-star text-yellow-500 mx-1"></i>
+        @if(isset($comments) && $comments->count() > 0)
+            <div class="swiper testimonialSwiper w-full max-w-4xl mx-auto relative">
+                <div class="swiper-wrapper">
+                    @foreach($comments as $comment)
+                        <div class="swiper-slide bg-white rounded-2xl shadow-md p-8 flex flex-col items-center text-center transition duration-300 hover:shadow-lg">
+                            
+                            {{-- Ảnh đại diện --}}
+                            @if(!empty($comment->user->avatar))
+                                <img src="{{ asset('storage/' . $comment->user->avatar) }}"
+                                     alt="Avatar người dùng"
+                                     class="w-20 h-20 rounded-full object-cover mb-4 shadow-md border-2 border-red-400 hover:scale-105 transition-transform duration-300">
+                            @elseif(!empty($comment->img))
+                                <img src="{{ asset('storage/' . $comment->img) }}"
+                                     alt="Ảnh đánh giá"
+                                     class="w-20 h-20 rounded-full object-cover mb-4 shadow-md border-2 border-red-400 hover:scale-105 transition-transform duration-300">
+                            @else
+                                <img src="{{ asset('img/avatar-default.svg') }}"
+                                     alt="Avatar mặc định"
+                                     class="w-20 h-20 rounded-full object-cover mb-4 shadow-md border border-gray-300 bg-gray-100 p-2">
+                            @endif
+
+                            {{-- Nội dung đánh giá --}}
+                            <p class="italic text-gray-600 text-lg leading-relaxed mb-6 max-w-2xl">
+                                “{{ $comment->noi_dung }}”
+                            </p>
+
+                            {{-- Số sao --}}
+                            <div class="flex justify-center text-yellow-500 mb-3">
+                                @for ($i = 1; $i <= 5; $i++)
+                                    <i class="fas fa-star {{ $i <= $comment->so_sao ? 'text-yellow-500' : 'text-gray-300' }}"></i>
+                                @endfor
+                            </div>
+
+                            {{-- Người dùng & ngày đánh giá --}}
+                            <p class="font-semibold text-gray-800">
+                                — {{ $comment->user->username ?? $comment->user->name ?? 'Ẩn danh' }}
+                            </p>
+                            <p class="text-sm text-gray-500 mt-2">
+                                {{ optional($comment->ngay_danh_gia)->format('d/m/Y') }}
+                            </p>
+                        </div>
+                    @endforeach
+                </div>
+
+                {{-- Pagination --}}
+                <div class="swiper-pagination mt-6"></div>
             </div>
-            <p class="font-semibold text-gray-800">- Ronald F. Weger</p>
-            <img src="{{ asset('img/testimonial-logo.png') }}" alt="Logo Khách hàng" class="mt-4 mx-auto h-8 opacity-75">
-        </div>
-    </section>
+        @else
+            <p class="text-gray-500 italic">Chưa có đánh giá 5 sao nào được hiển thị.</p>
+        @endif
+    </div>
 </section>
 
 <section id="blog-events">
@@ -153,7 +258,9 @@
         <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6">Ưu đãi Cuối Tuần</h2>
         <p class="text-gray-600 mb-8">Tiết kiệm cho kỳ nghỉ từ ngày 24 tháng 10 đến ngày 26 tháng 10</p>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {{-- Swiper Container --}}
+        <div class="swiper weekendDealsSwiper relative">
+            <div class="swiper-wrapper">
             @php
                 $hotels = [
                     ['image' => 'img/gallery/gallery-1.jpg', 'name' => 'Phòng VIP1', 'location' => 'Hà Nội, Việt Nam', 'rating_value' => '9.3', 'rating_text' => 'Tuyệt vời', 'reviews' => '2.127 đánh giá', 'old_price' => '16.592.046 đồng', 'new_price' => '4.479.852 đồng', 'nights' => '2 đêm', 'genius' => true, 'deal_text' => 'Thỏa thuận thoát hiểm muộn'],
@@ -164,6 +271,7 @@
             @endphp
 
             @foreach ($hotels as $hotel)
+                <div class="swiper-slide">
                 <div
                     class="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm relative group cursor-pointer
                     hover:shadow-xl hover:scale-[1.02] transition duration-300 ease-in-out">
@@ -211,16 +319,16 @@
                         </div>
                     </div>
                 </div>
+                </div>
             @endforeach
-        </div>
-        <div class="flex justify-end mt-8">
-            <button
-                class="bg-gray-200 p-2 rounded-full shadow-md text-gray-700 hover:bg-gray-300 transition duration-300">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
-            </button>
+            </div>
+            
+            {{-- Navigation buttons --}}
+            <div class="swiper-button-next"></div>
+            <div class="swiper-button-prev"></div>
+            
+            {{-- Pagination --}}
+            <div class="swiper-pagination"></div>
         </div>
     </section>
 

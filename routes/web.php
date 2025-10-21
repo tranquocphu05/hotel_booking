@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\BookingController;
 // Admin Controllers
 use App\Http\Controllers\Admin\CommentController;
 use App\Http\Controllers\Admin\InvoiceController;
@@ -40,8 +41,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar'])->name('profile.avatar.update');
+    Route::post('/profile/booking/{id}/cancel', [ProfileController::class, 'cancelBooking'])->name('profile.booking.cancel');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+
+// Simple booking demo routes (public)
+Route::get('/booking/{phong}', [BookingController::class, 'showForm'])->name('booking.form')->middleware('auth');
+Route::post('/booking', [BookingController::class, 'submit'])->name('booking.submit')->middleware('auth');
 
 require __DIR__ . '/auth.php';
 
@@ -83,9 +89,9 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin
         ->group(function () {
             Route::get('/', [CommentController::class, 'index'])->name('index');
             Route::get('/{id}', [CommentController::class, 'show'])->name('show');
-            Route::put('/{id}/reply', [CommentController::class, 'reply'])->name('reviews.reply');
-            Route::delete('/{id}/reply', [CommentController::class, 'deleteReply'])->name('reviews.reply.delete');
             Route::put('/{id}/toggle', [CommentController::class, 'statusToggle'])->name('toggle');
+            Route::put('/{id}/reply', [CommentController::class, 'reply'])->name('reply');
+            Route::delete('/{id}/reply', [CommentController::class, 'deleteReply'])->name('reply.delete');
         });
     // impersonation
     Route::post('impersonate/{user}', [\App\Http\Controllers\Admin\ImpersonationController::class, 'impersonate'])
@@ -105,6 +111,10 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin
         Route::get('/{id}/cancel', [DatPhongController::class, 'showCancelForm'])->name('cancel');
         Route::post('/{id}/cancel', [DatPhongController::class, 'submitCancel'])->name('cancel.submit');
         Route::put('/{id}/block', [DatPhongController::class, 'blockRoom'])->name('block');
+        // Quick confirm route
+        Route::put('/{id}/confirm', [DatPhongController::class, 'quickConfirm'])->name('confirm');
+        // Mark as paid
+        Route::put('/{id}/mark-paid', [DatPhongController::class, 'markPaid'])->name('mark_paid');
     });
 });
 
