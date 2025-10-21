@@ -67,14 +67,10 @@
                         <td class="px-6 py-3 text-center">{{ $phong->loaiPhong->ten_loai ?? '-' }}</td>
                         <td class="px-6 py-3 text-center text-blue-600 font-semibold">{{ number_format($phong->gia, 0, ',', '.') }}₫</td>
                         <td class="px-6 py-3 text-left text-gray-600">
-                            {!! Str::limit($phong->mo_ta, 50) !!}
-                        </td>
-                        <td class="px-6 py-3 text-center">
                             @if($phong->mo_ta)
-                                <div class="table-description mx-auto">
-                                    <div class="text-xs text-gray-600 description-tooltip" 
-                                         title="{{ strip_tags($phong->mo_ta) }}">
-                                        {{ Str::limit(strip_tags($phong->mo_ta), 30) }}
+                                <div class="table-description">
+                                    <div class="text-xs text-gray-600 description-tooltip" title="{{ strip_tags($phong->mo_ta) }}">
+                                        {{ Str::limit(strip_tags($phong->mo_ta), 60) }}
                                     </div>
                                 </div>
                             @else
@@ -83,7 +79,7 @@
                         </td>
                         <td class="px-6 py-3 text-center">
                             @if($phong->img)
-                                <img src="{{ asset($phong->img) }}" class="w-14 h-14 object-cover rounded-lg mx-auto shadow">
+                                <img src="{{ asset($phong->img) }}" alt="Ảnh phòng" class="w-14 h-14 object-cover rounded-lg mx-auto shadow">
                             @else
                                 <span class="text-gray-400 text-xs italic">Không có ảnh</span>
                             @endif

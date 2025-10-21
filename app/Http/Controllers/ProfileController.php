@@ -18,11 +18,11 @@ class ProfileController extends Controller
     {
         $user = $request->user();
         
-        // Lấy lịch sử đặt phòng
+        // Lấy lịch sử đặt phòng - Mỗi trang hiển thị 3 phòng
         $bookings = \App\Models\DatPhong::where('nguoi_dung_id', $user->id)
             ->with(['phong', 'phong.loaiPhong'])
             ->orderBy('ngay_dat', 'desc')
-            ->paginate(10);
+            ->paginate(3);
         
         return view('client.profile.index', [
             'user' => $user,
@@ -108,5 +108,43 @@ class ProfileController extends Controller
         $request->session()->regenerateToken();
 
         return Redirect::to('/');
+    }
+
+    /**
+     * Cancel a booking.
+     */
+    public function cancelBooking(Request $request, $id): RedirectResponse
+    {
+        $request->validate([
+            'ly_do_huy' => 'required|string|min:10|max:500',
+        ], [
+            'ly_do_huy.required' => 'Vui lòng nhập lý do hủy phòng',
+            'ly_do_huy.min' => 'Lý do hủy phải có ít nhất 10 ký tự',
+            'ly_do_huy.max' => 'Lý do hủy không được vượt quá 500 ký tự',
+        ]);
+
+        $user = $request->user();
+        
+        // Find booking
+        $booking = \App\Models\DatPhong::where('id', $id)
+            ->where('nguoi_dung_id', $user->id)
+            ->first();
+
+        if (!$booking) {
+            return Redirect::route('profile.edit')->with('error', 'Không tìm thấy đặt phòng!');
+        }
+
+        // Check if booking can be cancelled - CHỈ CHO PHÉP HủY PHÒNG CHỜ XÁC NHẬN
+        if ($booking->trang_thai !== 'cho_xac_nhan') {
+            return Redirect::route('profile.edit')->with('error', 'Chỉ có thể hủy đặt phòng đang chờ xác nhận!');
+        }
+
+        // Update booking status
+        $booking->trang_thai = 'da_huy';
+        $booking->ly_do_huy = $request->ly_do_huy;
+        $booking->ngay_huy = now();
+        $booking->save();
+
+        return Redirect::route('profile.edit')->with('success', 'Hủy đặt phòng thành công!');
     }
 }

@@ -77,7 +77,16 @@
                             <p class="text-sm text-gray-600">Tên khách: <span class="font-medium">{{ $booking->username }}</span></p>
                             <p class="text-sm text-gray-600">Email: <span class="font-medium">{{ $booking->email }}</span></p>
                             <p class="text-sm text-gray-600">Số điện thoại: <span class="font-medium">{{ $booking->sdt }}</span></p>
-                            <p class="text-sm text-gray-600">CCCD/CMND: <span class="font-medium">{{ $booking->cccd }}</span></p>
+                            <p class="text-sm text-gray-600">CCCD/CMND: 
+                                @if($booking->cccd)
+                                    <span class="font-medium">{{ $booking->cccd }}</span>
+                                @else
+                                    <span class="text-yellow-600 italic">
+                                        <i class="fas fa-exclamation-triangle text-xs mr-1"></i>
+                                        Chưa cập nhật
+                                    </span>
+                                @endif
+                            </p>
                         </div>
                     </div>
                 </div>

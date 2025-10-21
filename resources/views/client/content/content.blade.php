@@ -1,3 +1,74 @@
+<!-- Thông báo thành công -->
+@if(session('success'))
+    <div class="fixed top-20 right-4 z-50 max-w-md animate-slide-in-right" id="successToast">
+        <div class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-4 rounded-lg shadow-2xl">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                        <i class="fas fa-check-circle text-white text-xl"></i>
+                    </div>
+                </div>
+                <div class="ml-3 flex-1">
+                    <h3 class="font-bold text-lg mb-1">Thành công!</h3>
+                    <p class="text-sm text-white/90">{{ session('success') }}</p>
+                </div>
+                <button onclick="closeToast()" class="ml-4 text-white/80 hover:text-white transition-colors">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function closeToast() {
+            const toast = document.getElementById('successToast');
+            if (toast) {
+                toast.classList.add('animate-slide-out-right');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }
+        }
+        
+        // Auto close after 5 seconds
+        setTimeout(() => {
+            closeToast();
+        }, 5000);
+    </script>
+    
+    <style>
+        @keyframes slide-in-right {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slide-out-right {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+        
+        .animate-slide-in-right {
+            animation: slide-in-right 0.3s ease-out;
+        }
+        
+        .animate-slide-out-right {
+            animation: slide-out-right 0.3s ease-in;
+        }
+    </style>
+@endif
+
 <section id="about-us">
 
     <section class="container mx-auto px-4 py-16">
@@ -168,17 +239,14 @@
         <p class="text-gray-600 mb-8">Tiết kiệm cho kỳ nghỉ từ ngày 24 tháng 10 đến ngày 26 tháng 10</p>
 
         {{-- Swiper Container --}}
-        <div class="swiper weekendDealsSwiper relative" id="weekend-swiper">
-            <div class="swiper-wrapper" id="swiper-wrapper-test">
+        <div class="swiper weekendDealsSwiper relative">
+            <div class="swiper-wrapper">
             @php
                 $hotels = [
                     ['image' => 'img/gallery/gallery-1.jpg', 'name' => 'Phòng VIP1', 'location' => 'Hà Nội, Việt Nam', 'rating_value' => '9.3', 'rating_text' => 'Tuyệt vời', 'reviews' => '2.127 đánh giá', 'old_price' => '16.592.046 đồng', 'new_price' => '4.479.852 đồng', 'nights' => '2 đêm', 'genius' => true, 'deal_text' => 'Thỏa thuận thoát hiểm muộn'],
                     ['image' => 'img/gallery/gallery-2.jpg', 'name' => 'Phòng VIP2', 'location' => 'Ninh Bình, Việt Nam', 'rating_value' => '9.7', 'rating_text' => 'Ngoại lệ', 'reviews' => '56 đánh giá', 'old_price' => '3.650.000 đồng', 'new_price' => '2.299.500 đồng', 'nights' => '2 đêm', 'genius' => false, 'deal_text' => null],
                     ['image' => 'img/gallery/gallery-3.jpg', 'name' => 'Phòng VIP3', 'location' => 'Sa Pa, Việt Nam', 'rating_value' => '8.6', 'rating_text' => 'Tuyệt vời', 'reviews' => '471 đánh giá', 'old_price' => '1.260.000 đồng', 'new_price' => '882.000 đồng', 'nights' => '2 đêm', 'genius' => true, 'deal_text' => null],
                     ['image' => 'img/gallery/gallery-4.jpg', 'name' => 'Phòng VIP4', 'location' => 'Hà Nội, Việt Nam', 'rating_value' => '9.6', 'rating_text' => 'Ngoại lệ', 'reviews' => '96 đánh giá', 'old_price' => '14.500.000 đồng', 'new_price' => '5.075.000 đồng', 'nights' => '2 đêm', 'genius' => false, 'deal_text' => null],
-                    // Thêm slides để loop hoạt động
-                    ['image' => 'img/room/room-1.jpg', 'name' => 'Phòng Deluxe', 'location' => 'Đà Nẵng, Việt Nam', 'rating_value' => '9.1', 'rating_text' => 'Tuyệt vời', 'reviews' => '342 đánh giá', 'old_price' => '8.500.000 đồng', 'new_price' => '3.400.000 đồng', 'nights' => '2 đêm', 'genius' => true, 'deal_text' => null],
-                    ['image' => 'img/room/room-2.jpg', 'name' => 'Suite Executive', 'location' => 'Nha Trang, Việt Nam', 'rating_value' => '9.5', 'rating_text' => 'Ngoại lệ', 'reviews' => '789 đánh giá', 'old_price' => '12.000.000 đồng', 'new_price' => '6.000.000 đồng', 'nights' => '2 đêm', 'genius' => false, 'deal_text' => 'Bao gồm bữa sáng'],
                 ];
             @endphp
 
@@ -331,32 +399,8 @@
 @push('scripts')
 <script>
 // Initialize Weekend Deals Swiper
-console.log('=== Script loaded ===');
-
-function initSwiper() {
-    console.log('initSwiper called');
-    
-    // Check if Swiper exists
-    if (typeof Swiper === 'undefined') {
-        console.error('❌ Swiper library not loaded!');
-        return;
-    }
-    console.log('✅ Swiper library loaded');
-    
-    // Check if element exists
-    const swiperEl = document.querySelector('.weekendDealsSwiper');
-    if (!swiperEl) {
-        console.error('❌ Swiper element not found!');
-        return;
-    }
-    console.log('✅ Swiper element found:', swiperEl);
-    
-    // Check slides
-    const slides = document.querySelectorAll('.weekendDealsSwiper .swiper-slide');
-    console.log('Found slides:', slides.length);
-    
-    try {
-        const weekendSwiper = new Swiper('.weekendDealsSwiper', {
+document.addEventListener('DOMContentLoaded', function() {
+    const weekendSwiper = new Swiper('.weekendDealsSwiper', {
         // Slides per view - responsive
         slidesPerView: 1,
         spaceBetween: 20,
@@ -372,7 +416,7 @@ function initSwiper() {
                 spaceBetween: 24,
             },
             1280: {
-                slidesPerView: 3, // Giảm xuống 3 để loop hoạt động
+                slidesPerView: 4,
                 spaceBetween: 24,
             },
         },
@@ -421,35 +465,7 @@ function initSwiper() {
         
         // Lazy loading
         lazy: true,
-        
-        // On init callback
-        on: {
-            init: function() {
-                console.log('✅ Swiper initialized successfully!');
-            },
-            slideChange: function() {
-                console.log('Slide changed to:', this.activeIndex);
-            },
-        },
     });
-    
-    console.log('✅ Swiper instance created:', weekendSwiper);
-    } catch(error) {
-        console.error('❌ Error creating Swiper:', error);
-    }
-}
-
-// Try multiple initialization methods
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initSwiper);
-} else {
-    // DOM already loaded
-    initSwiper();
-}
-
-// Also try after window load
-window.addEventListener('load', function() {
-    console.log('Window loaded event');
 });
 </script>
 @endpush

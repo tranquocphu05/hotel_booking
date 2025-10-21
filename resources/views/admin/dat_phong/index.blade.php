@@ -223,7 +223,17 @@
                                 </div>
 
                                 @if ($booking->trang_thai === 'cho_xac_nhan')
-                                    <div class="px-4 py-3 bg-gray-50 text-right">
+                                    <div class="px-4 py-3 bg-gray-50 flex items-center justify-between">
+                                        <form action="{{ route('admin.dat_phong.confirm', $booking->id) }}" method="POST">
+                                            @csrf
+                                            @method('PUT')
+                                            <button type="submit" class="inline-flex items-center bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-3 py-2 rounded">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                                Xác nhận đặt phòng
+                                            </button>
+                                        </form>
                                         <a href="{{ route('admin.dat_phong.cancel', $booking->id) }}" class="text-red-600 hover:text-red-800 font-medium text-sm">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline mr-1"
                                                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -234,11 +244,19 @@
                                         </a>
                                     </div>
                                 @elseif ($booking->trang_thai === 'da_xac_nhan')
-                                    <div class="px-4 py-3 bg-green-50 text-right">
-                                        <div class="flex items-center justify-center text-green-600 font-medium text-sm">
+                                    <div class="px-4 py-3 bg-green-50 flex items-center justify-between">
+                                        <div class="text-green-600 font-medium text-sm">
                                             <i class="fas fa-check-circle mr-2"></i>
                                             Phòng đã được đặt và xác nhận
                                         </div>
+                                        <form action="{{ route('admin.dat_phong.mark_paid', $booking->id) }}" method="POST">
+                                            @csrf
+                                            @method('PUT')
+                                            <button type="submit" class="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-3 py-2 rounded">
+                                                <i class="fas fa-money-bill mr-2"></i>
+                                                Đánh dấu đã thanh toán
+                                            </button>
+                                        </form>
                                     </div>
                                 @elseif ($booking->trang_thai === 'da_chong')
                                     <div class="px-4 py-3 bg-orange-50 text-right">

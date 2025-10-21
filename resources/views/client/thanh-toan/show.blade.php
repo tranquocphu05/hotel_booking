@@ -12,7 +12,36 @@
             </div>
 
             <!-- Alert Messages -->
-            @if(session('success'))
+            @if(session('success') && session('booking_success'))
+                <div class="max-w-4xl mx-auto mb-6">
+                    <div class="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 text-green-800 px-6 py-4 rounded-xl shadow-lg">
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0">
+                                <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center animate-pulse">
+                                    <svg class="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="ml-4 flex-1">
+                                <h3 class="text-lg font-bold text-green-900 mb-1">
+                                    <i class="fas fa-check-circle mr-2"></i>
+                                    Đặt Phòng Thành Công!
+                                </h3>
+                                <p class="text-sm text-green-700 mb-2">
+                                    {{ session('success') }}
+                                </p>
+                                <div class="bg-white/50 rounded-lg px-3 py-2 inline-block">
+                                    <p class="text-xs text-green-800">
+                                        <i class="fas fa-receipt mr-1"></i>
+                                        Mã đặt phòng: <span class="font-bold text-green-900">#{{ session('booking_id') }}</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @elseif(session('success'))
                 <div class="max-w-4xl mx-auto mb-6">
                     <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
                         <div class="flex items-center">
@@ -289,6 +318,38 @@
             // Initialize on page load
             toggleBankInfo();
             updatePaymentOptionStyles();
+
+            // Show success modal on booking success
+            @if(session('booking_success'))
+                // Auto-scroll to success message
+                setTimeout(() => {
+                    const successAlert = document.querySelector('.bg-gradient-to-r.from-green-50');
+                    if (successAlert) {
+                        successAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        
+                        // Add attention animation
+                        successAlert.classList.add('animate-bounce-once');
+                        setTimeout(() => {
+                            successAlert.classList.remove('animate-bounce-once');
+                        }, 1000);
+                    }
+                }, 300);
+            @endif
         });
     </script>
+
+    <style>
+        @keyframes bounce-once {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+        
+        .animate-bounce-once {
+            animation: bounce-once 0.5s ease-in-out 2;
+        }
+    </style>
 @endsection
