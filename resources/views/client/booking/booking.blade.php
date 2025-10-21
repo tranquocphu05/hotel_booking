@@ -75,6 +75,13 @@
                 </div>
 
                 <div class="mt-6 flex items-center gap-3">
+                    <div class="flex items-center gap-2">
+                        <label class="block text-sm font-medium">Mã voucher (nếu có)</label>
+                        <input type="text" name="voucher" value="{{ old('voucher') }}" placeholder="Nhập mã voucher"
+                               class="mt-1 block w-48 border rounded p-2 @error('voucher') border-red-500 @enderror">
+                        @error('voucher') <div class="text-red-600 text-sm">{{ $message }}</div> @enderror
+                    </div>
+
                     <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Hoàn tất đặt phòng</button>
                     <a href="{{ url()->previous() }}" class="text-sm text-gray-600">Quay lại</a>
                 </div>

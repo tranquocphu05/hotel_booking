@@ -50,7 +50,7 @@
                             <div class="space-y-2">
                                 <div class="flex justify-between">
                                     <span class="text-gray-600">Họ tên:</span>
-                                    <span class="font-medium">{{ $datPhong->username ?? ($datPhong->user->ho_ten ?? 'Khách ẩn danh') }}</span>
+                                    <span class="font-medium">{{ trim($datPhong->username ?? '') !== '' ? $datPhong->username : ($datPhong->user->ho_ten ?? 'Khách ẩn danh') }}</span>
                                 </div>
                                 <div class="flex justify-between">
                                     <span class="text-gray-600">Email:</span>
@@ -102,6 +102,9 @@
                         <div class="bg-gray-50 rounded-lg p-4">
                             <div class="text-center">
                                 <p class="text-lg font-medium text-gray-600 mb-1">Tổng thanh toán</p>
+                                @if($datPhong->voucher)
+                                    <p class="text-sm text-gray-500">Voucher áp dụng: <span class="font-medium text-indigo-600">{{ $datPhong->voucher->ma_voucher }}</span> - Giảm {{ rtrim(rtrim($datPhong->voucher->gia_tri, '0'), '.') }}%</p>
+                                @endif
                                 <p class="text-2xl font-bold text-green-600">
                                     {{ number_format($datPhong->tong_tien, 0, ',', '.') }} VNĐ
                                 </p>

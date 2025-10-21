@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Phong;
 use App\Models\DatPhong;
+use App\Models\Voucher;
 use Illuminate\Support\Facades\Auth;
 
 class BookingController extends Controller
@@ -64,6 +65,33 @@ class BookingController extends Controller
             $total = $phong->gia * $nights;
         }
 
+        $voucherId = null;
+        // Apply voucher if provided
+        if ($request->filled('voucher')) {
+            $code = $request->input('voucher');
+            $voucher = Voucher::where('ma_voucher', $code)
+                ->where('trang_thai', 'con_han')
+                ->where('so_luong', '>', 0)
+                ->whereDate('ngay_ket_thuc', '>=', now())
+                ->first();
+
+            if ($voucher) {
+                // Voucher.gia_tri is treated as percent (1-100) in admin forms
+                $discountPercent = $voucher->gia_tri;
+                if ($discountPercent > 0 && $discountPercent <= 100) {
+                    $total = $total * (1 - $discountPercent / 100);
+                    $voucherId = $voucher->id;
+                    // decrement quantity
+                    $voucher->decrement('so_luong');
+                }
+            }
+        }
+
+        $username = isset($data['first_name']) ? trim($data['first_name']) : null;
+        if (!$username && $user) {
+            $username = $user->ho_ten ?? null;
+        }
+
         $datPhong = DatPhong::create([
             'nguoi_dung_id' => $user ? $user->id : null,
             'phong_id' => $data['phong_id'],
@@ -73,7 +101,8 @@ class BookingController extends Controller
             'so_nguoi' => $data['so_nguoi'] ?? 1,
             'trang_thai' => 'cho_xac_nhan',
             'tong_tien' => $total,
-            'username' => $data['first_name'],
+            'voucher_id' => $voucherId,
+            'username' => $username,
             'email' => $data['email'],
             'sdt' => $data['phone'] ?? null,
         ]);
