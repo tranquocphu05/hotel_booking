@@ -230,9 +230,9 @@
                                      alt="Ảnh đánh giá"
                                      class="w-20 h-20 rounded-full object-cover mb-4 shadow-md border-2 border-red-400 hover:scale-105 transition-transform duration-300">
                             @else
-                                <img src="{{ asset('img/default-avatar.png') }}"
+                                <img src="{{ asset('img/avatar-default.svg') }}"
                                      alt="Avatar mặc định"
-                                     class="w-20 h-20 rounded-full object-cover mb-4 shadow-md border-2 border-gray-300">
+                                     class="w-20 h-20 rounded-full object-cover mb-4 shadow-md border border-gray-300 bg-gray-100 p-2">
                             @endif
 
                             {{-- Nội dung đánh giá --}}
@@ -258,10 +258,8 @@
                     @endforeach
                 </div>
 
-                {{-- Pagination + Navigation --}}
+                {{-- Pagination --}}
                 <div class="swiper-pagination mt-6"></div>
-                <div class="swiper-button-prev absolute top-1/2 -translate-y-1/2 left-0 !text-gray-400 hover:!bg-red-500 hover:!text-white !w-10 !h-10 !rounded-full !bg-white/60 shadow-md transition duration-300"></div>
-                <div class="swiper-button-next absolute top-1/2 -translate-y-1/2 right-0 !text-gray-400 hover:!bg-red-500 hover:!text-white !w-10 !h-10 !rounded-full !bg-white/60 shadow-md transition duration-300"></div>
             </div>
         @else
             <p class="text-gray-500 italic">Chưa có đánh giá 5 sao nào được hiển thị.</p>
