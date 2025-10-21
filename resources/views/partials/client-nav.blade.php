@@ -21,7 +21,7 @@
             
             {{-- Logo --}}
             <div class="flex items-center">
-                <a href="{{ url('/') }}" class="text-3xl font-serif font-bold text-gray-800">OZIA HOTEL</a>
+                <a href="javascript:void(0)" onclick="window.location.reload()" class="text-3xl font-serif font-bold text-gray-800 cursor-pointer">OZIA HOTEL</a>
             </div>
 
             {{-- Menu --}}
