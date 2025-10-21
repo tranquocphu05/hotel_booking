@@ -12,10 +12,11 @@ use App\Http\Controllers\Admin\DatPhongController;
 use App\Http\Controllers\Admin\LoaiPhongController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\PhongController;
-use App\Http\Controllers\Client\CommentController as ClientCommentController;
+
 // Client Controllers
 use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
 use App\Http\Controllers\Client\PhongController as ClientPhongController;
+use App\Http\Controllers\Client\LoaiPhongController as ClientLoaiPhongController;
 use App\Http\Controllers\Client\ContactController as ClientContactController;
 use App\Http\Controllers\Client\GioiThieuController as ClientGioiThieuController;
 use App\Http\Controllers\Client\TinTucController as ClientTinTucController; 
@@ -122,6 +123,8 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin
 // =======================
 // Client routes
 // =======================
+
+Route::get('/', [LoaiPhongController::class, 'index'])->name('client.home');
 Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\AllowClient::class])->group(function () {
     Route::get('/dashboard', [ClientDashboardController::class, 'index'])->name('dashboard');
     Route::get('/phong', [ClientPhongController::class, 'index'])->name('phong');
