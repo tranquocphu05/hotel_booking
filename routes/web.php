@@ -20,6 +20,7 @@ use App\Http\Controllers\Client\LoaiPhongController as ClientLoaiPhongController
 use App\Http\Controllers\Client\ContactController as ClientContactController;
 use App\Http\Controllers\Client\GioiThieuController as ClientGioiThieuController;
 use App\Http\Controllers\Client\TinTucController as ClientTinTucController;
+use App\Http\Controllers\Client\CommentController as ClientCommentController;
 
 
 Route::get('/', [ClientDashboardController::class, 'index'])
@@ -134,6 +135,11 @@ Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\Allow
 
     Route::get('/tin-tuc', [ClientTinTucController::class, 'index'])->name('tintuc');
     Route::get('/tin-tuc/{slug}', [ClientTinTucController::class, 'chitiettintuc'])->name('tintuc.show');
+    
+    // Comment routes
+    Route::post('/comment', [ClientCommentController::class, 'store'])->name('comment.store');
+    Route::put('/comment/{id}', [ClientCommentController::class, 'update'])->name('comment.update');
+    Route::delete('/comment/{id}', [ClientCommentController::class, 'destroy'])->name('comment.destroy');
 });
 
 // Public impersonation stop (in case admin is impersonating)
