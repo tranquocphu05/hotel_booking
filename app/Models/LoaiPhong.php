@@ -17,6 +17,7 @@ class LoaiPhong extends Model
         'mo_ta',
         'gia_co_ban',
         'trang_thai',
+        'anh',
     ];
 
     // The loai_phong table currently doesn't have timestamp columns.

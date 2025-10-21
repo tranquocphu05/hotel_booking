@@ -12,12 +12,12 @@
         </h2>
         <a href="{{ route('admin.loai_phong.index') }}"
            class="px-4 py-2 text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition">
-            <i class="bi bi-arrow-left"></i>Go back
+            <i class="bi bi-arrow-left"></i> Go back
         </a>
     </div>
 
     {{-- Form --}}
-    <form action="{{ route('admin.loai_phong.update', $loaiPhong->id) }}" method="POST" class="space-y-6">
+    <form action="{{ route('admin.loai_phong.update', $loaiPhong->id) }}" method="POST" enctype="multipart/form-data" class="space-y-6">
         @csrf
         @method('PUT')
 
@@ -57,6 +57,30 @@
                     <option value="hoat_dong" {{ old('trang_thai', $loaiPhong->trang_thai) == 'hoat_dong' ? 'selected' : '' }}>Hoạt động</option>
                     <option value="ngung" {{ old('trang_thai', $loaiPhong->trang_thai) == 'ngung' ? 'selected' : '' }}>Ngừng</option>
                 </select>
+            </div>
+        </div>
+
+        {{-- Hàng 3: Hình ảnh --}}
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div>
+                <label class="block text-gray-700 font-medium mb-2 text-sm">Hình ảnh hiện tại</label>
+                @if ($loaiPhong->anh)
+                    <img src="{{ asset($loaiPhong->anh) }}"
+                         alt="{{ $loaiPhong->ten_loai }}"
+                         class="w-48 h-36 object-cover rounded-lg shadow border border-gray-200">
+                @else
+                    <p class="text-gray-500 italic">Chưa có ảnh</p>
+                @endif
+            </div>
+
+            <div>
+                <label for="anh" class="block text-gray-700 font-medium mb-2 text-sm">Chọn ảnh mới</label>
+                <input type="file" name="anh" id="anh"
+                       accept="image/*"
+                       class="w-full px-3 py-2 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 hover:border-gray-300 bg-white text-gray-700">
+                @error('anh')
+                    <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                @enderror
             </div>
         </div>
 
