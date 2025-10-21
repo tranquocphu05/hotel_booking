@@ -3,7 +3,7 @@
 @section('title', 'Chỉnh sửa phòng')
 
 @section('admin_content')
-<div class="bg-white rounded-2xl shadow p-6 mt-8 mb-8 w-full">
+<div class="bg-white rounded-2xl shadow p-6 mt-12 mb-10 w-full max-w-4xl mx-auto">
     {{-- Header --}}
     <div class="flex justify-between items-center mb-8">
         <h2 class="text-2xl font-semibold text-amber-600 flex items-center gap-2">
@@ -16,7 +16,7 @@
     </div>
 
     {{-- Form --}}
-    <form action="{{ route('admin.phong.update', $phong->id) }}" method="POST" enctype="multipart/form-data" class="space-y-6">
+    <form action="{{ route('admin.phong.update', $phong->id) }}" method="POST" enctype="multipart/form-data" class="space-y-10">
         @csrf
         @method('PUT')
 
@@ -63,8 +63,8 @@
         {{-- Hàng 3: Mô tả & Ảnh --}}
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
-                <label class="block text-gray-700 font-medium mb-1">Mô tả</label>
-                <textarea name="mo_ta" rows="8" class="w-full border-gray-300 rounded-lg shadow-sm">{{ old('mo_ta', $phong->mo_ta) }}</textarea>
+                <label for="mo_ta" class="block text-gray-800 font-medium mb-2">Mô tả</label>
+                <textarea name="mo_ta" id="mo_ta" rows="8" class="w-full border-gray-300 rounded-lg shadow-sm">{{ old('mo_ta', $phong->mo_ta) }}</textarea>
             </div>
 
             <div>
@@ -97,7 +97,7 @@
     </form>
 </div>
 
-{{-- JS Preview ảnh + TinyMCE --}}
+@push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/tinymce@6.8.2/tinymce.min.js"></script>
 <script>
   tinymce.init({

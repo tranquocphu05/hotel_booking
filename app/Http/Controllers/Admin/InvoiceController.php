@@ -19,8 +19,13 @@ class InvoiceController extends Controller
             });
         }
 
+        // Mặc định chỉ hiển thị hóa đơn đã thanh toán nếu không truyền filter
         if ($request->filled('status')) {
             $query->where('trang_thai', $request->status);
+        } else {
+            $query->where('trang_thai', 'da_thanh_toan');
+            // Gắn vào request để filter UI (nếu có) hiển thị đúng trạng thái
+            $request->merge(['status' => 'da_thanh_toan']);
         }
 
         $invoices = $query->latest()->paginate(10);
@@ -49,6 +54,14 @@ class InvoiceController extends Controller
 
         $invoice = Invoice::findOrFail($id);
         $invoice->update($request->only('trang_thai'));
+
+        // Đồng bộ trạng thái đặt phòng khi hóa đơn đã thanh toán
+        if ($invoice->trang_thai === 'da_thanh_toan' && $invoice->datPhong) {
+            if ($invoice->datPhong->trang_thai === 'cho_xac_nhan') {
+                $invoice->datPhong->trang_thai = 'da_xac_nhan';
+                $invoice->datPhong->save();
+            }
+        }
 
         return redirect()->route('admin.invoices.index')->with('success', 'Cập nhật trạng thái hóa đơn thành công.');
     }
