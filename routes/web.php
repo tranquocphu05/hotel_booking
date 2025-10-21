@@ -23,7 +23,6 @@ use App\Http\Controllers\Client\TinTucController as ClientTinTucController;
 use App\Http\Controllers\Client\ThanhToanController as ClientThanhToanController;
 use App\Http\Controllers\Client\CommentController as ClientCommentController;
 
-
 //
 
 
@@ -127,7 +126,6 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin
 // Client routes
 // =======================
 
-Route::get('/', [LoaiPhongController::class, 'index'])->name('client.home');
 Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\AllowClient::class])->group(function () {
     Route::get('/dashboard', [ClientDashboardController::class, 'index'])->name('dashboard');
     Route::get('/phong', [ClientPhongController::class, 'index'])->name('phong');
