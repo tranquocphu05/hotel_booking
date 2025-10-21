@@ -12,14 +12,15 @@ use App\Http\Controllers\Admin\DatPhongController;
 use App\Http\Controllers\Admin\LoaiPhongController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\PhongController;
-use App\Http\Controllers\Client\CommentController as ClientCommentController;
+
 // Client Controllers
 use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
 use App\Http\Controllers\Client\PhongController as ClientPhongController;
+use App\Http\Controllers\Client\LoaiPhongController as ClientLoaiPhongController;
 use App\Http\Controllers\Client\ContactController as ClientContactController;
 use App\Http\Controllers\Client\GioiThieuController as ClientGioiThieuController;
 use App\Http\Controllers\Client\TinTucController as ClientTinTucController;
-use App\Http\Controllers\Client\ThanhToanController as ClientThanhToanController;
+
 
 Route::get('/', [ClientDashboardController::class, 'index'])
     ->name('client.home')
@@ -120,6 +121,8 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin
 // =======================
 // Client routes
 // =======================
+
+Route::get('/', [LoaiPhongController::class, 'index'])->name('client.home');
 Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\AllowClient::class])->group(function () {
     Route::get('/dashboard', [ClientDashboardController::class, 'index'])->name('dashboard');
     Route::get('/phong', [ClientPhongController::class, 'index'])->name('phong');
@@ -128,17 +131,9 @@ Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\Allow
     Route::get('/lien-he', [ClientContactController::class, 'index'])->name('lienhe');
     Route::get('/gioi-thieu', [ClientGioiThieuController::class, 'index'])->name('gioithieu');
 
-    Route::get('/{phong}/dat-phong', [BookingController::class, 'showForm'])->name('phong.create_booking');
-    Route::post('/{phong}/dat-phong', [BookingController::class, 'submit'])->name('phong.store_booking');
-    Route::get('/thanh-toan/{datPhong}', [ClientThanhToanController::class, 'show'])->name('thanh-toan.show');
-    Route::post('/thanh-toan/{datPhong}', [ClientThanhToanController::class, 'store'])->name('thanh-toan.store');
+
     Route::get('/tin-tuc', [ClientTinTucController::class, 'index'])->name('tintuc');
     Route::get('/tin-tuc/{slug}', [ClientTinTucController::class, 'chitiettintuc'])->name('tintuc.show');
-     Route::get('/danh-gia', [ClientCommentController::class, 'index'])->name('comment.index');
-    Route::post('/danh-gia', [ClientCommentController::class, 'store'])->name('comment.store');
-    Route::get('/danh-gia/{id}/edit', [ClientCommentController::class, 'edit'])->name('comment.edit');
-    Route::post('/danh-gia/{id}/update', [ClientCommentController::class, 'update'])->name('comment.update');
-    Route::delete('/danh-gia/{id}', [ClientCommentController::class, 'destroy'])->name('comment.destroy');
 });
 
 // Public impersonation stop (in case admin is impersonating)

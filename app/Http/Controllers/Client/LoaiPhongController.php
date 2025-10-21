@@ -4,15 +4,15 @@ namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
 use App\Models\LoaiPhong;
+use Illuminate\Http\Request;
 
-class DashboardController extends Controller
+class LoaiPhongController extends Controller
 {
     public function index()
     {
         // Lấy các loại phòng đang hoạt động
         $loaiPhongs = LoaiPhong::where('trang_thai', 'hoat_dong')->get();
 
-        // Truyền sang view
-        return view('client.dashboard', compact('loaiPhongs'));
+        return view('client.content.content', compact('loaiPhongs'));
     }
 }
