@@ -167,20 +167,26 @@
         <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6">Ưu đãi Cuối Tuần</h2>
         <p class="text-gray-600 mb-8">Tiết kiệm cho kỳ nghỉ từ ngày 24 tháng 10 đến ngày 26 tháng 10</p>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {{-- Swiper Container --}}
+        <div class="swiper weekendDealsSwiper relative" id="weekend-swiper">
+            <div class="swiper-wrapper" id="swiper-wrapper-test">
             @php
                 $hotels = [
                     ['image' => 'img/gallery/gallery-1.jpg', 'name' => 'Phòng VIP1', 'location' => 'Hà Nội, Việt Nam', 'rating_value' => '9.3', 'rating_text' => 'Tuyệt vời', 'reviews' => '2.127 đánh giá', 'old_price' => '16.592.046 đồng', 'new_price' => '4.479.852 đồng', 'nights' => '2 đêm', 'genius' => true, 'deal_text' => 'Thỏa thuận thoát hiểm muộn'],
                     ['image' => 'img/gallery/gallery-2.jpg', 'name' => 'Phòng VIP2', 'location' => 'Ninh Bình, Việt Nam', 'rating_value' => '9.7', 'rating_text' => 'Ngoại lệ', 'reviews' => '56 đánh giá', 'old_price' => '3.650.000 đồng', 'new_price' => '2.299.500 đồng', 'nights' => '2 đêm', 'genius' => false, 'deal_text' => null],
                     ['image' => 'img/gallery/gallery-3.jpg', 'name' => 'Phòng VIP3', 'location' => 'Sa Pa, Việt Nam', 'rating_value' => '8.6', 'rating_text' => 'Tuyệt vời', 'reviews' => '471 đánh giá', 'old_price' => '1.260.000 đồng', 'new_price' => '882.000 đồng', 'nights' => '2 đêm', 'genius' => true, 'deal_text' => null],
                     ['image' => 'img/gallery/gallery-4.jpg', 'name' => 'Phòng VIP4', 'location' => 'Hà Nội, Việt Nam', 'rating_value' => '9.6', 'rating_text' => 'Ngoại lệ', 'reviews' => '96 đánh giá', 'old_price' => '14.500.000 đồng', 'new_price' => '5.075.000 đồng', 'nights' => '2 đêm', 'genius' => false, 'deal_text' => null],
+                    // Thêm slides để loop hoạt động
+                    ['image' => 'img/room/room-1.jpg', 'name' => 'Phòng Deluxe', 'location' => 'Đà Nẵng, Việt Nam', 'rating_value' => '9.1', 'rating_text' => 'Tuyệt vời', 'reviews' => '342 đánh giá', 'old_price' => '8.500.000 đồng', 'new_price' => '3.400.000 đồng', 'nights' => '2 đêm', 'genius' => true, 'deal_text' => null],
+                    ['image' => 'img/room/room-2.jpg', 'name' => 'Suite Executive', 'location' => 'Nha Trang, Việt Nam', 'rating_value' => '9.5', 'rating_text' => 'Ngoại lệ', 'reviews' => '789 đánh giá', 'old_price' => '12.000.000 đồng', 'new_price' => '6.000.000 đồng', 'nights' => '2 đêm', 'genius' => false, 'deal_text' => 'Bao gồm bữa sáng'],
                 ];
             @endphp
 
             @foreach ($hotels as $hotel)
+                <div class="swiper-slide">
                 <div
                     class="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm relative group cursor-pointer 
-                    hover:shadow-xl hover:scale-[1.02] transition duration-300 ease-in-out">
+                    hover:shadow-xl hover:scale-[1.02] transition duration-300 ease-in-out h-full">
                     <div class="relative">
                         <img src="{{ asset($hotel['image']) }}" alt="{{ $hotel['name'] }}"
                             class="w-full h-48 object-cover">
@@ -225,16 +231,16 @@
                         </div>
                     </div>
                 </div>
+                </div>
             @endforeach
-        </div>
-        <div class="flex justify-end mt-8">
-            <button
-                class="bg-gray-200 p-2 rounded-full shadow-md text-gray-700 hover:bg-gray-300 transition duration-300">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
-            </button>
+            </div>
+            
+            {{-- Navigation buttons --}}
+            <div class="swiper-button-next"></div>
+            <div class="swiper-button-prev"></div>
+            
+            {{-- Pagination --}}
+            <div class="swiper-pagination"></div>
         </div>
     </section>
 
@@ -321,3 +327,129 @@
         </div>
     </div>
 </section>
+
+@push('scripts')
+<script>
+// Initialize Weekend Deals Swiper
+console.log('=== Script loaded ===');
+
+function initSwiper() {
+    console.log('initSwiper called');
+    
+    // Check if Swiper exists
+    if (typeof Swiper === 'undefined') {
+        console.error('❌ Swiper library not loaded!');
+        return;
+    }
+    console.log('✅ Swiper library loaded');
+    
+    // Check if element exists
+    const swiperEl = document.querySelector('.weekendDealsSwiper');
+    if (!swiperEl) {
+        console.error('❌ Swiper element not found!');
+        return;
+    }
+    console.log('✅ Swiper element found:', swiperEl);
+    
+    // Check slides
+    const slides = document.querySelectorAll('.weekendDealsSwiper .swiper-slide');
+    console.log('Found slides:', slides.length);
+    
+    try {
+        const weekendSwiper = new Swiper('.weekendDealsSwiper', {
+        // Slides per view - responsive
+        slidesPerView: 1,
+        spaceBetween: 20,
+        
+        // Responsive breakpoints
+        breakpoints: {
+            640: {
+                slidesPerView: 2,
+                spaceBetween: 20,
+            },
+            1024: {
+                slidesPerView: 3,
+                spaceBetween: 24,
+            },
+            1280: {
+                slidesPerView: 3, // Giảm xuống 3 để loop hoạt động
+                spaceBetween: 24,
+            },
+        },
+        
+        // Autoplay
+        autoplay: {
+            delay: 3000,
+            disableOnInteraction: false,
+            pauseOnMouseEnter: true,
+        },
+        
+        // Speed
+        speed: 800,
+        
+        // Loop
+        loop: true,
+        
+        // Navigation arrows
+        navigation: {
+            nextEl: '.swiper-button-next',
+            prevEl: '.swiper-button-prev',
+        },
+        
+        // Pagination
+        pagination: {
+            el: '.swiper-pagination',
+            clickable: true,
+            dynamicBullets: true,
+        },
+        
+        // Keyboard control
+        keyboard: {
+            enabled: true,
+        },
+        
+        // Mouse wheel
+        mousewheel: {
+            forceToAxis: true,
+        },
+        
+        // Grab cursor
+        grabCursor: true,
+        
+        // Effect
+        effect: 'slide',
+        
+        // Lazy loading
+        lazy: true,
+        
+        // On init callback
+        on: {
+            init: function() {
+                console.log('✅ Swiper initialized successfully!');
+            },
+            slideChange: function() {
+                console.log('Slide changed to:', this.activeIndex);
+            },
+        },
+    });
+    
+    console.log('✅ Swiper instance created:', weekendSwiper);
+    } catch(error) {
+        console.error('❌ Error creating Swiper:', error);
+    }
+}
+
+// Try multiple initialization methods
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSwiper);
+} else {
+    // DOM already loaded
+    initSwiper();
+}
+
+// Also try after window load
+window.addEventListener('load', function() {
+    console.log('Window loaded event');
+});
+</script>
+@endpush

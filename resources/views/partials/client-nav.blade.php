@@ -1,4 +1,4 @@
-{{-- Client Navigation --}}
+{{-- Top Bar - Thông tin liên hệ --}}
 <div class="bg-gray-100 hidden md:block border-b border-gray-200 text-sm">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex justify-between items-center">
         <div class="flex space-x-4 text-gray-600">
@@ -14,7 +14,7 @@
     </div>
 </div>
 
-{{-- Client Nav Bar --}}
+{{-- Main Navigation Bar --}}
 <nav class="bg-white shadow relative z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-20">
