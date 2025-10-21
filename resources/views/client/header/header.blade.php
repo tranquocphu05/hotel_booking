@@ -1,8 +1,7 @@
-{{-- File: resources\views\client\header\header.blade.php --}}
+
 
 <div x-data="{ currentSlide: 1, totalSlides: 3 }" x-init="setInterval(() => { currentSlide = (currentSlide % totalSlides) + 1 }, 5000)" class="relative h-[90vh] min-h-[700px] overflow-hidden">
 
-    {{-- Vùng chứa Hình ảnh Thanh trượt --}}
     <div class="absolute inset-0">
         @php
             $slides = ['img/hero/hero-1.jpg', 'img/hero/hero-2.jpg', 'img/hero/hero-3.jpg'];
