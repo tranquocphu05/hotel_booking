@@ -208,29 +208,65 @@
     </div>
 </section>
 
-
-<section id="testimonials">
-    <section class="text-center container mx-auto px-4 py-16 bg-gray-50 my-16 rounded-lg">
+{{-- Danh Gia cua Binh --}}
+<section id="testimonials" class="py-16 bg-gray-50 my-16 rounded-lg">
+    <div class="text-center container mx-auto px-4">
         <p class="text-sm uppercase tracking-widest text-red-600 mb-2">Ý KIẾN KHÁCH HÀNG</p>
         <h2 class="text-3xl font-bold text-gray-800 mb-8">Khách Hàng Nói Gì?</h2>
 
-        <div class="max-w-3xl mx-auto px-4">
-            <p class="text-gray-600 italic mb-6">
-                "Chúng tôi rất hài lòng với chất lượng dịch vụ và không gian sang trọng tại đây. Các đường nét thiết kế
-                sạch sẽ và kiểu chữ sắc nét thực sự rất ấn tượng, và chúng tôi hoàn toàn hài lòng với những công cụ vô giá
-                mà dịch vụ này đã cung cấp."
-            </p>
-            <div class="flex justify-center mb-4">
-                <i class="fas fa-star text-yellow-500 mx-1"></i>
-                <i class="fas fa-star text-yellow-500 mx-1"></i>
-                <i class="fas fa-star text-yellow-500 mx-1"></i>
-                <i class="fas fa-star text-yellow-500 mx-1"></i>
-                <i class="fas fa-star text-yellow-500 mx-1"></i>
+        @if(isset($comments) && $comments->count() > 0)
+            <div class="swiper testimonialSwiper w-full max-w-4xl mx-auto relative">
+                <div class="swiper-wrapper">
+                    @foreach($comments as $comment)
+                        <div class="swiper-slide bg-white rounded-2xl shadow-md p-8 flex flex-col items-center text-center transition duration-300 hover:shadow-lg">
+                            
+                            {{-- Ảnh đại diện --}}
+                            @if(!empty($comment->user->avatar))
+                                <img src="{{ asset('storage/' . $comment->user->avatar) }}"
+                                     alt="Avatar người dùng"
+                                     class="w-20 h-20 rounded-full object-cover mb-4 shadow-md border-2 border-red-400 hover:scale-105 transition-transform duration-300">
+                            @elseif(!empty($comment->img))
+                                <img src="{{ asset('storage/' . $comment->img) }}"
+                                     alt="Ảnh đánh giá"
+                                     class="w-20 h-20 rounded-full object-cover mb-4 shadow-md border-2 border-red-400 hover:scale-105 transition-transform duration-300">
+                            @else
+                                <img src="{{ asset('img/default-avatar.png') }}"
+                                     alt="Avatar mặc định"
+                                     class="w-20 h-20 rounded-full object-cover mb-4 shadow-md border-2 border-gray-300">
+                            @endif
+
+                            {{-- Nội dung đánh giá --}}
+                            <p class="italic text-gray-600 text-lg leading-relaxed mb-6 max-w-2xl">
+                                “{{ $comment->noi_dung }}”
+                            </p>
+
+                            {{-- Số sao --}}
+                            <div class="flex justify-center text-yellow-500 mb-3">
+                                @for ($i = 1; $i <= 5; $i++)
+                                    <i class="fas fa-star {{ $i <= $comment->so_sao ? 'text-yellow-500' : 'text-gray-300' }}"></i>
+                                @endfor
+                            </div>
+
+                            {{-- Người dùng & ngày đánh giá --}}
+                            <p class="font-semibold text-gray-800">
+                                — {{ $comment->user->username ?? $comment->user->name ?? 'Ẩn danh' }}
+                            </p>
+                            <p class="text-sm text-gray-500 mt-2">
+                                {{ optional($comment->ngay_danh_gia)->format('d/m/Y') }}
+                            </p>
+                        </div>
+                    @endforeach
+                </div>
+
+                {{-- Pagination + Navigation --}}
+                <div class="swiper-pagination mt-6"></div>
+                <div class="swiper-button-prev absolute top-1/2 -translate-y-1/2 left-0 !text-gray-400 hover:!bg-red-500 hover:!text-white !w-10 !h-10 !rounded-full !bg-white/60 shadow-md transition duration-300"></div>
+                <div class="swiper-button-next absolute top-1/2 -translate-y-1/2 right-0 !text-gray-400 hover:!bg-red-500 hover:!text-white !w-10 !h-10 !rounded-full !bg-white/60 shadow-md transition duration-300"></div>
             </div>
-            <p class="font-semibold text-gray-800">- Ronald F. Weger</p>
-            <img src="{{ asset('img/testimonial-logo.png') }}" alt="Logo Khách hàng" class="mt-4 mx-auto h-8 opacity-75">
-        </div>
-    </section>
+        @else
+            <p class="text-gray-500 italic">Chưa có đánh giá 5 sao nào được hiển thị.</p>
+        @endif
+    </div>
 </section>
 
 <section id="blog-events">
@@ -465,6 +501,39 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Lazy loading
         lazy: true,
+    });
+});
+</script>
+@endpush
+{{-- Swiper danh gia --}}
+@push('scripts')
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    if (typeof Swiper === 'undefined') {
+        console.error('Swiper library not found!');
+        return;
+    }
+
+    new Swiper(".testimonialSwiper", {
+        slidesPerView: 1,
+        spaceBetween: 30,
+        centeredSlides: true,
+        grabCursor: true,
+        loop: true,
+        autoplay: {
+            delay: 4000,
+            disableOnInteraction: false,
+        },
+        pagination: {
+            el: ".swiper-pagination",
+            clickable: true,
+        },
+        navigation: {
+            nextEl: ".swiper-button-next",
+            prevEl: ".swiper-button-prev",
+        },
+        speed: 800,
+        effect: 'slide',
     });
 });
 </script>
