@@ -22,6 +22,7 @@ use App\Http\Controllers\Client\GioiThieuController as ClientGioiThieuController
 use App\Http\Controllers\Client\TinTucController as ClientTinTucController; 
 use App\Http\Controllers\Client\VoucherController as ClientVoucherController;
 use App\Http\Controllers\Client\ThanhToanController as ClientThanhToanController;
+use App\Http\Controllers\Client\CommentController as ClientCommentController;
 
 
 Route::get('/', [ClientDashboardController::class, 'index'])
