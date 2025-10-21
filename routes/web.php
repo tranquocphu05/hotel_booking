@@ -132,6 +132,8 @@ Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\Allow
     Route::post('/{phong}/dat-phong', [BookingController::class, 'submit'])->name('phong.store_booking');
     Route::get('/thanh-toan/{datPhong}', [ClientThanhToanController::class, 'show'])->name('thanh-toan.show');
     Route::post('/thanh-toan/{datPhong}', [ClientThanhToanController::class, 'store'])->name('thanh-toan.store');
+    Route::get('/vnpay/payment/{datPhong}', [ClientThanhToanController::class, 'create_vnpay_payment'])->name('vnpay_payment');
+    Route::get('/vnpay/return', [ClientThanhToanController::class, 'vnpay_return'])->name('vnpay_return');
     Route::get('/tin-tuc', [ClientTinTucController::class, 'index'])->name('tintuc');
     Route::get('/tin-tuc/{slug}', [ClientTinTucController::class, 'chitiettintuc'])->name('tintuc.show');
      Route::get('/danh-gia', [ClientCommentController::class, 'index'])->name('comment.index');
