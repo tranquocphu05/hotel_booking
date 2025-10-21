@@ -12,9 +12,9 @@
             <span class="mx-2">/</span>
             <span class="text-gray-900">{{ $room->ten_phong }}</span>
         </nav>
-        
+
         <h1 class="text-6xl md:text-8xl font-bold text-black mb-12">{{ $room->ten_phong }}</h1>
-        
+
         <p class="text-xl text-gray-600 leading-relaxed max-w-4xl mx-auto">
             {{ $room->loaiPhong->ten_loai ?? 'N/A' }} - {{ $room->mo_ta ? Str::limit($room->mo_ta, 200) : 'Phòng nghỉ sang trọng với đầy đủ tiện nghi hiện đại' }}
         </p>
@@ -29,8 +29,8 @@
                 {{-- Room Image Gallery --}}
                 <div class="mb-12">
                     <div class="bg-white rounded-lg shadow-md overflow-hidden">
-                        <img src="{{ $room->img ? asset($room->img) : asset('img/room/room-1.jpg') }}" 
-                             alt="{{ $room->ten_phong }}" 
+                        <img src="{{ $room->img ? asset($room->img) : asset('img/room/room-1.jpg') }}"
+                             alt="{{ $room->ten_phong }}"
                              class="w-full h-96 object-cover">
                     </div>
                 </div>
@@ -38,7 +38,7 @@
                 {{-- Room Details --}}
                 <div class="bg-white rounded-lg shadow-md p-8 mb-8">
                     <h2 class="text-4xl font-bold text-gray-900 mb-6">{{ $room->ten_phong }}</h2>
-                    
+
                     @if($room->mo_ta)
                     <p class="text-gray-600 text-lg leading-relaxed mb-8">{{ $room->mo_ta }}</p>
                     @endif
@@ -121,7 +121,7 @@
             <div class="lg:col-span-1">
                 <div class="bg-white rounded-lg shadow-md p-8 sticky top-8">
                     <h3 class="text-2xl font-bold text-gray-900 mb-8">Đặt phòng</h3>
-                    
+
                     <div class="mb-8 p-6 bg-blue-50 rounded-lg">
                         <div class="flex justify-between items-center mb-2">
                             <span class="text-gray-700 text-lg font-medium">Giá phòng</span>
@@ -130,20 +130,20 @@
                         <p class="text-sm text-gray-600">/ đêm</p>
                     </div>
 
-                    <form action="#" method="GET" onsubmit="handleBooking(event, {{ $room->id }})">
+                    <form action="{{ route('booking.form', ['phong' => $room->id]) }}" method="GET" onsubmit="return handleBooking(event)">
                         <div class="space-y-6">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-3">Ngày nhận phòng</label>
-                                <input type="date" name="checkin" required 
+                                <input type="date" name="checkin" required
                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
                             </div>
-                            
+
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-3">Ngày trả phòng</label>
-                                <input type="date" name="checkout" required 
+                                <input type="date" name="checkout" required
                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
                             </div>
-                            
+
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-3">Số người</label>
                                 <select name="guests" class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
@@ -154,7 +154,7 @@
                                 </select>
                             </div>
                         </div>
-                        
+
                         <button type="submit" class="w-full mt-8 bg-blue-600 text-white py-4 rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg">
                             Đặt phòng ngay
                         </button>
@@ -172,11 +172,11 @@
                 <div class="group cursor-pointer" onclick="window.location.href='{{ route('client.phong.show', $relatedRoom->id) }}'">
                     <div class="relative overflow-hidden bg-white shadow-sm hover:shadow-lg transition-all duration-500">
                         <div class="relative h-64 overflow-hidden">
-                            <img src="{{ $relatedRoom->img ? asset('uploads/phong/' . $relatedRoom->img) : asset('img/room/room-1.jpg') }}" 
-                                 alt="{{ $relatedRoom->ten_phong }}" 
+                            <img src="{{ $relatedRoom->img ? asset('uploads/phong/' . $relatedRoom->img) : asset('img/room/room-1.jpg') }}"
+                                 alt="{{ $relatedRoom->ten_phong }}"
                                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
                             <div class="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-all duration-500"></div>
-                            
+
                             <div class="absolute top-4 right-4">
                                 <div class="bg-black/80 backdrop-blur-sm text-white px-4 py-2">
                                     <div class="text-lg font-light">{{ number_format($relatedRoom->gia, 0, ',', '.') }}</div>
@@ -209,37 +209,25 @@
 </div>
 
 <script>
-function handleBooking(event, roomId) {
-    event.preventDefault();
-    
-    const form = event.target;
+function handleBooking(event) {
+    // event may be the Event object or the form element when called differently
+    const form = event && event.target ? event.target : event;
     const formData = new FormData(form);
     const checkin = formData.get('checkin');
     const checkout = formData.get('checkout');
-    const guests = formData.get('guests');
-    
+
     if (!checkin || !checkout) {
         alert('Vui lòng chọn ngày nhận phòng và ngày trả phòng');
-        return;
+        return false;
     }
-    
+
     if (new Date(checkout) <= new Date(checkin)) {
         alert('Ngày trả phòng phải sau ngày nhận phòng');
-        return;
+        return false;
     }
-    
-    // Redirect to booking page with parameters
-    const params = new URLSearchParams({
-        checkin: checkin,
-        checkout: checkout,
-        guests: guests
-    });
-    
-    // For now, redirect to a simple booking page or show alert
-    alert(`Đặt phòng ${roomId} từ ${checkin} đến ${checkout} cho ${guests} người`);
-    
-    // In the future, you can redirect to actual booking page:
-    // window.location.href = `/booking/${roomId}?${params.toString()}`;
+
+    // Valid — allow the form to submit normally
+    return true;
 }
 </script>
 
