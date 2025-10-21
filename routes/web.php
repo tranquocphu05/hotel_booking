@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\BookingController;
 // Admin Controllers
 use App\Http\Controllers\Admin\CommentController;
 use App\Http\Controllers\Admin\InvoiceController;
@@ -11,14 +12,15 @@ use App\Http\Controllers\Admin\DatPhongController;
 use App\Http\Controllers\Admin\LoaiPhongController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\PhongController;
-
-// Client Controllers 
+use App\Http\Controllers\Client\CommentController as ClientCommentController;
+// Client Controllers
 use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
 use App\Http\Controllers\Client\PhongController as ClientPhongController;
 use App\Http\Controllers\Client\ContactController as ClientContactController;
 use App\Http\Controllers\Client\GioiThieuController as ClientGioiThieuController;
 use App\Http\Controllers\Client\TinTucController as ClientTinTucController; 
 use App\Http\Controllers\Client\VoucherController as ClientVoucherController;
+use App\Http\Controllers\Client\ThanhToanController as ClientThanhToanController;
 
 
 Route::get('/', [ClientDashboardController::class, 'index'])
@@ -40,8 +42,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar'])->name('profile.avatar.update');
+    Route::post('/profile/booking/{id}/cancel', [ProfileController::class, 'cancelBooking'])->name('profile.booking.cancel');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+
+// Simple booking demo routes (public)
+Route::get('/booking/{phong}', [BookingController::class, 'showForm'])->name('booking.form')->middleware('auth');
+Route::post('/booking', [BookingController::class, 'submit'])->name('booking.submit')->middleware('auth');
 
 require __DIR__ . '/auth.php';
 
@@ -83,9 +90,9 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin
         ->group(function () {
             Route::get('/', [CommentController::class, 'index'])->name('index');
             Route::get('/{id}', [CommentController::class, 'show'])->name('show');
-            Route::put('/{id}/reply', [CommentController::class, 'reply'])->name('reviews.reply');
-            Route::delete('/{id}/reply', [CommentController::class, 'deleteReply'])->name('reviews.reply.delete');
             Route::put('/{id}/toggle', [CommentController::class, 'statusToggle'])->name('toggle');
+            Route::put('/{id}/reply', [CommentController::class, 'reply'])->name('reply');
+            Route::delete('/{id}/reply', [CommentController::class, 'deleteReply'])->name('reply.delete');
         });
     // impersonation
     Route::post('impersonate/{user}', [\App\Http\Controllers\Admin\ImpersonationController::class, 'impersonate'])
@@ -105,6 +112,10 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin
         Route::get('/{id}/cancel', [DatPhongController::class, 'showCancelForm'])->name('cancel');
         Route::post('/{id}/cancel', [DatPhongController::class, 'submitCancel'])->name('cancel.submit');
         Route::put('/{id}/block', [DatPhongController::class, 'blockRoom'])->name('block');
+        // Quick confirm route
+        Route::put('/{id}/confirm', [DatPhongController::class, 'quickConfirm'])->name('confirm');
+        // Mark as paid
+        Route::put('/{id}/mark-paid', [DatPhongController::class, 'markPaid'])->name('mark_paid');
     });
 });
 
@@ -119,10 +130,20 @@ Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\Allow
     Route::get('/lien-he', [ClientContactController::class, 'index'])->name('lienhe');
     Route::get('/gioi-thieu', [ClientGioiThieuController::class, 'index'])->name('gioithieu');
 
-
     Route::get('/tin-tuc', [ClientTinTucController::class, 'index'])->name('tintuc'); 
     Route::get('/tin-tuc/{slug}', [ClientTinTucController::class, 'chitiettintuc'])->name('tintuc.show'); 
     Route::get('/voucher', [ClientVoucherController::class, 'getVoucher'])->name('voucher');
+    Route::get('/{phong}/dat-phong', [BookingController::class, 'showForm'])->name('phong.create_booking');
+    Route::post('/{phong}/dat-phong', [BookingController::class, 'submit'])->name('phong.store_booking');
+    Route::get('/thanh-toan/{datPhong}', [ClientThanhToanController::class, 'show'])->name('thanh-toan.show');
+    Route::post('/thanh-toan/{datPhong}', [ClientThanhToanController::class, 'store'])->name('thanh-toan.store');
+    Route::get('/tin-tuc', [ClientTinTucController::class, 'index'])->name('tintuc');
+    Route::get('/tin-tuc/{slug}', [ClientTinTucController::class, 'chitiettintuc'])->name('tintuc.show');
+     Route::get('/danh-gia', [ClientCommentController::class, 'index'])->name('comment.index');
+    Route::post('/danh-gia', [ClientCommentController::class, 'store'])->name('comment.store');
+    Route::get('/danh-gia/{id}/edit', [ClientCommentController::class, 'edit'])->name('comment.edit');
+    Route::post('/danh-gia/{id}/update', [ClientCommentController::class, 'update'])->name('comment.update');
+    Route::delete('/danh-gia/{id}', [ClientCommentController::class, 'destroy'])->name('comment.destroy');
 });
 
 // Public impersonation stop (in case admin is impersonating)

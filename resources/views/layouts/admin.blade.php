@@ -35,7 +35,7 @@
         @include('partials.admin.sidebar')
         
         <!-- Main content area -->
-        <div class="flex-1 flex flex-col lg:ml-64 main-content">
+        <div class="flex-1 flex flex-col lg:ml-64 main-content pt-16">
             <!-- Top navigation -->
             @include('partials.admin.header')
             

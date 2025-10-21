@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Phong;
+use App\Models\Invoice;
 use Illuminate\Database\Eloquent\Model;
 
 class DatPhong extends Model
@@ -78,6 +79,14 @@ class DatPhong extends Model
     public function voucher()
     {
         return $this->belongsTo(Voucher::class, 'voucher_id');
+    }
+
+    /**
+     * Get the invoice associated with the booking.
+     */
+    public function invoice()
+    {
+        return $this->hasOne(Invoice::class, 'dat_phong_id');
     }
 
     /**

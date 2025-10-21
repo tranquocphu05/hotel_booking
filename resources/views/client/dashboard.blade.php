@@ -15,3 +15,7 @@
         @include('client.content.content')
     </div>
 @endsection
+{{-- ĐẨY FOOTER LÊN @yield('fullwidth_footer') --}}
+@section('fullwidth_footer')
+    @include('client.footer.footer')
+@endsection
