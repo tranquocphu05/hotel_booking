@@ -100,7 +100,7 @@ class DatPhongController extends Controller
 
     public function edit($id)
     {
-        $booking = DatPhong::with(['phong', 'phong.loaiPhong', 'voucher'])->findOrFail($id);
+        $booking = DatPhong::with(['phong', 'phong.loaiPhong', 'voucher', 'user'])->findOrFail($id);
 
         // Lấy danh sách phòng để hiển thị trong form sửa
         $rooms = Phong::all();
@@ -109,6 +109,11 @@ class DatPhongController extends Controller
         if ($booking->trang_thai !== 'cho_xac_nhan') {
             return redirect()->route('admin.dat_phong.show', $booking->id)
                 ->with('error', 'Chỉ có thể sửa đơn đặt phòng đang chờ xác nhận');
+        }
+
+        // Tự động điền CCCD từ user nếu booking chưa có CCCD
+        if (!$booking->cccd && $booking->user && $booking->user->cccd) {
+            $booking->cccd = $booking->user->cccd;
         }
 
         return view('admin.dat_phong.edit', compact('booking', 'rooms'));
@@ -123,23 +128,25 @@ class DatPhongController extends Controller
                 ->with('error', 'Chỉ có thể sửa đơn đặt phòng đang chờ xác nhận');
         }
 
-        $request->validate([
+        // Nếu chỉ thay đổi trạng thái, không validate ngày
+        $validationRules = [
             'phong_id' => 'required|exists:phong,id',
             'trang_thai' => 'required|in:cho_xac_nhan,da_xac_nhan,da_huy,da_tra',
-            'ngay_nhan' => 'required|date|after_or_equal:today',
+            'ngay_nhan' => 'required|date',
             'ngay_tra' => 'required|date|after_or_equal:ngay_nhan',
             'so_nguoi' => 'required|integer|min:1',
             'username' => 'required|string|max:255',
             'email' => 'required|email|max:255',
             'sdt' => 'required|string|max:20',
-            'cccd' => 'required|string|max:20'
-        ], [
+            'cccd' => 'nullable|string|max:20'
+        ];
+
+        $request->validate($validationRules, [
             'phong_id.required' => 'Vui lòng chọn phòng',
             'phong_id.exists' => 'Phòng không tồn tại',
             'trang_thai.required' => 'Vui lòng chọn trạng thái',
             'trang_thai.in' => 'Trạng thái không hợp lệ',
             'ngay_nhan.required' => 'Vui lòng chọn ngày nhận phòng',
-            'ngay_nhan.after_or_equal' => 'Ngày nhận phòng phải từ hôm nay trở đi',
             'ngay_tra.required' => 'Vui lòng chọn ngày trả phòng',
             'ngay_tra.after_or_equal' => 'Ngày trả phòng phải sau hoặc bằng ngày nhận phòng',
             'so_nguoi.required' => 'Vui lòng nhập số người',
@@ -147,8 +154,7 @@ class DatPhongController extends Controller
             'username.required' => 'Vui lòng nhập tên khách hàng',
             'email.required' => 'Vui lòng nhập email',
             'email.email' => 'Email không hợp lệ',
-            'sdt.required' => 'Vui lòng nhập số điện thoại',
-            'cccd.required' => 'Vui lòng nhập CCCD/CMND'
+            'sdt.required' => 'Vui lòng nhập số điện thoại'
         ]);
 
         $booking->update([
@@ -276,5 +282,57 @@ class DatPhongController extends Controller
         
         return redirect()->route('admin.dat_phong.index')
             ->with('success', 'Đã chống phòng thành công! Phòng không thể đặt được cho đến khi hủy chống.');
+    }
+
+    /**
+     * Quick confirm booking from index card
+     */
+    public function quickConfirm($id)
+    {
+        $booking = DatPhong::findOrFail($id);
+
+        if ($booking->trang_thai !== 'cho_xac_nhan') {
+            return redirect()->route('admin.dat_phong.index')
+                ->with('error', 'Chỉ xác nhận được đơn đang chờ xác nhận');
+        }
+
+        // Allow confirming even if dates are in the past
+        $booking->trang_thai = 'da_xac_nhan';
+        $booking->save();
+
+        return redirect()->route('admin.dat_phong.index')
+            ->with('success', 'Phòng đã được xác nhận thành công!');
+    }
+
+    /**
+     * Mark booking as paid: create (or update) invoice to 'da_thanh_toan'
+     */
+    public function markPaid($id)
+    {
+        $booking = DatPhong::with('invoice')->findOrFail($id);
+
+        // Create invoice if missing
+        $invoice = $booking->invoice;
+        if (!$invoice) {
+            $invoice = \App\Models\Invoice::create([
+                'dat_phong_id' => $booking->id,
+                'tong_tien' => $booking->tong_tien,
+                'phuong_thuc' => 'tien_mat',
+                'trang_thai' => 'da_thanh_toan',
+            ]);
+        } else {
+            $invoice->update([
+                'trang_thai' => 'da_thanh_toan',
+            ]);
+        }
+
+        // Optionally confirm booking if still pending
+        if ($booking->trang_thai === 'cho_xac_nhan') {
+            $booking->trang_thai = 'da_xac_nhan';
+            $booking->save();
+        }
+
+        return redirect()->route('admin.dat_phong.index')
+            ->with('success', 'Đã đánh dấu thanh toán và đồng bộ hóa đơn thành công.');
     }
 }

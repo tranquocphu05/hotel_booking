@@ -67,12 +67,11 @@ Tài liệu này mô tả các tối ưu hóa hiệu suất đã được triể
 
 ### 7. **Security Headers**
 - ✅ X-Content-Type-Options
-- ✅ X-Frame-Options
+- ✅ X-Frame-Options  
 - ✅ X-XSS-Protection
 - ✅ Referrer-Policy
-- ✅ Permissions-Policy
 
-**File:** `app/Http/Middleware/OptimizeResponse.php`
+**File:** `public/.htaccess`
 
 ### 8. **CSS Optimization**
 - ✅ Tailwind CSS purge unused classes

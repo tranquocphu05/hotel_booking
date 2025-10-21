@@ -1,5 +1,5 @@
 <!-- Top navigation -->
-<header class="bg-white shadow-sm border-b border-gray-200">
+<header class="fixed top-0 left-0 right-0 lg:left-64 z-40 bg-white/95 backdrop-blur shadow-sm border-b border-gray-200">
     <div class="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
         <!-- Mobile menu button -->
         <button id="sidebar-toggle" type="button" class="-m-2.5 p-2.5 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-300 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">

@@ -39,9 +39,13 @@ class BookingController extends Controller
             'first_name' => 'required|string|max:255',
             'email' => 'required|email',
             'phone' => 'nullable|string',
+            'cccd' => 'required|string|max:20',
             'ngay_nhan' => 'nullable|date',
             'ngay_tra' => 'nullable|date',
             'so_nguoi' => 'nullable|integer',
+        ], [
+            'cccd.required' => 'Vui lòng nhập số CCCD/CMND',
+            'cccd.max' => 'Số CCCD/CMND không được quá 20 ký tự',
         ]);
 
         $user = Auth::user();
@@ -105,8 +109,10 @@ class BookingController extends Controller
             'username' => $username,
             'email' => $data['email'],
             'sdt' => $data['phone'] ?? null,
+            'cccd' => $data['cccd'],
         ]);
 
+        // Chỉ thông báo về trang thanh toán, chưa thông báo thành công
         return redirect()->route('client.thanh-toan.show', ['datPhong' => $datPhong->id]);
     }
 }

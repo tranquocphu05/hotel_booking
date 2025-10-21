@@ -16,20 +16,66 @@
 
     <title>@yield('title', config('app.name'))</title>
     
-    {{-- Preload critical CSS - Font Awesome with optimized loading --}}
-    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    {{-- Font Awesome - Load async để không block rendering --}}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+        integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" media="print" onload="this.media='all'" />
     <noscript>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     </noscript>
     
-    {{-- Fallback for font-awesome if preload fails --}}
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
-        integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
-        crossorigin="anonymous" referrerpolicy="no-referrer" media="print" onload="this.media='all'" />
+    {{-- Swiper CSS --}}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
     
     {{-- THÊM CSS ĐỂ ƯU TIÊN FONT HỖ TRỢ TIẾNG VIỆT (Tùy chọn) --}}
-    {{-- Nếu bạn dùng Tailwind, bạn có thể thiết lập điều này trong file CSS gốc --}}
+    {{-- Nếu bạn dùng Tailwind, bạy có thể thiết lập điều này trong file CSS gốc --}}
     <style>
+        /* Swiper Custom Styles */
+        .weekendDealsSwiper {
+            padding-bottom: 60px !important;
+        }
+        
+        .weekendDealsSwiper .swiper-button-next,
+        .weekendDealsSwiper .swiper-button-prev {
+            background-color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .weekendDealsSwiper .swiper-button-next:hover,
+        .weekendDealsSwiper .swiper-button-prev:hover {
+            background-color: #ef4444;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+        }
+        
+        .weekendDealsSwiper .swiper-button-next:hover::after,
+        .weekendDealsSwiper .swiper-button-prev:hover::after {
+            color: white;
+        }
+        
+        .weekendDealsSwiper .swiper-button-next::after,
+        .weekendDealsSwiper .swiper-button-prev::after {
+            font-size: 16px;
+            font-weight: bold;
+            color: #374151;
+        }
+        
+        .weekendDealsSwiper .swiper-pagination-bullet {
+            width: 10px;
+            height: 10px;
+            background: #9ca3af;
+            opacity: 1;
+        }
+        
+        .weekendDealsSwiper .swiper-pagination-bullet-active {
+            background: #ef4444;
+            width: 24px;
+            border-radius: 5px;
+        }
+        
         body {
             /* Ưu tiên các font hỗ trợ Unicode/Tiếng Việt tốt */
             font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", 
@@ -59,7 +105,7 @@
     <div class="@hasSection('fullwidth')
 w-full px-0 mt-6
 @else
-max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6
+ mx-auto px-4 sm:px-6 lg:px-8 mt-6
 @endif">
         @yield('content')
     </div>
@@ -73,6 +119,9 @@ max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6
         @include('partials.footer')
     @endunless
 
+    {{-- Swiper JS - Load before other scripts --}}
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    
     {{-- Lazy load Chart.js only when needed --}}
     <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 

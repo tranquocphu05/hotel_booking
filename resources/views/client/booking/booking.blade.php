@@ -58,6 +58,14 @@
                         <label class="block text-sm font-medium">Số điện thoại</label>
                         <input type="text" name="phone" value="{{ old('phone', auth()->user()->sdt ?? '') }}" class="mt-1 block w-full border rounded p-2">
                     </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium">CCCD/CMND *</label>
+                        <input type="text" name="cccd" value="{{ old('cccd', auth()->user()->cccd ?? '') }}" 
+                            class="mt-1 block w-full border rounded p-2 @error('cccd') border-red-500 @enderror"
+                            placeholder="Nhập số CCCD/CMND">
+                        @error('cccd') <div class="text-red-600 text-sm">{{ $message }}</div> @enderror
+                    </div>
 
                     <div>
                         <label class="block text-sm font-medium">Ngày nhận</label>

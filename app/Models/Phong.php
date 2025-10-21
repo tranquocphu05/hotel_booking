@@ -26,4 +26,14 @@ class Phong extends Model
     {
         return $this->belongsTo(LoaiPhong::class, 'loai_phong_id');
     }
+
+    public function comments()
+    {
+        return $this->hasMany(Comment::class, 'phong_id', 'id');
+    }
+
+    public function reviews()
+    {
+        return $this->comments();
+    }
 }

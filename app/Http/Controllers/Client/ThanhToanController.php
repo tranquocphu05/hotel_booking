@@ -39,11 +39,16 @@ class ThanhToanController extends Controller
         $invoice = $datPhong->invoice;
        
         // Update invoice with payment method
-          $invoice->update([
+        $invoice->update([
             'phuong_thuc' => $request->phuong_thuc,
         ]);
 
-
-        return redirect()->route('client.dashboard')->with('success', 'Đã xác nhận phương thức thanh toán. Vui lòng hoàn tất thanh toán để hoàn tất đặt phòng.');
+        // Hiển thị thông báo đặt phòng thành công sau khi xác nhận thanh toán
+        return redirect()
+            ->route('client.dashboard')
+            ->with('booking_success', true)
+            ->with('booking_id', $datPhong->id)
+            ->with('room_name', $datPhong->phong->ten_phong ?? 'N/A')
+            ->with('success', 'Đặt phòng thành công! Mã đặt phòng #' . $datPhong->id . '. Vui lòng hoàn tất thanh toán để xác nhận đặt phòng.');
     }
 }
