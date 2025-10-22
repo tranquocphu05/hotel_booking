@@ -26,7 +26,7 @@
                     <label class="block text-sm font-medium text-gray-700 mb-3">Loại phòng</label>
                     <select name="loai_phong" id="loai_phong" class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
                         <option value="">Tất cả loại phòng</option>
-                        @foreach($loaiPhongs as $loai)
+                        @foreach($allLoaiPhongs as $loai)
                             <option value="{{ $loai->id }}" {{ request('loai_phong') == $loai->id ? 'selected' : '' }}>
                                 {{ $loai->ten_loai }}
                             </option>
@@ -55,24 +55,44 @@
 
         {{-- Rooms List --}}
         <div class="space-y-6">
-            @forelse($rooms as $phong)
+            @forelse($phongs as $phong)
             <div class="group cursor-pointer" onclick="window.location.href='{{ route('client.phong.show', $phong->id) }}'">
                 <div class="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden">
                     <div class="flex">
                         {{-- Image --}}
                         <div class="w-1/3 h-64 relative overflow-hidden">
-                            <img src="{{ $phong->img ? asset($phong->img) : asset('img/room/room-1.jpg') }}" 
+                            @php
+                                $roomImg = null;
+                                if (!empty($phong->img)) {
+                                    $roomImg = asset($phong->img); // ảnh lưu trong public/uploads/...
+                                } elseif (!empty($phong->loaiPhong->anh)) {
+                                    $roomImg = asset($phong->loaiPhong->anh);
+                                } else {
+                                    $roomImg = asset('img/room/room-1.jpg');
+                                }
+                            @endphp
+                            <img src="{{ $roomImg }}" 
                                  alt="{{ $phong->ten_phong }}" 
                                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                             <div class="absolute top-4 left-4">
                                 <span class="bg-white/90 text-gray-900 px-3 py-1 text-sm font-medium rounded">
-                                    {{ $phong->loaiPhong->ten_loai ?? 'N/A' }}
+                                    {{ $phong->loaiPhong->ten_loai }}
                                 </span>
                             </div>
                             <div class="absolute top-4 right-4">
                                 <div class="bg-black/80 text-white px-3 py-1 rounded">
-                                    <div class="text-lg font-semibold">{{ number_format($phong->gia, 0, ',', '.') }}</div>
-                                    <div class="text-xs">VNĐ / đêm</div>
+                                    @if($phong->hasPromotion())
+                                        <div class="text-sm text-gray-300 line-through">
+                                            {{ number_format($phong->gia_goc_hien_thi, 0, ',', '.') }}
+                                        </div>
+                                        <div class="text-lg font-semibold text-red-400">
+                                            {{ number_format($phong->gia_hien_thi, 0, ',', '.') }}
+                                        </div>
+                                        <div class="text-xs">VNĐ / đêm</div>
+                                    @else
+                                        <div class="text-lg font-semibold">{{ number_format($phong->gia, 0, ',', '.') }}</div>
+                                        <div class="text-xs">VNĐ / đêm</div>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -80,12 +100,46 @@
                         {{-- Content --}}
                         <div class="flex-1 p-8">
                             <h3 class="text-3xl font-bold text-gray-900 mb-4 group-hover:text-blue-600 transition-colors">
-                                {{ $phong->ten_phong }}
+                                {{ $phong->ten_phong ?: $phong->loaiPhong->ten_loai }}
                             </h3>
+                            @php
+                                $amenities = [
+                                    ['icon' => 'fas fa-wifi', 'name' => 'WiFi miễn phí'],
+                                    ['icon' => 'fas fa-snowflake', 'name' => 'Điều hòa'],
+                                    ['icon' => 'fas fa-tv', 'name' => 'Tivi'],
+                                    ['icon' => 'fas fa-bath', 'name' => 'Phòng tắm riêng'],
+                                    ['icon' => 'fas fa-wine-glass', 'name' => 'Minibar'],
+                                    ['icon' => 'fas fa-concierge-bell', 'name' => 'Dịch vụ 24/7'],
+                                ];
+                                $services = [
+                                    ['icon' => 'fas fa-utensils', 'name' => 'Bữa sáng'],
+                                    ['icon' => 'fas fa-car', 'name' => 'Đưa đón sân bay'],
+                                    ['icon' => 'fas fa-spa', 'name' => 'Spa'],
+                                    ['icon' => 'fas fa-swimming-pool', 'name' => 'Hồ bơi'],
+                                    ['icon' => 'fas fa-dumbbell', 'name' => 'Gym'],
+                                    ['icon' => 'fas fa-broom', 'name' => 'Dọn phòng'],
+                                ];
+                                $amenity = $amenities[$phong->id % count($amenities)];
+                                $service = $services[$phong->id % count($services)];
+                            @endphp
+                            <div class="flex items-center gap-3 mb-4">
+                                <span class="inline-flex items-center gap-2 text-sm bg-blue-50 text-blue-700 px-3 py-1 rounded-full">
+                                    <i class="{{ $amenity['icon'] }}"></i>
+                                    {{ $amenity['name'] }}
+                                </span>
+                                <span class="inline-flex items-center gap-2 text-sm bg-green-50 text-green-700 px-3 py-1 rounded-full">
+                                    <i class="{{ $service['icon'] }}"></i>
+                                    {{ $service['name'] }}
+                                </span>
+                            </div>
                             
                             @if($phong->mo_ta)
                             <p class="text-gray-600 leading-relaxed mb-6">
                                 {{ Str::limit($phong->mo_ta, 150) }}
+                            </p>
+                            @elseif($phong->loaiPhong->mo_ta)
+                            <p class="text-gray-600 leading-relaxed mb-6">
+                                {{ Str::limit($phong->loaiPhong->mo_ta, 150) }}
                             </p>
                             @endif
 
@@ -120,9 +174,9 @@
         </div>
 
     {{-- Pagination --}}
-    @if(is_object($rooms) && method_exists($rooms, 'hasPages') && $rooms->hasPages())
+    @if(is_object($phongs) && method_exists($phongs, 'hasPages') && $phongs->hasPages())
     <div class="mt-12">
-        {{ $rooms->links() }}
+        {{ $phongs->links() }}
     </div>
     @endif
 </section>

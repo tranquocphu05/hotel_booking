@@ -5,30 +5,30 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\LoaiPhong;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\File;
 
 class LoaiPhongController extends Controller
 {
-    /**
-     * Hiển thị danh sách loại phòng
-     */
-    public function index()
+    // Hiển thị danh sách loại phòng
+    public function index(Request $request)
     {
-        $loaiPhongs = LoaiPhong::orderByDesc('id')->get();
+        $query = LoaiPhong::query();
+        
+        // Filter theo trạng thái nếu có
+        if ($request->filled('trang_thai')) {
+            $query->where('trang_thai', $request->trang_thai);
+        }
+        
+        $loaiPhongs = $query->orderBy('id', 'desc')->get();
         return view('admin.loai_phong.index', compact('loaiPhongs'));
     }
 
-    /**
-     * Form thêm loại phòng
-     */
+    // Form thêm loại phòng
     public function create()
     {
         return view('admin.loai_phong.create');
     }
 
-    /**
-     * Lưu loại phòng mới
-     */
+    // Lưu loại phòng mới
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -36,45 +36,30 @@ class LoaiPhongController extends Controller
             'mo_ta' => 'nullable|string',
             'gia_co_ban' => 'required|numeric|min:0',
             'trang_thai' => 'required|in:hoat_dong,ngung',
-            'anh' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'anh' => 'nullable|image|max:2048'
         ]);
 
-        // Xử lý upload ảnh (nếu có)
+        // Xử lý upload ảnh
         if ($request->hasFile('anh')) {
             $file = $request->file('anh');
-            $filename = time() . '_' . preg_replace('/\s+/', '_', $file->getClientOriginalName());
-
-            // Tạo thư mục nếu chưa có
-            $uploadPath = public_path('uploads/loai_phong');
-            if (!File::exists($uploadPath)) {
-                File::makeDirectory($uploadPath, 0755, true);
-            }
-
-            // Di chuyển file
-            $file->move($uploadPath, $filename);
-
-            // Lưu đường dẫn tương đối (để asset() hiển thị đúng)
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->move(public_path('uploads/loai_phong'), $filename);
             $validated['anh'] = 'uploads/loai_phong/' . $filename;
         }
 
         LoaiPhong::create($validated);
 
-        return redirect()->route('admin.loai_phong.index')
-            ->with('success', 'Thêm loại phòng thành công!');
+        return redirect()->route('admin.loai_phong.index')->with('success', 'Thêm loại phòng thành công!');
     }
 
-    /**
-     * Form chỉnh sửa
-     */
+    // Form chỉnh sửa
     public function edit($id)
     {
         $loaiPhong = LoaiPhong::findOrFail($id);
         return view('admin.loai_phong.edit', compact('loaiPhong'));
     }
 
-    /**
-     * Cập nhật loại phòng
-     */
+    // Cập nhật loại phòng
     public function update(Request $request, $id)
     {
         $validated = $request->validate([
@@ -82,51 +67,36 @@ class LoaiPhongController extends Controller
             'mo_ta' => 'nullable|string',
             'gia_co_ban' => 'required|numeric|min:0',
             'trang_thai' => 'required|in:hoat_dong,ngung',
-            'anh' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'anh' => 'nullable|image|max:2048'
         ]);
 
         $loaiPhong = LoaiPhong::findOrFail($id);
-
-        // Nếu có upload ảnh mới
+        
+        // Xử lý upload ảnh
         if ($request->hasFile('anh')) {
-            // Xoá ảnh cũ nếu có
-            if ($loaiPhong->anh && File::exists(public_path($loaiPhong->anh))) {
-                File::delete(public_path($loaiPhong->anh));
+            // Xóa ảnh cũ nếu có
+            if ($loaiPhong->anh && file_exists(public_path($loaiPhong->anh))) {
+                unlink(public_path($loaiPhong->anh));
             }
-
+            
+            // Upload ảnh mới
             $file = $request->file('anh');
-            $filename = time() . '_' . preg_replace('/\s+/', '_', $file->getClientOriginalName());
-            $uploadPath = public_path('uploads/loai_phong');
-
-            if (!File::exists($uploadPath)) {
-                File::makeDirectory($uploadPath, 0755, true);
-            }
-
-            $file->move($uploadPath, $filename);
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->move(public_path('uploads/loai_phong'), $filename);
             $validated['anh'] = 'uploads/loai_phong/' . $filename;
         }
-
+        
         $loaiPhong->update($validated);
 
-        return redirect()->route('admin.loai_phong.index')
-            ->with('success', 'Cập nhật loại phòng thành công!');
+        return redirect()->route('admin.loai_phong.index')->with('success', 'Cập nhật thành công!');
     }
 
-    /**
-     * Xóa loại phòng
-     */
+    // Xóa loại phòng
     public function destroy($id)
     {
         $loaiPhong = LoaiPhong::findOrFail($id);
-
-        // Xóa ảnh nếu có
-        if ($loaiPhong->anh && File::exists(public_path($loaiPhong->anh))) {
-            File::delete(public_path($loaiPhong->anh));
-        }
-
         $loaiPhong->delete();
 
-        return redirect()->route('admin.loai_phong.index')
-            ->with('success', 'Xóa loại phòng thành công!');
+        return redirect()->route('admin.loai_phong.index')->with('success', 'Xóa loại phòng thành công!');
     }
 }

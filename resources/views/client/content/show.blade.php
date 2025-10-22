@@ -1,5 +1,5 @@
 @extends('layouts.client')
-@section('title', $room->ten_phong)
+@section('title', $reviewRoom->ten_phong ?? $loaiPhong->ten_loai)
 
 @section('client_content')
 
@@ -10,13 +10,13 @@
             <span class="mx-2">/</span>
             <a href="{{ route('client.phong') }}" class="hover:text-gray-700 transition-colors">Phòng nghỉ</a>
             <span class="mx-2">/</span>
-            <span class="text-gray-900">{{ $room->ten_phong }}</span>
+            <span class="text-gray-900">{{ $reviewRoom->ten_phong ?? $loaiPhong->ten_loai }}</span>
         </nav>
 
-        <h1 class="text-6xl md:text-8xl font-bold text-black mb-12">{{ $room->ten_phong }}</h1>
+        <h1 class="text-6xl md:text-8xl font-bold text-black mb-12">{{ $reviewRoom->ten_phong ?? $loaiPhong->ten_loai }}</h1>
 
         <p class="text-xl text-gray-600 leading-relaxed max-w-4xl mx-auto">
-            {{ $room->loaiPhong->ten_loai ?? 'N/A' }} - {{ $room->mo_ta ? Str::limit($room->mo_ta, 200) : 'Phòng nghỉ sang trọng với đầy đủ tiện nghi hiện đại' }}
+            {{ ($reviewRoom->mo_ta ?? $loaiPhong->mo_ta) ? Str::limit($reviewRoom->mo_ta ?? $loaiPhong->mo_ta, 200) : 'Phòng nghỉ sang trọng với đầy đủ tiện nghi hiện đại' }}
         </p>
     </div>
 </div>
@@ -29,39 +29,78 @@
                 {{-- Room Image Gallery --}}
                 <div class="mb-12">
                     <div class="bg-white rounded-lg shadow-md overflow-hidden">
-                        <img src="{{ $room->img ? asset($room->img) : asset('img/room/room-1.jpg') }}"
-                             alt="{{ $room->ten_phong }}"
+                        <img src="{{ $reviewRoom->img ? asset($reviewRoom->img) : ($loaiPhong->anh ? asset($loaiPhong->anh) : asset('img/room/room-1.jpg')) }}"
+                             alt="{{ $reviewRoom->ten_phong ?? $loaiPhong->ten_loai }}"
                              class="w-full h-96 object-cover">
                     </div>
                 </div>
 
                 {{-- Room Details --}}
                 <div class="bg-white rounded-lg shadow-md p-8 mb-8">
-                    <h2 class="text-4xl font-bold text-gray-900 mb-6">{{ $room->ten_phong }}</h2>
+                    <h2 class="text-4xl font-bold text-gray-900 mb-6">{{ $reviewRoom->ten_phong ?? $loaiPhong->ten_loai }}</h2>
 
-                    @if($room->mo_ta)
-                    <p class="text-gray-600 text-lg leading-relaxed mb-8">{{ $room->mo_ta }}</p>
+                    @if(($reviewRoom->mo_ta ?? $loaiPhong->mo_ta))
+                    <p class="text-gray-600 text-lg leading-relaxed mb-8">{{ $reviewRoom->mo_ta ?? $loaiPhong->mo_ta }}</p>
                     @endif
 
                     {{-- Room Information --}}
                     <div class="grid md:grid-cols-2 gap-8 mb-8">
                         <div class="border-l-4 border-blue-600 pl-6">
                             <h4 class="text-lg font-semibold text-gray-900 mb-2">Giá phòng</h4>
-                            <p class="text-3xl font-bold text-blue-600">{{ number_format($room->gia, 0, ',', '.') }} VNĐ</p>
-                            <p class="text-sm text-gray-500">/ đêm</p>
+                            @if(isset($reviewRoom))
+                                @if($reviewRoom->hasPromotion())
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-gray-700 text-lg font-medium">Giá phòng</span>
+                                        <div class="text-right">
+                                            <div class="text-lg text-gray-500 line-through">
+                                                {{ number_format($reviewRoom->gia_goc_hien_thi, 0, ',', '.') }} VNĐ
+                                            </div>
+                                            <div class="text-3xl font-bold text-red-600">
+                                                {{ number_format($reviewRoom->gia_hien_thi, 0, ',', '.') }} VNĐ
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p class="text-sm text-gray-600">/ đêm</p>
+                                    <div class="mt-2">
+                                        <span class="inline-block bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                                            Tiết kiệm {{ number_format($reviewRoom->gia_goc_hien_thi - $reviewRoom->gia_hien_thi, 0, ',', '.') }} VNĐ
+                                        </span>
+                                    </div>
+                                @else
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-gray-700 text-lg font-medium">Giá phòng</span>
+                                        <span class="text-3xl font-bold text-blue-600">{{ number_format($reviewRoom->gia_hien_thi ?? $reviewRoom->gia, 0, ',', '.') }} VNĐ</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600">/ đêm</p>
+                                @endif
+                            @else
+                                <p class="text-3xl font-bold text-blue-600">{{ number_format($loaiPhong->gia_co_ban, 0, ',', '.') }} VNĐ</p>
+                                <p class="text-sm text-gray-500">/ đêm</p>
+                            @endif
                         </div>
 
                         <div class="border-l-4 border-green-600 pl-6">
-                            <h4 class="text-lg font-semibold text-gray-900 mb-2">Loại phòng</h4>
-                            <p class="text-xl font-semibold text-green-600">{{ $room->loaiPhong->ten_loai ?? 'N/A' }}</p>
-                            @if($room->loaiPhong && $room->loaiPhong->mo_ta)
-                            <p class="text-sm text-gray-500 mt-1">{{ $room->loaiPhong->mo_ta }}</p>
-                            @endif
+                            <h4 class="text-lg font-semibold text-gray-900 mb-2">Đánh giá</h4>
+                            <div class="flex items-center mb-2">
+                                <div class="flex items-center">
+                                    @for($i = 1; $i <= 5; $i++)
+                                        @if($i <= floor($loaiPhong->diem_danh_gia))
+                                            <i class="fas fa-star text-yellow-400 text-sm"></i>
+                                        @elseif($i - 0.5 <= $loaiPhong->diem_danh_gia)
+                                            <i class="fas fa-star-half-alt text-yellow-400 text-sm"></i>
+                                        @else
+                                            <i class="far fa-star text-gray-300 text-sm"></i>
+                                        @endif
+                                    @endfor
+                                </div>
+                                <span class="ml-2 text-lg font-semibold text-gray-900">{{ $loaiPhong->stars }}</span>
+                            </div>
+                            <p class="text-sm text-gray-600">{{ $loaiPhong->rating_text }} ({{ $loaiPhong->so_luong_danh_gia }} đánh giá)</p>
                         </div>
                     </div>
                 </div>
 
-                {{-- Amenities --}}
+                {{-- Amenities & Services --}}
                 <div class="bg-white rounded-lg shadow-md p-8">
                     <h3 class="text-2xl font-bold text-gray-900 mb-6">Tiện nghi phòng</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -114,6 +153,36 @@
                             <span class="text-gray-700 font-medium">Dịch vụ 24/7</span>
                         </div>
                     </div>
+
+                    @php
+                        $roomForServices = $loaiPhong->phongs->first();
+                        $serviceCatalog = [
+                            ['icon' => 'fas fa-utensils', 'name' => 'Phục vụ ăn uống tại phòng'],
+                            ['icon' => 'fas fa-concierge-bell', 'name' => 'Room Service 24/7'],
+                            ['icon' => 'fas fa-tshirt', 'name' => 'Giặt ủi nhanh trong ngày'],
+                            ['icon' => 'fas fa-car-side', 'name' => 'Đưa đón sân bay'],
+                            ['icon' => 'fas fa-spa', 'name' => 'Spa & massage'],
+                            ['icon' => 'fas fa-dumbbell', 'name' => 'Phòng gym miễn phí'],
+                        ];
+                        $serviceIndex = $roomForServices?->id ? $roomForServices->id % count($serviceCatalog) : 0;
+                        $service = $serviceCatalog[$serviceIndex];
+                    @endphp
+
+                    <div class="mt-6">
+                        <h4 class="text-xl font-semibold text-gray-900 mb-3">Dịch vụ phòng</h4>
+                        @if($roomForServices && $roomForServices->dich_vu)
+                            <ul class="list-disc list-inside space-y-2 text-gray-700">
+                                @foreach(explode(',', $roomForServices->dich_vu) as $dichVu)
+                                    <li class="flex items-center">
+                                        <i class="fas fa-check text-green-600 mr-2"></i>
+                                        {{ trim($dichVu) }}
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @else
+                            <p class="text-gray-500 italic">Chưa có dịch vụ phòng</p>
+                        @endif
+                    </div>
                 </div>
             </div>
 
@@ -123,14 +192,42 @@
                     <h3 class="text-2xl font-bold text-gray-900 mb-8">Đặt phòng</h3>
 
                     <div class="mb-8 p-6 bg-blue-50 rounded-lg">
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="text-gray-700 text-lg font-medium">Giá phòng</span>
-                            <span class="text-3xl font-bold text-blue-600">{{ number_format($room->gia, 0, ',', '.') }} VNĐ</span>
-                        </div>
-                        <p class="text-sm text-gray-600">/ đêm</p>
+                        @if(isset($reviewRoom))
+                            @if($reviewRoom->hasPromotion())
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-gray-700 text-lg font-medium">Giá phòng</span>
+                                    <div class="text-right">
+                                        <div class="text-lg text-gray-500 line-through">
+                                            {{ number_format($reviewRoom->gia_goc_hien_thi, 0, ',', '.') }} VNĐ
+                                        </div>
+                                        <div class="text-3xl font-bold text-red-600">
+                                            {{ number_format($reviewRoom->gia_hien_thi, 0, ',', '.') }} VNĐ
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="text-sm text-gray-600">/ đêm</p>
+                                <div class="mt-2">
+                                    <span class="inline-block bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                                        Tiết kiệm {{ number_format($reviewRoom->gia_goc_hien_thi - $reviewRoom->gia_hien_thi, 0, ',', '.') }} VNĐ
+                                    </span>
+                                </div>
+                            @else
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-gray-700 text-lg font-medium">Giá phòng</span>
+                                    <span class="text-3xl font-bold text-blue-600">{{ number_format($reviewRoom->gia_hien_thi ?? $reviewRoom->gia, 0, ',', '.') }} VNĐ</span>
+                                </div>
+                                <p class="text-sm text-gray-600">/ đêm</p>
+                            @endif
+                        @else
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-gray-700 text-lg font-medium">Giá phòng</span>
+                                <span class="text-3xl font-bold text-blue-600">{{ number_format($loaiPhong->gia_co_ban, 0, ',', '.') }} VNĐ</span>
+                            </div>
+                            <p class="text-sm text-gray-600">/ đêm</p>
+                        @endif
                     </div>
 
-                    <form action="{{ route('booking.form', ['phong' => $room->id]) }}" method="GET" onsubmit="return handleBooking(event)">
+                    <form action="{{ route('booking.form', ['phong' => $reviewRoom->id ?? ($loaiPhong->phongs->first()->id ?? 1)]) }}" method="GET" onsubmit="return handleBooking(event)">
                         <div class="space-y-6">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-3">Ngày nhận phòng</label>
@@ -163,40 +260,52 @@
             </div>
         </div>
         {{-- Related Rooms --}}
-        @if($relatedRooms && $relatedRooms->count() > 0)
+        @if($relatedLoaiPhongs && $relatedLoaiPhongs->count() > 0)
         <div class="mt-20">
-            <h3 class="text-3xl font-light text-gray-900 mb-12 text-center">Phòng liên quan</h3>
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                @foreach($relatedRooms as $relatedRoom)
-                <div class="group cursor-pointer" onclick="window.location.href='{{ route('client.phong.show', $relatedRoom->id) }}'">
-                    <div class="relative overflow-hidden bg-white shadow-sm hover:shadow-lg transition-all duration-500">
-                        <div class="relative h-64 overflow-hidden">
-                            <img src="{{ $relatedRoom->img ? asset('uploads/phong/' . $relatedRoom->img) : asset('img/room/room-1.jpg') }}"
-                                 alt="{{ $relatedRoom->ten_phong }}"
-                                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
-                            <div class="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-all duration-500"></div>
+            <h3 class="text-3xl font-light text-gray-900 mb-12 text-center">Loại phòng liên quan</h3>
+            <div class="swiper relatedRoomsSwiper relative">
+                <div class="swiper-wrapper">
+                    @foreach($relatedLoaiPhongs as $relatedLoaiPhong)
+                    <div class="swiper-slide">
+                        <div class="group cursor-pointer" onclick="window.location.href='{{ route('client.phong.show', optional($relatedLoaiPhong->phongs->first())->id ?? 0) }}'">
+                            <div class="relative overflow-hidden bg-white shadow-sm hover:shadow-lg transition-all duration-500">
+                                <div class="relative h-64 overflow-hidden">
+                                    <img src="{{ $relatedLoaiPhong->anh ? asset($relatedLoaiPhong->anh) : asset('img/room/room-1.jpg') }}"
+                                         alt="{{ $relatedLoaiPhong->ten_loai }}"
+                                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
+                                    <div class="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-all duration-500"></div>
 
-                            <div class="absolute top-4 right-4">
-                                <div class="bg-black/80 backdrop-blur-sm text-white px-4 py-2">
-                                    <div class="text-lg font-light">{{ number_format($relatedRoom->gia, 0, ',', '.') }}</div>
-                                    <div class="text-xs text-gray-300">VNĐ / đêm</div>
+                                    <div class="absolute top-4 right-4">
+                                        <div class="bg-black/80 backdrop-blur-sm text-white px-4 py-2">
+                                            @if($relatedLoaiPhong->phongs && $relatedLoaiPhong->phongs->count() > 0)
+                                                @php $firstRoom = $relatedLoaiPhong->phongs->first(); @endphp
+                                                <div class="text-lg font-light">{{ number_format($firstRoom->gia_hien_thi, 0, ',', '.') }}</div>
+                                            @else
+                                                <div class="text-lg font-light">{{ number_format($relatedLoaiPhong->gia_co_ban, 0, ',', '.') }}</div>
+                                            @endif
+                                            <div class="text-xs text-gray-300">VNĐ / đêm</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="p-6">
+                                    <h4 class="text-xl font-light text-gray-900 mb-2 group-hover:text-gray-700 transition-colors">
+                                        {{ $relatedLoaiPhong->ten_loai }}
+                                    </h4>
+                                    <div class="flex items-center text-gray-500 text-sm">
+                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                        </svg>
+                                        Xem chi tiết
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="p-6">
-                            <h4 class="text-xl font-light text-gray-900 mb-2 group-hover:text-gray-700 transition-colors">
-                                {{ $relatedRoom->ten_phong }}
-                            </h4>
-                            <div class="flex items-center text-gray-500 text-sm">
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                                </svg>
-                                Xem chi tiết
-                            </div>
-                        </div>
                     </div>
+                    @endforeach
                 </div>
-                @endforeach
+                <div class="swiper-button-prev"></div>
+                <div class="swiper-button-next"></div>
+                <div class="swiper-pagination mt-6"></div>
             </div>
         <div class="bg-gray-50 p-6 rounded-xl shadow-md">
             <h4 class="text-xl font-bold mb-4 text-gray-800">Đặt phòng nhanh</h4>
@@ -220,7 +329,7 @@
 </section>
 {{-- Phần đánh giá phòng --}}
 <div class="mt-20">
-    @include('client.content.comment', ['comments' => $comments, 'room' => $room])
+    @include('client.content.comment', ['comments' => $comments, 'room' => $reviewRoom ?? ($loaiPhong->phongs->first() ?? null)])
 </div>
 <script>
 function handleBooking(event) {
@@ -243,6 +352,38 @@ function handleBooking(event) {
     // Valid — allow the form to submit normally
     return true;
 }
+
+// Initialize Related Rooms Swiper (3 rooms per slide on desktop)
+document.addEventListener('DOMContentLoaded', function () {
+    if (typeof Swiper !== 'undefined') {
+        new Swiper('.relatedRoomsSwiper', {
+            slidesPerView: 1,
+            slidesPerGroup: 1,
+            spaceBetween: 16,
+            loop: false,
+            navigation: {
+                nextEl: '.relatedRoomsSwiper .swiper-button-next',
+                prevEl: '.relatedRoomsSwiper .swiper-button-prev',
+            },
+            pagination: {
+                el: '.relatedRoomsSwiper .swiper-pagination',
+                clickable: true,
+            },
+            breakpoints: {
+                768: {
+                    slidesPerView: 2,
+                    slidesPerGroup: 2,
+                    spaceBetween: 20,
+                },
+                1024: {
+                    slidesPerView: 3,
+                    slidesPerGroup: 3,
+                    spaceBetween: 24,
+                }
+            }
+        });
+    }
+});
 </script>
 
 @endsection

@@ -84,18 +84,85 @@
                 </div>
             </div>
 
-                <div class="mt-6 flex items-center gap-3">
-                    <div class="flex items-center gap-2">
-                        <label class="block text-sm font-medium">Mã voucher (nếu có)</label>
-                        <input type="text" name="voucher" value="{{ old('voucher') }}" placeholder="Nhập mã voucher"
-                               class="mt-1 block w-48 border rounded p-2 @error('voucher') border-red-500 @enderror">
-                        @error('voucher') <div class="text-red-600 text-sm">{{ $message }}</div> @enderror
+            <div class="lg:col-span-2 bg-white p-6 rounded shadow">
+                <h2 class="text-xl font-semibold mb-4">Nhập thông tin chi tiết của bạn</h2>
+
+                @if (session('status'))
+                    <div class="bg-green-100 text-green-800 p-3 rounded mb-4">{{ session('status') }}</div>
+                @endif
+
+                <form action="{{ route('booking.submit') }}" method="POST">
+                    @csrf
+                    <input type="hidden" name="phong_id" value="{{ $phong->id }}">
+                    <input type="hidden" name="tong_tien_dat_phong" id="finalBookingPrice"
+                        value="{{ $tong_tien_initial }}">
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium">Họ Và Tên (tiếng Anh) *</label>
+                            <input type="text" name="first_name"
+                                value="{{ old('first_name', auth()->check() ? auth()->user()->ho_ten : '') }}"
+                                class="mt-1 block w-full border rounded p-2 @error('first_name') border-red-500 @enderror">
+                            @error('first_name')
+                                <div class="text-red-600 text-sm">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+
+                        <div>
+                            <label class="block text-sm font-medium">Địa chỉ email *</label>
+                            <input type="email" name="email" value="{{ old('email', auth()->user()->email ?? '') }}"
+                                class="mt-1 block w-full border rounded p-2 @error('email') border-red-500 @enderror">
+                            @error('email')
+                                <div class="text-red-600 text-sm">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium">Số điện thoại</label>
+                            <input type="text" name="phone" value="{{ old('phone', auth()->user()->sdt ?? '') }}"
+                                class="mt-1 block w-full border rounded p-2">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium">CCCD/CMND *</label>
+                            <input type="text" name="cccd" value="{{ old('cccd', auth()->user()->cccd ?? '') }}"
+                                class="mt-1 block w-full border rounded p-2 @error('cccd') border-red-500 @enderror"
+                                placeholder="Nhập số CCCD/CMND">
+                            @error('cccd')
+                                <div class="text-red-600 text-sm">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium">Ngày nhận</label>
+                            <input type="date" name="ngay_nhan"
+                                value="{{ old('ngay_nhan', isset($checkin) ? $checkin : $ngay_nhan_carbon->format('Y-m-d')) }}"
+                                class="mt-1 block w-full border rounded p-2" id="ngay_nhan_input">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium">Ngày trả</label>
+                            <input type="date" name="ngay_tra"
+                                value="{{ old('ngay_tra', isset($checkout) ? $checkout : $ngay_tra_carbon->format('Y-m-d')) }}"
+                                class="mt-1 block w-full border rounded p-2" id="ngay_tra_input">
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium">Số người</label>
+                            <input type="number" name="so_nguoi"
+                                value="{{ old('so_nguoi', isset($guests) ? $guests : 1) }}" min="1"
+                                class="mt-1 block w-1/6 border rounded p-2">
+                        </div>
+                        <input type="hidden" name="voucherCode" id="voucherCode" value="">
+                        <input type="hidden" name="discountValue" id="discountValue" value="0">
                     </div>
 
-                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Hoàn tất đặt phòng</button>
-                    <a href="{{ url()->previous() }}" class="text-sm text-gray-600">Quay lại</a>
-                </div>
-            </form>
+                    <div class="mt-6 flex items-center gap-3">
+                        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Hoàn tất đặt
+                            phòng</button>
+                        <a href="{{ url()->previous() }}" class="text-sm text-gray-600">Quay lại</a>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
     <style>
