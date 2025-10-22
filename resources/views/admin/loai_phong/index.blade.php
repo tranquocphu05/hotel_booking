@@ -25,6 +25,35 @@
         </div>
     @endif
 
+    {{-- Filter form --}}
+    <form method="GET" class="mb-6 p-4 bg-gray-50 rounded-lg">
+        <div class="flex flex-wrap gap-4 items-center">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Lọc theo trạng thái:</label>
+                <select name="trang_thai" class="border rounded-lg p-2">
+                    <option value="">-- Tất cả --</option>
+                    <option value="hoat_dong" {{ request('trang_thai') == 'hoat_dong' ? 'selected' : '' }}>Hoạt động</option>
+                    <option value="ngung" {{ request('trang_thai') == 'ngung' ? 'selected' : '' }}>Ngừng</option>
+                </select>
+            </div>
+            <div class="flex items-end">
+                <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">
+                    Lọc
+                </button>
+                <a href="{{ route('admin.loai_phong.index') }}" class="ml-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition">
+                    Xóa bộ lọc
+                </a>
+            </div>
+        </div>
+    </form>
+
+    {{-- Debug info --}}
+    <div class="mb-4 p-3 bg-blue-50 rounded-lg">
+        <p class="text-sm text-blue-800">
+            <strong>Debug:</strong> Tổng số loại phòng: {{ $loaiPhongs->count() }}
+        </p>
+    </div>
+
     {{-- Bảng dữ liệu --}}
     <div class="overflow-x-auto w-full">
         <table class="w-full text-sm text-gray-700 border border-gray-200 rounded-lg shadow-sm">
@@ -42,19 +71,27 @@
                 @forelse ($loaiPhongs as $loai)
                     <tr class="hover:bg-gray-50 transition">
                         <td class="px-6 py-4 text-center">{{ $loop->iteration }}</td>
+                        <!-- Debug: ID={{ $loai->id }}, Name={{ $loai->ten_loai }}, Status={{ $loai->trang_thai }} -->
 
                         {{-- Cột hình ảnh --}}
                         <td class="px-6 py-4 text-center">
-                            @if ($loai->anh)
+                            @if ($loai->anh && file_exists(public_path($loai->anh)))
                                 <img src="{{ asset($loai->anh) }}"
                                      alt="{{ $loai->ten_loai }}"
                                      class="w-20 h-16 object-cover rounded-lg shadow-sm border border-gray-200 mx-auto">
                             @else
-                                <span class="text-gray-400 italic">Không có ảnh</span>
+                                <div class="w-20 h-16 bg-gray-100 rounded-lg border border-gray-200 mx-auto flex items-center justify-center">
+                                    <span class="text-gray-400 text-xs">Không có ảnh</span>
+                                </div>
                             @endif
                         </td>
 
-                        <td class="px-6 py-4 font-medium">{{ strtoupper($loai->ten_loai) }}</td>
+                        <td class="px-6 py-4 font-medium">
+                            <div class="text-gray-900 font-semibold">{{ $loai->ten_loai }}</div>
+                            @if($loai->mo_ta)
+                                <div class="text-xs text-gray-500 mt-1">{{ Str::limit($loai->mo_ta, 50) }}</div>
+                            @endif
+                        </td>
                         <td class="px-6 py-4 text-blue-600 font-semibold text-center">
                             {{ number_format($loai->gia_co_ban, 0, ',', '.') }}₫
                         </td>
@@ -92,8 +129,17 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="px-6 py-6 text-center text-gray-500">
-                            Chưa có loại phòng nào được thêm.
+                        <td colspan="6" class="px-6 py-12 text-center">
+                            <div class="flex flex-col items-center justify-center">
+                                <i class="bi bi-door-open text-4xl text-gray-300 mb-4"></i>
+                                <p class="text-gray-500 text-lg mb-2">Chưa có loại phòng nào</p>
+                                <p class="text-gray-400 text-sm">Hãy thêm loại phòng đầu tiên để bắt đầu</p>
+                                <a href="{{ route('admin.loai_phong.create') }}" 
+                                   class="mt-4 inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-lg transition">
+                                    <i class="bi bi-plus-circle"></i>
+                                    Thêm loại phòng
+                                </a>
+                            </div>
                         </td>
                     </tr>
                 @endforelse

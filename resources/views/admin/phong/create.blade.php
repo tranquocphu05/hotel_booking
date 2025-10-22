@@ -19,21 +19,48 @@
     <form action="{{ route('admin.phong.store') }}" method="POST" enctype="multipart/form-data" class="space-y-10">
         @csrf
 
-        {{-- Hàng 1: Tên phòng & Giá --}}
+        {{-- Hàng 1: Tên phòng & Giá gốc --}}
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
                 <label for="ten_phong" class="block text-gray-800 font-medium mb-2 text-sm">Tên phòng <span class="text-red-500">*</span></label>
                 <input type="text" name="ten_phong" id="ten_phong" value="{{ old('ten_phong') }}"
-                       placeholder="Ví dụ: Phòng Deluxe 101"
+                       placeholder="Ví dụ: Phòng Deluxe 101" maxlength="255"
                        class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500" required>
                 @error('ten_phong')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
             </div>
             <div>
-                <label for="gia" class="block text-gray-800 font-medium mb-2 text-sm">Giá (₫) <span class="text-red-500">*</span></label>
-                <input type="number" name="gia" id="gia" value="{{ old('gia') }}" maxlength="9"
-                       placeholder="Ví dụ: 1200000"
+                <label for="gia_goc" class="block text-gray-800 font-medium mb-2 text-sm">Giá gốc (₫) <span class="text-red-500">*</span></label>
+                <input type="number" name="gia_goc" id="gia_goc" value="{{ old('gia_goc') }}" maxlength="9"
+                       placeholder="Ví dụ: 2000000"
                        class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500" required>
-                @error('gia')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                @error('gia_goc')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+            </div>
+        </div>
+
+        {{-- Hàng 2: Giá khuyến mãi & Có khuyến mãi --}}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+                <label for="gia_khuyen_mai" class="block text-gray-800 font-medium mb-2 text-sm">Giá khuyến mãi (₫)</label>
+                <input type="number" name="gia_khuyen_mai" id="gia_khuyen_mai" value="{{ old('gia_khuyen_mai') }}" maxlength="9"
+                       placeholder="Ví dụ: 1500000"
+                       class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500">
+                @error('gia_khuyen_mai')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label class="block text-gray-800 font-medium mb-2 text-sm">Có khuyến mãi</label>
+                <div class="flex items-center space-x-4">
+                    <label class="flex items-center">
+                        <input type="radio" name="co_khuyen_mai" value="1" {{ old('co_khuyen_mai') == '1' ? 'checked' : '' }}
+                               class="mr-2 text-green-600 focus:ring-green-500">
+                        <span class="text-sm text-gray-700">Có</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="radio" name="co_khuyen_mai" value="0" {{ old('co_khuyen_mai') == '0' || old('co_khuyen_mai') == null ? 'checked' : '' }}
+                               class="mr-2 text-green-600 focus:ring-green-500">
+                        <span class="text-sm text-gray-700">Không</span>
+                    </label>
+                </div>
+                @error('co_khuyen_mai')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
             </div>
         </div>
 
@@ -70,7 +97,7 @@
             <div>
                 <label for="mo_ta" class="block text-gray-800 font-medium mb-2">Mô tả</label>
                 <textarea name="mo_ta" id="mo_ta" rows="8" placeholder="Mô tả ngắn gọn về phòng, tiện nghi..."
-                          class="w-full border-gray-300 rounded-lg shadow-sm">{{ old('mo_ta') }}</textarea>
+                          class="w-full border-gray-300 rounded-lg shadow-sm tinymce-editor">{{ old('mo_ta') }}</textarea>
                 @error('mo_ta')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
             </div>
             <div class="xl:col-span-1">
@@ -101,6 +128,15 @@
             </div>
         </div>
 
+        {{-- Dịch vụ phòng --}}
+        <div>
+            <label for="dich_vu" class="block text-gray-800 font-medium mb-2">Dịch vụ phòng (phân tách bằng dấu phẩy)</label>
+            <input type="text" name="dich_vu" id="dich_vu" value="{{ old('dich_vu') }}"
+                   placeholder="VD: Bữa sáng, Đưa đón sân bay, Spa"
+                   class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500">
+            @error('dich_vu')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+        </div>
+
         {{-- Nút hành động --}}
         <div class="sticky bottom-0 bg-white pt-4 border-t border-gray-100 flex justify-end gap-3">
             <a href="{{ route('admin.phong.index') }}"
@@ -114,17 +150,38 @@
 </div>
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/tinymce@6.8.2/tinymce.min.js"></script>
 <script>
-  tinymce.init({
-    selector: 'textarea[name="mo_ta"]',
-    height: 400,
-    menubar: false,
-    plugins: 'lists link image table code',
-    toolbar: 'undo redo | bold italic underline | bullist numlist | link image | table | code',
-    branding: false,
-    content_style: 'body { font-family:Inter, sans-serif; font-size:14px }'
+  // Initialize CKEditor for description field
+  document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+      if (typeof ClassicEditor !== 'undefined') {
+        ClassicEditor
+          .create(document.querySelector('#mo_ta'), {
+            toolbar: {
+              items: [
+                'undo', 'redo', '|',
+                'bold', 'italic', 'underline', '|',
+                'bulletedList', 'numberedList', '|',
+                'link', 'image', '|',
+                'insertTable', 'codeBlock'
+              ]
+            },
+            language: 'vi',
+            height: 400
+          })
+          .then(editor => {
+            console.log('CKEditor loaded successfully');
+          })
+          .catch(error => {
+            console.error('CKEditor error:', error);
+          });
+      } else {
+        console.log('CKEditor not loaded, retrying...');
+        setTimeout(arguments.callee, 500);
+      }
+    }, 1000);
   });
+</script>
 
   document.getElementById('img').addEventListener('change', function(e) {
       const file = e.target.files[0];
@@ -150,7 +207,7 @@
 
   // Live preview cho các trường
   const tenPhongEl = document.getElementById('ten_phong');
-  const giaEl = document.getElementById('gia');
+  const giaEl = document.getElementById('gia_goc'); // Corrected ID for gia_goc
   const loaiEl = document.getElementById('loai_phong_id');
   const trangThaiEl = document.getElementById('trang_thai');
   const pvTenPhong = document.getElementById('pvTenPhong');

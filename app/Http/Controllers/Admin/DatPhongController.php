@@ -15,7 +15,7 @@ class DatPhongController extends Controller
     public function index(Request $request)
     {
         // Lấy tất cả đơn đặt phòng và sắp xếp theo ngày đặt mới nhất
-        $query = DatPhong::with(['phong', 'phong.loaiPhong', 'voucher'])
+        $query = DatPhong::with(['phong', 'phong.loaiPhong', 'voucher', 'invoice'])
             ->orderBy('ngay_dat', 'desc');
 
         // Áp dụng các bộ lọc

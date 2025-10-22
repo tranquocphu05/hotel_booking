@@ -20,18 +20,43 @@
         @csrf
         @method('PUT')
 
-        {{-- Hàng 1: Tên phòng & Giá --}}
+        {{-- Hàng 1: Tên phòng & Giá gốc --}}
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
                 <label class="block text-gray-700 font-medium mb-2 text-sm">Tên phòng</label>
-                <input type="text" name="ten_phong" value="{{ old('ten_phong', $phong->ten_phong) }}"
+                <input type="text" name="ten_phong" value="{{ old('ten_phong', $phong->ten_phong) }}" maxlength="255"
                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 hover:border-gray-300 bg-white text-gray-700 placeholder-gray-400" required>
             </div>
 
             <div>
-                <label class="block text-gray-700 font-medium mb-2 text-sm">Giá (₫)</label>
-                <input type="number" name="gia" value="{{ old('gia', $phong->gia) }}" maxlength="9"
+                <label class="block text-gray-700 font-medium mb-2 text-sm">Giá gốc (₫)</label>
+                <input type="number" name="gia_goc" value="{{ old('gia_goc', $phong->gia_goc) }}" maxlength="9"
                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 hover:border-gray-300 bg-white text-gray-700 placeholder-gray-400" required>
+            </div>
+        </div>
+
+        {{-- Hàng 2: Giá khuyến mãi & Có khuyến mãi --}}
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div>
+                <label class="block text-gray-700 font-medium mb-2 text-sm">Giá khuyến mãi (₫)</label>
+                <input type="number" name="gia_khuyen_mai" value="{{ old('gia_khuyen_mai', $phong->gia_khuyen_mai) }}" maxlength="9"
+                       class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 hover:border-gray-300 bg-white text-gray-700 placeholder-gray-400">
+            </div>
+
+            <div>
+                <label class="block text-gray-700 font-medium mb-2 text-sm">Có khuyến mãi</label>
+                <div class="flex items-center space-x-4">
+                    <label class="flex items-center">
+                        <input type="radio" name="co_khuyen_mai" value="1" {{ old('co_khuyen_mai', $phong->co_khuyen_mai) == '1' ? 'checked' : '' }}
+                               class="mr-2 text-amber-600 focus:ring-amber-500">
+                        <span class="text-sm text-gray-700">Có</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="radio" name="co_khuyen_mai" value="0" {{ old('co_khuyen_mai', $phong->co_khuyen_mai) == '0' ? 'checked' : '' }}
+                               class="mr-2 text-amber-600 focus:ring-amber-500">
+                        <span class="text-sm text-gray-700">Không</span>
+                    </label>
+                </div>
             </div>
         </div>
 
@@ -64,7 +89,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
                 <label for="mo_ta" class="block text-gray-800 font-medium mb-2">Mô tả</label>
-                <textarea name="mo_ta" id="mo_ta" rows="8" class="w-full border-gray-300 rounded-lg shadow-sm">{{ old('mo_ta', $phong->mo_ta) }}</textarea>
+                <textarea name="mo_ta" id="mo_ta" rows="8" class="w-full border-gray-300 rounded-lg shadow-sm tinymce-editor">{{ old('mo_ta', $phong->mo_ta) }}</textarea>
             </div>
 
             <div>
@@ -83,6 +108,13 @@
             </div>
         </div>
 
+        {{-- Dịch vụ phòng --}}
+        <div>
+            <label for="dich_vu" class="block text-gray-800 font-medium mb-2">Dịch vụ phòng (phân tách bằng dấu phẩy)</label>
+            <input type="text" name="dich_vu" id="dich_vu" value="{{ old('dich_vu', $phong->dich_vu) }}"
+                   class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-amber-500 focus:border-amber-500">
+        </div>
+
         {{-- Nút hành động --}}
         <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
             <a href="{{ route('admin.phong.index') }}"
@@ -98,17 +130,38 @@
 </div>
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/tinymce@6.8.2/tinymce.min.js"></script>
 <script>
-  tinymce.init({
-    selector: 'textarea[name="mo_ta"]',
-    height: 400,
-    menubar: false,
-    plugins: 'lists link image table code',
-    toolbar: 'undo redo | bold italic underline | bullist numlist | link image | table | code',
-    branding: false,
-    content_style: 'body { font-family:Inter, sans-serif; font-size:14px }'
+  // Initialize CKEditor for description field
+  document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+      if (typeof ClassicEditor !== 'undefined') {
+        ClassicEditor
+          .create(document.querySelector('#mo_ta'), {
+            toolbar: {
+              items: [
+                'undo', 'redo', '|',
+                'bold', 'italic', 'underline', '|',
+                'bulletedList', 'numberedList', '|',
+                'link', 'image', '|',
+                'insertTable', 'codeBlock'
+              ]
+            },
+            language: 'vi',
+            height: 400
+          })
+          .then(editor => {
+            console.log('CKEditor loaded successfully');
+          })
+          .catch(error => {
+            console.error('CKEditor error:', error);
+          });
+      } else {
+        console.log('CKEditor not loaded, retrying...');
+        setTimeout(arguments.callee, 500);
+      }
+    }, 1000);
   });
+</script>
 
   document.getElementById('img').addEventListener('change', function(e) {
       const file = e.target.files[0];

@@ -30,6 +30,7 @@ Route::get('/', [ClientDashboardController::class, 'index'])
     ->name('client.home')
     ->middleware([\App\Http\Middleware\AllowClient::class]);
 
+
 Route::get('/dashboard', function () {
     // Redirect authenticated users to their role dashboard
     $user = Auth::user();
@@ -76,9 +77,15 @@ Route::get('/test-google-config', function () {
 // =======================
 Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin::class])->group(function () {
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/revenue', [\App\Http\Controllers\Admin\RevenueController::class, 'index'])->name('revenue');
     Route::get('/test', function () {
         return view('admin.test');
     })->name('test');
+    
+    
+    
+    
+    
 
     Route::resource('users', \App\Http\Controllers\Admin\UserController::class)->names('users');
     Route::resource('loai_phong', LoaiPhongController::class)->names('loai_phong');

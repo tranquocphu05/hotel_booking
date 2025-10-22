@@ -33,40 +33,42 @@ class PhongController extends Controller
         $sortOrder = $request->get('order', 'asc');
         $query->orderBy($sortBy, $sortOrder);
 
-        $rooms = $query->paginate(12)->appends(request()->query());
-        $loaiPhongs = LoaiPhong::where('trang_thai', 'hoat_dong')->get();
+        $phongs = $query->paginate(12)->appends(request()->query());
+        $allLoaiPhongs = LoaiPhong::where('trang_thai', 'hoat_dong')->get();
 
-        return view('client.content.phong', compact('rooms', 'loaiPhongs'));
+        return view('client.content.phong', compact('phongs', 'allLoaiPhongs'));
     }
 
-    // Chi tiết phòng
+    // Chi tiết phòng theo ID phòng
     public function show($id)
     {
-        $room = Phong::with('loaiPhong')
-            ->where('id', $id)
-            ->where('trang_thai', 'hien')
-            ->first();
-
-        if (!$room) {
+        $phong = Phong::with('loaiPhong')->find($id);
+        if (!$phong) {
             abort(404, 'Phòng không tồn tại');
         }
 
-        // Lấy các phòng liên quan (cùng loại)
-        $relatedRooms = Phong::with('loaiPhong')
-            ->where('loai_phong_id', $room->loai_phong_id)
-            ->where('id', '!=', $room->id)
-            ->where('trang_thai', 'hien')
+        $loaiPhong = $phong->loaiPhong; // dùng lại view hiện tại nhưng dữ liệu gốc là phòng
+
+        // Lấy các loại phòng liên quan (cùng trạng thái hoạt động, trừ loại hiện tại)
+        $relatedLoaiPhongs = LoaiPhong::with(['phongs' => function($query) {
+                $query->where('trang_thai', 'hien');
+            }])
+            ->where('id', '!=', $loaiPhong->id)
+            ->where('trang_thai', 'hoat_dong')
             ->limit(4)
             ->get();
 
-        // Lấy comments/reviews cho phòng này
+        // Phòng dùng cho form đánh giá chính là phòng hiện tại
+        $reviewRoom = $phong;
+
+        // Lấy comments của phòng hiện tại
         $comments = Comment::with('user')
-            ->where('phong_id', $id)
+            ->where('phong_id', $phong->id)
             ->where('trang_thai', 'hien_thi')
             ->orderBy('ngay_danh_gia', 'desc')
             ->get();
 
-        return view('client.content.show', compact('room', 'relatedRooms', 'comments'));
+        return view('client.content.show', compact('loaiPhong', 'relatedLoaiPhongs', 'comments', 'reviewRoom'));
     }
 
     // API endpoint để lấy danh sách phòng (cho AJAX)

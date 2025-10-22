@@ -57,6 +57,11 @@
                     <i class="fas fa-file-invoice sidebar-icon mr-4 text-gray-400 group-hover:text-gray-500 text-lg"></i>
                     <span class="sidebar-text">Hóa đơn</span>
                 </a>
+                <a href="{{ route('admin.revenue') }}" 
+                   class="group flex items-center px-4 py-3 text-base font-medium rounded-md {{ request()->routeIs('admin.revenue') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
+                    <i class="fas fa-chart-line sidebar-icon mr-4 text-gray-400 group-hover:text-gray-500 text-lg"></i>
+                    <span class="sidebar-text">Chi tiết doanh thu</span>
+                </a>
             </div>
 
             <!-- Customer Management -->

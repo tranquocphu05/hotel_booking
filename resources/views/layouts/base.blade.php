@@ -32,48 +32,18 @@
     <style>
         /* Swiper Custom Styles */
         .weekendDealsSwiper {
-            padding-bottom: 60px !important;
+            padding-bottom: 20px !important;
         }
         
+        /* Ẩn navigation buttons */
         .weekendDealsSwiper .swiper-button-next,
         .weekendDealsSwiper .swiper-button-prev {
-            background-color: white;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            transition: all 0.3s ease;
+            display: none !important;
         }
         
-        .weekendDealsSwiper .swiper-button-next:hover,
-        .weekendDealsSwiper .swiper-button-prev:hover {
-            background-color: #ef4444;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
-        }
-        
-        .weekendDealsSwiper .swiper-button-next:hover::after,
-        .weekendDealsSwiper .swiper-button-prev:hover::after {
-            color: white;
-        }
-        
-        .weekendDealsSwiper .swiper-button-next::after,
-        .weekendDealsSwiper .swiper-button-prev::after {
-            font-size: 16px;
-            font-weight: bold;
-            color: #374151;
-        }
-        
-        .weekendDealsSwiper .swiper-pagination-bullet {
-            width: 10px;
-            height: 10px;
-            background: #9ca3af;
-            opacity: 1;
-        }
-        
-        .weekendDealsSwiper .swiper-pagination-bullet-active {
-            background: #ef4444;
-            width: 24px;
-            border-radius: 5px;
+        /* Ẩn pagination */
+        .weekendDealsSwiper .swiper-pagination {
+            display: none !important;
         }
         
         body {
