@@ -307,23 +307,6 @@
                 <div class="swiper-button-next"></div>
                 <div class="swiper-pagination mt-6"></div>
             </div>
-        <div class="bg-gray-50 p-6 rounded-xl shadow-md">
-            <h4 class="text-xl font-bold mb-4 text-gray-800">Đặt phòng nhanh</h4>
-            <form action="#">
-                <label class="block mb-2 text-gray-700">Ngày nhận phòng</label>
-                <input type="date" class="w-full border rounded-lg p-2 mb-4">
-                <label class="block mb-2 text-gray-700">Ngày trả phòng</label>
-                <input type="date" class="w-full border rounded-lg p-2 mb-4">
-                <label class="block mb-2 text-gray-700">Số người</label>
-                <select class="w-full border rounded-lg p-2 mb-4">
-                    <option>1 người</option>
-                    <option>2 người</option>
-                    <option>3 người</option>
-                    <option>4 người</option>
-                </select>
-                <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition">Kiểm tra phòng</button>
-            </form>
-        </div>
         @endif
     </div>
 </section>

@@ -89,7 +89,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
                 <label for="mo_ta" class="block text-gray-800 font-medium mb-2">Mô tả</label>
-                <textarea name="mo_ta" id="mo_ta" rows="8" class="w-full border-gray-300 rounded-lg shadow-sm tinymce-editor">{{ old('mo_ta', $phong->mo_ta) }}</textarea>
+                <textarea name="mo_ta" id="mo_ta" rows="8" class="w-full border-gray-300 rounded-lg shadow-sm">{{ old('mo_ta', $phong->mo_ta) }}</textarea>
             </div>
 
             <div>
@@ -176,6 +176,26 @@
       } else {
           preview.classList.add('hidden');
       }
+  });
+
+  // Initialize TinyMCE
+  tinymce.init({
+    selector: '#mo_ta',
+    height: 300,
+    menubar: false,
+    plugins: [
+      'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+      'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+      'insertdatetime', 'media', 'table', 'help', 'wordcount'
+    ],
+    toolbar: 'undo redo | blocks | ' +
+      'bold italic forecolor | alignleft aligncenter ' +
+      'alignright alignjustify | bullist numlist outdent indent | ' +
+      'removeformat | help',
+    content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif; font-size: 14px; }',
+    language: 'vi',
+    branding: false,
+    promotion: false
   });
 </script>
 @endpush

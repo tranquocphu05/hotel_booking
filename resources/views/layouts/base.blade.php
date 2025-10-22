@@ -133,6 +133,9 @@ w-full px-0 mt-6
     
     {{-- Lazy load Chart.js only when needed --}}
     <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    {{-- TinyMCE CDN --}}
+    <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
 
     @stack('scripts')
 

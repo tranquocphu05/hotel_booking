@@ -97,7 +97,7 @@
             <div>
                 <label for="mo_ta" class="block text-gray-800 font-medium mb-2">Mô tả</label>
                 <textarea name="mo_ta" id="mo_ta" rows="8" placeholder="Mô tả ngắn gọn về phòng, tiện nghi..."
-                          class="w-full border-gray-300 rounded-lg shadow-sm tinymce-editor">{{ old('mo_ta') }}</textarea>
+                          class="w-full border-gray-300 rounded-lg shadow-sm">{{ old('mo_ta') }}</textarea>
                 @error('mo_ta')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
             </div>
             <div class="xl:col-span-1">
@@ -228,5 +228,25 @@
   // Init default preview
   pvLoai.textContent = loaiEl?.options[loaiEl.selectedIndex]?.text || '—';
   pvTrangThai.textContent = trangThaiEl?.options[trangThaiEl.selectedIndex]?.text || '—';
+
+  // Initialize TinyMCE
+  tinymce.init({
+    selector: '#mo_ta',
+    height: 300,
+    menubar: false,
+    plugins: [
+      'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+      'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+      'insertdatetime', 'media', 'table', 'help', 'wordcount'
+    ],
+    toolbar: 'undo redo | blocks | ' +
+      'bold italic forecolor | alignleft aligncenter ' +
+      'alignright alignjustify | bullist numlist outdent indent | ' +
+      'removeformat | help',
+    content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif; font-size: 14px; }',
+    language: 'vi',
+    branding: false,
+    promotion: false
+  });
 </script>
 @endpush
