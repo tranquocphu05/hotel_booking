@@ -154,9 +154,14 @@ Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\Allow
     Route::get('/voucher', [ClientVoucherController::class, 'getVoucher'])->name('voucher');
 
     // Comment routes
-    Route::post('/comment', [ClientCommentController::class, 'store'])->name('comment.store');
-    Route::put('/comment/{id}', [ClientCommentController::class, 'update'])->name('comment.update');
-    Route::delete('/comment/{id}', [ClientCommentController::class, 'destroy'])->name('comment.destroy');
+    // Route::post('/comment', [ClientCommentController::class, 'store'])->name('comment.store');
+    // Route::put('/comment/{id}', [ClientCommentController::class, 'update'])->name('comment.update');
+    // Route::delete('/comment/{id}', [ClientCommentController::class, 'destroy'])->name('comment.destroy');
+    Route::get('/danh-gia', [ClientCommentController::class, 'index'])->name('comment.index');
+    Route::post('/danh-gia', [ClientCommentController::class, 'store'])->name('comment.store');
+    Route::get('/danh-gia/{id}/edit', [ClientCommentController::class, 'edit'])->name('comment.edit');
+    Route::post('/danh-gia/{id}/update', [ClientCommentController::class, 'update'])->name('comment.update');
+    Route::delete('/danh-gia/{id}', [ClientCommentController::class, 'destroy'])->name('comment.destroy');
 });
 
 // Public impersonation stop (in case admin is impersonating)
