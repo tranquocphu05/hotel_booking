@@ -9,6 +9,10 @@ use App\Models\DatPhong;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
+use App\Mail\BookingConfirmed;
+use App\Mail\InvoicePaid;
 
 class DatPhongController extends Controller
 {
@@ -300,6 +304,16 @@ class DatPhongController extends Controller
         $booking->trang_thai = 'da_xac_nhan';
         $booking->save();
 
+        // Gửi mail xác nhận đặt phòng
+        if ($booking->email) {
+            try {
+                Mail::to($booking->email)->send(new BookingConfirmed($booking->load('phong')));
+            } catch (\Throwable $e) {
+                // log but don't break flow
+                Log::warning('Send booking confirmed mail failed: '.$e->getMessage());
+            }
+        }
+
         return redirect()->route('admin.dat_phong.index')
             ->with('success', 'Phòng đã được xác nhận thành công!');
     }
@@ -330,6 +344,15 @@ class DatPhongController extends Controller
         if ($booking->trang_thai === 'cho_xac_nhan') {
             $booking->trang_thai = 'da_xac_nhan';
             $booking->save();
+        }
+
+        // Gửi mail hóa đơn đã thanh toán
+        if ($booking->email) {
+            try {
+                Mail::to($booking->email)->send(new InvoicePaid($booking->load(['phong'])));
+            } catch (\Throwable $e) {
+                Log::warning('Send invoice mail failed: '.$e->getMessage());
+            }
         }
 
         return redirect()->route('admin.dat_phong.index')
