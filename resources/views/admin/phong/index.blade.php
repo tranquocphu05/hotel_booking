@@ -52,8 +52,10 @@
                     <th class="px-6 py-3 text-center border-b">ID</th>
                     <th class="px-6 py-3 text-center border-b">Tên phòng</th>
                     <th class="px-6 py-3 text-center border-b">Loại</th>
-                    <th class="px-6 py-3 text-center border-b">Giá</th>
+                    <th class="px-6 py-3 text-center border-b">Giá gốc</th>
+                    <th class="px-6 py-3 text-center border-b">Giá khuyến mãi</th>
                     <th class="px-6 py-3 text-center border-b">Mô tả</th>
+                    <th class="px-6 py-3 text-center border-b">Dịch vụ phòng</th>
                     <th class="px-6 py-3 text-center border-b">Ảnh</th>
                     <th class="px-6 py-3 text-center border-b">Trạng thái</th>
                     <th class="px-6 py-3 text-center border-b">Thao tác</th>
@@ -65,7 +67,14 @@
                         <td class="px-6 py-3 text-center">{{ $loop->iteration }}</td>
                         <td class="px-6 py-3 text-center font-medium">{{ $phong->ten_phong }}</td>
                         <td class="px-6 py-3 text-center">{{ $phong->loaiPhong->ten_loai ?? '-' }}</td>
-                        <td class="px-6 py-3 text-center text-blue-600 font-semibold">{{ number_format($phong->gia, 0, ',', '.') }}₫</td>
+                        <td class="px-6 py-3 text-center text-blue-600 font-semibold">{{ number_format($phong->gia_goc ?: $phong->gia, 0, ',', '.') }}₫</td>
+                        <td class="px-6 py-3 text-center">
+                            @if($phong->gia_khuyen_mai && $phong->gia_khuyen_mai > 0)
+                                <span class="text-red-600 font-semibold">{{ number_format($phong->gia_khuyen_mai, 0, ',', '.') }}₫</span>
+                            @else
+                                <span class="text-gray-400 text-sm">-</span>
+                            @endif
+                        </td>
                         <td class="px-6 py-3 text-left text-gray-600">
                             @if($phong->mo_ta)
                                 <div class="table-description">
@@ -75,6 +84,17 @@
                                 </div>
                             @else
                                 <span class="text-gray-400 text-xs italic">Chưa có mô tả</span>
+                            @endif
+                        </td>
+                        <td class="px-6 py-3 text-left">
+                            @if($phong->dich_vu)
+                                <ul class="list-disc list-inside text-xs text-gray-600 space-y-1">
+                                    @foreach(explode(',', $phong->dich_vu) as $dichVu)
+                                        <li>{{ trim($dichVu) }}</li>
+                                    @endforeach
+                                </ul>
+                            @else
+                                <span class="text-gray-400 text-xs italic">—</span>
                             @endif
                         </td>
                         <td class="px-6 py-3 text-center">
@@ -117,7 +137,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="px-6 py-6 text-center text-gray-500">
+                        <td colspan="9" class="px-6 py-6 text-center text-gray-500">
                             Chưa có phòng nào được thêm.
                         </td>
                     </tr>

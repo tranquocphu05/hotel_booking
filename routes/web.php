@@ -20,11 +20,16 @@ use App\Http\Controllers\Client\LoaiPhongController as ClientLoaiPhongController
 use App\Http\Controllers\Client\ContactController as ClientContactController;
 use App\Http\Controllers\Client\GioiThieuController as ClientGioiThieuController;
 use App\Http\Controllers\Client\TinTucController as ClientTinTucController;
+use App\Http\Controllers\Client\ThanhToanController as ClientThanhToanController;
+use App\Http\Controllers\Client\CommentController as ClientCommentController;
+
+//
 
 
 Route::get('/', [ClientDashboardController::class, 'index'])
     ->name('client.home')
     ->middleware([\App\Http\Middleware\AllowClient::class]);
+
 
 Route::get('/dashboard', function () {
     // Redirect authenticated users to their role dashboard
@@ -53,6 +58,7 @@ require __DIR__ . '/auth.php';
 
 // Google OAuth routes
 Route::get('/auth/google', [App\Http\Controllers\Auth\GoogleController::class, 'redirectToGoogle'])->name('google.login');
+Route::get('/auth/google/register', [App\Http\Controllers\Auth\GoogleController::class, 'redirectToGoogleRegister'])->name('google.register');
 Route::get('/auth/google/callback', [App\Http\Controllers\Auth\GoogleController::class, 'handleGoogleCallback'])->name('google.callback');
 
 // Test Google Config
@@ -72,9 +78,15 @@ Route::get('/test-google-config', function () {
 // =======================
 Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin::class])->group(function () {
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/revenue', [\App\Http\Controllers\Admin\RevenueController::class, 'index'])->name('revenue');
     Route::get('/test', function () {
         return view('admin.test');
     })->name('test');
+    
+    
+    
+    
+    
 
     Route::resource('users', \App\Http\Controllers\Admin\UserController::class)->names('users');
     Route::resource('loai_phong', LoaiPhongController::class)->names('loai_phong');
@@ -122,7 +134,6 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin
 // Client routes
 // =======================
 
-Route::get('/', [LoaiPhongController::class, 'index'])->name('client.home');
 Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\AllowClient::class])->group(function () {
     Route::get('/dashboard', [ClientDashboardController::class, 'index'])->name('dashboard');
     Route::get('/phong', [ClientPhongController::class, 'index'])->name('phong');
@@ -131,9 +142,19 @@ Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\Allow
     Route::get('/lien-he', [ClientContactController::class, 'index'])->name('lienhe');
     Route::get('/gioi-thieu', [ClientGioiThieuController::class, 'index'])->name('gioithieu');
 
-
+    Route::get('/{phong}/dat-phong', [BookingController::class, 'showForm'])->name('phong.create_booking');
+    Route::post('/{phong}/dat-phong', [BookingController::class, 'submit'])->name('phong.store_booking');
+    Route::get('/thanh-toan/{datPhong}', [ClientThanhToanController::class, 'show'])->name('thanh-toan.show');
+    Route::post('/thanh-toan/{datPhong}', [ClientThanhToanController::class, 'store'])->name('thanh-toan.store');
+    Route::get('/vnpay/payment/{datPhong}', [ClientThanhToanController::class, 'create_vnpay_payment'])->name('vnpay_payment');
+    Route::get('/vnpay/return', [ClientThanhToanController::class, 'vnpay_return'])->name('vnpay_return');
     Route::get('/tin-tuc', [ClientTinTucController::class, 'index'])->name('tintuc');
     Route::get('/tin-tuc/{slug}', [ClientTinTucController::class, 'chitiettintuc'])->name('tintuc.show');
+
+    // Comment routes
+    Route::post('/comment', [ClientCommentController::class, 'store'])->name('comment.store');
+    Route::put('/comment/{id}', [ClientCommentController::class, 'update'])->name('comment.update');
+    Route::delete('/comment/{id}', [ClientCommentController::class, 'destroy'])->name('comment.destroy');
 });
 
 // Public impersonation stop (in case admin is impersonating)

@@ -79,7 +79,7 @@
                             <div class="space-y-2">
                                 <div class="flex justify-between">
                                     <span class="text-gray-600">Họ tên:</span>
-                                    <span class="font-medium">{{ $datPhong->username ?? ($datPhong->user->ho_ten ?? 'Khách ẩn danh') }}</span>
+                                    <span class="font-medium">{{ trim($datPhong->username ?? '') !== '' ? $datPhong->username : ($datPhong->user->ho_ten ?? 'Khách ẩn danh') }}</span>
                                 </div>
                                 <div class="flex justify-between">
                                     <span class="text-gray-600">Email:</span>
@@ -131,6 +131,9 @@
                         <div class="bg-gray-50 rounded-lg p-4">
                             <div class="text-center">
                                 <p class="text-lg font-medium text-gray-600 mb-1">Tổng thanh toán</p>
+                                @if($datPhong->voucher)
+                                    <p class="text-sm text-gray-500">Voucher áp dụng: <span class="font-medium text-indigo-600">{{ $datPhong->voucher->ma_voucher }}</span> - Giảm {{ rtrim(rtrim($datPhong->voucher->gia_tri, '0'), '.') }}%</p>
+                                @endif
                                 <p class="text-2xl font-bold text-green-600">
                                     {{ number_format($datPhong->tong_tien, 0, ',', '.') }} VNĐ
                                 </p>
@@ -166,24 +169,7 @@
                                 </label>
 
                                 <!-- Bank Transfer -->
-                                <label for="chuyen_khoan" class="block">
-                                    <div class="payment-option {{ old('phuong_thuc', $invoice->phuong_thuc) == 'chuyen_khoan' ? 'border-blue-500 bg-blue-50' : 'border-gray-200' }} border-2 rounded-lg p-4 hover:border-gray-300 transition-colors cursor-pointer">
-                                        <div class="flex items-center">
-                                            <input type="radio" id="chuyen_khoan" name="phuong_thuc" value="chuyen_khoan" class="form-radio h-4 w-4 text-blue-600" {{ old('phuong_thuc', $invoice->phuong_thuc) == 'chuyen_khoan' ? 'checked' : '' }}>
-                                            <div class="ml-3 flex items-center">
-                                                <div class="w-8 h-8 bg-blue-100 rounded flex items-center justify-center mr-3">
-                                                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
-                                                    </svg>
-                                                </div>
-                                                <div>
-                                                    <p class="font-medium text-gray-900">Chuyển khoản ngân hàng</p>
-                                                    <p class="text-sm text-gray-500">Vietcombank</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </label>
+                               
 
                                 <!-- MoMo -->
                                 <label for="momo" class="block">
@@ -326,7 +312,7 @@
                     const successAlert = document.querySelector('.bg-gradient-to-r.from-green-50');
                     if (successAlert) {
                         successAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        
+
                         // Add attention animation
                         successAlert.classList.add('animate-bounce-once');
                         setTimeout(() => {
@@ -347,7 +333,7 @@
                 transform: translateY(-10px);
             }
         }
-        
+
         .animate-bounce-once {
             animation: bounce-once 0.5s ease-in-out 2;
         }

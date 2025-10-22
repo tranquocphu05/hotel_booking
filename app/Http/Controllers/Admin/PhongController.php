@@ -37,10 +37,24 @@ class PhongController extends Controller
         $request->validate([
             'ten_phong' => 'required|string|max:255',
             'mo_ta' => 'nullable|string',
-            'gia' => 'required|numeric|min:0|max:999999999',
+            'gia_goc' => 'required|numeric|min:0|max:999999999',
+            'gia_khuyen_mai' => 'nullable|numeric|min:0|max:999999999',
+            'co_khuyen_mai' => 'required|in:0,1',
             'trang_thai' => 'required|in:hien,an,bao_tri,chong',
             'loai_phong_id' => 'required|exists:loai_phong,id',
-            'img' => 'nullable|image|max:2048'
+            'img' => 'nullable|image|max:2048',
+            'dich_vu' => 'nullable|string|max:255'
+        ], [
+            'ten_phong.max' => 'Tên phòng không được vượt quá 255 ký tự.',
+            'gia_goc.required' => 'Giá gốc là bắt buộc.',
+            'gia_goc.numeric' => 'Giá gốc phải là số.',
+            'gia_goc.min' => 'Giá gốc phải lớn hơn 0.',
+            'gia_goc.max' => 'Giá gốc không được vượt quá 999,999,999.',
+            'gia_khuyen_mai.numeric' => 'Giá khuyến mãi phải là số.',
+            'gia_khuyen_mai.min' => 'Giá khuyến mãi phải lớn hơn 0.',
+            'gia_khuyen_mai.max' => 'Giá khuyến mãi không được vượt quá 999,999,999.',
+            'co_khuyen_mai.required' => 'Vui lòng chọn có khuyến mãi hay không.',
+            'co_khuyen_mai.in' => 'Giá trị khuyến mãi không hợp lệ.',
         ]);
         $data = $request->all();
         if ($request->hasFile('img')) {
@@ -64,16 +78,33 @@ class PhongController extends Controller
     // Cập nhật phòng
     public function update(Request $request, $id)
     {
-        $request->validate([
+        $validated = $request->validate([
             'ten_phong' => 'required|string|max:255',
             'mo_ta' => 'nullable|string',
-            'gia' => 'required|numeric|min:0|max:999999999',
+            'gia_goc' => 'required|numeric|min:0|max:999999999',
+            'gia_khuyen_mai' => 'nullable|numeric|min:0|max:999999999',
+            'co_khuyen_mai' => 'required|in:0,1',
             'trang_thai' => 'required|in:hien,an,bao_tri,chong',
             'loai_phong_id' => 'required|exists:loai_phong,id',
-            'img' => 'nullable|image|max:2048'
+            'img' => 'nullable|image|max:2048',
+            'dich_vu' => 'nullable|string|max:255'
+        ], [
+            'ten_phong.max' => 'Tên phòng không được vượt quá 255 ký tự.',
+            'gia_goc.required' => 'Giá gốc là bắt buộc.',
+            'gia_goc.numeric' => 'Giá gốc phải là số.',
+            'gia_goc.min' => 'Giá gốc phải lớn hơn 0.',
+            'gia_goc.max' => 'Giá gốc không được vượt quá 999,999,999.',
+            'gia_khuyen_mai.numeric' => 'Giá khuyến mãi phải là số.',
+            'gia_khuyen_mai.min' => 'Giá khuyến mãi phải lớn hơn 0.',
+            'gia_khuyen_mai.max' => 'Giá khuyến mãi không được vượt quá 999,999,999.',
+            'co_khuyen_mai.required' => 'Vui lòng chọn có khuyến mãi hay không.',
+            'co_khuyen_mai.in' => 'Giá trị khuyến mãi không hợp lệ.',
         ]);
         $phong = Phong::findOrFail($id);
-        $data = $request->all();
+        $data = $validated;
+        
+        // Cập nhật trường gia cũ để tương thích
+        $data['gia'] = $data['gia_goc'];
         if ($request->hasFile('img')) {
             if ($phong->img && file_exists(public_path($phong->img))) {
                 unlink(public_path($phong->img));
@@ -83,8 +114,12 @@ class PhongController extends Controller
             $file->move(public_path('uploads/phong'), $filename);
             $data['img'] = 'uploads/phong/' . $filename;
         }
-        $phong->update($data);
-        return redirect()->route('admin.phong.index')->with('success', 'Cập nhật phòng thành công!');
+        try {
+            $phong->update($data);
+            return redirect()->route('admin.phong.index')->with('success', 'Cập nhật phòng thành công!');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Lỗi cập nhật: ' . $e->getMessage());
+        }
     }
 
     // Xóa

@@ -103,4 +103,28 @@
         </div>
     </form>
 </div>
+
+@push('scripts')
+<script>
+  // Initialize TinyMCE for description field
+  document.addEventListener('DOMContentLoaded', function() {
+    if (typeof tinymce !== 'undefined') {
+      tinymce.init({
+        selector: 'textarea[name="mo_ta"]',
+        height: 300,
+        menubar: false,
+        plugins: 'lists link image table code',
+        toolbar: 'undo redo | bold italic underline | bullist numlist | link image | table | code',
+        branding: false,
+        content_style: 'body { font-family:Inter, sans-serif; font-size:14px }',
+        setup: function (editor) {
+          editor.on('change', function () {
+            editor.save();
+          });
+        }
+      });
+    }
+  });
+</script>
+@endpush
 @endsection

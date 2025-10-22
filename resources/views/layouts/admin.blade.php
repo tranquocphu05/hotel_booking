@@ -6,8 +6,7 @@
     <title>@yield('title', 'Admin Dashboard')</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <!-- CKEditor CDN -->
-    <script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
+    <!-- TinyMCE will be loaded per page -->
     <script>
         tailwind.config = {
             theme: {

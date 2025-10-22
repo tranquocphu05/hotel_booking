@@ -249,14 +249,20 @@
                                             <i class="fas fa-check-circle mr-2"></i>
                                             Phòng đã được đặt và xác nhận
                                         </div>
-                                        <form action="{{ route('admin.dat_phong.mark_paid', $booking->id) }}" method="POST">
-                                            @csrf
-                                            @method('PUT')
-                                            <button type="submit" class="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-3 py-2 rounded">
-                                                <i class="fas fa-money-bill mr-2"></i>
-                                                Đánh dấu đã thanh toán
-                                            </button>
-                                        </form>
+                                        @if($booking->invoice && $booking->invoice->trang_thai === 'da_thanh_toan')
+                                            <span class="inline-flex items-center bg-emerald-600 text-white text-xs font-semibold px-3 py-2 rounded">
+                                                <i class="fas fa-receipt mr-2"></i> Đã thanh toán
+                                            </span>
+                                        @else
+                                            <form action="{{ route('admin.dat_phong.mark_paid', $booking->id) }}" method="POST">
+                                                @csrf
+                                                @method('PUT')
+                                                <button type="submit" class="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-3 py-2 rounded">
+                                                    <i class="fas fa-money-bill mr-2"></i>
+                                                    Đánh dấu đã thanh toán
+                                                </button>
+                                            </form>
+                                        @endif
                                     </div>
                                 @elseif ($booking->trang_thai === 'da_chong')
                                     <div class="px-4 py-3 bg-orange-50 text-right">
