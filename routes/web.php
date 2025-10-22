@@ -59,6 +59,7 @@ require __DIR__ . '/auth.php';
 
 // Google OAuth routes
 Route::get('/auth/google', [App\Http\Controllers\Auth\GoogleController::class, 'redirectToGoogle'])->name('google.login');
+Route::get('/auth/google/register', [App\Http\Controllers\Auth\GoogleController::class, 'redirectToGoogleRegister'])->name('google.register');
 Route::get('/auth/google/callback', [App\Http\Controllers\Auth\GoogleController::class, 'handleGoogleCallback'])->name('google.callback');
 
 // Test Google Config

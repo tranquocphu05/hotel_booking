@@ -1,0 +1,38 @@
+{
+  "name": "tinymce",
+  "description": "Web based JavaScript HTML WYSIWYG editor control.",
+  "license": "GPL-2.0-or-later",
+  "keywords": [
+    "wysiwyg",
+    "tinymce",
+    "richtext",
+    "javascript",
+    "html",
+    "text",
+    "rich editor",
+    "rich text editor",
+    "rte",
+    "rich text",
+    "contenteditable",
+    "editing"
+  ],
+  "homepage": "https://www.tiny.cloud/",
+  "ignore": [
+    "README.md",
+    "composer.json",
+    "package.json",
+    ".npmignore",
+    "CHANGELOG.md"
+  ],
+  "version": "8.1.2",
+  "_release": "8.1.2",
+  "_resolution": {
+    "type": "version",
+    "tag": "8.1.2",
+    "commit": "d93b748fa069acc845901677a97fb701b0eec7ba"
+  },
+  "_source": "https://github.com/tinymce/tinymce-dist.git",
+  "_target": "^8.1.2",
+  "_originalSource": "tinymce",
+  "_direct": true
+}
