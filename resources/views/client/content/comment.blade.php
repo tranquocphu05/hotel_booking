@@ -2,23 +2,18 @@
 use App\Models\Comment;
 
 $existing = null;
-$averageRating = 0;
-$totalReviews = 0;
-
-if ($room && $room->id) {
-    if (auth()->check()) {
-        $existing = Comment::where('phong_id', $room->id)
-            ->where('nguoi_dung_id', auth()->id())
-            ->first();
-    }
-
-    $averageRating = Comment::where('phong_id', $room->id)
-        ->where('trang_thai', 'hien_thi')
-        ->avg('so_sao');
-    $totalReviews = Comment::where('phong_id', $room->id)
-        ->where('trang_thai', 'hien_thi')
-        ->count();
+if (auth()->check()) {
+    $existing = Comment::where('phong_id', $room->id)
+        ->where('nguoi_dung_id', auth()->id())
+        ->first();
 }
+
+$averageRating = Comment::where('phong_id', $room->id)
+    ->where('trang_thai', 'hien_thi')
+    ->avg('so_sao');
+$totalReviews = Comment::where('phong_id', $room->id)
+    ->where('trang_thai', 'hien_thi')
+    ->count();
 @endphp
 
 {{-- THÔNG BÁO --}}
@@ -56,8 +51,8 @@ if ($room && $room->id) {
 </div>
 @endif
 
-{{-- FORM GỬI ĐÁNH GIÁ: luôn hiển thị khi user đã đăng nhập và có phòng hợp lệ --}}
-@if (auth()->check() && $room && $room->id)
+{{-- FORM GỬI ĐÁNH GIÁ: chỉ hiển thị nếu user CHƯA đánh giá --}}
+@if (auth()->check() && !$existing)
 <form action="{{ route('client.comment.store') }}" method="POST" enctype="multipart/form-data"
       class="bg-white p-6 rounded-xl shadow-md mb-12">
     @csrf
@@ -241,13 +236,6 @@ if ($room && $room->id) {
 @empty
 <p class="text-gray-500 italic">Chưa có đánh giá nào.</p>
 @endforelse
-
-@if(!$room || !$room->id)
-<div class="bg-yellow-100 text-yellow-800 p-4 rounded-lg text-center">
-    <p class="font-medium">Không thể hiển thị đánh giá</p>
-    <p class="text-sm">Loại phòng này chưa có phòng con để đánh giá.</p>
-</div>
-@endif
 
 {{-- ALPINE.JS --}}
 <script src="//unpkg.com/alpinejs" defer></script>
