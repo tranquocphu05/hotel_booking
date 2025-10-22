@@ -18,7 +18,7 @@
             </div>
         </div>
     </div>
-    
+
     <script>
         function closeToast() {
             const toast = document.getElementById('successToast');
@@ -29,13 +29,13 @@
                 }, 300);
             }
         }
-        
+
         // Auto close after 5 seconds
         setTimeout(() => {
             closeToast();
         }, 5000);
     </script>
-    
+
     <style>
         @keyframes slide-in-right {
             from {
@@ -47,7 +47,7 @@
                 opacity: 1;
             }
         }
-        
+
         @keyframes slide-out-right {
             from {
                 transform: translateX(0);
@@ -58,11 +58,11 @@
                 opacity: 0;
             }
         }
-        
+
         .animate-slide-in-right {
             animation: slide-in-right 0.3s ease-out;
         }
-        
+
         .animate-slide-out-right {
             animation: slide-out-right 0.3s ease-in;
         }
@@ -182,8 +182,10 @@
                                 <span class="font-light">{{ $phong->mo_ta ?? 'Đang cập nhật' }}</span>
                             </div>
                         </div>
-
-                        
+                        <a href="#"
+                            class="mt-6 inline-block text-sm font-semibold uppercase tracking-wider border-b border-white pb-1 transition duration-300 hover:text-red-400 hover:border-red-400">
+                            XEM CHI TIẾT
+                        </a>
                     </div>
                 </div>
             </div>
@@ -205,7 +207,7 @@
                 <div class="swiper-wrapper">
                     @foreach($comments as $comment)
                         <div class="swiper-slide bg-white rounded-2xl shadow-md p-8 flex flex-col items-center text-center transition duration-300 hover:shadow-lg">
-                            
+
                             {{-- Ảnh đại diện --}}
                             @if(!empty($comment->user->avatar))
                                 <img src="{{ asset('storage/' . $comment->user->avatar) }}"
@@ -322,11 +324,11 @@
                 </div>
             @endforeach
             </div>
-            
+
             {{-- Navigation buttons --}}
             <div class="swiper-button-next"></div>
             <div class="swiper-button-prev"></div>
-            
+
             {{-- Pagination --}}
             <div class="swiper-pagination"></div>
         </div>
