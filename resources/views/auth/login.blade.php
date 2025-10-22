@@ -7,6 +7,9 @@
 
         <!-- Session Status -->
         <x-auth-session-status class="mb-4" :status="session('status')" />
+        @if(session('error'))
+            <div class="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700">{{ session('error') }}</div>
+        @endif
 
         <form method="POST" action="{{ route('login') }}" class="space-y-4">
             @csrf
@@ -54,6 +57,17 @@
             <div>
                 <x-primary-button class="w-full justify-center">{{ __('Log in') }}</x-primary-button>
             </div>
+
+            <div class="my-4 flex items-center">
+                <div class="flex-grow h-px bg-gray-200"></div>
+                <span class="px-3 text-xs uppercase text-gray-500">hoặc</span>
+                <div class="flex-grow h-px bg-gray-200"></div>
+            </div>
+
+            <a href="{{ route('google.login') }}" class="w-full inline-flex items-center justify-center gap-2 border border-gray-300 rounded-md px-4 py-2 text-sm font-medium hover:bg-gray-50">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" class="w-5 h-5">
+                Đăng nhập bằng Google
+            </a>
 
             <div class="text-center">
                 <p class="text-sm text-gray-600">Don't have an account? <a href="{{ route('register') }}" class="text-indigo-600 hover:underline">Register</a></p>

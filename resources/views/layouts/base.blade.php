@@ -61,6 +61,45 @@
 <body class="min-h-screen bg-gray-100 text-gray-800">
     @include('partials.nav')
 
+    {{-- Global Success Toast --}}
+    @if(session('success'))
+        <div class="fixed top-20 right-4 z-50 max-w-md animate-slide-in-right" id="successToast">
+            <div class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-4 rounded-lg shadow-2xl">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                        <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                            <i class="fas fa-check-circle text-white text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="ml-3 flex-1">
+                        <h3 class="font-bold text-lg mb-1">Thành công!</h3>
+                        <p class="text-sm text-white/90">{{ session('success') }}</p>
+                    </div>
+                    <button onclick="closeToast()" class="ml-4 text-white/80 hover:text-white transition-colors">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <script>
+            function closeToast() {
+                const toast = document.getElementById('successToast');
+                if (toast) {
+                    toast.classList.add('animate-slide-out-right');
+                    setTimeout(() => {
+                        toast.remove();
+                    }, 300);
+                }
+            }
+            
+            // Auto close after 5 seconds
+            setTimeout(() => {
+                closeToast();
+            }, 5000);
+        </script>
+    @endif
+
     {{-- ============================================================= --}}
     {{-- 1. full-width header slot (Hero Banner) --}}
     @hasSection('fullwidth_header')
@@ -94,6 +133,9 @@ w-full px-0 mt-6
     
     {{-- Lazy load Chart.js only when needed --}}
     <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    {{-- TinyMCE CDN --}}
+    <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
 
     @stack('scripts')
 
