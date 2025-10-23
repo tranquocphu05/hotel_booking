@@ -22,6 +22,7 @@ use App\Http\Controllers\Client\GioiThieuController as ClientGioiThieuController
 use App\Http\Controllers\Client\TinTucController as ClientTinTucController;
 use App\Http\Controllers\Client\ThanhToanController as ClientThanhToanController;
 use App\Http\Controllers\Client\CommentController as ClientCommentController;
+use App\Http\Controllers\Client\VoucherController as ClientVoucherController;
 
 //
 
@@ -150,11 +151,17 @@ Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\Allow
     Route::get('/vnpay/return', [ClientThanhToanController::class, 'vnpay_return'])->name('vnpay_return');
     Route::get('/tin-tuc', [ClientTinTucController::class, 'index'])->name('tintuc');
     Route::get('/tin-tuc/{slug}', [ClientTinTucController::class, 'chitiettintuc'])->name('tintuc.show');
+    Route::get('/voucher', [ClientVoucherController::class, 'getVoucher'])->name('voucher');
 
     // Comment routes
-    Route::post('/comment', [ClientCommentController::class, 'store'])->name('comment.store');
-    Route::put('/comment/{id}', [ClientCommentController::class, 'update'])->name('comment.update');
-    Route::delete('/comment/{id}', [ClientCommentController::class, 'destroy'])->name('comment.destroy');
+    // Route::post('/comment', [ClientCommentController::class, 'store'])->name('comment.store');
+    // Route::put('/comment/{id}', [ClientCommentController::class, 'update'])->name('comment.update');
+    // Route::delete('/comment/{id}', [ClientCommentController::class, 'destroy'])->name('comment.destroy');
+    Route::get('/danh-gia', [ClientCommentController::class, 'index'])->name('comment.index');
+    Route::post('/danh-gia', [ClientCommentController::class, 'store'])->name('comment.store');
+    Route::get('/danh-gia/{id}/edit', [ClientCommentController::class, 'edit'])->name('comment.edit');
+    Route::post('/danh-gia/{id}/update', [ClientCommentController::class, 'update'])->name('comment.update');
+    Route::delete('/danh-gia/{id}', [ClientCommentController::class, 'destroy'])->name('comment.destroy');
 });
 
 // Public impersonation stop (in case admin is impersonating)

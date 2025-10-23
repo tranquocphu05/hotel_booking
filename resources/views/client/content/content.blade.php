@@ -264,8 +264,8 @@
 
 
 
-<section id="testimonials">
-    <section class="text-center container mx-auto px-4 py-16 bg-gray-50 my-16 rounded-lg">
+<section id="testimonials" class="py-16 bg-gray-50 my-16 rounded-lg">
+    <div class="text-center container mx-auto px-4">
         <p class="text-sm uppercase tracking-widest text-red-600 mb-2">Ý KIẾN KHÁCH HÀNG</p>
         <h2 class="text-3xl font-bold text-gray-800 mb-8">Khách Hàng Nói Gì?</h2>
 
@@ -285,9 +285,9 @@
                                      alt="Ảnh đánh giá"
                                      class="w-20 h-20 rounded-full object-cover mb-4 shadow-md border-2 border-red-400 hover:scale-105 transition-transform duration-300">
                             @else
-                                <img src="{{ asset('img/avatar-default.svg') }}"
+                                <img src="{{ asset('img/default-avatar.png') }}"
                                      alt="Avatar mặc định"
-                                     class="w-20 h-20 rounded-full object-cover mb-4 shadow-md border border-gray-300 bg-gray-100 p-2">
+                                     class="w-20 h-20 rounded-full object-cover mb-4 shadow-md border-2 border-gray-300">
                             @endif
 
                             {{-- Nội dung đánh giá --}}
@@ -313,7 +313,7 @@
                     @endforeach
                 </div>
 
-                {{-- Pagination --}}
+                {{-- Pagination (Giữ lại phân trang nếu muốn) --}}
                 <div class="swiper-pagination mt-6"></div>
             </div>
         @else
@@ -321,6 +321,7 @@
         @endif
     </div>
 </section>
+
 
 <section id="blog-events">
     <section class="container mx-auto px-4 py-8">
@@ -527,6 +528,38 @@ document.addEventListener('DOMContentLoaded', function() {
         // Hiệu ứng chuyển slide
         effect: 'slide',
         speed: 500,
+    });
+});
+</script>
+@endpush
+@push('scripts')
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    if (typeof Swiper === 'undefined') {
+        console.error('Swiper library not found!');
+        return;
+    }
+
+    new Swiper(".testimonialSwiper", {
+        slidesPerView: 1,
+        spaceBetween: 30,
+        centeredSlides: true,
+        grabCursor: true,
+        loop: true,
+        autoplay: {
+            delay: 4000,
+            disableOnInteraction: false,
+        },
+        pagination: {
+            el: ".swiper-pagination",
+            clickable: true,
+        },
+        navigation: {
+            nextEl: ".swiper-button-next",
+            prevEl: ".swiper-button-prev",
+        },
+        speed: 800,
+        effect: 'slide',
     });
 });
 </script>
