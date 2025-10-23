@@ -2,22 +2,30 @@
 <footer class="bg-gray-900 text-gray-300 pt-12 pb-6">
     <div class="max-w-7xl mx-auto px-6 grid md:grid-cols-3 gap-10">
         {{-- GIỚI THIỆU --}}
-        <div>
-            <div class="mb-4">
-                <a href="{{ url('/') }}">
-                    <img src="{{ asset('img/footer-logo.png') }}" alt="Ozia Hotel Logo" class="h-10">
+        <div class="p-3">
+            <!-- Tiêu đề -->
+            <div class="flex items-center mb-3">
+                <a href="javascript:void(0)" onclick="window.location.reload()"
+                    class="text-3xl font-serif font-bold text-white cursor-pointer tracking-wide hover:text-red-400 transition duration-300">
+                    OZIA HOTEL
                 </a>
             </div>
-            <p class="text-sm mb-6 leading-relaxed">
-                Chào mừng bạn đến với <span class="font-semibold text-white">Ozia Hotel</span> —  
-                đối tác đáng tin cậy giúp bạn tìm kiếm những khách sạn chất lượng với mức giá hợp lý.  
+
+            <!-- Đoạn mô tả -->
+            <p class="text-sm text-gray-300 mb-6 leading-relaxed">
+                Chào mừng bạn đến với <span class="font-semibold text-white">Ozia Hotel</span> —
+                đối tác đáng tin cậy giúp bạn tìm kiếm những khách sạn chất lượng với mức giá hợp lý.
                 Chúng tôi mang đến trải nghiệm đặt phòng tiện lợi, nhanh chóng và an toàn trên toàn quốc.
             </p>
+
+            <!-- Mạng xã hội -->
             <div class="flex space-x-4 text-gray-400">
-                <a href="#" class="hover:text-indigo-400"><i class="fab fa-facebook-f"></i></a>
-                <a href="#" class="hover:text-indigo-400"><i class="fab fa-twitter"></i></a>
-                <a href="#" class="hover:text-indigo-400"><i class="fab fa-instagram"></i></a>
-                <a href="#" class="hover:text-indigo-400"><i class="fab fa-youtube"></i></a>
+                <a href="#" class="hover:text-red-400 transition duration-300"><i
+                        class="fab fa-facebook-f"></i></a>
+                <a href="#" class="hover:text-red-400 transition duration-300"><i class="fab fa-twitter"></i></a>
+                <a href="#" class="hover:text-red-400 transition duration-300"><i
+                        class="fab fa-instagram"></i></a>
+                <a href="#" class="hover:text-red-400 transition duration-300"><i class="fab fa-youtube"></i></a>
             </div>
         </div>
 
@@ -36,15 +44,10 @@
             <h6 class="text-white font-semibold mb-4">Đăng ký nhận tin</h6>
             <p class="text-sm mb-4">Nhận ngay các ưu đãi và khuyến mãi khách sạn mới nhất từ Ozia Hotel.</p>
             <form action="#" method="POST" class="flex bg-gray-800 rounded-lg overflow-hidden">
-                <input 
-                    type="email" 
-                    name="email" 
-                    placeholder="Nhập email của bạn..." 
-                    required 
-                    class="w-full px-4 py-2 text-gray-100 bg-transparent focus:outline-none"
-                >
+                <input type="email" name="email" placeholder="Nhập email của bạn..." required
+                    class="w-full px-4 py-2 text-gray-100 bg-transparent focus:outline-none">
                 <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 text-white">
-                    <i class="fa fa-send"></i>
+                    Gửi
                 </button>
             </form>
         </div>
@@ -57,11 +60,11 @@
                 <li><a href="#" class="hover:text-indigo-400">Liên hệ</a></li>
                 <li><a href="#" class="hover:text-indigo-400">Điều khoản sử dụng</a></li>
                 <li><a href="#" class="hover:text-indigo-400">Chính sách bảo mật</a></li>
-                <li><a href="#" class="hover:text-indigo-400">Giới thiệu</a></li>
+                <li><a href="{{ route('client.gioithieu') }}" class="hover:text-indigo-400">Giới thiệu</a></li>
             </ul>
             <p class="text-gray-400 text-center md:text-right">
-                © {{ date('Y') }} <span class="text-white font-semibold">Ozia Hotel</span> —  
-                Được phát triển ở 
+                © {{ date('Y') }} <span class="text-white font-semibold">Ozia Hotel</span> —
+                Được phát triển ở
                 FPT Trịnh Văn Bô, Hà Nội.
             </p>
         </div>
