@@ -27,9 +27,12 @@
     {{-- Swiper CSS --}}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
 
-    {{-- THÊM CSS ĐỂ ƯU TIÊN FONT HỖ TRỢ TIẾNG VIỆT (Tùy chọn) --}}
-    {{-- Nếu bạn dùng Tailwind, bạy có thể thiết lập điều này trong file CSS gốc --}}
     <style>
+
+        html {
+            font-size: 90%;
+        }
+
         /* Swiper Custom Styles */
         .weekendDealsSwiper {
             padding-bottom: 20px !important;
@@ -49,12 +52,9 @@
         body {
             /* Ưu tiên các font hỗ trợ Unicode/Tiếng Việt tốt */
             font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji",
-                /* Thêm một font Tiếng Việt phổ biến, ví dụ: 'Times New Roman' cho font serif */
                 "Times New Roman";
-            height: auto !important;         
-            /* Đảm bảo body mở rộng theo nội dung và loại bỏ height: 100vh */
+            height: auto !important;
             overflow-y: visible !important;
-            /* Đảm bảo nó không bị ẩn cuộn */
         }
     </style>
 
@@ -62,12 +62,15 @@
     @stack('styles')
 </head>
 
+{{-- LOẠI BỎ 'text-sm' ở đây vì đã điều chỉnh font-size trên 'html' --}}
+
 <body class="bg-gray-100 text-gray-800">
     @include('partials.nav')
 
     {{-- Global Success Toast --}}
+    {{-- GIỮ NGUYÊN hoặc điều chỉnh nhẹ nhàng khoảng cách nếu cần --}}
     @if (session('success'))
-        <div class="fixed top-20 right-4 z-50 max-w-md animate-slide-in-right" id="successToast">
+        <div class="fixed top-16 right-4 z-50 max-w-md animate-slide-in-right" id="successToast">
             <div class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-4 rounded-lg shadow-2xl">
                 <div class="flex items-start">
                     <div class="flex-shrink-0">
@@ -115,13 +118,16 @@
     {{-- ============================================================= --}}
 
     {{-- 3. KHỐI NỘI DUNG CHÍNH (Chứa @yield('content')) --}}
-    <div class="@hasSection('fullwidth')
-w-full px-0 mt-6
+    <div
+        class="@hasSection('boxed')
+{{-- Giữ nguyên hoặc điều chỉnh thêm nếu bạn muốn thu hẹp tối đa chiều rộng nội dung --}}
+        mx-auto px-4 sm:px-6 lg:px-8 mt-0
 @else
-mx-auto px-4 sm:px-6 lg:px-8 mt-6
+w-full px-0 mt-0
 @endif">
         @yield('content')
     </div>
+
 
     {{-- 4. full-width footer slot (optional) --}}
     @hasSection('fullwidth_footer')
