@@ -1,6 +1,5 @@
 
-
-<div x-data="{ currentSlide: 1, totalSlides: 3 }" x-init="setInterval(() => { currentSlide = (currentSlide % totalSlides) + 1 }, 5000)" class="relative h-[90vh] min-h-[700px] overflow-hidden">
+<div x-data="{ currentSlide: 1, totalSlides: 3 }" x-init="setInterval(() => { currentSlide = (currentSlide % totalSlides) + 1 }, 3000)" class="relative min-h-[700px]">
 
     <div class="absolute inset-0">
         @php
@@ -94,7 +93,7 @@
                     </div>
 
                     <button type="submit"
-                        class="w-full py-3 bg-red-600 text-white font-semibold uppercase tracking-wider rounded transition duration-300 hover:bg-red-700">
+                        class="w-full py-3 bg-yellow-600 text-white font-semibold uppercase tracking-wider rounded transition duration-300 hover:bg-yellow-700">
                         TÌM PHÒNG
                     </button>
                 </form>
