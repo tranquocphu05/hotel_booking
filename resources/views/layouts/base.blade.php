@@ -4,10 +4,10 @@
 
 <head>
     {{-- ĐÃ KIỂM TRA: Khai báo UTF-8 đã chính xác, là bước quan trọng nhất --}}
-    <meta charset="utf-8"> 
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    
+
     {{-- Preconnect to external domains for faster loading --}}
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
@@ -15,7 +15,7 @@
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 
     <title>@yield('title', config('app.name'))</title>
-    
+
     {{-- Font Awesome - Load async để không block rendering --}}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
         integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
@@ -23,10 +23,10 @@
     <noscript>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     </noscript>
-    
+
     {{-- Swiper CSS --}}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
-    
+
     {{-- THÊM CSS ĐỂ ƯU TIÊN FONT HỖ TRỢ TIẾNG VIỆT (Tùy chọn) --}}
     {{-- Nếu bạn dùng Tailwind, bạy có thể thiết lập điều này trong file CSS gốc --}}
     <style>
@@ -34,23 +34,27 @@
         .weekendDealsSwiper {
             padding-bottom: 20px !important;
         }
-        
+
         /* Ẩn navigation buttons */
         .weekendDealsSwiper .swiper-button-next,
         .weekendDealsSwiper .swiper-button-prev {
             display: none !important;
         }
-        
+
         /* Ẩn pagination */
         .weekendDealsSwiper .swiper-pagination {
             display: none !important;
         }
-        
+
         body {
             /* Ưu tiên các font hỗ trợ Unicode/Tiếng Việt tốt */
-            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", 
-                        /* Thêm một font Tiếng Việt phổ biến, ví dụ: 'Times New Roman' cho font serif */
-                        "Times New Roman";
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji",
+                /* Thêm một font Tiếng Việt phổ biến, ví dụ: 'Times New Roman' cho font serif */
+                "Times New Roman";
+            height: auto !important;         
+            /* Đảm bảo body mở rộng theo nội dung và loại bỏ height: 100vh */
+            overflow-y: visible !important;
+            /* Đảm bảo nó không bị ẩn cuộn */
         }
     </style>
 
@@ -58,11 +62,11 @@
     @stack('styles')
 </head>
 
-<body class="min-h-screen bg-gray-100 text-gray-800">
+<body class="bg-gray-100 text-gray-800">
     @include('partials.nav')
 
     {{-- Global Success Toast --}}
-    @if(session('success'))
+    @if (session('success'))
         <div class="fixed top-20 right-4 z-50 max-w-md animate-slide-in-right" id="successToast">
             <div class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-4 rounded-lg shadow-2xl">
                 <div class="flex items-start">
@@ -81,7 +85,7 @@
                 </div>
             </div>
         </div>
-        
+
         <script>
             function closeToast() {
                 const toast = document.getElementById('successToast');
@@ -92,7 +96,7 @@
                     }, 300);
                 }
             }
-            
+
             // Auto close after 5 seconds
             setTimeout(() => {
                 closeToast();
@@ -105,16 +109,16 @@
     @hasSection('fullwidth_header')
         @yield('fullwidth_header')
     @endif
-    
+
     {{-- 2. KHỐI FULL-WIDTH TỪ CÁC FILE CON (Rooms Gallery) --}}
-    @stack('fullwidth_content') 
+    @stack('fullwidth_content')
     {{-- ============================================================= --}}
 
     {{-- 3. KHỐI NỘI DUNG CHÍNH (Chứa @yield('content')) --}}
     <div class="@hasSection('fullwidth')
 w-full px-0 mt-6
 @else
- mx-auto px-4 sm:px-6 lg:px-8 mt-6
+mx-auto px-4 sm:px-6 lg:px-8 mt-6
 @endif">
         @yield('content')
     </div>
@@ -125,15 +129,15 @@ w-full px-0 mt-6
     @endif
 
     @unless (View::hasSection('hideGlobalFooter'))
-        @include('partials.footer')
+        @include('client.footer.footer')
     @endunless
 
     {{-- Swiper JS - Load before other scripts --}}
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-    
+
     {{-- Lazy load Chart.js only when needed --}}
     <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
+
     {{-- TinyMCE CDN --}}
     <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
 
