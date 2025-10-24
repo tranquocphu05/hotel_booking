@@ -367,9 +367,6 @@
                             </div>
                         </div>
 
-<<<<<<< HEAD
-
-=======
                         {{-- Liên kết xem chi tiết --}}
                         <div class="mt-4">
                             <a href="{{ route('client.phong.show', $phong->id) }}"
@@ -377,7 +374,6 @@
                                 Xem chi tiết →
                             </a>
                         </div>
->>>>>>> 005c912be20a584115136097aa63956a5057f4bd
                     </div>
                 </div>
             </div>
@@ -401,14 +397,9 @@
         @if (isset($comments) && $comments->count() > 0)
             <div class="swiper testimonialSwiper w-full max-w-4xl mx-auto relative">
                 <div class="swiper-wrapper">
-<<<<<<< HEAD
-                    @foreach($comments as $comment)
-                        <div class="swiper-slide bg-white rounded-2xl shadow-md p-8 flex flex-col items-center text-center transition duration-300 hover:shadow-lg">
-=======
                     @foreach ($comments as $comment)
                         <div
                             class="swiper-slide bg-white rounded-2xl shadow-md p-8 flex flex-col items-center text-center transition duration-300 hover:shadow-lg">
->>>>>>> 005c912be20a584115136097aa63956a5057f4bd
 
                             {{-- Ảnh đại diện --}}
                             @if (!empty($comment->user->avatar))
@@ -464,17 +455,10 @@
         {{-- Swiper Container --}}
         <div class="swiper weekendDealsSwiper relative">
             <div class="swiper-wrapper">
-<<<<<<< HEAD
-            @foreach ($loaiPhongs as $phong)
-                <div class="swiper-slide">
-                <a href="{{ route('client.phong.show', $phong->id) }}"
-                   class="block bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm relative group cursor-pointer
-=======
                 @foreach ($loaiPhongs as $phong)
                     <div class="swiper-slide">
                         <a href="{{ route('client.phong.show', $phong->id) }}"
                             class="block bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm relative group cursor-pointer
->>>>>>> 005c912be20a584115136097aa63956a5057f4bd
                    hover:shadow-xl hover:scale-[1.02] transition duration-300 ease-in-out">
                             <div class="relative">
                                 <img src="{{ asset($phong->anh ?: 'img/gallery/gallery-1.jpg') }}"
