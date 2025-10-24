@@ -65,14 +65,17 @@ class BookingController extends Controller
 
         $phong = Phong::find($data['phong_id']);
         $total = 0;
-        if ($phong && $phong->gia) {
-            $total = $phong->gia * $nights;
+        if ($phong) {
+            $giaMotDem = ($phong->co_khuyen_mai && !empty($phong->gia_khuyen_mai) && $phong->gia_khuyen_mai > 0)
+                ? $phong->gia_khuyen_mai
+                : $phong->gia;
+            $total = ($giaMotDem ?? 0) * $nights;
         }
 
         $voucherId = null;
         // Apply voucher if provided
-        if ($request->filled('voucher')) {
-            $code = $request->input('voucher');
+        if ($request->filled('voucherCode')) {
+            $code = $request->input('voucherCode');
             $voucher = Voucher::where('ma_voucher', $code)
                 ->where('trang_thai', 'con_han')
                 ->where('so_luong', '>', 0)

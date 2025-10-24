@@ -13,6 +13,25 @@ class ThanhToanController extends Controller
 {
     public function show(DatPhong $datPhong)
     {
+        // Eager load relationships for efficiency
+        $datPhong->load('voucher', 'phong.loaiPhong', 'user');
+
+        // Calculate original price and discount
+        $nights = 1;
+        if ($datPhong->ngay_nhan && $datPhong->ngay_tra) {
+            $nights = max(1, $datPhong->ngay_nhan->diffInDays($datPhong->ngay_tra));
+        }
+
+        // Determine the correct base price per night (promo or standard)
+        $phong = $datPhong->phong;
+        $giaMotDem = ($phong->co_khuyen_mai && !empty($phong->gia_khuyen_mai) && $phong->gia_khuyen_mai > 0)
+            ? $phong->gia_khuyen_mai
+            : $phong->gia;
+        
+        // This is the total before voucher, but after potential room promotion
+        $giaGoc = ($giaMotDem ?? 0) * $nights;
+        $giamGia = $giaGoc - $datPhong->tong_tien;
+
         // Find or create the invoice
         $invoice = Invoice::firstOrCreate(
             ['dat_phong_id' => $datPhong->id],
@@ -22,7 +41,7 @@ class ThanhToanController extends Controller
             ]
         );
 
-        return view('client.thanh-toan.show', compact('datPhong', 'invoice'));
+        return view('client.thanh-toan.show', compact('datPhong', 'invoice', 'giaGoc', 'giamGia', 'nights'));
     }
 
     public function store(Request $request, DatPhong $datPhong)
