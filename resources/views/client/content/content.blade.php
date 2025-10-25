@@ -116,17 +116,15 @@
     <style>
         :root {
             --luxury-gold: #d4af37;
-            --gold-gradient: linear-gradient(135deg, #ffef9f, #d4af37, #c2912d);
+            --gold-gradient: radial-gradient(circle at center, #ffd700, #b8860b);
             --dark-overlay: rgba(0, 0, 0, 0.6);
             --light-text: #f9f9f9;
             --card-bg: rgba(255, 255, 255, 0.08);
             --hover-shadow: rgba(212, 175, 55, 0.3);
             --initial-bright-gold: #ffeb3b;
-            --icon-size: 30px;
-            /* ĐÃ CHỈNH LẠI: Kích thước mới cho Icon (30px) */
+            --icon-size: 26px;
         }
 
-        /* Nền ảnh + lớp phủ tối */
         #services {
             background: url('{{ asset('img/hero/hero-1.jpg') }}') center/cover no-repeat;
             position: relative;
@@ -141,7 +139,6 @@
             z-index: -1;
         }
 
-        /* Card dịch vụ */
         .service-card {
             transition: transform .4s ease, box-shadow .4s ease, background .4s ease;
             will-change: transform, box-shadow;
@@ -159,68 +156,78 @@
         }
 
         /* ======================================================= */
-        /* KHUNG ICON (VÒNG TRÒN) */
+        /* VÒNG TRÒN VÀNG + HIỆU ỨNG */
         /* ======================================================= */
         .service-icon-wrap {
-            width: 60px;
-            /* ĐÃ CHỈNH LẠI: Kích thước mới cho vòng tròn (60px) */
-            height: 60px;
-            /* ĐÃ CHỈNH LẠI: Kích thước mới cho vòng tròn (60px) */
+            width: 64px;
+            height: 64px;
             border-radius: 50%;
             display: grid;
             place-items: center;
             margin: 0 auto 1rem;
-            background: rgba(255, 255, 255, 0.05);
-            /* Viền vàng rực rỡ */
-            border: 2px solid rgba(212, 175, 55, 0.3);
-            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.5),
-                0 0 15px rgba(255, 215, 0, 0.2);
+            background: var(--gold-gradient);
+            border: 2px solid var(--luxury-gold);
+            box-shadow:
+                0 0 15px rgba(255, 215, 0, 0.4),
+                inset 0 0 6px rgba(255, 255, 255, 0.4);
+            transition: all .4s ease;
+            position: relative;
+        }
+
+        /* Vòng sáng ngoài */
+        .service-icon-wrap::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            box-shadow: 0 0 25px rgba(255, 215, 0, 0.8);
+            opacity: 0;
+            transition: opacity .4s ease;
+        }
+
+        .service-card:hover .service-icon-wrap::after {
+            opacity: 1;
+            animation: rotate-glow 2s linear infinite;
+        }
+
+        @keyframes rotate-glow {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .service-card:hover .service-icon-wrap {
+            transform: scale(1.1);
+            box-shadow:
+                0 0 25px rgba(255, 215, 0, 0.7),
+                inset 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+
+        .service-icon-wrap svg {
+            width: var(--icon-size);
+            height: var(--icon-size);
+            fill: #fff;
+            filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.5));
             transition: all .4s ease;
         }
 
-        /* ======================================================= */
-        /* TRẠNG THÁI MẶC ĐỊNH (ICON SVG) */
-        /* ======================================================= */
-        .service-icon-wrap svg {
-            /* Kích thước được điều khiển bởi biến --icon-size (30px) */
-            width: var(--icon-size);
-            height: var(--icon-size);
-
-            /* Dùng fill cho SVG để chỉnh màu */
-            fill: var(--initial-bright-gold) !important;
-
-            /* Tăng độ phát sáng của icon */
-            filter: drop-shadow(0 0 15px rgba(255, 235, 59, 1));
-            transition: all .4s ease, transform .4s ease;
-        }
-
-        /* ======================================================= */
-        /* HIỆU ỨNG HOVER */
-        /* ======================================================= */
-        .service-card:hover .service-icon-wrap {
-            /* Khung chuyển sang vàng gradient rực rỡ */
-            background: var(--gold-gradient);
-            box-shadow:
-                0 0 0 4px rgba(255, 255, 255, 0.6),
-                0 0 25px rgba(255, 215, 0, 0.8);
-            transform: scale(1.08);
-            border-color: transparent;
-        }
-
         .service-card:hover .service-icon-wrap svg {
-            /* Icon chuyển sang màu trắng/sáng trên nền vàng */
-            fill: var(--light-text) !important;
-
-            /* Thay đổi đổ bóng để nổi bật trên nền vàng */
-            filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.8));
             transform: scale(1.1);
+            fill: var(--light-text);
         }
 
-        /* Chữ */
+        /* ======================================================= */
+        /* TEXT */
+        /* ======================================================= */
         .service-title {
             color: var(--light-text);
             font-weight: 700;
             margin-top: 0.5rem;
+            font-size: 1.1rem;
         }
 
         .service-desc {
@@ -237,10 +244,13 @@
             .service-card {
                 padding: 1.2rem;
             }
+
+            .service-icon-wrap {
+                width: 54px;
+                height: 54px;
+            }
         }
     </style>
-
-
     <div class="text-center container mx-auto px-4 py-20 relative z-10">
         <p class="text-sm uppercase tracking-widest text-[#D4AF37] mb-2 font-light">
             DỊCH VỤ CỦA CHÚNG TÔI
@@ -577,23 +587,27 @@
     </div>
 </section>
 
+<!-- Popup Video -->
+<div id="videoPopup"
+    class="fixed inset-0 hidden z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity duration-300">
 
-<div id="videoPopup" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center px-4">
-    <div class="relative w-full max-w-2xl mx-auto max-h-[80vh]">
-        <!-- Video box: giữ tỉ lệ 16:9, không vượt quá viewport -->
-        <div
-            class="bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-200 w-full aspect-[16/9] animate-fadeIn">
-            <video id="popupVideo" controls class="w-full h-full object-contain bg-black">
+    <div
+        class="relative w-[95vw] max-w-[1600px] rounded-3xl overflow-visible shadow-[0_0_60px_rgba(255,255,255,0.1)] border border-white/10">
+
+        <!-- Hộp video -->
+        <div class="relative bg-black rounded-3xl overflow-hidden">
+            <video id="popupVideo" controls preload="metadata" autoplay playsinline
+                class="w-full h-full rounded-3xl cursor-pointer" style="pointer-events: auto;">
                 <source src="{{ asset('videos/video-khach-san.mp4') }}" type="video/mp4">
                 Trình duyệt của bạn không hỗ trợ video.
             </video>
         </div>
 
-        <!-- Nút đóng (nằm sát khung, nhỏ gọn) -->
+        <!-- Nút đóng -->
         <button onclick="closeVideoPopup()"
-            class="absolute -top-3 -right-3 bg-white text-gray-700 rounded-full w-9 h-9 shadow-md
-                   flex items-center justify-center border border-gray-200 hover:bg-red-500 hover:text-white
-                   transition duration-150">
+            class="absolute top-3 right-3 bg-white/90 text-gray-700 rounded-full w-10 h-10 flex items-center justify-center
+                   shadow-xl border border-gray-200 backdrop-blur-md hover:bg-red-500 hover:text-white hover:scale-110
+                   transition-all duration-200 z-20">
             ✕
         </button>
     </div>
@@ -603,6 +617,7 @@
         const popup = document.getElementById('videoPopup');
         const video = document.getElementById('popupVideo');
         popup.classList.remove('hidden');
+        setTimeout(() => popup.classList.add('opacity-100'), 10);
         video.currentTime = 0;
         video.play();
     }
@@ -611,25 +626,27 @@
         const popup = document.getElementById('videoPopup');
         const video = document.getElementById('popupVideo');
         video.pause();
-        popup.classList.add('hidden');
+        popup.classList.remove('opacity-100');
+        setTimeout(() => popup.classList.add('hidden'), 200);
     }
+
+    // Cho phép tua và tương tác
+    document.addEventListener("DOMContentLoaded", () => {
+        const video = document.getElementById('popupVideo');
+        video.controls = true;
+        video.addEventListener("loadedmetadata", () => {
+            video.removeAttribute('disablePictureInPicture');
+            video.style.pointerEvents = 'auto';
+        });
+    });
 </script>
-
 <style>
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: scale(0.9) translateY(10px);
-        }
-
-        to {
-            opacity: 1;
-            transform: scale(1) translateY(0);
-        }
+    #videoPopup {
+        opacity: 0;
     }
 
-    .animate-fadeIn {
-        animation: fadeIn 0.35s ease-out;
+    #videoPopup.opacity-100 {
+        opacity: 1;
     }
 </style>
 
@@ -716,18 +733,20 @@
     <section id="contact-booking" class="py-16 bg-white">
         <style>
             .booking-info-box {
-                /* Tông nền nhẹ nhàng */
-                background-color: #fcfcfc;
+                background: linear-gradient(145deg, #ffffff, #f9f7f2);
                 padding: 2.5rem;
-                border-radius: 8px;
-                /* Viền vàng mỏng nổi bật */
-                border-left: 5px solid #D4AF37;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-                /* Đảm bảo nó chiếm đủ chiều cao còn lại */
+                border-radius: 12px;
+                border-left: 5px solid #d4af37;
+                box-shadow:
+                    0 6px 15px rgba(0, 0, 0, 0.05),
+                    inset 0 0 8px rgba(212, 175, 55, 0.15);
                 height: 100%;
                 display: flex;
                 flex-direction: column;
                 justify-content: space-between;
+                transition: all 0.4s ease;
+                position: relative;
+                overflow: hidden;
             }
 
             .booking-info-box .info-item {
@@ -738,13 +757,47 @@
 
             .booking-info-box .info-icon {
                 font-size: 1.25rem;
-                color: #D4AF37;
+                color: #d4af37;
                 margin-right: 0.75rem;
                 width: 24px;
-                /* Cố định kích thước icon */
                 text-align: center;
+                transition: transform 0.3s ease, color 0.3s ease;
+            }
+
+            .booking-info-box .info-text {
+                font-size: 1rem;
+                color: #333;
+            }
+
+            /* ===================== NÚT ĐẶT PHÒNG ===================== */
+            .btn-booking {
+                display: block;
+                width: fit-content;
+                margin: 3rem auto 0;
+                /* cách ra và canh giữa */
+                background: linear-gradient(to right, #d4af37, #b68b00);
+                color: #fff;
+                border-radius: 8px;
+                font-weight: 600;
+                letter-spacing: 0.5px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                transition: all 0.3s ease;
+                position: relative;
+                overflow: hidden;
+                text-align: center;
+                padding: 0.9rem 1.8rem;
+                text-decoration: none;
+            }
+
+            .btn-booking:hover {
+                background: linear-gradient(to right, #b68b00, #d4af37);
+                transform: translateY(-2px);
+                box-shadow: 0 8px 18px rgba(212, 175, 55, 0.4);
+                color: #fff;
             }
         </style>
+
+
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
 
@@ -803,16 +856,37 @@
                         </div>
 
                         <a href="{{ route('client.phong') }}"
-                            class="mt-8 py-3 bg-[#D4AF37] text-white font-semibold uppercase tracking-wider rounded-lg transition-all duration-300 hover:bg-[#c2912d] shadow-md hover:shadow-xl text-center inline-block">
-                            ĐẶT PHÒNG NGAY
+                            class="btn-booking relative inline-flex items-center justify-center px-8 py-3 overflow-hidden tracking-wider text-white rounded-md text-lg font-semibold uppercase">
+                            <span
+                                class="absolute w-0 h-0 transition-all duration-500 ease-out bg-gradient-to-r from-[#d4af37] to-[#b68b00] rounded-full group-hover:w-56 group-hover:h-56"></span>
+                            <span class="absolute bottom-0 left-0 h-full -ml-2 opacity-60">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-auto h-full object-stretch"
+                                    viewBox="0 0 487 487">
+                                    <path fill-opacity=".15" fill-rule="nonzero" fill="#fff"
+                                        d="M0 .3c67 2.1 134.1 4.3 186.3 37 52.2 32.7 89.6 95.8 112.8 150.6 23.2 54.8 32.3 101.4 61.2 149.9 28.9 48.4 77.7 98.8 126.4 149.2H0V.3z">
+                                    </path>
+                                </svg>
+                            </span>
+                            <span class="absolute top-0 right-0 w-12 h-full -mr-3 opacity-60">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="object-cover w-full h-full"
+                                    viewBox="0 0 487 487">
+                                    <path fill-opacity=".15" fill-rule="nonzero" fill="#fff"
+                                        d="M487 486.7c-66.1-3.6-132.3-7.3-186.3-37s-95.9-85.3-126.2-137.2c-30.4-51.8-49.3-99.9-76.5-151.4C70.9 109.6 35.6 54.8.3 0H487v486.7z">
+                                    </path>
+                                </svg>
+                            </span>
+                            <span
+                                class="absolute inset-0 w-full h-full rounded-lg opacity-20 bg-gradient-to-b from-transparent via-transparent to-yellow-200"></span>
+                            <span class="relative text-base font-semibold tracking-wide">ĐẶT PHÒNG NGAY</span>
                         </a>
+
+
                     </div>
                 </div>
             </div>
 
             <div class="mt-16 pt-8 border-t border-gray-200">
-                <div
-                    class="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-12">
+                <div class="flex justify-between items-center max-w-5xl mx-auto w-full px-8">
                     <a href="#"
                         class="flex items-center text-gray-700 hover:text-[#D4AF37] transition duration-300">
                         <span class="p-3 mr-2 text-xl text-[#D4AF37]"><i class="fab fa-facebook-f"></i></span>
