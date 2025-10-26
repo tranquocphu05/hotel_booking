@@ -40,7 +40,7 @@
                                                             @elseif($room->trang_thai === 'an') bg-red-100 text-red-800
                                                             @else bg-yellow-100 text-yellow-800 @endif">
                                                             {{ $room->trang_thai === 'hien' ? 'Hiện' : 
-                                                               ($room->trang_thai === 'an' ? 'Ẩn' : 'Khác') }}
+                                                               ($room->trang_thai === 'an' ? 'Ẩn' : 'Bảo trì') }}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -168,8 +168,9 @@
                                     <div>
                                         <label for="username" class="block text-sm font-medium text-gray-700 mb-2">Họ và tên</label>
                                         <input type="text" name="username" id="username" 
-                                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 hover:border-gray-300 bg-white text-gray-700 placeholder-gray-400"
-                                            placeholder="Nhập họ và tên" required>
+                                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                            value="{{ Auth::user()->username }}"
+                                            required>
                                         @error('username')
                                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                         @enderror
@@ -178,8 +179,9 @@
                                     <div>
                                         <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
                                         <input type="email" name="email" id="email" 
-                                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 hover:border-gray-300 bg-white text-gray-700 placeholder-gray-400"
-                                            placeholder="Nhập email" required>
+                                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                            value="{{ Auth::user()->email }}"
+                                            required>
                                         @error('email')
                                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                         @enderror
@@ -188,8 +190,9 @@
                                     <div>
                                         <label for="sdt" class="block text-sm font-medium text-gray-700 mb-2">Số điện thoại</label>
                                         <input type="text" name="sdt" id="sdt" 
-                                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 hover:border-gray-300 bg-white text-gray-700 placeholder-gray-400"
-                                            placeholder="Nhập số điện thoại" required>
+                                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                            value="{{ Auth::user()->sdt }}"
+                                            required>
                                         @error('sdt')
                                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                         @enderror
@@ -198,8 +201,9 @@
                                     <div>
                                         <label for="cccd" class="block text-sm font-medium text-gray-700 mb-2">CCCD/CMND</label>
                                         <input type="text" name="cccd" id="cccd" 
-                                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 hover:border-gray-300 bg-white text-gray-700 placeholder-gray-400"
-                                            placeholder="Nhập CCCD/CMND" required>
+                                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                            value="{{ Auth::user()->cccd }}"
+                                            required>
                                         @error('cccd')
                                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                         @enderror

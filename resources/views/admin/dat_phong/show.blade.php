@@ -39,11 +39,11 @@
                             <p class="text-sm text-gray-600">Loại phòng: <span class="font-medium">{{ $booking->phong->loaiPhong->ten_loai }}</span></p>
                             <p class="text-sm text-gray-600">Giá phòng: <span class="font-medium">{{ number_format($booking->phong->gia, 0, ',', '.') }} VNĐ</span></p>
                             <p class="text-sm px-3 py-1 rounded-full text-sm font-medium
-                                @if ($booking->phong->trang_thai === 'da_dat') bg-green-100 text-green-800
-                                @elseif($booking->phong->trang_thai === 'trong') bg-yellow-100 text-yellow-800
+                                @if ($booking->phong->trang_thai === 'hien') bg-green-100 text-green-800
+                                @elseif($booking->phong->trang_thai === 'an') bg-yellow-100 text-yellow-800
                                 @elseif($booking->phong->trang_thai === 'bao_tri') bg-red-100 text-red-800
                                 @else bg-blue-100 text-blue-800 @endif">
-                                {{ $booking->phong->trang_thai === 'trong' ? 'Trống' : ($booking->phong->trang_thai === 'da_dat' ? 'Đã đặt' : 'Bảo trì') }}
+                                {{ $booking->phong->trang_thai === 'hien' ? 'Hiện' : ($booking->phong->trang_thai === 'an' ? 'Ẩn' : 'Bảo trì') }}
                             </p>
                         </div>
                     </div>
