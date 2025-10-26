@@ -1,23 +1,37 @@
 <?php
 
+<<<<<<< HEAD
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\BookingController;
 // Admin Controllers
+=======
+use GuzzleHttp\Client;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Admin\PhongController;
+>>>>>>> 457a1db6164577e4d7bcc547516917c8c07ff8cc
 use App\Http\Controllers\Admin\CommentController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\VoucherController;
 use App\Http\Controllers\Admin\DatPhongController;
 use App\Http\Controllers\Admin\LoaiPhongController;
+<<<<<<< HEAD
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\PhongController;
 
 // Client Controllers
 use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
+=======
+use App\Http\Controllers\Client\ClientDatPhongController;
+>>>>>>> 457a1db6164577e4d7bcc547516917c8c07ff8cc
 use App\Http\Controllers\Client\PhongController as ClientPhongController;
 use App\Http\Controllers\Client\LoaiPhongController as ClientLoaiPhongController;
 use App\Http\Controllers\Client\ContactController as ClientContactController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
 use App\Http\Controllers\Client\GioiThieuController as ClientGioiThieuController;
 use App\Http\Controllers\Client\TinTucController as ClientTinTucController;
 use App\Http\Controllers\Client\ThanhToanController as ClientThanhToanController;
@@ -142,6 +156,7 @@ Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\Allow
 
     Route::get('/lien-he', [ClientContactController::class, 'index'])->name('lienhe');
     Route::get('/gioi-thieu', [ClientGioiThieuController::class, 'index'])->name('gioithieu');
+<<<<<<< HEAD
 
     Route::get('/{phong}/dat-phong', [BookingController::class, 'showForm'])->name('phong.create_booking');
     Route::post('/{phong}/dat-phong', [BookingController::class, 'submit'])->name('phong.store_booking');
@@ -162,6 +177,10 @@ Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\Allow
     Route::get('/danh-gia/{id}/edit', [ClientCommentController::class, 'edit'])->name('comment.edit');
     Route::post('/danh-gia/{id}/update', [ClientCommentController::class, 'update'])->name('comment.update');
     Route::delete('/danh-gia/{id}', [ClientCommentController::class, 'destroy'])->name('comment.destroy');
+=======
+    Route::get('/dat-phong', [ClientDatPhongController::class, 'index'])->name('datphong');
+    Route::get('/da-dat-phong', [ClientDatPhongController::class, 'daDatPhong'])->name('da_dat_phong');
+>>>>>>> 457a1db6164577e4d7bcc547516917c8c07ff8cc
 });
 
 // Public impersonation stop (in case admin is impersonating)
