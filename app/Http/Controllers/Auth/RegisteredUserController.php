@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\RegisterRequest;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
@@ -28,16 +29,9 @@ class RegisteredUserController extends Controller
      *
      * @throws \Illuminate\Validation\ValidationException
      */
-    public function store(Request $request): RedirectResponse
+    public function store(RegisterRequest $request): RedirectResponse
     {
-        $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'cccd' => ['nullable', 'string', 'max:20'],
-            'sdt' => ['nullable', 'string', 'max:20'],
-            'dia_chi' => ['nullable', 'string', 'max:255'],
-        ]);
+        $request->validated();
 
         // Generate a safe username from the email (prefix before @). Ensure uniqueness.
         $base = Str::before($request->email, '@');

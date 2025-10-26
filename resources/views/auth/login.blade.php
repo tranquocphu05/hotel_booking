@@ -20,9 +20,9 @@
                     <x-text-input id="email" class="block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500" type="text" name="email" :value="old('email')" required autofocus autocomplete="username" placeholder="you@example.com" />
                 </div>
                 <x-input-error :messages="$errors->get('email')" class="mt-2" />
-                @if(session('login_error'))
+                {{-- @if(session('login_error'))
                     <p class="text-red-600 mt-2">{{ session('login_error') }}</p>
-                @endif
+                @endif --}}
             </div>
 
             <div>
