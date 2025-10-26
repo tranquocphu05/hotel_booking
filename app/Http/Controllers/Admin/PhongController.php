@@ -128,20 +128,6 @@ class PhongController extends Controller
     public function update(Request $request, $id)
     {
         $phong = Phong::findOrFail($id);
-<<<<<<< HEAD
-        $data = $validated;
-
-        // Cập nhật trường gia cũ để tương thích
-        $data['gia'] = $data['gia_goc'];
-        if ($request->hasFile('img')) {
-            if ($phong->img && file_exists(public_path($phong->img))) {
-                unlink(public_path($phong->img));
-            }
-            $file = $request->file('img');
-            $filename = time() . '_' . $file->getClientOriginalName();
-            $file->move(public_path('uploads/phong'), $filename);
-            $data['img'] = 'uploads/phong/' . $filename;
-=======
 
         $validated = $request->validate([
             'loai_phong_id'   => 'required|exists:loai_phong,id',
@@ -168,7 +154,6 @@ class PhongController extends Controller
             return redirect()->back()
                 ->withErrors(['gia_khuyen_mai' => 'Vui lòng nhập giá khuyến mãi khi có khuyến mãi.'])
                 ->withInput();
->>>>>>> f009f1c85211a62beb36e618a23e39136771a0d1
         }
 
         try {
@@ -218,23 +203,6 @@ class PhongController extends Controller
         $ngayNhan = $request->input('ngay_nhan', now()->format('Y-m-d'));
         $ngayTra = $request->input('ngay_tra', now()->addDay()->format('Y-m-d'));
 
-<<<<<<< HEAD
-        // Lấy tất cả phòng
-        $allRooms = Phong::with('loaiPhong')->get();
-
-        // Lấy các phòng đã được đặt trong khoảng thời gian này
-        $bookedRoomIds = \App\Models\DatPhong::where(function ($query) use ($ngayNhan, $ngayTra) {
-            $query->where(function ($q) use ($ngayNhan, $ngayTra) {
-                // Đặt phòng bắt đầu trong khoảng thời gian
-                $q->whereBetween('ngay_nhan', [$ngayNhan, $ngayTra])
-                    ->orWhereBetween('ngay_tra', [$ngayNhan, $ngayTra])
-                    // Hoặc đặt phòng bao trùm khoảng thời gian
-                    ->orWhere(function ($subQ) use ($ngayNhan, $ngayTra) {
-                        $subQ->where('ngay_nhan', '<=', $ngayNhan)
-                            ->where('ngay_tra', '>=', $ngayTra);
-                    });
-            });
-=======
         $allRooms = Phong::with('loaiPhong')->get();
 
         $bookedRoomIds = \App\Models\DatPhong::where(function ($query) use ($ngayNhan, $ngayTra) {
@@ -244,25 +212,12 @@ class PhongController extends Controller
                     $subQ->where('ngay_nhan', '<=', $ngayNhan)
                          ->where('ngay_tra', '>=', $ngayTra);
                 });
->>>>>>> f009f1c85211a62beb36e618a23e39136771a0d1
+
         })
             ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
             ->pluck('phong_id')
             ->toArray();
 
-<<<<<<< HEAD
-        // Lấy phòng trống (không bị đặt và không bị chống)
-        $availableRooms = $allRooms->filter(function ($room) use ($bookedRoomIds) {
-            return !in_array($room->id, $bookedRoomIds) &&
-                $room->trang_thai === 'hien' &&
-                $room->trang_thai !== 'chong';
-        });
-
-        // Lấy loại phòng để filter
-        $loaiPhongs = LoaiPhong::all();
-
-        // Đếm số phòng đã đặt
-=======
         $availableRooms = $allRooms->filter(function ($room) use ($bookedRoomIds) {
             return !in_array($room->id, $bookedRoomIds)
                 && $room->trang_thai === 'hien'
@@ -270,7 +225,6 @@ class PhongController extends Controller
         });
 
         $loaiPhongs = LoaiPhong::all();
->>>>>>> f009f1c85211a62beb36e618a23e39136771a0d1
         $bookedCount = count($bookedRoomIds);
 
         return view('admin.phong.available', compact('availableRooms', 'loaiPhongs', 'ngayNhan', 'ngayTra', 'bookedRoomIds', 'bookedCount'));
@@ -288,10 +242,6 @@ class PhongController extends Controller
     {
         $phong = Phong::findOrFail($id);
 
-<<<<<<< HEAD
-        // Kiểm tra phòng có đang được đặt không
-=======
->>>>>>> f009f1c85211a62beb36e618a23e39136771a0d1
         $hasActiveBooking = \App\Models\DatPhong::where('phong_id', $id)
             ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
             ->exists();
@@ -301,10 +251,6 @@ class PhongController extends Controller
                 ->with('error', 'Không thể chống phòng đang được đặt.');
         }
 
-<<<<<<< HEAD
-        // Cập nhật trạng thái phòng thành "chong"
-=======
->>>>>>> f009f1c85211a62beb36e618a23e39136771a0d1
         $phong->update(['trang_thai' => 'chong']);
 
         return redirect()->route('admin.phong.index')
