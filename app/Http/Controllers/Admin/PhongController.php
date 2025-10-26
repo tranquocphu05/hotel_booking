@@ -46,8 +46,8 @@ class PhongController extends Controller
                 'unique:phong,ten_phong',
                 'regex:/^(?!\d+$)(?!\d)[\p{L}\p{N}\s]+$/u' // Không toàn số, không bắt đầu bằng số
             ],
-            'gia_goc'         => 'required|numeric|min:0|max:999999999',
-            'gia_khuyen_mai'  => 'nullable|numeric|min:0|max:999999999|lt:gia_goc',
+            'gia_goc'         => 'required|numeric|min:100000|max:999999999',
+            'gia_khuyen_mai'  => 'nullable|numeric|min:100000|max:999999999|lt:gia_goc',
             'co_khuyen_mai'   => 'nullable|boolean',
             'trang_thai'      => 'required|in:hien,an,bao_tri,chong',
             'img'             => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240', // 10MB
@@ -64,7 +64,7 @@ class PhongController extends Controller
 
             'gia_goc.required' => 'Vui lòng nhập giá gốc cho phòng.',
             'gia_goc.numeric'  => 'Giá gốc phải là một số hợp lệ.',
-            'gia_goc.min'      => 'Giá gốc phải lớn hơn hoặc bằng 0.',
+            'gia_goc.min'      => 'Giá gốc phải lớn hơn hoặc bằng 100000.',
             'gia_goc.max'      => 'Giá gốc không được vượt quá 999,999,999.',
 
             'gia_khuyen_mai.numeric' => 'Giá khuyến mãi phải là số.',
@@ -138,8 +138,8 @@ class PhongController extends Controller
                 'unique:phong,ten_phong,' . $id,
                 'regex:/^(?!\d+$)(?!\d)[\p{L}\p{N}\s]+$/u'
             ],
-            'gia_goc'         => 'required|numeric|min:0|max:999999999',
-            'gia_khuyen_mai'  => 'nullable|numeric|min:0|max:999999999|lt:gia_goc',
+            'gia_goc'         => 'required|numeric|min:100000|max:999999999',
+            'gia_khuyen_mai'  => 'nullable|numeric|min:100000|max:999999999|lt:gia_goc',
             'co_khuyen_mai'   => 'nullable|boolean',
             'trang_thai'      => 'required|in:hien,an,bao_tri,chong',
             'img'             => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240',
