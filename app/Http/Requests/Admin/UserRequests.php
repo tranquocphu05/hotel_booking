@@ -1,22 +1,18 @@
 <?php
 
-namespace App\Http\Requests\Admin\User;
+namespace App\Http\Requests\Admin;
 
-use Egulias\EmailValidator\Validation\DNSCheckValidation;
+use App\Traits\NormalizePhone;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+use Egulias\EmailValidator\EmailValidator;
 use Egulias\EmailValidator\Validation\MultipleValidationWithAnd;
 use Egulias\EmailValidator\Validation\RFCValidation;
-use Illuminate\Foundation\Http\FormRequest;
+use Egulias\EmailValidator\Validation\DNSCheckValidation;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule;
-use App\Traits\NormalizePhone;
 
-class UpdateUserRequest extends FormRequest
+class UserRequests extends FormRequest
 {
-
-
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         $user = Auth::user();
@@ -29,12 +25,6 @@ class UpdateUserRequest extends FormRequest
         return $user && in_array($user->vai_tro, ['admin', 'nhan_vien']);
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
-     */
-
     use NormalizePhone;
     protected function prepareForValidation()
     {
@@ -43,21 +33,26 @@ class UpdateUserRequest extends FormRequest
 
     public function rules(): array
     {
-        // Lấy ID của user đang được cập nhật
-        $id = $this->route('user'); // hoặc tùy bạn đặt route name là gì
+        // Nếu đang cập nhật user → lấy ID hiện tại để bỏ qua unique
+        $id = $this->route('user') ?? null;
+
+        // Kiểm tra xem request là thêm mới hay cập nhật
+        $isUpdate = in_array($this->method(), ['PUT', 'PATCH']);
 
         return [
             'username' => [
-                'required',
+                $isUpdate ? 'sometimes' : 'required', // nếu update có thể không gửi
                 'string',
                 'max:100',
                 Rule::unique('nguoi_dung', 'username')->ignore($id),
             ],
+
             'email' => [
-                'required',
+                $isUpdate ? 'sometimes' : 'required',
                 'string',
+                'max:255',
                 function ($attribute, $value, $fail) {
-                    $validator = new \Egulias\EmailValidator\EmailValidator();
+                    $validator = new EmailValidator();
                     $multipleValidations = new MultipleValidationWithAnd([
                         new RFCValidation(),
                         new DNSCheckValidation(),
@@ -66,26 +61,26 @@ class UpdateUserRequest extends FormRequest
                         $fail('Email không hợp lệ hoặc domain không tồn tại.');
                     }
                 },
-                'max:255',
                 Rule::unique('nguoi_dung', 'email')->ignore($id),
             ],
-            // password có thể để trống nếu không đổi
+
+            // Khi thêm mới: bắt buộc password, khi cập nhật: có thể bỏ trống
             'password' => [
-                'nullable',
+                $isUpdate ? 'nullable' : 'required',
                 'string',
                 'min:6',
                 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/',
             ],
+
             'ho_ten' => 'nullable|string|max:100',
 
-            'sdt' => [
-                'nullable',
-                'regex:/^(\+84|0)(3|5|7|8|9)[0-9]{8}$/',
-            ],
+            'sdt' => ['nullable', 'regex:/^0(3|5|7|8|9)[0-9]{8}$/'],
+
             'cccd' => [
                 'nullable',
                 'regex:/^[0-9]{12}$/',
             ],
+
             'dia_chi' => 'nullable|string|max:255',
             'vai_tro' => 'required|in:admin,nhan_vien,khach_hang',
             'trang_thai' => 'required|in:hoat_dong,khoa',
@@ -99,13 +94,12 @@ class UpdateUserRequest extends FormRequest
             'username.unique' => 'Tên đăng nhập đã tồn tại.',
 
             'email.required' => 'Vui lòng nhập địa chỉ email.',
-            'email.email' => 'Địa chỉ email không hợp lệ.',
             'email.unique' => 'Email này đã được sử dụng.',
             'email.max' => 'Email không được vượt quá 255 ký tự.',
 
             'password.required' => 'Vui lòng nhập mật khẩu.',
             'password.min' => 'Mật khẩu phải có ít nhất 6 ký tự.',
-            'password.regex' => 'Mật khẩu phải chứa ít nhất 1 chữ hoa, 1 chữ thường và 1 chữ số.',
+            'password.regex' => 'Mật khẩu phải chứa ít nhất 1 chữ hoa, chữ thường và 1 chữ số.',
 
             'sdt.regex' => 'Số điện thoại không hợp lệ. Phải là số di động Việt Nam gồm 10 chữ số.',
             'cccd.regex' => 'Số CCCD không hợp lệ. Phải gồm đúng 12 chữ số.',
@@ -114,5 +108,4 @@ class UpdateUserRequest extends FormRequest
             'trang_thai.in' => 'Trạng thái không hợp lệ.',
         ];
     }
-    
 }

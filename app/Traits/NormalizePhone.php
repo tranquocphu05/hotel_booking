@@ -6,7 +6,8 @@ trait NormalizePhone
 {
     /**
      * Chuẩn hóa số điện thoại về dạng 0xxxxxxxxx.
-     * Tự động chuyển +84xxxxxx -> 0xxxxxx và loại bỏ ký tự không hợp lệ.
+     * Tự động chuyển +84xxxxxx -> 0xxxxxx, +840xxxxxx -> 0xxxxxx
+     * và loại bỏ ký tự không hợp lệ.
      */
     protected function normalizePhone(?string $phone): ?string
     {
@@ -20,7 +21,16 @@ trait NormalizePhone
 
         // Nếu là +84xxxx => đổi thành 0xxxx
         if (str_starts_with($phone, '+84')) {
-            $phone = '0' . substr($phone, 3);
+            // Bỏ "+84"
+            $phone = substr($phone, 3);
+
+            // Nếu còn 0 ở đầu thì bỏ
+            if (str_starts_with($phone, '0')) {
+                $phone = substr($phone, 1);
+            }
+
+            // Thêm lại số 0 ở đầu
+            $phone = '0' . $phone;
         }
 
         return $phone;

@@ -18,7 +18,7 @@
     </div>
 
     {{-- Form --}}
-    <form action="{{ route('admin.loai_phong.store') }}" method="POST" enctype="multipart/form-data" class="space-y-6">
+    <form action="{{ route('admin.loai_phong.store') }}" method="POST" enctype="multipart/form-data" class="space-y-6" novalidate>
         @csrf
 
         {{-- Hàng 1: Tên loại & Giá cơ bản --}}

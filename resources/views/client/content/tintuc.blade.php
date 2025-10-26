@@ -4,16 +4,27 @@
 
 @section('client_content')
 
-    <div class="bg-gray-50 py-16 bg-cover bg-center">
-        <div class="max-w-7xl mx-auto px-4 text-center text-gray-800">
-            <h2 class="text-4xl font-serif font-bold mb-3">Tin Tức Khách Sạn</h2>
-            <div class="text-lg text-gray-600">
-                <a href="{{ url('/') }}" class="hover:text-red-600 transition">Trang Chủ</a>
-                <span class="mx-2">/</span>
-                <span class="font-semibold text-gray-800">Tin Tức</span>
-            </div>
+<div class="relative w-full bg-cover bg-center bg-no-repeat"
+    style="background-image: url('{{ asset('img/blog/blog-13.jpg') }}');">
+
+    {{-- Lớp phủ tối giúp chữ nổi bật --}}
+    <div class="absolute inset-0 bg-black bg-opacity-40"></div>
+
+    <div class="relative py-28 px-4 text-center text-white">
+        <div class="text-lg text-gray-200 mb-4">
+            <a href="{{ url('/') }}" class="hover:text-[#FFD700] transition-colors">Trang Chủ</a>
+            <span class="mx-2 text-gray-300">/</span>
+            <span class="text-[#FFD700] font-semibold">Tin Tức</span>
         </div>
+
+        <h2 class="text-5xl md:text-7xl font-bold mb-4">Tin Tức Khách Sạn</h2>
+
+        <p class="text-lg md:text-xl text-gray-100 leading-relaxed max-w-3xl mx-auto">
+            Cập nhật những tin tức, sự kiện và ưu đãi mới nhất từ Ozia Hotel để bạn luôn là người đầu tiên biết đến.
+        </p>
     </div>
+</div>
+
     <section class="py-20 bg-white">
         <div class="max-w-7xl mx-auto px-4">
 
