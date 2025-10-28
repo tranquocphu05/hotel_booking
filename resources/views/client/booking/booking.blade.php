@@ -24,7 +24,11 @@
             ? $ngay_nhan_carbon->diffInDays($ngay_tra_carbon)
             : 1;
 
-        $gia_mot_dem = $phong->gia ?? 0;
+        // Use promotional price if available
+        $gia_mot_dem = ($phong->co_khuyen_mai && !empty($phong->gia_khuyen_mai) && $phong->gia_khuyen_mai > 0)
+            ? $phong->gia_khuyen_mai
+            : $phong->gia;
+        $gia_mot_dem = $gia_mot_dem ?? 0;
         $tong_tien_initial = $gia_mot_dem * $so_dem; // Tổng tiền ban đầu tính bằng PHP
 
     @endphp
@@ -71,8 +75,6 @@
 
                     <div id="voucherDisplay" class="text-sm text-green-600 font-medium mt-2 hidden"></div>
 
-                    <input type="hidden" id="voucherCode" name="voucher_code">
-                    <input type="hidden" id="discountValue" name="discount_value" value="0">
                     <input type="hidden" id="totalPriceBeforeDiscount" value="{{ $tong_tien_initial }}">
 
                     <div class="mt-4 pt-2 border-t border-gray-200">

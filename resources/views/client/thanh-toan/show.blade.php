@@ -128,15 +128,29 @@
                         </div>
 
                         <!-- Total Price -->
-                        <div class="bg-gray-50 rounded-lg p-4">
-                            <div class="text-center">
-                                <p class="text-lg font-medium text-gray-600 mb-1">Tổng thanh toán</p>
-                                @if($datPhong->voucher)
-                                    <p class="text-sm text-gray-500">Voucher áp dụng: <span class="font-medium text-indigo-600">{{ $datPhong->voucher->ma_voucher }}</span> - Giảm {{ rtrim(rtrim($datPhong->voucher->gia_tri, '0'), '.') }}%</p>
+                        <div class="bg-slate-50 rounded-xl shadow-sm border border-slate-200 p-6">
+                            <h3 class="text-lg font-semibold text-slate-800 mb-4">Tóm tắt hóa đơn</h3>
+                            <div class="space-y-3 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-slate-600">Giá phòng ({{ $nights }} đêm)</span>
+                                    <span class="font-medium text-slate-900">{{ number_format($giaGoc, 0, ',', '.') }} VNĐ</span>
+                                </div>
+
+                                @if ($datPhong->voucher && $giamGia > 0)
+                                    <div class="flex justify-between">
+                                        <span class="text-slate-600">
+                                            Voucher <span class="font-mono bg-green-100 text-green-700 px-2 py-0.5 rounded-md">{{ $datPhong->voucher->ma_voucher }}</span>
+                                        </span>
+                                        <span class="font-medium text-green-600">-{{ number_format($giamGia, 0, ',', '.') }} VNĐ</span>
+                                    </div>
                                 @endif
-                                <p class="text-2xl font-bold text-green-600">
-                                    {{ number_format($datPhong->tong_tien, 0, ',', '.') }} VNĐ
-                                </p>
+
+                                <div class="border-t border-slate-200 !my-4"></div>
+
+                                <div class="flex justify-between items-center">
+                                    <span class="text-base font-semibold text-slate-800">Tổng cộng</span>
+                                    <span class="text-xl font-bold text-blue-600">{{ number_format($datPhong->tong_tien, 0, ',', '.') }} VNĐ</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -169,7 +183,7 @@
                                 </label>
 
                                 <!-- Bank Transfer -->
-                               
+
 
                                 <!-- MoMo -->
                                 <label for="momo" class="block">
@@ -220,27 +234,7 @@
                                 @enderror
 
                                 <!-- Bank Transfer Info -->
-                                <div id="bank_info" class="hidden mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                                    <h3 class="font-medium text-blue-900 mb-3">Thông tin chuyển khoản</h3>
-                                    <div class="space-y-2 text-sm">
-                                        <div class="flex justify-between">
-                                            <span class="text-blue-700">Ngân hàng:</span>
-                                            <span class="font-medium text-blue-900">Vietcombank</span>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <span class="text-blue-700">Chủ tài khoản:</span>
-                                            <span class="font-medium text-blue-900">CONG TY TNHH KHACH SAN SONA</span>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <span class="text-blue-700">Số tài khoản:</span>
-                                            <span class="font-medium text-blue-900 font-mono">1234567890</span>
-                                        </div>
-                                        <div class="mt-3 p-2 bg-blue-100 rounded">
-                                            <p class="text-blue-800 font-medium text-xs">Nội dung chuyển khoản:</p>
-                                            <p class="text-blue-900 font-mono text-xs">Thanh toan cho ma dat phong #{{ $datPhong->id }}</p>
-                                        </div>
-                                    </div>
-                                </div>
+
                             </div>
 
                             <!-- Submit Button -->
