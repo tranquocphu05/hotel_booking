@@ -60,6 +60,15 @@ class UserRequests extends FormRequest
                     if (!$validator->isValid($value, $multipleValidations)) {
                         $fail('Email không hợp lệ hoặc domain không tồn tại.');
                     }
+
+                    // Kiểm tra phần đuôi domain có hợp lệ theo danh sách IANA
+                    $domain = substr(strrchr($value, "@"), 1);
+                    $tld = strtolower(pathinfo($domain, PATHINFO_EXTENSION));
+
+                    $validTlds = ['com', 'vn', 'net', 'org', 'edu', 'gov', 'io', 'co']; // bạn có thể mở rộng thêm
+                    if (!in_array($tld, $validTlds)) {
+                        $fail("Tên miền .{$tld} không hợp lệ hoặc chưa được hỗ trợ.");
+                    }
                 },
                 Rule::unique('nguoi_dung', 'email')->ignore($id),
             ],

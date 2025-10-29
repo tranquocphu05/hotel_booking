@@ -28,9 +28,9 @@ class RegisteredUserController extends Controller
      * Handle an incoming registration request.
      *
      * @throws \Illuminate\Validation\ValidationException
-     */
+     */ 
     public function store(RegisterRequest $request): RedirectResponse
-    {
+    { 
         $request->validated();
 
         // Generate a safe username from the email (prefix before @). Ensure uniqueness.

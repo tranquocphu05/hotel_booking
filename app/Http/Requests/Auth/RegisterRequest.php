@@ -4,6 +4,7 @@ namespace App\Http\Requests\Auth;
 
 use Illuminate\Foundation\Http\FormRequest;
 use App\Traits\NormalizePhone;
+use Egulias\EmailValidator\EmailValidator;
 use Egulias\EmailValidator\Validation\DNSCheckValidation;
 use Egulias\EmailValidator\Validation\MultipleValidationWithAnd;
 use Egulias\EmailValidator\Validation\RFCValidation;
@@ -41,13 +42,22 @@ class RegisterRequest extends FormRequest
                 'string',
                 'max:255',
                 function ($attribute, $value, $fail) {
-                    $validator = new \Egulias\EmailValidator\EmailValidator();
+                    $validator = new EmailValidator();
                     $multipleValidations = new MultipleValidationWithAnd([
                         new RFCValidation(),
                         new DNSCheckValidation(),
                     ]);
                     if (!$validator->isValid($value, $multipleValidations)) {
                         $fail('Email không hợp lệ hoặc domain không tồn tại.');
+                    }
+
+                    // Kiểm tra phần đuôi domain có hợp lệ theo danh sách IANA
+                    $domain = substr(strrchr($value, "@"), 1);
+                    $tld = strtolower(pathinfo($domain, PATHINFO_EXTENSION));
+
+                    $validTlds = ['com', 'vn', 'net', 'org', 'edu', 'gov', 'io', 'co']; // bạn có thể mở rộng thêm
+                    if (!in_array($tld, $validTlds)) {
+                        $fail("Tên miền .{$tld} không hợp lệ hoặc chưa được hỗ trợ.");
                     }
                 },
                 'unique:nguoi_dung,email',
