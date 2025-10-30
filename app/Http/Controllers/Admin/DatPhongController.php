@@ -50,8 +50,8 @@ class DatPhongController extends Controller
             'da_tra'       => DatPhong::where('trang_thai', 'da_tra')->whereDate('ngay_dat', $today)->count(),
         ];
 
-        // Phân trang, mỗi trang 9 đơn
-        $bookings = $query->paginate(9);
+        // Phân trang, mỗi trang 5 đơn
+        $bookings = $query->paginate(5);
 
         if ($request->ajax()) {
             return view('admin.dat_phong._bookings_list', compact('bookings'))->render();

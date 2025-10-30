@@ -158,7 +158,5 @@
         }
     });
 </script>
-
-@push('scripts')
 @endpush
 @endsection
