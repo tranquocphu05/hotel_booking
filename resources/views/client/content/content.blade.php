@@ -75,12 +75,13 @@
     </div>
 </section>
 <style>
-@media (min-width: 1024px) {
-    /* Đổi vị trí ảnh và text cho block chẵn */
-    .about-block:nth-child(even) .lg\:flex-row {
-        flex-direction: row-reverse;
+    @media (min-width: 1024px) {
+
+        /* Đổi vị trí ảnh và text cho block chẵn */
+        .about-block:nth-child(even) .lg\:flex-row {
+            flex-direction: row-reverse;
+        }
     }
-}
 </style>
 
 
@@ -567,8 +568,7 @@
         class="relative w-[90vw] max-w-[1000px] overflow-visible shadow-[0_0_60px_rgba(255,255,255,0.1)] border border-white">
 
         <div class="relative bg-black overflow-hidden">
-            <video id="popupVideo" controls preload="auto" playsinline
-                class="w-full h-full cursor-pointer z-10">
+            <video id="popupVideo" controls preload="auto" playsinline class="w-full h-full cursor-pointer z-10">
                 <source src="{{ asset('videos/video-khach-san.mp4') }}" type="video/mp4">
                 Trình duyệt của bạn không hỗ trợ video.
             </video>
@@ -637,7 +637,7 @@
                                     </svg>
                                 </button>
 
-                                @if ((data_get($phong, 'loaiPhong.diem_danh_gia', 0)) >= 4.8)
+                                @if (data_get($phong, 'loaiPhong.diem_danh_gia', 0) >= 4.8)
                                     <span
                                         class="absolute bottom-0 left-0 bg-yellow-500 text-white text-xs font-semibold px-2 py-1 rounded-tr-lg">Genius</span>
                                 @endif
@@ -645,15 +645,20 @@
                             <div class="p-4">
                                 <h3 class="text-lg font-bold text-gray-800 mb-1 leading-tight">{{ $phong->ten_phong }}
                                 </h3>
-                                <p class="text-sm text-gray-500 mb-2">{{ data_get($phong, 'loaiPhong.ten_loai', 'Phòng') }}</p>
+                                <p class="text-sm text-gray-500 mb-2">
+                                    {{ data_get($phong, 'loaiPhong.ten_loai', 'Phòng') }}</p>
 
                                 <div class="flex items-center mb-3">
                                     @php($stars = data_get($phong, 'loaiPhong.stars'))
-                                    @if($stars)
-                                        <span class="bg-blue-700 text-white text-sm font-semibold px-2 py-0.5 rounded mr-2">{{ $stars }}</span>
+                                    @if ($stars)
+                                        <span
+                                            class="bg-blue-700 text-white text-sm font-semibold px-2 py-0.5 rounded mr-2">{{ $stars }}</span>
                                         <div>
-                                            <span class="text-sm font-semibold text-gray-800">{{ data_get($phong, 'loaiPhong.rating_text', '') }}</span>
-                                            <span class="text-xs text-gray-500 block">{{ data_get($phong, 'loaiPhong.so_luong_danh_gia', 0) }} đánh giá</span>
+                                            <span
+                                                class="text-sm font-semibold text-gray-800">{{ data_get($phong, 'loaiPhong.rating_text', '') }}</span>
+                                            <span
+                                                class="text-xs text-gray-500 block">{{ data_get($phong, 'loaiPhong.so_luong_danh_gia', 0) }}
+                                                đánh giá</span>
                                         </div>
                                     @endif
                                 </div>
@@ -670,7 +675,7 @@
                                                 {{ number_format($phong->gia_hien_thi, 0, ',', '.') }}₫</p>
                                         @endif
                                     </div>
-                                    <span class="text-sm text-gray-500">2 đêm</span>
+                                    <span class="text-sm text-gray-500">1 đêm</span>
                                 </div>
                             </div>
                         </a>
@@ -679,264 +684,280 @@
             </div>
         </div>
     </section>
+</section>
 
-    <section id="contact-booking" class="py-16 bg-white">
-        <style>
-            .booking-info-box {
-                background: linear-gradient(145deg, #ffffff, #f9f7f2);
-                padding: 2.5rem;
-                border-radius: 12px;
-                border-left: 5px solid #d4af37;
-                box-shadow:
-                    0 6px 15px rgba(0, 0, 0, 0.05),
-                    inset 0 0 8px rgba(212, 175, 55, 0.15);
-                height: 100%;
-                display: flex;
-                flex-direction: column;
-                justify-content: space-between;
-                transition: all 0.4s ease;
-                position: relative;
-                overflow: hidden;
-            }
+<section id="contact-booking" class="py-16 bg-white">
+    <style>
+        .equal-box {
+            height: 500px;
+        }
 
-            .booking-info-box .info-item {
-                display: flex;
-                align-items: center;
-                margin-bottom: 1rem;
-            }
+        .booking-info-box {
+            background: linear-gradient(145deg, #ffffff, #f9f7f2);
+            padding: 2.5rem;
+            border-radius: 12px;
+            border-left: 5px solid #d4af37;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.05),
+                inset 0 0 8px rgba(212, 175, 55, 0.15);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
 
-            .booking-info-box .info-icon {
-                font-size: 1.25rem;
-                color: #d4af37;
-                margin-right: 0.75rem;
-                width: 24px;
-                text-align: center;
-                transition: transform 0.3s ease, color 0.3s ease;
-            }
+        /* ===================== Contact Info Hover Luxury ===================== */
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: 0.3s ease;
+        }
 
-            .booking-info-box .info-text {
-                font-size: 1rem;
-                color: #333;
-            }
+        .info-item i {
+            font-size: 18px;
+            width: 22px;
+            color: #D4AF37;
+            transition: 0.3s ease;
+        }
 
-            /* ===================== NÚT ĐẶT PHÒNG ===================== */
-            .btn-booking {
-                display: block;
-                width: fit-content;
-                margin: 3rem auto 0;
-                /* cách ra và canh giữa */
-                background: linear-gradient(to right, #d4af37, #b68b00);
-                color: #fff;
-                border-radius: 8px;
-                font-weight: 600;
-                letter-spacing: 0.5px;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-                transition: all 0.3s ease;
-                position: relative;
-                overflow: hidden;
-                text-align: center;
-                padding: 0.9rem 1.8rem;
-                text-decoration: none;
-            }
+        .info-item:hover i {
+            transform: translateY(-3px);
+            color: #b68b00;
+        }
 
-            .btn-booking:hover {
-                background: linear-gradient(to right, #b68b00, #d4af37);
-                transform: translateY(-2px);
-                box-shadow: 0 8px 18px rgba(212, 175, 55, 0.4);
-                color: #fff;
-            }
-        </style>
+        .info-item:hover span,
+        .info-item:hover a {
+            color: #b68b00 !important;
+        }
 
+        /* ===================== NÚT ĐẶT PHÒNG Luxury ===================== */
+        .btn-booking {
+            position: relative;
+            overflow: hidden;
+            background: transparent;
+            border: 2px solid #d4af37;
+            color: #d4af37;
+            padding: 0.75rem 2.2rem;
+            border-radius: 50px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.35s ease;
+        }
 
-        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
+        .btn-booking::before {
+            content: "";
+            position: absolute;
+            left: -100%;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to right, #d4af37, #b68b00);
+            transition: all 0.4s ease;
+            z-index: 0;
+        }
 
-                <div class="lg:col-span-1">
-                    <div class="h-[530px] overflow-hidden rounded-lg shadow-md">
-                        <img src="{{ asset('img/about/about-1.jpg') }}" alt="Hình ảnh khách sạn"
-                            class="w-full h-full object-cover">
-                    </div>
-                </div>
+        .btn-booking:hover::before {
+            left: 0;
+        }
 
-                <div class="lg:col-span-1">
-                    <h2 class="text-xl font-bold mb-4 sr-only">Vị trí Khách sạn</h2>
-                    <div class="h-[530px] overflow-hidden rounded-lg shadow-md">
-                        <iframe
-                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.122108862899!2d106.6781747147715!3d10.79374029231644!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752f360824b267%3A0x64f43446b32b85d3!2s244A%20Pasteur%2C%20Ph%C6%B0%E1%BB%9Dng%20Xu%C3%A2n%20Ho%C3%A0%2C%20Th%C3%A0nh%20ph%E1%BB%91%20H%E1%BB%93%20Ch%C3%AD%20Minh!5e0!3m2!1svi!2s!4v1633512345678!5m2!1svi!2s"
-                            title="Bản đồ vị trí khách sạn" allowfullscreen="" loading="lazy"
-                            referrerpolicy="no-referrer-when-downgrade" class="w-full h-full border-0"></iframe>
-                    </div>
-                </div>
+        .btn-booking svg,
+        .btn-booking span {
+            z-index: 10;
+            transition: color 0.3s ease;
+        }
 
-                <div class="lg:col-span-1">
-                    <div class="booking-info-box h-[550px]">
-                        <div>
-                            <p class="text-sm uppercase tracking-widest text-gray-500 mb-2 font-light">
-                                Liên Hệ & Đặt Chỗ
-                            </p>
-                            <h1 class="text-3xl font-serif font-bold tracking-wide mb-6 text-gray-800">THÔNG TIN ĐẶT
-                                PHÒNG
-                            </h1>
-                            <p class="text-gray-600 mb-8 leading-relaxed text-base">
-                                Bạn có thắc mắc? Đội ngũ của chúng tôi luôn sẵn sàng giúp đỡ. Hãy thoải mái gọi điện
-                                hoặc gửi email cho chúng tôi. Chúng tôi rất vui khi được chào đón bạn tại khách sạn của
-                                chúng tôi.
-                            </p>
+        .btn-booking:hover svg,
+        .btn-booking:hover span {
+            color: #fff;
+        }
 
-                            <div class="space-y-5">
-                                <div class="info-item">
-                                    <i class="fas fa-map-marker-alt info-icon"></i>
-                                    <span class="text-gray-700">244A Pasteur, Phường Xuân Hòa, Thành phố Hồ Chí
-                                        Minh</span>
-                                </div>
-                                <div class="info-item">
-                                    <i class="fas fa-phone info-icon"></i>
-                                    <span class="text-gray-700">0971 839 55 55</span>
-                                </div>
-                                <div class="info-item">
-                                    <i class="fas fa-envelope info-icon"></i>
-                                    <a href="mailto:book@hotelname.com"
-                                        class="text-gray-700 hover:text-[#D4AF37] transition">book@hotelname.com</a>
-                                </div>
-                                <div class="info-item">
-                                    <i class="fas fa-clock info-icon"></i>
-                                    <span class="text-gray-700">9:00 - 12:00 và 14:00 - 19:00</span>
-                                </div>
-                            </div>
-                        </div>
+        .btn-booking:hover svg {
+            transform: translateX(6px);
+        }
+    </style>
 
-                        <a href="{{ route('client.phong') }}"
-                            class="btn-booking relative inline-flex items-center justify-center px-8 py-3 overflow-hidden tracking-wider text-white rounded-md text-lg font-semibold uppercase">
-                            <span
-                                class="absolute w-0 h-0 transition-all duration-500 ease-out bg-gradient-to-r from-[#d4af37] to-[#b68b00] rounded-full group-hover:w-56 group-hover:h-56"></span>
-                            <span class="absolute bottom-0 left-0 h-full -ml-2 opacity-60">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-auto h-full object-stretch"
-                                    viewBox="0 0 487 487">
-                                    <path fill-opacity=".15" fill-rule="nonzero" fill="#fff"
-                                        d="M0 .3c67 2.1 134.1 4.3 186.3 37 52.2 32.7 89.6 95.8 112.8 150.6 23.2 54.8 32.3 101.4 61.2 149.9 28.9 48.4 77.7 98.8 126.4 149.2H0V.3z">
-                                    </path>
-                                </svg>
-                            </span>
-                            <span class="absolute top-0 right-0 w-12 h-full -mr-3 opacity-60">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="object-cover w-full h-full"
-                                    viewBox="0 0 487 487">
-                                    <path fill-opacity=".15" fill-rule="nonzero" fill="#fff"
-                                        d="M487 486.7c-66.1-3.6-132.3-7.3-186.3-37s-95.9-85.3-126.2-137.2c-30.4-51.8-49.3-99.9-76.5-151.4C70.9 109.6 35.6 54.8.3 0H487v486.7z">
-                                    </path>
-                                </svg>
-                            </span>
-                            <span
-                                class="absolute inset-0 w-full h-full rounded-lg opacity-20 bg-gradient-to-b from-transparent via-transparent to-yellow-200"></span>
-                            <span class="relative text-base font-semibold tracking-wide">ĐẶT PHÒNG NGAY</span>
-                        </a>
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
 
-
-                    </div>
-                </div>
+            <!-- Ảnh -->
+            <div class="equal-box overflow-hidden rounded-lg shadow-md">
+                <img src="{{ asset('img/about/about-1.jpg') }}" alt="Hình ảnh khách sạn"
+                    class="w-full h-full object-cover">
             </div>
 
-            <div class="mt-16 pt-8 border-t border-gray-200">
-                <div class="flex justify-between items-center max-w-5xl mx-auto w-full px-8">
-                    <a href="#"
-                        class="flex items-center text-gray-700 hover:text-[#D4AF37] transition duration-300">
-                        <span class="p-3 mr-2 text-xl text-[#D4AF37]"><i class="fab fa-facebook-f"></i></span>
-                        <span class="text-sm font-medium">Theo dõi trên Facebook</span>
-                    </a>
-                    <a href="#"
-                        class="flex items-center text-gray-700 hover:text-[#D4AF37] transition duration-300">
-                        <span class="p-3 mr-2 text-xl text-[#D4AF37]"><i class="fab fa-instagram"></i></span>
-                        <span class="text-sm font-medium">Theo dõi trên Instagram</span>
-                    </a>
-                    <a href="#"
-                        class="flex items-center text-gray-700 hover:text-[#D4AF37] transition duration-300">
-                        <span class="p-3 mr-2 text-xl text-[#D4AF37]"><i class="fab fa-tiktok"></i></span>
-                        <span class="text-sm font-medium">Theo dõi trên Tiktok</span>
+            <!-- Google Maps -->
+            <div class="equal-box overflow-hidden rounded-lg shadow-md">
+                <iframe
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.122108862899!2d106.6781747147715!3d10.79374029231644!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752f360824b267%3A0x64f43446b32b85d3!2s244A%20Pasteur%2C%20Ph%C6%B0%E1%BB%9Dng%20Xu%C3%A2n%20Ho%C3%A0%2C%20Th%C3%A0nh%20ph%E1%BB%91%20H%E1%BB%93%20Ch%C3%AD%20Minh!5e0!3m2!1svi!2s!4v1633512345678!5m2!1svi!2s"
+                    allowfullscreen="" loading="lazy" class="w-full h-full border-0">
+                </iframe>
+            </div>
+
+            <!-- Thông tin đặt phòng -->
+            <div class="booking-info-box equal-box">
+                <div>
+                    <p class="text-sm uppercase tracking-widest text-gray-500 mb-2 font-light">
+                        Liên Hệ & Đặt Chỗ
+                    </p>
+                    <h1 class="text-3xl font-serif font-bold tracking-wide mb-6 text-gray-800">
+                        THÔNG TIN ĐẶT PHÒNG
+                    </h1>
+                    <p class="text-gray-600 mb-8 leading-relaxed text-base">
+                        Bạn có thắc mắc? Đội ngũ của chúng tôi luôn sẵn sàng giúp đỡ. Hãy thoải mái gọi điện hoặc gửi email cho chúng tôi.
+                    </p>
+
+                    <!-- ✅ Contact Info (ĐÃ NÂNG CẤP HOVER) -->
+                    <div class="space-y-5">
+                        <div class="info-item">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>244A Pasteur, TP. Hồ Chí Minh</span>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-phone"></i>
+                            <a href="tel:09718395555" class="text-gray-700">0971 839 55 55</a>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-envelope"></i>
+                            <a href="mailto:book@hotelname.com" class="text-gray-700">
+                                book@hotelname.com
+                            </a>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-clock"></i>
+                            <span>9:00 - 12:00 & 14:00 - 19:00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Nút đặt phòng -->
+                <div class="flex justify-center mt-8">
+                    <a href="{{ route('client.phong') }}" class="btn-booking group">
+                        <span>Đặt phòng ngay</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                        </svg>
                     </a>
                 </div>
             </div>
         </div>
-    </section>
-    @push('scripts')
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                // Initialize Weekend Deals Swiper
-                const weekendDealsSwiper = new Swiper('.weekendDealsSwiper', {
-                    // Hiển thị 3 phòng cùng lúc
-                    slidesPerView: 3,
-                    spaceBetween: 20,
 
-                    // Tự động chuyển slide
-                    autoplay: {
-                        delay: 3000,
-                        disableOnInteraction: false,
+        <!-- FOLLOW -->
+        <div class="mt-16 pt-8 border-t border-gray-200">
+            <div class="flex justify-between items-center max-w-5xl mx-auto w-full px-8">
+
+                <a href="#" class="flex items-center text-gray-700 hover:text-[#D4AF37] transition duration-300">
+                    <span class="p-3 mr-2 text-xl text-[#D4AF37]"><i class="fab fa-facebook-f"></i></span>
+                    <span class="text-sm font-medium">Theo dõi trên Facebook</span>
+                </a>
+
+                <a href="#" class="flex items-center text-gray-700 hover:text-[#D4AF37] transition duration-300">
+                    <span class="p-3 mr-2 text-xl text-[#D4AF37]"><i class="fab fa-instagram"></i></span>
+                    <span class="text-sm font-medium">Theo dõi trên Instagram</span>
+                </a>
+
+                <a href="#" class="flex items-center text-gray-700 hover:text-[#D4AF37] transition duration-300">
+                    <span class="p-3 mr-2 text-xl text-[#D4AF37]"><i class="fab fa-tiktok"></i></span>
+                    <span class="text-sm font-medium">Theo dõi trên Tiktok</span>
+                </a>
+
+            </div>
+        </div>
+    </div>
+</section>
+
+
+
+
+
+
+@push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Weekend Deals Swiper
+            const weekendDealsSwiper = new Swiper('.weekendDealsSwiper', {
+                // Hiển thị 3 phòng cùng lúc
+                slidesPerView: 3,
+                spaceBetween: 20,
+
+                // Tự động chuyển slide
+                autoplay: {
+                    delay: 3000,
+                    disableOnInteraction: false,
+                },
+
+                // Loop vô hạn
+                loop: true,
+
+                // Responsive breakpoints
+                breakpoints: {
+                    320: {
+                        slidesPerView: 1,
+                        spaceBetween: 10,
                     },
-
-                    // Loop vô hạn
-                    loop: true,
-
-                    // Responsive breakpoints
-                    breakpoints: {
-                        320: {
-                            slidesPerView: 1,
-                            spaceBetween: 10,
-                        },
-                        768: {
-                            slidesPerView: 2,
-                            spaceBetween: 15,
-                        },
-                        1024: {
-                            slidesPerView: 3,
-                            spaceBetween: 20,
-                        },
+                    768: {
+                        slidesPerView: 2,
+                        spaceBetween: 15,
                     },
-
-                    // Bỏ navigation buttons
-                    navigation: {
-                        nextEl: null,
-                        prevEl: null,
+                    1024: {
+                        slidesPerView: 3,
+                        spaceBetween: 20,
                     },
+                },
 
-                    // Bỏ pagination
-                    pagination: {
-                        el: null,
-                    },
+                // Bỏ navigation buttons
+                navigation: {
+                    nextEl: null,
+                    prevEl: null,
+                },
 
-                    // Hiệu ứng chuyển slide
-                    effect: 'slide',
-                    speed: 500,
-                });
+                // Bỏ pagination
+                pagination: {
+                    el: null,
+                },
+
+                // Hiệu ứng chuyển slide
+                effect: 'slide',
+                speed: 500,
             });
-        </script>
-    @endpush
-    @push('scripts')
-        <script>
-            document.addEventListener("DOMContentLoaded", () => {
-                if (typeof Swiper === 'undefined') {
-                    console.error('Swiper library not found!');
-                    return;
-                }
+        });
+    </script>
+@endpush
+@push('scripts')
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            if (typeof Swiper === 'undefined') {
+                console.error('Swiper library not found!');
+                return;
+            }
 
-                new Swiper(".testimonialSwiper", {
-                    slidesPerView: 1,
-                    spaceBetween: 30,
-                    centeredSlides: true,
-                    grabCursor: true,
-                    loop: true,
-                    autoplay: {
-                        delay: 4000,
-                        disableOnInteraction: false,
-                    },
-                    pagination: {
-                        el: ".swiper-pagination",
-                        clickable: true,
-                    },
-                    navigation: {
-                        nextEl: ".swiper-button-next",
-                        prevEl: ".swiper-button-prev",
-                    },
-                    speed: 800,
-                    effect: 'slide',
-                });
+            new Swiper(".testimonialSwiper", {
+                slidesPerView: 1,
+                spaceBetween: 30,
+                centeredSlides: true,
+                grabCursor: true,
+                loop: true,
+                autoplay: {
+                    delay: 4000,
+                    disableOnInteraction: false,
+                },
+                pagination: {
+                    el: ".swiper-pagination",
+                    clickable: true,
+                },
+                navigation: {
+                    nextEl: ".swiper-button-next",
+                    prevEl: ".swiper-button-prev",
+                },
+                speed: 800,
+                effect: 'slide',
             });
-        </script>
-    @endpush
+        });
+    </script>
+@endpush
