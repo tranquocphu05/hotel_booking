@@ -133,33 +133,84 @@ class DatPhongController extends Controller
         }
 
         // Nếu chỉ thay đổi trạng thái, không validate ngày
-        $validationRules = [
+        // $validationRules = [
+        //     'phong_id' => 'required|exists:phong,id',
+        //     'trang_thai' => 'required|in:cho_xac_nhan,da_xac_nhan,da_huy,da_tra',
+        //     'ngay_nhan' => 'required|date',
+        //     'ngay_tra' => 'required|date|after_or_equal:ngay_nhan',
+        //     'so_nguoi' => 'required|integer|min:1',
+        //     'username' => 'required|string|max:255',
+        //     'email' => 'required|email|max:255',
+        //     'sdt' => 'required|string|max:20',
+        //     'cccd' => 'nullable|string|max:20'
+        // ];
+
+        // $request->validate($validationRules, [
+        //     'phong_id.required' => 'Vui lòng chọn phòng',
+        //     'phong_id.exists' => 'Phòng không tồn tại',
+        //     'trang_thai.required' => 'Vui lòng chọn trạng thái',
+        //     'trang_thai.in' => 'Trạng thái không hợp lệ',
+        //     'ngay_nhan.required' => 'Vui lòng chọn ngày nhận phòng',
+        //     'ngay_tra.required' => 'Vui lòng chọn ngày trả phòng',
+        //     'ngay_tra.after_or_equal' => 'Ngày trả phòng phải sau hoặc bằng ngày nhận phòng',
+        //     'so_nguoi.required' => 'Vui lòng nhập số người',
+        //     'so_nguoi.min' => 'Số người phải lớn hơn 0',
+        //     'username.required' => 'Vui lòng nhập tên khách hàng',
+        //     'email.required' => 'Vui lòng nhập email',
+        //     'email.email' => 'Email không hợp lệ',
+        //     'sdt.required' => 'Vui lòng nhập số điện thoại'
+        // ]);
+
+        $request->validate([
             'phong_id' => 'required|exists:phong,id',
-            'trang_thai' => 'required|in:cho_xac_nhan,da_xac_nhan,da_huy,da_tra',
-            'ngay_nhan' => 'required|date',
+            'ngay_nhan' => 'required|date|after_or_equal:today',
             'ngay_tra' => 'required|date|after_or_equal:ngay_nhan',
             'so_nguoi' => 'required|integer|min:1',
             'username' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
-            'sdt' => 'required|string|max:20',
-            'cccd' => 'nullable|string|max:20'
-        ];
-
-        $request->validate($validationRules, [
+            'email' => 'required|email:rfc,dns|max:255',
+            'sdt' => 'required|regex:/^0[0-9]{9}$/',
+            'cccd' => 'required|regex:/^[0-9]{12}$/',
+            'voucher' => 'nullable|string|exists:voucher,ma_voucher'
+        ], [
             'phong_id.required' => 'Vui lòng chọn phòng',
             'phong_id.exists' => 'Phòng không tồn tại',
-            'trang_thai.required' => 'Vui lòng chọn trạng thái',
-            'trang_thai.in' => 'Trạng thái không hợp lệ',
             'ngay_nhan.required' => 'Vui lòng chọn ngày nhận phòng',
+            'ngay_nhan.after_or_equal' => 'Ngày nhận phòng phải từ hôm nay trở đi',
             'ngay_tra.required' => 'Vui lòng chọn ngày trả phòng',
             'ngay_tra.after_or_equal' => 'Ngày trả phòng phải sau hoặc bằng ngày nhận phòng',
             'so_nguoi.required' => 'Vui lòng nhập số người',
             'so_nguoi.min' => 'Số người phải lớn hơn 0',
-            'username.required' => 'Vui lòng nhập tên khách hàng',
+            'username.required' => 'Vui lòng nhập họ tên',
             'email.required' => 'Vui lòng nhập email',
             'email.email' => 'Email không hợp lệ',
-            'sdt.required' => 'Vui lòng nhập số điện thoại'
+            'sdt.required' => 'Vui lòng nhập số điện thoại',
+            'sdt.regex' => 'Số điện thoại không đúng định dạng',
+            'cccd.required' => 'Vui lòng nhập CCCD/CMND',
+            'cccd.regex' => 'CCCD/CMND phải gồm 12 chữ số',
         ]);
+
+
+        $phongId = $request->phong_id;
+        $ngayNhan = $request->ngay_nhan;
+        $ngayTra = $request->ngay_tra;
+
+        $daDat = \App\Models\DatPhong::where('phong_id', $phongId)
+            ->where('id', '!=', $booking->id)
+            ->whereNotIn('trang_thai', ['da_huy'])
+            ->where(function ($query) use ($ngayNhan, $ngayTra) {
+                $query->whereBetween('ngay_nhan', [$ngayNhan, $ngayTra])
+                    ->orWhereBetween('ngay_tra', [$ngayNhan, $ngayTra])
+                    ->orWhere(function ($q) use ($ngayNhan, $ngayTra) {
+                        $q->where('ngay_nhan', '<=', $ngayNhan)
+                            ->where('ngay_tra', '>=', $ngayTra);
+                    });
+            })
+            ->exists();
+
+        if ($daDat) {
+            return back()->withErrors(['phong_id' => 'Phòng này đã được đặt trong khoảng thời gian bạn chọn.'])
+                ->withInput();
+        }
 
         $booking->update([
             'phong_id' => $request->phong_id,
@@ -201,9 +252,9 @@ class DatPhongController extends Controller
             'ngay_tra' => 'required|date|after_or_equal:ngay_nhan',
             'so_nguoi' => 'required|integer|min:1',
             'username' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
-            'sdt' => 'required|string|max:20',
-            'cccd' => 'required|string|max:20',
+            'email' => 'required|email:rfc,dns|max:255',
+            'sdt' => 'required|regex:/^0[0-9]{9}$/',
+            'cccd' => 'required|regex:/^[0-9]{12}$/',
             'voucher' => 'nullable|string|exists:voucher,ma_voucher'
         ], [
             'phong_id.required' => 'Vui lòng chọn phòng',
@@ -218,8 +269,32 @@ class DatPhongController extends Controller
             'email.required' => 'Vui lòng nhập email',
             'email.email' => 'Email không hợp lệ',
             'sdt.required' => 'Vui lòng nhập số điện thoại',
-            'cccd.required' => 'Vui lòng nhập CCCD/CMND'
+            'sdt.regex' => 'Số điện thoại phải không đúng định dạng',
+            'cccd.required' => 'Vui lòng nhập CCCD/CMND',
+            'cccd.regex' => 'CCCD/CMND phải gồm 12 chữ số',
         ]);
+
+
+        $phongId = $request->phong_id;
+        $ngayNhan = $request->ngay_nhan;
+        $ngayTra = $request->ngay_tra;
+
+        $daDat = \App\Models\DatPhong::where('phong_id', $phongId)
+            ->whereNotIn('trang_thai', ['da_huy'])
+            ->where(function ($query) use ($ngayNhan, $ngayTra) {
+                $query->whereBetween('ngay_nhan', [$ngayNhan, $ngayTra])
+                    ->orWhereBetween('ngay_tra', [$ngayNhan, $ngayTra])
+                    ->orWhere(function ($q) use ($ngayNhan, $ngayTra) {
+                        $q->where('ngay_nhan', '<=', $ngayNhan)
+                            ->where('ngay_tra', '>=', $ngayTra);
+                    });
+            })
+            ->exists();
+
+        if ($daDat) {
+            return back()->withErrors(['phong_id' => 'Phòng này đã được đặt trong khoảng thời gian bạn chọn.'])
+                ->withInput();
+        }
 
         // Kiểm tra phòng có tồn tại không
         $room = Phong::findOrFail($request->phong_id);
@@ -271,19 +346,19 @@ class DatPhongController extends Controller
     public function blockRoom($id)
     {
         $booking = DatPhong::findOrFail($id);
-        
+
         // Chỉ cho phép chống phòng khi đã xác nhận
         if ($booking->trang_thai !== 'da_xac_nhan') {
             return redirect()->route('admin.dat_phong.index')
                 ->with('error', 'Chỉ có thể chống phòng đã xác nhận');
         }
-        
+
         // Cập nhật trạng thái phòng thành "chống"
         $booking->phong->update(['trang_thai' => 'chong']);
-        
+
         // Cập nhật trạng thái đặt phòng thành "đã chống"
         $booking->update(['trang_thai' => 'da_chong']);
-        
+
         return redirect()->route('admin.dat_phong.index')
             ->with('success', 'Đã chống phòng thành công! Phòng không thể đặt được cho đến khi hủy chống.');
     }
@@ -310,7 +385,7 @@ class DatPhongController extends Controller
                 Mail::to($booking->email)->send(new BookingConfirmed($booking->load('phong')));
             } catch (\Throwable $e) {
                 // log but don't break flow
-                Log::warning('Send booking confirmed mail failed: '.$e->getMessage());
+                Log::warning('Send booking confirmed mail failed: ' . $e->getMessage());
             }
         }
 
@@ -351,7 +426,7 @@ class DatPhongController extends Controller
             try {
                 Mail::to($booking->email)->send(new InvoicePaid($booking->load(['phong'])));
             } catch (\Throwable $e) {
-                Log::warning('Send invoice mail failed: '.$e->getMessage());
+                Log::warning('Send invoice mail failed: ' . $e->getMessage());
             }
         }
 
