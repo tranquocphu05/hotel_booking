@@ -38,8 +38,8 @@ class VoucherController extends Controller
         // Sắp xếp theo ID giảm dần (mới nhất trước)
         $vouchersQuery->orderBy('id', 'desc');
 
-        // Lấy kết quả đã lọc và phân trang
-        $vouchers = $vouchersQuery->paginate(10);
+        // Lấy kết quả đã lọc và phân trang (5 dòng/trang)
+        $vouchers = $vouchersQuery->paginate(5);
 
         // Điều chỉnh lại đường dẫn phân trang để giữ lại các tham số lọc
         $vouchers->appends($request->all());

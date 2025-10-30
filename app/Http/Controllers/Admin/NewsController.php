@@ -35,11 +35,23 @@ class NewsController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'tieu_de' => 'required|string|max:255',
-            'tom_tat' => 'required|string|max:500',
-            'noi_dung' => 'required|string',
-            'hinh_anh' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'tieu_de' => 'required|string|max:255|regex:/^(?=.*\pL)[\pL\pN\s\.\,\!\?\-\_]+$/u',
+            'tom_tat' => 'required|string|max:500|regex:/^[\pL\pN\s\.\,\!\?\-\_]+$/u',
+            'noi_dung' => 'required|string|regex:/^[\pL\pN\s\.\,\!\?\-\_]+$/u',
+            'hinh_anh' => 'required|image|max:2048',
             'trang_thai' => 'required|in:draft,published,archived'
+        ], [
+            'tieu_de.required' => 'Tiêu đề không được để trống.',
+            'tieu_de.regex' => 'Tiêu đề chỉ được chứa chữ cái, số và các ký tự đặc biệt cơ bản.',
+            'tom_tat.required' => 'Tóm tắt không được để trống.',
+            'tom_tat.regex' => 'Tóm tắt chỉ được chứa chữ cái, số và các ký tự đặc biệt cơ bản.',
+            'noi_dung.required' => 'Nội dung không được để trống.',
+            'noi_dung.regex' => 'Nội dung chỉ được chứa chữ cái, số và các ký tự đặc biệt cơ bản.',
+            'hinh_anh.required' => 'Hình ảnh là bắt buộc.',
+            'hinh_anh.image' => 'Tệp tải lên phải là một hình ảnh.',
+            'hinh_anh.max' => 'Kích thước hình ảnh không được vượt quá 2MB.',
+            'trang_thai.required' => 'Trạng thái là bắt buộc.',
+            'trang_thai.in' => 'Trạng thái không hợp lệ.'
         ]);
 
         $data = $request->all();
@@ -86,11 +98,23 @@ class NewsController extends Controller
         $news = News::findOrFail($id);
 
         $request->validate([
-            'tieu_de' => 'required|string|max:255',
-            'tom_tat' => 'required|string|max:500',
-            'noi_dung' => 'required|string',
-            'hinh_anh' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'tieu_de' => 'required|string|max:255|regex:/^(?=.*\pL)[\pL\pN\s\.\,\!\?\-\_]+$/u',
+            'tom_tat' => 'required|string|max:500|regex:/^[\pL\pN\s\.\,\!\?\-\_]+$/u',
+            'noi_dung' => 'required|string|regex:/^[\pL\pN\s\.\,\!\?\-\_]+$/u',
+            'hinh_anh' => 'required|image|max:2048',
             'trang_thai' => 'required|in:draft,published,archived'
+        ], [
+            'tieu_de.required' => 'Tiêu đề không được để trống.',
+            'tieu_de.regex' => 'Tiêu đề chỉ được chứa chữ cái, số và các ký tự đặc biệt cơ bản.',
+            'tom_tat.required' => 'Tóm tắt không được để trống.',
+            'tom_tat.regex' => 'Tóm tắt chỉ được chứa chữ cái, số và các ký tự đặc biệt cơ bản.',
+            'noi_dung.required' => 'Nội dung không được để trống.',
+            'noi_dung.regex' => 'Nội dung chỉ được chứa chữ cái, số và các ký tự đặc biệt cơ bản.',
+            'hinh_anh.required' => 'Hình ảnh là bắt buộc.',
+            'hinh_anh.image' => 'Tệp tải lên phải là một hình ảnh.',
+            'hinh_anh.max' => 'Kích thước hình ảnh không được vượt quá 2MB.',
+            'trang_thai.required' => 'Trạng thái là bắt buộc.',
+            'trang_thai.in' => 'Trạng thái không hợp lệ.'
         ]);
 
         $data = $request->all();
