@@ -1,5 +1,9 @@
 <!-- Top navigation -->
 <header class="fixed top-0 left-0 right-0 lg:left-64 z-40 bg-white/95 backdrop-blur shadow-sm border-b border-gray-200">
+    <style>
+        /* Bảo đảm ẩn dropdown thông báo theo mặc định */
+        #notifDropdown{display:none !important;}
+    </style>
     <div class="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
         <!-- Mobile menu button -->
         <button id="sidebar-toggle" type="button" class="-m-2.5 p-2.5 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-300 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
@@ -45,13 +49,40 @@
             </button>
 
             <!-- Notifications -->
-            <button type="button" class="relative p-2 text-gray-400 hover:text-gray-500 transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 rounded-full notification-bell">
+            <div class="relative">
+            <button type="button" id="notifToggle" class="relative p-2 text-gray-400 hover:text-gray-500 transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 rounded-full notification-bell">
                 <span class="sr-only">View notifications</span>
                 <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
                 </svg>
-                <span class="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-red-500 animate-pulse"></span>
+                @if(($pendingBookingCount ?? 0) > 0)
+                    <span class="absolute -top-2 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[10px] leading-[18px] text-center font-semibold shadow">
+                        {{ $pendingBookingCount > 99 ? '99+' : $pendingBookingCount }}
+                    </span>
+                @endif
             </button>
+
+            {{-- Dropdown chi tiết thông báo --}}
+            <div id="notifDropdown" class="absolute right-0 mt-2 w-80 bg-white border border-gray-100 rounded-xl shadow-xl z-50 transition-all duration-200" style="display:none;">
+                <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                    <div class="text-sm font-semibold text-gray-800">Thông báo đặt phòng</div>
+                    <span class="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700">{{ $pendingBookingCount ?? 0 }} chờ</span>
+                </div>
+                <div class="max-h-80 overflow-auto">
+                    @forelse(($pendingRecentBookings ?? []) as $bk)
+                        <a href="{{ route('admin.dat_phong.show', data_get($bk,'id')) }}" class="block px-4 py-3 hover:bg-gray-50">
+                            <div class="text-sm text-gray-800 font-medium">{{ data_get($bk,'username','Khách') }} - {{ data_get($bk,'phong.ten_phong','Phòng') }}</div>
+                            <div class="text-xs text-gray-500">Đặt lúc {{ \Carbon\Carbon::parse(data_get($bk,'ngay_dat'))->format('d/m/Y H:i') }}</div>
+                        </a>
+                    @empty
+                        <div class="px-4 py-6 text-center text-sm text-gray-500">Không có đơn chờ xác nhận</div>
+                    @endforelse
+                </div>
+                <div class="px-4 py-2 border-t border-gray-100 text-right">
+                    <a href="{{ route('admin.dat_phong.index', ['status' => 'cho_xac_nhan']) }}" class="text-xs font-medium text-indigo-600 hover:text-indigo-800">Xem tất cả</a>
+                </div>
+            </div>
+            </div>
 
             <!-- Profile dropdown -->
             <div class="relative">
@@ -251,3 +282,26 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+@push('scripts')
+<script>
+  (function(){
+    const toggleBtn = document.getElementById('notifToggle');
+    const dropdown = document.getElementById('notifDropdown');
+    if(!toggleBtn || !dropdown) return;
+
+    function openDropdown(){ dropdown.style.display = 'block'; }
+    function closeDropdown(){ dropdown.style.display = 'none'; }
+    function toggle(){
+      if (dropdown.style.display === 'none' || dropdown.style.display === '') openDropdown(); else closeDropdown();
+    }
+
+    toggleBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      toggle();
+    });
+    document.addEventListener('click', function(e){
+      if (!dropdown.contains(e.target) && e.target !== toggleBtn) closeDropdown();
+    });
+  })();
+</script>
+@endpush

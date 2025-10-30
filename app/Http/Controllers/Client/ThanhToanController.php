@@ -8,6 +8,10 @@ use App\Models\Invoice;
 use App\Models\ThanhToan;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
+use App\Mail\InvoicePaid;
+use App\Mail\AdminBookingEvent;
 
 class ThanhToanController extends Controller
 {
@@ -172,6 +176,29 @@ class ThanhToanController extends Controller
                         'ngay_thanh_toan' => Carbon::now(),
                         'trang_thai' => 'success',
                     ]);
+
+                    // Gửi email khách hàng xác nhận thanh toán thành công
+                    try {
+                        if ($datPhong->email) {
+                            Mail::to($datPhong->email)->send(new InvoicePaid($datPhong->load(['phong'])));
+                        }
+                    } catch (\Throwable $e) {
+                        Log::warning('Send customer paid mail (vnpay) failed: '.$e->getMessage());
+                    }
+
+                    // Gửi email admin thông báo đã thanh toán
+                    try {
+                        $adminEmails = \App\Models\User::where('vai_tro', 'admin')
+                            ->where('trang_thai', 'hoat_dong')
+                            ->pluck('email')
+                            ->filter()
+                            ->all();
+                        if (!empty($adminEmails)) {
+                            Mail::to($adminEmails)->send(new AdminBookingEvent($datPhong->load(['phong.loaiPhong']), 'paid'));
+                        }
+                    } catch (\Throwable $e) {
+                        Log::warning('Send admin paid mail (vnpay) failed: '.$e->getMessage());
+                    }
 
                     return redirect()->route('client.dashboard')->with('success', 'Thanh toán thành công cho đơn hàng #' . $datPhongId);
                 } else {

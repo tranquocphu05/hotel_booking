@@ -39,12 +39,27 @@
                 </a>
 
                 {{-- Phòng --}}
-                @php $isPhong = request()->routeIs('client.phong'); @endphp
-                <a href="{{ route('client.phong') }}"
-                    class="nav-link
-        {{ $isPhong ? 'text-yellow-600 nav-link-active' : 'text-gray-600 hover:text-yellow-600' }}">
-                    Phòng
-                </a>
+                @php
+                    $isPhong = request()->routeIs('client.phong');
+                @endphp
+                <div class="relative group">
+                    <a href="{{ route('client.phong') }}"
+                        class="nav-link transition duration-300 underline-offset-4 decoration-[2px] {{ $isPhong ? 'text-yellow-600 underline decoration-yellow-600' : 'text-gray-600 hover:text-yellow-600 hover:underline hover:decoration-yellow-600' }} py-2">
+                        Phòng ▾
+                    </a>
+                    <div class="absolute left-0 top-full mt-2 min-w-[14rem] bg-white border border-gray-100 shadow-xl rounded-lg overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-40">
+                        <div class="py-2 max-h-80 overflow-auto">
+                            @forelse(($menuLoaiPhongs ?? []) as $lp)
+                                <a href="{{ route('client.phong', ['loai_phong' => $lp->id]) }}"
+                                    class="block px-4 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-600">
+                                    {{ $lp->ten_loai }}
+                                </a>
+                            @empty
+                                <div class="px-4 py-3 text-sm text-gray-400">Chưa có loại phòng</div>
+                            @endforelse
+                        </div>
+                    </div>
+                </div>
 
                 {{-- Giới Thiệu --}}
                 @php $isGioiThieu = request()->routeIs('client.gioithieu'); @endphp

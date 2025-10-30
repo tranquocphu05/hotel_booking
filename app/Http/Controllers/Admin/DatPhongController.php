@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 use App\Mail\BookingConfirmed;
 use App\Mail\InvoicePaid;
+use App\Mail\AdminBookingEvent;
 
 class DatPhongController extends Controller
 {
@@ -264,6 +265,20 @@ class DatPhongController extends Controller
             'cccd' => $request->cccd
         ]);
 
+        // Gửi mail cho admin: đơn đặt phòng mới (trạng thái chờ xác nhận)
+        try {
+            $adminEmails = \App\Models\User::where('vai_tro', 'admin')
+                ->where('trang_thai', 'hoat_dong')
+                ->pluck('email')
+                ->filter()
+                ->all();
+            if (!empty($adminEmails)) {
+                Mail::to($adminEmails)->send(new AdminBookingEvent($booking->load(['phong.loaiPhong']), 'created'));
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Send admin booking created mail failed: '.$e->getMessage());
+        }
+
         return redirect()->route('admin.dat_phong.index')
             ->with('success', 'Đặt phòng thành công!');
     }
@@ -346,13 +361,27 @@ class DatPhongController extends Controller
             $booking->save();
         }
 
-        // Gửi mail hóa đơn đã thanh toán
+        // Gửi mail hóa đơn đã thanh toán (khách hàng)
         if ($booking->email) {
             try {
                 Mail::to($booking->email)->send(new InvoicePaid($booking->load(['phong'])));
             } catch (\Throwable $e) {
                 Log::warning('Send invoice mail failed: '.$e->getMessage());
             }
+        }
+
+        // Gửi mail cho admin: đơn đã thanh toán
+        try {
+            $adminEmails = \App\Models\User::where('vai_tro', 'admin')
+                ->where('trang_thai', 'hoat_dong')
+                ->pluck('email')
+                ->filter()
+                ->all();
+            if (!empty($adminEmails)) {
+                Mail::to($adminEmails)->send(new AdminBookingEvent($booking->load(['phong.loaiPhong']), 'paid'));
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Send admin paid mail failed: '.$e->getMessage());
         }
 
         return redirect()->route('admin.dat_phong.index')
