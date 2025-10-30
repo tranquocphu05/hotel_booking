@@ -1,63 +1,118 @@
 @extends('layouts.admin')
 
-@section('title','Create User')
+@section('title', 'Create User')
 
 @section('admin_content')
-    <h1>Create User</h1>
-    <form method="POST" action="{{ route('admin.users.store') }}" class="space-y-4" autocomplete="off">
-        @csrf
-        @if ($errors->any())
-            <div class="mb-4 p-3 bg-red-50 text-red-700 rounded">
-                <ul class="list-disc pl-5">
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
+    <div class="max-w-3xl mx-auto bg-white shadow-md rounded-2xl p-8">
+        <h1 class="text-2xl font-semibold text-gray-800 mb-6 border-b pb-3">🧑‍💼 Tạo tài khoản người dùng</h1>
+
+        <form method="POST" action="{{ route('admin.users.store') }}" autocomplete="off" class="space-y-6">
+            @csrf
+
+            {{-- Username --}}
+            <div>
+                <label class="block font-medium text-gray-700 mb-1">Tên đăng nhập</label>
+                <input type="text" name="username" value="{{ old('username') }}"
+                    class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none @error('username') border-red-500 @enderror">
+                @error('username')
+                    <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                @enderror
             </div>
-        @endif
-        <div>
-            <label class="block text-sm">Username</label>
-            <input name="username" value="{{ old('username') }}" class="border p-2 w-full" autocomplete="off" />
-        </div>
-        <div>
-            <label class="block text-sm">Email</label>
-            <input name="email" type="email" value="{{ old('email') }}" class="border p-2 w-full" autocomplete="email" />
-        </div>
-        <div>
-            <label class="block text-sm">Password</label>
-            <input name="password" type="password" class="border p-2 w-full" autocomplete="new-password" />
-        </div>
-        <div>
-            <label class="block text-sm">Full name</label>
-            <input name="ho_ten" value="{{ old('ho_ten') }}" class="border p-2 w-full" />
-        </div>
-        <div>
-            <label class="block text-sm">Phone</label>
-            <input name="sdt" value="{{ old('sdt') }}" class="border p-2 w-full" />
-        </div>
-        <div>
-            <label class="block text-sm">CCCD</label>
-            <input name="cccd" value="{{ old('cccd') }}" class="border p-2 w-full" />
-        </div>
-        <div>
-            <label class="block text-sm">Address</label>
-            <input name="dia_chi" value="{{ old('dia_chi') }}" class="border p-2 w-full" />
-        </div>
-        <div>
-            <label class="block text-sm">Role</label>
-            <select name="vai_tro" class="border p-2 w-full">
-                <option value="admin">admin</option>
-                <option value="nhan_vien">nhan_vien</option>
-                <option value="khach_hang">khach_hang</option>
-            </select>
-        </div>
-        <div>
-            <label class="block text-sm">Status</label>
-            <select name="trang_thai" class="border p-2 w-full">
-                <option value="hoat_dong">hoat_dong</option>
-                <option value="khoa">khoa</option>
-            </select>
-        </div>
-        <button class="btn-success btn-animate btn-pulse">Save User</button>
-    </form>
+
+            {{-- Email --}}
+            <div>
+                <label class="block font-medium text-gray-700 mb-1">Email</label>
+                <input type="text" name="email" value="{{ old('email') }}"
+                    class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none @error('email') border-red-500 @enderror">
+                @error('email')
+                    <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
+            {{-- Password --}}
+            <div>
+                <label class="block font-medium text-gray-700 mb-1">Mật khẩu</label>
+                <input type="password" name="password"
+                    class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none @error('password') border-red-500 @enderror">
+                @error('password')
+                    <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
+            {{-- Full name --}}
+            <div>
+                <label class="block font-medium text-gray-700 mb-1">Họ và tên</label>
+                <input type="text" name="ho_ten" value="{{ old('ho_ten') }}"
+                    class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none @error('ho_ten') border-red-500 @enderror">
+                @error('ho_ten')
+                    <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
+            {{-- Phone --}}
+            <div>
+                <label class="block font-medium text-gray-700 mb-1">Số điện thoại</label>
+                <input type="text" name="sdt" value="{{ old('sdt') }}"
+                    class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none @error('sdt') border-red-500 @enderror">
+                @error('sdt')
+                    <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
+            {{-- CCCD --}}
+            <div>
+                <label class="block font-medium text-gray-700 mb-1">CCCD</label>
+                <input type="text" name="cccd" value="{{ old('cccd') }}"
+                    class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none @error('cccd') border-red-500 @enderror">
+                @error('cccd')
+                    <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
+            {{-- Address --}}
+            <div>
+                <label class="block font-medium text-gray-700 mb-1">Địa chỉ</label>
+                <input type="text" name="dia_chi" value="{{ old('dia_chi') }}"
+                    class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none @error('dia_chi') border-red-500 @enderror">
+                @error('dia_chi')
+                    <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
+            {{-- Role --}}
+            <div>
+                <label class="block font-medium text-gray-700 mb-1">Vai trò</label>
+                <select name="vai_tro"
+                    class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none @error('vai_tro') border-red-500 @enderror">
+                    <option value="admin" {{ old('vai_tro') == 'admin' ? 'selected' : '' }}>Admin</option>
+                    <option value="nhan_vien" {{ old('vai_tro') == 'nhan_vien' ? 'selected' : '' }}>Nhân viên</option>
+                    <option value="khach_hang" {{ old('vai_tro', 'khach_hang') == 'khach_hang' ? 'selected' : '' }}>Khách hàng</option>
+                </select>
+                @error('vai_tro')
+                    <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
+            {{-- Status --}}
+            <div>
+                <label class="block font-medium text-gray-700 mb-1">Trạng thái</label>
+                <select name="trang_thai"
+                    class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none @error('trang_thai') border-red-500 @enderror">
+                    <option value="hoat_dong" {{ old('trang_thai') == 'hoat_dong' ? 'selected' : '' }}>Hoạt động</option>
+                    <option value="khoa" {{ old('trang_thai') == 'khoa' ? 'selected' : '' }}>Khóa</option>
+                </select>
+                @error('trang_thai')
+                    <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
+            {{-- Submit button --}}
+            <div class="pt-4">
+                <button
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg shadow-md transition duration-200 transform hover:scale-[1.01]">
+                    💾 Lưu người dùng
+                </button>
+            </div>
+        </form>
+    </div>
 @endsection

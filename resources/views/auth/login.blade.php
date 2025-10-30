@@ -23,10 +23,11 @@
                         type="text" name="email" :value="old('email')" required autofocus autocomplete="username"
                         placeholder="ban@example.com" />
                 </div>
-                <x-input-error :messages="$errors->get('email')" class="mt-2" />
+
+                {{-- @if(session('login_error'))
                 @if (session('login_error'))
                     <p class="text-red-600 mt-2">{{ session('login_error') }}</p>
-                @endif
+                @endif --}}
             </div>
 
             <div>
@@ -52,7 +53,9 @@
                         </svg>
                     </button>
                 </div>
-                <x-input-error :messages="$errors->get('password')" class="mt-2" />
+                {{-- <x-input-error :messages="$errors->get('password')" class="mt-2" /> --}}
+                <x-input-error :messages="$errors->get('email')" class="mt-2" />
+
             </div>
 
             <div class="flex items-center justify-between">

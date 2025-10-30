@@ -43,6 +43,17 @@ class LoginRequest extends FormRequest
      *
      * @throws \Illuminate\Validation\ValidationException
      */
+
+    public function messages(): array
+    {
+        return [
+            'email.required' => 'Vui lòng nhập email hoặc tên đăng nhập.',
+            'email.string' => 'Trường email hoặc tên đăng nhập không hợp lệ.',
+            'password.required' => 'Vui lòng nhập mật khẩu.',
+            'password.string' => 'Mật khẩu không hợp lệ.',
+        ];
+    }
+
     public function authenticate(): void
     {
         $this->ensureIsNotRateLimited();
@@ -51,9 +62,9 @@ class LoginRequest extends FormRequest
         $table = $userModel->getTable();
         $loginColumn = Schema::hasColumn($table, 'email') ? 'email' : 'username';
 
-        $credentials = [ $loginColumn => $this->input('email'), 'password' => $this->input('password') ];
+        $credentials = [$loginColumn => $this->input('email'), 'password' => $this->input('password')];
 
-        if (! Auth::attempt($credentials, $this->boolean('remember'))) {
+        if (!Auth::attempt($credentials, $this->boolean('remember'))) {
             // attempt fallback for legacy hash formats (e.g. MD5 hex) by manual check
             $userQuery = DB::table($table)->where($loginColumn, $this->input('email'))->first();
             if ($userQuery && isset($userQuery->password)) {
@@ -80,7 +91,9 @@ class LoginRequest extends FormRequest
             RateLimiter::hit($this->throttleKey());
 
             // provide a clearer error message and store a session key for blade to display
-            $message = trans('auth.failed');
+            // $message = trans('auth.failed');
+            $message = 'Email hoặc mật khẩu không đúng.';
+
             session()->flash('login_error', $message);
 
             throw ValidationException::withMessages([
@@ -91,6 +104,8 @@ class LoginRequest extends FormRequest
         RateLimiter::clear($this->throttleKey());
     }
 
+
+
     /**
      * Ensure the login request is not rate limited.
      *
@@ -98,7 +113,7 @@ class LoginRequest extends FormRequest
      */
     public function ensureIsNotRateLimited(): void
     {
-        if (! RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
+        if (!RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
             return;
         }
 
@@ -125,6 +140,6 @@ class LoginRequest extends FormRequest
         $loginColumn = Schema::hasColumn($table, 'email') ? 'email' : 'username';
 
         $loginValue = $this->input('email');
-        return Str::transliterate(Str::lower($loginValue).'|'.$this->ip());
+        return Str::transliterate(Str::lower($loginValue) . '|' . $this->ip());
     }
 }

@@ -212,6 +212,7 @@ class PhongController extends Controller
                     $subQ->where('ngay_nhan', '<=', $ngayNhan)
                          ->where('ngay_tra', '>=', $ngayTra);
                 });
+
         })
             ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
             ->pluck('phong_id')
