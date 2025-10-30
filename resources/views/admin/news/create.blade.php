@@ -10,7 +10,7 @@
             <h1 class="text-2xl font-bold text-gray-900">Thêm Tin tức Mới</h1>
             <p class="text-gray-600">Tạo bài viết tin tức mới cho khách sạn</p>
         </div>
-        <a href="{{ route('admin.news.index') }}" 
+        <a href="{{ route('admin.news.index') }}"
            class="btn-secondary btn-animate inline-flex items-center px-4 py-2 rounded-md">
             <i class="fas fa-arrow-left mr-2"></i>
             Quay lại
@@ -19,9 +19,9 @@
 
     <!-- Form -->
     <div class="bg-white shadow rounded-lg">
-        <form action="{{ route('admin.news.store') }}" method="POST" enctype="multipart/form-data" class="space-y-6 p-6">
+        <form action="{{ route('admin.news.store') }}" method="POST" enctype="multipart/form-data" class="space-y-6 p-6" novalidate>
             @csrf
-            
+
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <!-- Main Content -->
                 <div class="lg:col-span-2 space-y-6">
@@ -29,10 +29,10 @@
                         <label for="tieu_de" class="block text-sm font-medium text-gray-700 mb-2">
                             Tiêu đề <span class="text-red-500">*</span>
                         </label>
-                        <input type="text" 
-                               id="tieu_de" 
-                               name="tieu_de" 
-                               value="{{ old('tieu_de') }}" 
+                        <input type="text"
+                               id="tieu_de"
+                               name="tieu_de"
+                               value="{{ old('tieu_de') }}"
                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 @error('tieu_de') border-red-300 @enderror"
                                placeholder="Nhập tiêu đề tin tức"
                                required>
@@ -45,9 +45,9 @@
                         <label for="tom_tat" class="block text-sm font-medium text-gray-700 mb-2">
                             Tóm tắt <span class="text-red-500">*</span>
                         </label>
-                        <textarea id="tom_tat" 
-                                  name="tom_tat" 
-                                  rows="3" 
+                        <textarea id="tom_tat"
+                                  name="tom_tat"
+                                  rows="3"
                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 @error('tom_tat') border-red-300 @enderror"
                                   placeholder="Nhập tóm tắt ngắn gọn về tin tức"
                                   required>{{ old('tom_tat') }}</textarea>
@@ -60,9 +60,9 @@
                         <label for="noi_dung" class="block text-sm font-medium text-gray-700 mb-2">
                             Nội dung <span class="text-red-500">*</span>
                         </label>
-                        <textarea id="noi_dung" 
-                                  name="noi_dung" 
-                                  rows="10" 
+                        <textarea id="noi_dung"
+                                  name="noi_dung"
+                                  rows="10"
                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 @error('noi_dung') border-red-300 @enderror"
                                   placeholder="Nhập nội dung chi tiết của tin tức"
                                   required>{{ old('noi_dung') }}</textarea>
@@ -79,15 +79,14 @@
                         <label for="hinh_anh" class="block text-sm font-medium text-gray-700 mb-2">
                             Hình ảnh
                         </label>
-                        <input type="file" 
-                               id="hinh_anh" 
-                               name="hinh_anh" 
+                        <input type="file"
+                               id="hinh_anh"
+                               name="hinh_anh"
                                accept="image/*"
                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 @error('hinh_anh') border-red-300 @enderror">
                         @error('hinh_anh')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
-                        <p class="mt-1 text-sm text-gray-500">Định dạng: JPG, PNG, GIF. Kích thước tối đa: 2MB</p>
                     </div>
 
                     <!-- Status -->
@@ -95,8 +94,8 @@
                         <label for="trang_thai" class="block text-sm font-medium text-gray-700 mb-2">
                             Trạng thái <span class="text-red-500">*</span>
                         </label>
-                        <select id="trang_thai" 
-                                name="trang_thai" 
+                        <select id="trang_thai"
+                                name="trang_thai"
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 @error('trang_thai') border-red-300 @enderror"
                                 required>
                             <option value="">Chọn trạng thái</option>
@@ -123,11 +122,11 @@
 
             <!-- Actions -->
             <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
-                <a href="{{ route('admin.news.index') }}" 
+                <a href="{{ route('admin.news.index') }}"
                    class="btn-secondary btn-animate inline-flex items-center px-4 py-2 rounded-md">
                     Hủy
                 </a>
-                <button type="submit" 
+                <button type="submit"
                         class="btn-primary btn-animate inline-flex items-center px-4 py-2 rounded-md">
                     <i class="fas fa-save mr-2"></i>
                     Lưu tin tức
@@ -136,7 +135,6 @@
         </form>
     </div>
 </div>
-@push('scripts')
 <script>
     // Preview hình ảnh khi chọn
     document.getElementById('hinh_anh').addEventListener('change', function(e) {
