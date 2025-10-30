@@ -21,7 +21,7 @@ class PhongController extends Controller
             $query->where('trang_thai', $request->trang_thai);
         }
 
-        $phongs = $query->orderBy('id', 'desc')->get();
+        $phongs = $query->orderBy('id', 'desc')->paginate(5);
         $loaiPhongs = LoaiPhong::all();
 
         return view('admin.phong.index', compact('phongs', 'loaiPhongs'));

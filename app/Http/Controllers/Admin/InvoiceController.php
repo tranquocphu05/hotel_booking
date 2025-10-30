@@ -28,7 +28,7 @@ class InvoiceController extends Controller
             $request->merge(['status' => 'da_thanh_toan']);
         }
 
-        $invoices = $query->latest()->paginate(10);
+        $invoices = $query->latest()->paginate(5);
         $users = User::where('vai_tro', 'khach_hang')->get();
 
         return view('admin.invoices.index', compact('invoices', 'users'));

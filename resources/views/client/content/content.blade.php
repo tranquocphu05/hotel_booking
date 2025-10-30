@@ -1,75 +1,4 @@
-<!-- Thông báo thành công -->
-@if (session('success'))
-    <div class="fixed top-20 right-4 z-50 max-w-md animate-slide-in-right" id="successToast">
-        <div class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-4 rounded-lg shadow-2xl">
-            <div class="flex items-start">
-                <div class="flex-shrink-0">
-                    <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                        <i class="fas fa-check-circle text-white text-xl"></i>
-                    </div>
-                </div>
-                <div class="ml-3 flex-1">
-                    <h3 class="font-bold text-lg mb-1">Thành công!</h3>
-                    <p class="text-sm text-white/90">{{ session('success') }}</p>
-                </div>
-                <button onclick="closeToast()" class="ml-4 text-white/80 hover:text-white transition-colors">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        function closeToast() {
-            const toast = document.getElementById('successToast');
-            if (toast) {
-                toast.classList.add('animate-slide-out-right');
-                setTimeout(() => {
-                    toast.remove();
-                }, 300);
-            }
-        }
-
-        // Auto close after 5 seconds
-        setTimeout(() => {
-            closeToast();
-        }, 5000);
-    </script>
-
-    <style>
-        @keyframes slide-in-right {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        @keyframes slide-out-right {
-            from {
-                transform: translateX(0);
-                opacity: 1;
-            }
-
-            to {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-        }
-
-        .animate-slide-in-right {
-            animation: slide-in-right 0.3s ease-out;
-        }
-
-        .animate-slide-out-right {
-            animation: slide-out-right 0.3s ease-in;
-        }
-    </style>
-@endif
+{{-- Toast success đã render global ở layouts/base.blade.php để tránh trùng lặp --}}
 
 <section id="about-us" class="w-full flex justify-center bg-white py-16">
     <div class="max-w-7xl w-full px-4">
@@ -103,13 +32,56 @@
             <!-- Ảnh bên phải -->
             <div class="lg:w-2/5 flex justify-center lg:justify-end space-x-4">
                 <img src="{{ asset('img/about/about-1.jpg') }}" alt="Tháp truyền thống"
-                    class="w-40 h-64 md:w-56 md:h-80 object-cover rounded shadow-xl transform transition duration-500 ease-in-out hover:scale-[1.05] hover:shadow-2xl hover:rotate-1">
-                <img src="{{ asset('img/about/about-2.jpg') }}" alt="Chi tiết Nhà hàng"
-                    class="w-40 h-64 md:w-56 md:h-80 object-cover rounded shadow-xl transform transition duration-500 ease-in-out hover:scale-[1.05] hover:shadow-2xl hover:-rotate-1">
+                    class="w-[24rem] h-[31rem] object-cover rounded shadow-xl transform transition duration-500 ease-in-out hover:scale-[1.02] hover:shadow-2xl hover:rotate-1">
             </div>
         </div>
     </div>
 </section>
+<section id="about-uss2" class="about-block w-full flex justify-center bg-white py-16">
+    <div class="max-w-7xl w-full px-4">
+        <div class="flex flex-col lg:flex-row items-center justify-between">
+            <!-- Nội dung bên trái -->
+            <div class="lg:w-3/5 text-center mb-8 lg:mb-0">
+                <p class="text-sm uppercase tracking-widest text-[#D4AF37] mb-2 font-medium">VỀ CHÚNG TÔI</p>
+                <h2 class="text-5xl font-serif font-extralight text-gray-800 mb-6 leading-tight">
+                    Khách sạn OZIA HOTEL
+                </h2>
+                <p class="text-gray-600 mb-4 max-w-2xl mx-auto">
+                    Ozia Hotel là một trang web đặt phòng trực tuyến hàng đầu. Chúng tôi đam mê du lịch.
+                    Mỗi ngày, chúng tôi truyền cảm hứng và tiếp cận hàng triệu du khách trên toàn cầu
+                    thông qua các trang web của riêng mình.
+                </p>
+                <p class="text-gray-600 mb-8 max-w-2xl mx-auto">
+                    Vì vậy, khi bạn muốn đặt một khách sạn hoàn hảo, thuê nhà nghỉ dưỡng, khu nghỉ dưỡng,
+                    căn hộ, nhà khách, hay nhà trên cây, chúng tôi đều có thể đáp ứng.
+                </p>
+                <a href="{{ route('client.gioithieu') }}"
+                    class="inline-block font-semibold uppercase tracking-wider text-sm px-6 py-2.5 rounded-full
+                    border border-[#d4af37] text-[#d4af37]
+                    transition-all duration-500 ease-out transform
+                    hover:bg-gradient-to-r hover:from-[#ffef9f] hover:to-[#d4af37]
+                    hover:text-white hover:shadow-[0_0_20px_rgba(212,175,55,0.6)]
+                    hover:-translate-y-1 hover:border-transparent">
+                    XEM THÊM
+                </a>
+            </div>
+
+            <!-- Ảnh bên phải -->
+            <div class="lg:w-2/5 flex justify-center lg:justify-end space-x-4">
+                <img src="{{ asset('img/about/about-2.jpg') }}" alt="Chi tiết Nhà hàng"
+                    class="w-[24rem] h-[31rem] object-cover rounded shadow-xl transform transition duration-500 ease-in-out hover:scale-[1.02] hover:shadow-2xl hover:-rotate-1">
+            </div>
+        </div>
+    </div>
+</section>
+<style>
+@media (min-width: 1024px) {
+    /* Đổi vị trí ảnh và text cho block chẵn */
+    .about-block:nth-child(even) .lg\:flex-row {
+        flex-direction: row-reverse;
+    }
+}
+</style>
 
 
 <section id="services" class="relative">
@@ -646,14 +618,14 @@
         {{-- Swiper Container --}}
         <div class="swiper weekendDealsSwiper relative">
             <div class="swiper-wrapper">
-                @foreach ($loaiPhongs as $phong)
+                @foreach ($phongsUuDai ?? [] as $phong)
                     <div class="swiper-slide">
                         <a href="{{ route('client.phong.show', $phong->id) }}"
                             class="block bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm relative group cursor-pointer
                    hover:shadow-xl hover:scale-[1.02] transition duration-300 ease-in-out">
                             <div class="relative">
-                                <img src="{{ asset($phong->anh ?: 'img/gallery/gallery-1.jpg') }}"
-                                    alt="{{ $phong->ten_loai }}" class="w-full h-48 object-cover">
+                                <img src="{{ asset($phong->img ?: 'img/gallery/gallery-1.jpg') }}"
+                                    alt="{{ $phong->ten_phong }}" class="w-full h-48 object-cover">
 
                                 <button
                                     class="absolute top-4 right-4 bg-white p-2 rounded-full shadow-md text-gray-700 hover:text-red-500 transition duration-300 z-10"
@@ -665,47 +637,37 @@
                                     </svg>
                                 </button>
 
-                                @if ($phong->diem_danh_gia >= 4.8)
+                                @if ((data_get($phong, 'loaiPhong.diem_danh_gia', 0)) >= 4.8)
                                     <span
                                         class="absolute bottom-0 left-0 bg-yellow-500 text-white text-xs font-semibold px-2 py-1 rounded-tr-lg">Genius</span>
                                 @endif
                             </div>
                             <div class="p-4">
-                                <h3 class="text-lg font-bold text-gray-800 mb-1 leading-tight">{{ $phong->ten_loai }}
+                                <h3 class="text-lg font-bold text-gray-800 mb-1 leading-tight">{{ $phong->ten_phong }}
                                 </h3>
-                                <p class="text-sm text-gray-500 mb-2">Hà Nội, Việt Nam</p>
+                                <p class="text-sm text-gray-500 mb-2">{{ data_get($phong, 'loaiPhong.ten_loai', 'Phòng') }}</p>
 
                                 <div class="flex items-center mb-3">
-                                    <span
-                                        class="bg-blue-700 text-white text-sm font-semibold px-2 py-0.5 rounded mr-2">{{ $phong->stars }}</span>
-                                    <div>
-                                        <span
-                                            class="text-sm font-semibold text-gray-800">{{ $phong->rating_text }}</span>
-                                        <span class="text-xs text-gray-500 block">{{ $phong->so_luong_danh_gia }} đánh
-                                            giá</span>
-                                    </div>
+                                    @php($stars = data_get($phong, 'loaiPhong.stars'))
+                                    @if($stars)
+                                        <span class="bg-blue-700 text-white text-sm font-semibold px-2 py-0.5 rounded mr-2">{{ $stars }}</span>
+                                        <div>
+                                            <span class="text-sm font-semibold text-gray-800">{{ data_get($phong, 'loaiPhong.rating_text', '') }}</span>
+                                            <span class="text-xs text-gray-500 block">{{ data_get($phong, 'loaiPhong.so_luong_danh_gia', 0) }} đánh giá</span>
+                                        </div>
+                                    @endif
                                 </div>
-
-                                @if ($phong->diem_danh_gia >= 4.8)
-                                    <p class="text-xs text-green-700 font-medium mb-2">Thỏa thuận thoát hiểm muộn</p>
-                                @endif
 
                                 <div class="flex items-baseline justify-between mt-auto pt-2 border-t border-gray-100">
                                     <div>
-                                        @if ($phong->phongs && $phong->phongs->count() > 0)
-                                            @php $firstRoom = $phong->phongs->first(); @endphp
-                                            @if ($firstRoom->hasPromotion())
-                                                <p class="text-xs text-gray-500 line-through">
-                                                    {{ number_format($firstRoom->gia_goc_hien_thi, 0, ',', '.') }}₫</p>
-                                                <p class="text-lg font-bold text-yellow-600">
-                                                    {{ number_format($firstRoom->gia_hien_thi, 0, ',', '.') }}₫</p>
-                                            @else
-                                                <p class="text-lg font-bold text-yellow-600">
-                                                    {{ number_format($firstRoom->gia_hien_thi, 0, ',', '.') }}₫</p>
-                                            @endif
+                                        @if ($phong->hasPromotion())
+                                            <p class="text-xs text-gray-500 line-through">
+                                                {{ number_format($phong->gia_goc_hien_thi, 0, ',', '.') }}₫</p>
+                                            <p class="text-lg font-bold text-yellow-600">
+                                                {{ number_format($phong->gia_hien_thi, 0, ',', '.') }}₫</p>
                                         @else
                                             <p class="text-lg font-bold text-yellow-600">
-                                                {{ number_format($phong->gia_co_ban, 0, ',', '.') }}₫</p>
+                                                {{ number_format($phong->gia_hien_thi, 0, ',', '.') }}₫</p>
                                         @endif
                                     </div>
                                     <span class="text-sm text-gray-500">2 đêm</span>
