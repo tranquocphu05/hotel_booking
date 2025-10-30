@@ -46,18 +46,36 @@
                                 @endif
                             </td>
                             <td class="px-4 py-2 text-center space-x-2">
-                                <a href="{{ route('admin.users.edit', $u) }}" class="table-btn btn-info link-hover">Edit</a>
+                                @if($u->vai_tro === 'admin')
+                                    @if(($activeAdminCount ?? 0) > 1)
+                                        <a href="{{ route('admin.users.edit', $u) }}" class="table-btn btn-info link-hover">Edit</a>
+                                    @else
+                                        <span class="text-xs text-gray-400 italic">Admin cuối cùng (không sửa)</span>
+                                    @endif
+                                @else
+                                    <a href="{{ route('admin.users.edit', $u) }}" class="table-btn btn-info link-hover">Edit</a>
+                                @endif
+
                                 @if(auth()->user() && auth()->user()->id !== $u->id)
                                     <form method="POST" action="{{ route('admin.impersonate', $u->id) }}" style="display:inline">
                                         @csrf
                                         <button type="submit" class="table-btn btn-warning btn-animate">Impersonate</button>
                                     </form>
                                 @endif
-                                <form method="POST" action="{{ route('admin.users.destroy', $u) }}" style="display:inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="table-btn btn-danger btn-animate" onclick="return confirm('Bạn có chắc muốn xóa user này?')">Delete</button>
-                                </form>
+
+                                @if($u->vai_tro !== 'admin' || (($activeAdminCount ?? 0) > 1))
+                                    <form method="POST" action="{{ route('admin.users.toggle', $u) }}" style="display:inline">
+                                        @csrf
+                                        @method('PUT')
+                                        @if($u->trang_thai === 'hoat_dong')
+                                            <button type="submit" class="table-btn btn-danger btn-animate" onclick="return confirm('Vô hiệu hóa tài khoản này?')">Vô hiệu hóa</button>
+                                        @else
+                                            <button type="submit" class="table-btn btn-success btn-animate" onclick="return confirm('Kích hoạt lại tài khoản này?')">Kích hoạt</button>
+                                        @endif
+                                    </form>
+                                @else
+                                    <span class="text-xs text-gray-400 italic">Admin cuối cùng (không vô hiệu hóa)</span>
+                                @endif
                             </td>
                         </tr>
                     @empty

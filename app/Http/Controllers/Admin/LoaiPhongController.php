@@ -115,8 +115,19 @@ class LoaiPhongController extends Controller
     public function destroy($id)
     {
         $loaiPhong = LoaiPhong::findOrFail($id);
-        $loaiPhong->delete();
+        // Không xóa dữ liệu; chuyển trạng thái sang "ngung"
+        $loaiPhong->update(['trang_thai' => 'ngung']);
 
-        return redirect()->route('admin.loai_phong.index')->with('success', 'Xóa loại phòng thành công!');
+        return redirect()->route('admin.loai_phong.index')->with('success', 'Đã vô hiệu hóa loại phòng (không xóa dữ liệu).');
+    }
+
+    // Bật/tắt trạng thái hoạt động của loại phòng
+    public function toggleStatus($id)
+    {
+        $loaiPhong = LoaiPhong::findOrFail($id);
+        $new = $loaiPhong->trang_thai === 'hoat_dong' ? 'ngung' : 'hoat_dong';
+        $loaiPhong->update(['trang_thai' => $new]);
+
+        return redirect()->route('admin.loai_phong.index')->with('success', $new === 'ngung' ? 'Đã vô hiệu hóa loại phòng.' : 'Đã kích hoạt loại phòng.');
     }
 }
