@@ -123,7 +123,19 @@
 
             <div class="flex items-center justify-between">
                 <a class="text-sm text-indigo-600 hover:underline" href="{{ route('login') }}">Đã có tài khoản?</a>
-                <x-primary-button class="btn-gold-hover">{{ __('Đăng ký') }}</x-primary-button>
+                <x-primary-button
+                    class="w-3/4 md:w-1/2 justify-center text-base py-2 
+           /* Màu nền mặc định */
+           bg-green-500 hover:bg-green-600 
+           /* Hiệu ứng nổi bật */
+           text-white font-bold 
+           shadow-lg shadow-green-400/70 
+           /* Hiệu ứng chuyển động (Giống Đăng nhập) */
+           transition duration-300 ease-in-out 
+           hover:scale-[1.02] hover:-translate-y-0.5 
+           active:scale-[0.98] active:translate-y-0">
+                    {{ __('Đăng ký') }}
+                </x-primary-button>
             </div>
 
             <div class="my-4 flex items-center">
@@ -141,41 +153,3 @@
         </form>
     </div>
 </x-auth-layout>
-<style>
-    .btn-gold-hover {
-        position: relative;
-        overflow: hidden;
-        background: linear-gradient(to right, #d4af37, #b68b00);
-        color: #fff;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        transition: all 0.4s ease;
-        padding: 0.6rem 1.2rem;
-        font-weight: 600;
-    }
-
-    .btn-gold-hover::before {
-        content: "";
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 0;
-        height: 0;
-        background: rgba(255, 223, 95, 0.3);
-        border-radius: 50%;
-        transform: translate(-50%, -50%) scale(0);
-        transition: transform 0.5s ease, width 0.5s ease, height 0.5s ease;
-    }
-
-    .btn-gold-hover:hover {
-        background: linear-gradient(to right, #b68b00, #d4af37);
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(212, 175, 55, 0.5);
-    }
-
-    .btn-gold-hover:hover::before {
-        width: 200%;
-        height: 200%;
-        transform: translate(-50%, -50%) scale(1);
-    }
-</style>

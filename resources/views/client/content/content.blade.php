@@ -592,18 +592,16 @@
     class="fixed inset-0 hidden z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity duration-300">
 
     <div
-        class="relative w-[95vw] max-w-[1600px] rounded-3xl overflow-visible shadow-[0_0_60px_rgba(255,255,255,0.1)] border border-white/10">
+        class="relative w-[90vw] max-w-[1000px] overflow-visible shadow-[0_0_60px_rgba(255,255,255,0.1)] border border-white">
 
-        <!-- Hộp video -->
-        <div class="relative bg-black rounded-3xl overflow-hidden">
-            <video id="popupVideo" controls preload="metadata" autoplay playsinline
-                class="w-full h-full rounded-3xl cursor-pointer" style="pointer-events: auto;">
+        <div class="relative bg-black overflow-hidden">
+            <video id="popupVideo" controls preload="auto" playsinline
+                class="w-full h-full cursor-pointer z-10">
                 <source src="{{ asset('videos/video-khach-san.mp4') }}" type="video/mp4">
                 Trình duyệt của bạn không hỗ trợ video.
             </video>
         </div>
 
-        <!-- Nút đóng -->
         <button onclick="closeVideoPopup()"
             class="absolute top-3 right-3 bg-white/90 text-gray-700 rounded-full w-10 h-10 flex items-center justify-center
                    shadow-xl border border-gray-200 backdrop-blur-md hover:bg-red-500 hover:text-white hover:scale-110
@@ -629,16 +627,6 @@
         popup.classList.remove('opacity-100');
         setTimeout(() => popup.classList.add('hidden'), 200);
     }
-
-    // Cho phép tua và tương tác
-    document.addEventListener("DOMContentLoaded", () => {
-        const video = document.getElementById('popupVideo');
-        video.controls = true;
-        video.addEventListener("loadedmetadata", () => {
-            video.removeAttribute('disablePictureInPicture');
-            video.style.pointerEvents = 'auto';
-        });
-    });
 </script>
 <style>
     #videoPopup {
