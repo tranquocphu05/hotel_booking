@@ -6,173 +6,145 @@ use App\Http\Controllers\Controller;
 use App\Models\Voucher;
 use App\Models\LoaiPhong;
 use Illuminate\Http\Request;
-use Carbon\Carbon;
 
 class VoucherController extends Controller
 {
-    // ============================================================
-    // 1️⃣ HIỂN THỊ DANH SÁCH VOUCHER + LỌC THEO LOẠI PHÒNG, TRẠNG THÁI
-    // ============================================================
+    // Hiển thị danh sách Vouchers và xử lý LỌC
     public function index(Request $request)
     {
+        // 1. Lấy tất cả Loại phòng để truyền sang view (cho dropdown Lọc)
         $loaiPhongs = LoaiPhong::all();
-        $vouchersQuery = Voucher::with('loaiPhong');
 
-        // Lọc loại phòng
+        // 2. Bắt đầu query Builder cho Voucher
+        $vouchersQuery = Voucher::query();
+
+        // Luôn eager load mối quan hệ loaiPhong để hiển thị trong bảng
+        $vouchersQuery->with('loaiPhong');
+
+        // =================================================================
+        //                 XỬ LÝ LOGIC LỌC TỪ REQUEST
+        // =================================================================
+
+        // Lọc theo Loại phòng áp dụng (loai_phong_id)
         if ($request->filled('loai_phong_id')) {
             $vouchersQuery->where('loai_phong_id', $request->loai_phong_id);
         }
 
-        // Lọc trạng thái
+        // Lọc theo Trạng thái (trang_thai)
         if ($request->filled('trang_thai')) {
             $vouchersQuery->where('trang_thai', $request->trang_thai);
         }
 
-        // Tự động cập nhật trạng thái hết hạn
-        foreach (Voucher::all() as $v) {
-            if (Carbon::parse($v->ngay_ket_thuc)->isPast() && $v->trang_thai === 'con_han') {
-                $v->update(['trang_thai' => 'het_han']);
-            }
-        }
+        // Sắp xếp theo ID giảm dần (mới nhất trước)
+        $vouchersQuery->orderBy('id', 'desc');
 
-        $vouchers = $vouchersQuery->orderBy('id', 'desc')->paginate(10);
+        // Lấy kết quả đã lọc và phân trang (5 dòng/trang)
+        $vouchers = $vouchersQuery->paginate(5);
+
+        // Điều chỉnh lại đường dẫn phân trang để giữ lại các tham số lọc
         $vouchers->appends($request->all());
 
+        // Truyền dữ liệu cần thiết sang view Blade
         return view('admin.voucher.index', compact('vouchers', 'loaiPhongs'));
     }
 
-    // ============================================================
-    // 2️⃣ FORM THÊM MỚI
-    // ============================================================
+    // Form thêm mới
     public function create()
     {
         $loaiPhongs = LoaiPhong::all();
         return view('admin.voucher.create', compact('loaiPhongs'));
     }
 
-    // ============================================================
-    // 3️⃣ LƯU VOUCHER MỚI
-    // ============================================================
+    // Lưu voucher mới
     public function store(Request $request)
     {
         $request->validate([
-            'ma_voucher'     => [
+            'ma_voucher' => [
                 'required',
                 'string',
                 'max:50',
-                'regex:/^[A-Za-z0-9_-]+$/', // ✅ Cho phép chữ thường
                 'unique:voucher,ma_voucher',
+                'regex:/^(?![0-9]+$)[A-Za-z0-9]+$/',
             ],
             'gia_tri'        => 'required|numeric|min:1|max:100',
-            'ngay_bat_dau'   => 'required|date|after_or_equal:today',
-            'ngay_ket_thuc'  => 'required|date|after:ngay_bat_dau',
+            'ngay_bat_dau'   => 'required|date',
+            'ngay_ket_thuc'  => 'required|date|after_or_equal:ngay_bat_dau',
             'so_luong'       => 'required|integer|min:1|max:9999',
             'loai_phong_id'  => 'nullable|exists:loai_phong,id',
             'dieu_kien'      => 'required|string|max:255',
             'trang_thai'     => 'required|in:con_han,het_han,huy',
         ], [
-            'ma_voucher.required' => '* Không được để trống mã voucher.',
-            'ma_voucher.regex'    => '* Mã voucher chỉ được chứa chữ cái, số, dấu gạch dưới hoặc gạch ngang.',
+            'ma_voucher.required' => '* Không được để trống.',
             'ma_voucher.unique'   => '* Mã voucher đã tồn tại.',
-            'gia_tri.required'    => '* Vui lòng nhập giá trị giảm.',
-            'gia_tri.numeric'     => '* Giá trị giảm phải là số.',
-            'gia_tri.min'         => '* Phải lớn hơn 0.',
-            'gia_tri.max'         => '* Không được vượt quá 100%.',
-            'ngay_bat_dau.required' => '* Vui lòng chọn ngày bắt đầu.',
-            'ngay_bat_dau.after_or_equal' => '* Ngày bắt đầu không được nhỏ hơn hôm nay.',
+            'ma_voucher.regex'    => '* Mã voucher chỉ được chứa chữ và số, và không được toàn là số.',
+            'gia_tri.required'    => '* Không được để trống.',
+            'gia_tri.numeric'     => '* Phải là số.',
+            'gia_tri.min'         => '* Giá trị giảm phải lớn hơn 0.',
+            'gia_tri.max'         => '* Giá trị giảm không được vượt quá 100%.',
+            'so_luong.required'   => '* Không được để trống số lượng.',
+            'so_luong.integer'    => '* Số lượng phải là số nguyên.',
+            'so_luong.min'        => '* Số lượng phải lớn hơn 0.',
+            'ngay_bat_dau.required'  => '* Vui lòng chọn ngày bắt đầu.',
             'ngay_ket_thuc.required' => '* Vui lòng chọn ngày kết thúc.',
-            'ngay_ket_thuc.after'    => '* Ngày kết thúc phải sau ngày bắt đầu.',
-            'so_luong.required' => '* Vui lòng nhập số lượng phát hành.',
-            'so_luong.integer'  => '* Số lượng phải là số nguyên.',
-            'so_luong.min'      => '* Số lượng phải lớn hơn 0.',
-            'so_luong.max'      => '* Không được vượt quá 9999 voucher.',
-            'dieu_kien.required' => '* Vui lòng nhập điều kiện áp dụng.',
+            'ngay_ket_thuc.after_or_equal' => '* Ngày kết thúc phải sau hoặc bằng ngày bắt đầu.',
+            'dieu_kien.required' => '* Không được để trống.',
             'trang_thai.required' => '* Vui lòng chọn trạng thái.',
-            'trang_thai.in' => '* Trạng thái không hợp lệ.',
-            'loai_phong_id.exists' => '* Loại phòng không hợp lệ.',
         ]);
 
-        // ✅ Tự động chuyển mã voucher sang chữ hoa (nếu bạn muốn đồng bộ)
-        $data = $request->all();
-
-        // Check logic trạng thái
-        if ($data['trang_thai'] === 'con_han' && strtotime($data['ngay_ket_thuc']) < time()) {
-            return back()->withErrors(['trang_thai' => 'Voucher đã hết hạn, không thể để trạng thái "Còn hạn".'])->withInput();
-        }
-
-        Voucher::create($data);
+        Voucher::create($request->all());
 
         return redirect()->route('admin.voucher.index')->with('success', 'Thêm voucher thành công!');
     }
 
-    // ============================================================
-    // 4️⃣ FORM SỬA
-    // ============================================================
+    // Form sửa voucher
     public function edit(Voucher $voucher)
     {
         $loaiPhongs = LoaiPhong::all();
         return view('admin.voucher.edit', compact('voucher', 'loaiPhongs'));
     }
 
-    // ============================================================
-    // 5️⃣ CẬP NHẬT VOUCHER
-    // ============================================================
+    // Cập nhật voucher
     public function update(Request $request, Voucher $voucher)
     {
         $request->validate([
-            'ma_voucher'     => [
+            'ma_voucher' => [
                 'required',
                 'string',
                 'max:50',
-                'regex:/^[A-Za-z0-9_-]+$/', // ✅ Cho phép chữ thường
                 'unique:voucher,ma_voucher,' . $voucher->id,
+                'regex:/^(?![0-9]+$)[A-Za-z0-9]+$/', // không toàn số, chỉ chữ + số
             ],
             'gia_tri'        => 'required|numeric|min:1|max:100',
             'ngay_bat_dau'   => 'required|date',
-            'ngay_ket_thuc'  => 'required|date|after:ngay_bat_dau',
+            'ngay_ket_thuc'  => 'required|date|after_or_equal:ngay_bat_dau',
             'so_luong'       => 'required|integer|min:1|max:9999',
             'loai_phong_id'  => 'nullable|exists:loai_phong,id',
             'dieu_kien'      => 'required|string|max:255',
             'trang_thai'     => 'required|in:con_han,het_han,huy',
         ], [
-            'ma_voucher.required' => '* Không được để trống mã voucher.',
-            'ma_voucher.regex'    => '* Mã voucher chỉ được chứa chữ cái, số, dấu gạch dưới hoặc gạch ngang.',
+            'ma_voucher.required' => '* Không được để trống.',
             'ma_voucher.unique'   => '* Mã voucher đã tồn tại.',
-            'gia_tri.required'    => '* Vui lòng nhập giá trị giảm.',
-            'gia_tri.numeric'     => '* Giá trị giảm phải là số.',
-            'gia_tri.min'         => '* Phải lớn hơn 0.',
-            'gia_tri.max'         => '* Không được vượt quá 100%.',
-            'ngay_bat_dau.required' => '* Vui lòng chọn ngày bắt đầu.',
+            'ma_voucher.regex'    => '* Mã voucher chỉ được chứa chữ và số, và không được toàn là số.',
+            'gia_tri.required'    => '* Không được để trống.',
+            'gia_tri.numeric'     => '* Phải là số.',
+            'gia_tri.min'         => '* Giá trị giảm phải lớn hơn 0.',
+            'gia_tri.max'         => '* Giá trị giảm không được vượt quá 100%.',
+            'so_luong.required'   => '* Không được để trống số lượng.',
+            'so_luong.integer'    => '* Số lượng phải là số nguyên.',
+            'so_luong.min'        => '* Số lượng phải lớn hơn 0.',
+            'ngay_bat_dau.required'  => '* Vui lòng chọn ngày bắt đầu.',
             'ngay_ket_thuc.required' => '* Vui lòng chọn ngày kết thúc.',
-            'ngay_ket_thuc.after'    => '* Ngày kết thúc phải sau ngày bắt đầu.',
-            'so_luong.required' => '* Vui lòng nhập số lượng phát hành.',
-            'so_luong.integer'  => '* Số lượng phải là số nguyên.',
-            'so_luong.min'      => '* Số lượng phải lớn hơn 0.',
-            'so_luong.max'      => '* Không được vượt quá 9999 voucher.',
-            'dieu_kien.required' => '* Vui lòng nhập điều kiện áp dụng.',
+            'ngay_ket_thuc.after_or_equal' => '* Ngày kết thúc phải sau hoặc bằng ngày bắt đầu.',
+            'dieu_kien.required' => '* Không được để trống.',
             'trang_thai.required' => '* Vui lòng chọn trạng thái.',
-            'trang_thai.in' => '* Trạng thái không hợp lệ.',
-            'loai_phong_id.exists' => '* Loại phòng không hợp lệ.',
         ]);
 
-        $data = $request->all();
-
-        if (strtotime($data['ngay_ket_thuc']) < strtotime($data['ngay_bat_dau'])) {
-            return back()->withErrors(['ngay_ket_thuc' => 'Ngày kết thúc không thể trước ngày bắt đầu.'])->withInput();
-        }
-
-        if (Carbon::parse($data['ngay_ket_thuc'])->isPast()) {
-            $data['trang_thai'] = 'het_han';
-        }
-
-        $voucher->update($data);
+        $voucher->update($request->all());
 
         return redirect()->route('admin.voucher.index')->with('success', 'Cập nhật voucher thành công!');
     }
 
-    // ============================================================
-    // 6️⃣ XÓA VOUCHER
-    // ============================================================
+    // Xóa voucher
     public function destroy(Voucher $voucher)
     {
         $voucher->delete();
