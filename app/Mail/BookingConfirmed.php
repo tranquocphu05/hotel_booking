@@ -26,3 +26,9 @@ class BookingConfirmed extends Mailable
 }
 
 
+
+
+
+
+
+
