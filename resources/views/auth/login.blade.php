@@ -23,10 +23,11 @@
                         type="text" name="email" :value="old('email')" required autofocus autocomplete="username"
                         placeholder="ban@example.com" />
                 </div>
-                <x-input-error :messages="$errors->get('email')" class="mt-2" />
+
+                {{-- @if(session('login_error'))
                 @if (session('login_error'))
                     <p class="text-red-600 mt-2">{{ session('login_error') }}</p>
-                @endif
+                @endif --}}
             </div>
 
             <div>
@@ -52,7 +53,9 @@
                         </svg>
                     </button>
                 </div>
-                <x-input-error :messages="$errors->get('password')" class="mt-2" />
+                {{-- <x-input-error :messages="$errors->get('password')" class="mt-2" /> --}}
+                <x-input-error :messages="$errors->get('email')" class="mt-2" />
+
             </div>
 
             <div class="flex items-center justify-between">
@@ -69,7 +72,14 @@
             </div>
 
             <div class="flex justify-center">
-                <x-primary-button class="w-3/4 md:w-1/2 justify-center btn-gold-hover text-base py-2">
+                <x-primary-button
+                    class="w-3/4 md:w-1/2 justify-center text-base py-2 
+               bg-cyan-600 hover:bg-cyan-700 
+               text-white font-bold 
+               shadow-lg shadow-cyan-500/50 
+               transition duration-300 ease-in-out 
+               hover:scale-[1.02] hover:-translate-y-0.5 
+               active:scale-[0.98] active:translate-y-0">
                     {{ __('Đăng nhập') }}
                 </x-primary-button>
             </div>
@@ -94,39 +104,3 @@
         </form>
     </div>
 </x-auth-layout>
-<style>
-    .btn-gold-hover {
-        position: relative;
-        overflow: hidden;
-        background: linear-gradient(to right, #d4af37, #b68b00);
-        color: #fff;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        transition: all 0.4s ease;
-    }
-
-    .btn-gold-hover::before {
-        content: "";
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 0;
-        height: 0;
-        background: rgba(255, 223, 95, 0.3);
-        border-radius: 50%;
-        transform: translate(-50%, -50%) scale(0);
-        transition: transform 0.5s ease, width 0.5s ease, height 0.5s ease;
-    }
-
-    .btn-gold-hover:hover {
-        background: linear-gradient(to right, #b68b00, #d4af37);
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(212, 175, 55, 0.5);
-    }
-
-    .btn-gold-hover:hover::before {
-        width: 200%;
-        height: 200%;
-        transform: translate(-50%, -50%) scale(1);
-    }
-</style>

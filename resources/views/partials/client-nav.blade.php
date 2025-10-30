@@ -10,7 +10,7 @@
             <i class="fab fa-facebook-f text-gray-500 hover:text-red-500 transition"></i>
             <i class="fab fa-twitter text-gray-500 hover:text-red-500 transition"></i>
             <i class="fab fa-instagram text-gray-500 hover:text-red-500 transition"></i>
-            <a href="#"
+            <a href="{{ route('client.phong') }}"
                 class="bg-yellow-600 px-3 py-1 text-white uppercase text-xs font-bold tracking-wider">Booking Now</a>
         </div>
     </div>
@@ -23,36 +23,102 @@
 
             {{-- Logo --}}
             <div class="flex items-center">
-                <a href="{{ url('/') }}"
-                    class="text-3xl font-serif font-bold text-gray-800 cursor-pointer">OZIA HOTEL</a>
+                <a href="{{ url('/') }}" class="text-3xl font-serif font-bold text-gray-800 cursor-pointer">OZIA
+                    HOTEL</a>
             </div>
 
             {{-- Menu --}}
             <div class="hidden md:flex items-center space-x-8 text-sm font-semibold uppercase tracking-wide">
+
+                {{-- Trang Chủ --}}
+                @php $isHome = request()->routeIs('tên.route.trangchu'); @endphp
                 <a href="{{ url('/') }}"
-                    class="nav-link text-gray-900 hover:text-yellow-600 hover:underline hover:decoration-yellow-600 decoration-[2px] transition duration-300 underline-offset-4">
+                    class="nav-link
+        {{ $isHome ? 'text-yellow-600 nav-link-active' : 'text-gray-600 hover:text-yellow-600' }}">
                     Trang Chủ
                 </a>
-                <a href="{{ route('client.phong') }}"
-                    class="nav-link text-gray-600 hover:text-yellow-600 hover:underline hover:decoration-yellow-600 decoration-[2px] transition duration-300 underline-offset-4">
-                    Phòng
-                </a>
+
+                {{-- Phòng --}}
+                @php
+                    $isPhong = request()->routeIs('client.phong');
+                @endphp
+                <div class="relative group">
+                    <a href="{{ route('client.phong') }}"
+                        class="nav-link transition duration-300 underline-offset-4 decoration-[2px] {{ $isPhong ? 'text-yellow-600 underline decoration-yellow-600' : 'text-gray-600 hover:text-yellow-600 hover:underline hover:decoration-yellow-600' }} py-2">
+                        Phòng ▾
+                    </a>
+                    <div class="absolute left-0 top-full mt-2 min-w-[14rem] bg-white border border-gray-100 shadow-xl rounded-lg overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-40">
+                        <div class="py-2 max-h-80 overflow-auto">
+                            @forelse(($menuLoaiPhongs ?? []) as $lp)
+                                <a href="{{ route('client.phong', ['loai_phong' => $lp->id]) }}"
+                                    class="block px-4 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-600">
+                                    {{ $lp->ten_loai }}
+                                </a>
+                            @empty
+                                <div class="px-4 py-3 text-sm text-gray-400">Chưa có loại phòng</div>
+                            @endforelse
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Giới Thiệu --}}
+                @php $isGioiThieu = request()->routeIs('client.gioithieu'); @endphp
                 <a href="{{ route('client.gioithieu') }}"
-                    class="nav-link text-gray-600 hover:text-yellow-600 hover:underline hover:decoration-yellow-600 decoration-[2px] transition duration-300 underline-offset-4">
+                    class="nav-link
+        {{ $isGioiThieu ? 'text-yellow-600 nav-link-active' : 'text-gray-600 hover:text-yellow-600' }}">
                     Giới Thiệu
                 </a>
-                <a href="#"
-                    class="nav-link text-gray-600 hover:text-yellow-600 hover:underline hover:decoration-yellow-600 decoration-[2px] transition duration-300 underline-offset-4">
-                    Pages
-                </a>
+
+                {{-- Dropdown Pages --}}
+                <div class="relative group">
+                    <a href="#" class="nav-link text-gray-600 hover:text-yellow-600 py-2">
+                        Pages ▾
+                    </a>
+
+                    <div
+                        class="absolute left-1/2 -translate-x-1/2 top-full min-w-[12rem] w-max bg-white border border-gray-100 shadow-xl rounded-lg overflow-hidden
+            opacity-0 invisible group-hover:opacity-100 group-hover:visible translate-y-2 group-hover:translate-y-0 transition-all duration-300 ease-out z-20">
+
+                        <div class="py-1">
+                            <a href="{{ route('client.phong') }}"
+                                class="nav-link block px-4 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-600 transition">
+                                Phòng của chúng tôi
+                            </a>
+
+                            <a href="{{ route('client.gioithieu') }}"
+                                class="nav-link block px-4 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-600 transition border-t border-gray-100">
+                                Giới Thiệu về khách sạn
+                            </a>
+
+                            <a href="{{ route('client.tintuc') }}"
+                                class="nav-link block px-4 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-600 transition border-t border-gray-100">
+                                Tin Tức liên quan
+                            </a>
+
+                            <a href="{{ route('client.lienhe') }}"
+                                class="nav-link block px-4 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-600 transition border-t border-gray-100">
+                                Liên Hệ chúng tôi
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- News --}}
+                @php $isTinTuc = request()->routeIs('client.tintuc'); @endphp
                 <a href="{{ route('client.tintuc') }}"
-                    class="nav-link text-gray-600 hover:text-yellow-600 hover:underline hover:decoration-yellow-600 decoration-[2px] transition duration-300 underline-offset-4">
+                    class="nav-link
+        {{ $isTinTuc ? 'text-yellow-600 nav-link-active' : 'text-gray-600 hover:text-yellow-600' }}">
                     News
                 </a>
+
+                {{-- Liên Hệ --}}
+                @php $isLienHe = request()->routeIs('client.lienhe'); @endphp
                 <a href="{{ route('client.lienhe') }}"
-                    class="nav-link text-gray-600 hover:text-yellow-600 hover:underline hover:decoration-yellow-600 decoration-[2px] transition duration-300 underline-offset-4">
+                    class="nav-link
+        {{ $isLienHe ? 'text-yellow-600 nav-link-active' : 'text-gray-600 hover:text-yellow-600' }}">
                     Liên Hệ
                 </a>
+
             </div>
 
             {{-- Client Auth Logic với Dropdown --}}
@@ -132,3 +198,24 @@
         </div>
     </div>
 </nav>
+
+<style>
+    /* Hiệu ứng gạch chân chạy từ trái qua phải */
+    .nav-link {
+        position: relative;
+        background-image: linear-gradient(currentColor, currentColor);
+        background-position: 0% 100%;
+        background-repeat: no-repeat;
+        background-size: 0% 2px;
+        transition: background-size 0.35s ease-in-out, color 0.25s ease;
+    }
+
+    .nav-link:hover {
+        background-size: 100% 2px;
+    }
+
+    /* Trang đang active */
+    .nav-link-active {
+        background-size: 100% 2px !important;
+    }
+</style>

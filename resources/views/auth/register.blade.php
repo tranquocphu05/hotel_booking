@@ -17,7 +17,7 @@
                     tên:</label>
                 <div class="mt-1">
                     <x-text-input id="name" class="block w-full rounded-md border-gray-300 shadow-sm"
-                        type="text" name="name" :value="old('name')" required autofocus autocomplete="name" />
+                        type="text" name="name" :value="old('name')"  autofocus autocomplete="name" />
                 </div>
                 <x-input-error :messages="$errors->get('name')" class="mt-2" />
             </div>
@@ -26,7 +26,7 @@
                 <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Email:</label>
                 <div class="mt-1">
                     <x-text-input id="email" class="block w-full rounded-md border-gray-300 shadow-sm"
-                        type="email" name="email" :value="old('email')" required autocomplete="username" />
+                        type="email" name="email" :value="old('email')"  autocomplete="username" />
                 </div>
                 <x-input-error :messages="$errors->get('email')" class="mt-2" />
             </div>
@@ -55,7 +55,7 @@
 
             <div>
                 <label for="dia_chi" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Địa
-                    chỉ:</label>
+                    chỉ:</label> 
                 <div class="mt-1">
                     <x-text-input id="dia_chi" class="block w-full rounded-md border-gray-300 shadow-sm"
                         type="text" name="dia_chi" :value="old('dia_chi')" />
@@ -69,7 +69,7 @@
                         khẩu:</label>
                     <div class="mt-1 relative">
                         <x-text-input id="password" class="block w-full rounded-md border-gray-300 shadow-sm pr-10"
-                            type="password" name="password" required autocomplete="new-password" />
+                            type="password" name="password"  autocomplete="new-password" />
                         <button type="button" class="absolute inset-y-0 end-0 px-3 toggle-password"
                             data-target="#password" aria-label="Ẩn/Hiện mật khẩu">
                             <svg data-icon="show" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400"
@@ -78,7 +78,7 @@
                                     d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
+                            </svg> 
                             <svg data-icon="hide" xmlns="http://www.w3.org/2000/svg"
                                 class="h-5 w-5 text-gray-400 hidden" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor">
@@ -97,7 +97,7 @@
                     <div class="mt-1 relative">
                         <x-text-input id="password_confirmation"
                             class="block w-full rounded-md border-gray-300 shadow-sm pr-10" type="password"
-                            name="password_confirmation" required autocomplete="new-password" />
+                            name="password_confirmation"  autocomplete="new-password" />
                         <button type="button" class="absolute inset-y-0 end-0 px-3 toggle-password"
                             data-target="#password_confirmation" aria-label="Ẩn/Hiện mật khẩu">
                             <svg data-icon="show" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400"
@@ -123,7 +123,19 @@
 
             <div class="flex items-center justify-between">
                 <a class="text-sm text-indigo-600 hover:underline" href="{{ route('login') }}">Đã có tài khoản?</a>
-                <x-primary-button class="btn-gold-hover">{{ __('Đăng ký') }}</x-primary-button>
+                <x-primary-button
+                    class="w-3/4 md:w-1/2 justify-center text-base py-2 
+           /* Màu nền mặc định */
+           bg-green-500 hover:bg-green-600 
+           /* Hiệu ứng nổi bật */
+           text-white font-bold 
+           shadow-lg shadow-green-400/70 
+           /* Hiệu ứng chuyển động (Giống Đăng nhập) */
+           transition duration-300 ease-in-out 
+           hover:scale-[1.02] hover:-translate-y-0.5 
+           active:scale-[0.98] active:translate-y-0">
+                    {{ __('Đăng ký') }}
+                </x-primary-button>
             </div>
 
             <div class="my-4 flex items-center">
@@ -141,41 +153,3 @@
         </form>
     </div>
 </x-auth-layout>
-<style>
-    .btn-gold-hover {
-        position: relative;
-        overflow: hidden;
-        background: linear-gradient(to right, #d4af37, #b68b00);
-        color: #fff;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        transition: all 0.4s ease;
-        padding: 0.6rem 1.2rem;
-        font-weight: 600;
-    }
-
-    .btn-gold-hover::before {
-        content: "";
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 0;
-        height: 0;
-        background: rgba(255, 223, 95, 0.3);
-        border-radius: 50%;
-        transform: translate(-50%, -50%) scale(0);
-        transition: transform 0.5s ease, width 0.5s ease, height 0.5s ease;
-    }
-
-    .btn-gold-hover:hover {
-        background: linear-gradient(to right, #b68b00, #d4af37);
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(212, 175, 55, 0.5);
-    }
-
-    .btn-gold-hover:hover::before {
-        width: 200%;
-        height: 200%;
-        transform: translate(-50%, -50%) scale(1);
-    }
-</style>

@@ -21,7 +21,7 @@ class PhongController extends Controller
             $query->where('trang_thai', $request->trang_thai);
         }
 
-        $phongs = $query->orderBy('id', 'desc')->get();
+        $phongs = $query->orderBy('id', 'desc')->paginate(5);
         $loaiPhongs = LoaiPhong::all();
 
         return view('admin.phong.index', compact('phongs', 'loaiPhongs'));
@@ -51,7 +51,8 @@ class PhongController extends Controller
             'co_khuyen_mai'   => 'nullable|boolean',
             'trang_thai'      => 'required|in:hien,an,bao_tri,chong',
             'img'             => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240', // 10MB
-            'dich_vu'         => 'nullable|string|max:255'
+            'dich_vu'         => 'nullable|string|max:255',
+            'mo_ta'           => 'nullable|string|max:5000'
         ], [
             'loai_phong_id.required' => 'Vui lòng chọn loại phòng cho phòng này.',
             'loai_phong_id.exists'   => 'Loại phòng được chọn không tồn tại.',
@@ -82,6 +83,7 @@ class PhongController extends Controller
 
             'dich_vu.string' => 'Dịch vụ phải là chuỗi ký tự.',
             'dich_vu.max'    => 'Dịch vụ không được vượt quá 255 ký tự.',
+            'mo_ta.max'      => 'Mô tả không được vượt quá 5000 ký tự.',
         ]);
 
         // ⚙️ Nếu chọn “Có khuyến mãi” mà không nhập giá khuyến mãi
@@ -143,10 +145,12 @@ class PhongController extends Controller
             'co_khuyen_mai'   => 'nullable|boolean',
             'trang_thai'      => 'required|in:hien,an,bao_tri,chong',
             'img'             => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240',
-            'dich_vu'         => 'nullable|string|max:255'
+            'dich_vu'         => 'nullable|string|max:255',
+            'mo_ta'           => 'nullable|string|max:5000'
         ], [
             'ten_phong.regex'    => 'Tên phòng không được chỉ chứa số hoặc bắt đầu bằng số.',
             'gia_khuyen_mai.lt'  => 'Giá khuyến mãi phải nhỏ hơn giá gốc.',
+            'mo_ta.max'          => 'Mô tả không được vượt quá 5000 ký tự.',
         ]);
 
         // ⚙️ Nếu chọn “Có khuyến mãi” mà không nhập giá khuyến mãi
@@ -187,14 +191,11 @@ class PhongController extends Controller
     {
         $phong = Phong::findOrFail($id);
 
-        if ($phong->img && file_exists(public_path($phong->img))) {
-            @unlink(public_path($phong->img));
-        }
-
-        $phong->delete();
+        // Không xóa dữ liệu; chuyển trạng thái sang ẩn (vô hiệu hóa)
+        $phong->update(['trang_thai' => 'an']);
 
         return redirect()->route('admin.phong.index')
-            ->with('success', 'Xóa phòng thành công!');
+            ->with('success', 'Đã vô hiệu hóa phòng (không xóa dữ liệu).');
     }
 
     // ====================== PHÒNG TRỐNG ======================
@@ -212,6 +213,7 @@ class PhongController extends Controller
                     $subQ->where('ngay_nhan', '<=', $ngayNhan)
                          ->where('ngay_tra', '>=', $ngayTra);
                 });
+
         })
             ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
             ->pluck('phong_id')
@@ -254,5 +256,17 @@ class PhongController extends Controller
 
         return redirect()->route('admin.phong.index')
             ->with('success', 'Đã chống phòng thành công! Phòng không thể đặt cho đến khi hủy chống.');
+    }
+
+    // ====================== BẬT/TẮT TRẠNG THÁI ======================
+    public function toggleStatus($id)
+    {
+        $phong = Phong::findOrFail($id);
+
+        $new = $phong->trang_thai === 'hien' ? 'an' : 'hien';
+        $phong->update(['trang_thai' => $new]);
+
+        return redirect()->route('admin.phong.index')
+            ->with('success', $new === 'an' ? 'Đã vô hiệu hóa phòng.' : 'Đã kích hoạt phòng.');
     }
 }

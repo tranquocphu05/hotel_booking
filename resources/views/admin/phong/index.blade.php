@@ -125,12 +125,18 @@
                                         <i class="fas fa-ban"></i> Chống
                                     </button>
                                 @endif
-                                <form action="{{ route('admin.phong.destroy', $phong->id) }}" method="POST" onsubmit="return confirm('Xác nhận xóa phòng này?')">
+                                <form action="{{ route('admin.phong.toggle', $phong->id) }}" method="POST" onsubmit="return confirm('{{ $phong->trang_thai === 'hien' ? 'Vô hiệu hóa phòng này?' : 'Kích hoạt lại phòng này?' }}')">
                                     @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="text-red-600 hover:text-red-700 flex items-center gap-1 transition text-xs">
-                                        <i class="bi bi-trash3"></i> Delete
-                                    </button>
+                                    @method('PUT')
+                                    @if($phong->trang_thai === 'hien')
+                                        <button type="submit" class="text-red-600 hover:text-red-700 flex items-center gap-1 transition text-xs">
+                                            <i class="bi bi-slash-circle"></i> Vô hiệu hóa
+                                        </button>
+                                    @else
+                                        <button type="submit" class="text-green-600 hover:text-green-700 flex items-center gap-1 transition text-xs">
+                                            <i class="bi bi-check-circle"></i> Kích hoạt
+                                        </button>
+                                    @endif
                                 </form>
                             </div>
                         </td>
@@ -144,6 +150,9 @@
                 @endforelse
             </tbody>
         </table>
+    </div>
+    <div class="mt-6">
+        {{ $phongs->appends(request()->query())->links() }}
     </div>
 </div>
 @endsection

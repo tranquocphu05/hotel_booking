@@ -18,7 +18,7 @@ class LoaiPhongController extends Controller
             $query->where('trang_thai', $request->trang_thai);
         }
 
-        $loaiPhongs = $query->orderBy('id', 'desc')->get();
+        $loaiPhongs = $query->orderBy('id', 'desc')->paginate(5);
         return view('admin.loai_phong.index', compact('loaiPhongs'));
     }
 
@@ -74,13 +74,12 @@ class LoaiPhongController extends Controller
     public function update(Request $request, $id)
     {
         $validated = $request->validate([
-            'ten_loai' => 'required|string|max:255|unique:loai_phong,ten_loai|regex:/^[\pL\s]+$/u',
+            'ten_loai' => 'required|string|max:255|regex:/^[\pL\s]+$/u',
             'mo_ta' => 'nullable|string|max:1000|regex:/^[\pL\pN\s.,()!?\-\'":;%&@\/]+$/u',
             'gia_co_ban' => 'required|numeric|min:100000|max:99999999',
             'anh' => 'required|image|max:2048'
         ], [
             'ten_loai.required' => 'Tên loại phòng không được để trống.',
-            'ten_loai.unique' => 'Tên loại phòng đã tồn tại.',
             'ten_loai.regex' => 'Tên loại phòng chỉ được chứa chữ cái và khoảng trắng.',
             'gia_co_ban.required' => 'Giá cơ bản là bắt buộc.',
             'gia_co_ban.min' => 'Giá cơ bản phải lớn hơn hoặc bằng 100.000đ',
@@ -116,8 +115,19 @@ class LoaiPhongController extends Controller
     public function destroy($id)
     {
         $loaiPhong = LoaiPhong::findOrFail($id);
-        $loaiPhong->delete();
+        // Không xóa dữ liệu; chuyển trạng thái sang "ngung"
+        $loaiPhong->update(['trang_thai' => 'ngung']);
 
-        return redirect()->route('admin.loai_phong.index')->with('success', 'Xóa loại phòng thành công!');
+        return redirect()->route('admin.loai_phong.index')->with('success', 'Đã vô hiệu hóa loại phòng (không xóa dữ liệu).');
+    }
+
+    // Bật/tắt trạng thái hoạt động của loại phòng
+    public function toggleStatus($id)
+    {
+        $loaiPhong = LoaiPhong::findOrFail($id);
+        $new = $loaiPhong->trang_thai === 'hoat_dong' ? 'ngung' : 'hoat_dong';
+        $loaiPhong->update(['trang_thai' => $new]);
+
+        return redirect()->route('admin.loai_phong.index')->with('success', $new === 'ngung' ? 'Đã vô hiệu hóa loại phòng.' : 'Đã kích hoạt loại phòng.');
     }
 }

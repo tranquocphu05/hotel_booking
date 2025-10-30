@@ -1,132 +1,76 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quên mật khẩu - {{ config('app.name') }}</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-</head>
-<body>
-  <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8" 
-       style="background: linear-gradient(135deg, #f8f6f1 0%, #f2e7c9 50%, #e8d9a7 100%);">
-    <div class="max-w-md w-full">
-      <!-- Card -->
-      <div class="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl overflow-hidden border border-[#e0d5b3]">
-        <!-- Header Section -->
-        <div class="bg-gradient-to-r from-[#D4AF37] to-[#b8860b] px-8 py-10 text-center">
-          <div class="w-20 h-20 bg-white rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg">
-            <i class="fas fa-key text-[#D4AF37] text-3xl"></i>
-          </div>
-          <h2 class="text-3xl font-bold text-white mb-2">Quên Mật Khẩu?</h2>
-          <p class="text-yellow-100 text-sm">Đừng lo, chúng tôi sẽ giúp bạn lấy lại tài khoản.</p>
+<x-auth-layout>
+    <div class="space-y-6">
+        <div class="text-center">
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Khôi phục Tài khoản</h1>
+            <p class="text-sm text-gray-500 mt-2">Vui lòng nhập email đã đăng ký để chúng tôi gửi link đặt lại mật khẩu.</p>
         </div>
 
-        <!-- Content Section -->
-        <div class="px-8 py-8">
-          <div class="bg-yellow-50 border-l-4 border-[#D4AF37] p-4 mb-6 rounded">
-            <div class="flex items-start">
-              <i class="fas fa-info-circle text-[#D4AF37] mt-0.5 mr-3"></i>
-              <p class="text-sm text-gray-700">
-                Nhập địa chỉ email của bạn và chúng tôi sẽ gửi link đặt lại mật khẩu cho bạn.
-              </p>
-            </div>
-          </div>
+        <x-auth-session-status class="mb-4 text-green-600" :status="session('status')" />
 
-          <!-- Form -->
-          <form method="POST" action="{{ route('password.email') }}" class="space-y-6">
+        <form method="POST" action="{{ route('password.email') }}" class="space-y-4">
             @csrf
 
-            <!-- Email -->
-            <div>
-              <label for="email" class="block text-sm font-semibold text-gray-700 mb-2">
-                <i class="fas fa-envelope mr-2 text-[#D4AF37]"></i>Địa chỉ Email
-              </label>
-              <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <i class="fas fa-at text-gray-400"></i>
+            <div class="bg-indigo-50 border-l-4 border-indigo-500 p-3 mb-4 rounded-lg">
+                <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-500 mr-3" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                    </svg>
+                    <p class="text-sm text-gray-700 font-medium">
+                        Chúng tôi sẽ gửi một email chứa liên kết đặt lại mật khẩu.
+                    </p>
                 </div>
-                <input 
-                  id="email" type="email" name="email" 
-                  placeholder="example@email.com"
-                  required autofocus
-                  class="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-[#D4AF37] focus:ring-4 focus:ring-yellow-100 transition-all duration-200">
-              </div>
             </div>
 
-            <!-- Submit -->
-            <button 
-              type="submit"
-              class="btn-gold-hover w-full text-white font-semibold py-3 rounded-xl shadow-md transform transition-all duration-300 hover:scale-[1.03] hover:shadow-lg flex items-center justify-center text-sm tracking-wide">
-              <i class="fas fa-paper-plane mr-2"></i>
-              Gửi Link Đặt Lại Mật Khẩu
-            </button>
-          </form>
-
-          <!-- Divider -->
-          <div class="relative my-8">
-            <div class="absolute inset-0 flex items-center">
-              <div class="w-full border-t border-gray-200"></div>
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Email đã đăng ký:</label>
+                <div class="mt-1 relative rounded-md shadow-sm">
+                    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    <x-text-input id="email"
+                        class="block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 pl-10"
+                        type="email" name="email" :value="old('email')" required autofocus
+                        placeholder="Nhập email của bạn" />
+                </div>
+                <x-input-error :messages="$errors->get('email')" class="mt-2" />
             </div>
-            <div class="relative flex justify-center text-sm">
-              <span class="px-4 bg-white text-gray-500">hoặc</span>
-            </div>
-          </div>
 
-          <!-- Back to login -->
-          <div class="text-center space-y-3">
-            <a href="{{ route('login') }}" class="inline-flex items-center text-sm text-[#D4AF37] hover:text-yellow-600 font-medium transition-colors">
-              <i class="fas fa-arrow-left mr-2"></i>
-              Quay lại đăng nhập
-            </a>
-            <p class="text-xs text-gray-500">
-              Chưa có tài khoản? 
-              <a href="{{ route('register') }}" class="text-[#D4AF37] hover:text-yellow-600 font-semibold">Đăng ký ngay</a>
-            </p>
-          </div>
+            <div class="flex justify-center pt-2">
+                <x-primary-button
+                    class="w-full justify-center text-base py-3 
+                    /* Màu nền TÍM/INDIGO (Khác màu Đăng nhập) */
+                    bg-indigo-600 hover:bg-indigo-700 
+                    /* Hiệu ứng nổi bật */
+                    text-white font-bold 
+                    shadow-lg shadow-indigo-500/50 
+                    /* Hiệu ứng chuyển động */
+                    transition duration-300 ease-in-out 
+                    hover:scale-[1.02] hover:-translate-y-0.5 
+                    active:scale-[0.98] active:translate-y-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l.493-.185A.993.993 0 006 17c3.957 0 7.823-1.47 10.707-4.137l.493-.185a1 1 0 001.169-1.409l-7-14z" />
+                    </svg>
+                    {{ __('Gửi Link Đặt Lại Mật Khẩu') }}
+                </x-primary-button>
+            </div>
+        </form>
+
+        <div class="text-center space-y-3 pt-2">
+            @if (Route::has('login'))
+                <a href="{{ route('login') }}" class="text-sm text-gray-500 hover:text-indigo-600 transition-colors font-medium flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Quay lại Đăng nhập
+                </a>
+            @endif
+            @if (Route::has('register'))
+                <p class="text-sm text-gray-600">Chưa có tài khoản? 
+                    <a href="{{ route('register') }}" class="text-indigo-600 hover:text-indigo-700 font-semibold">Đăng ký ngay</a>
+                </p>
+            @endif
         </div>
-
-        <!-- Footer -->
-        <div class="bg-gray-50 px-8 py-4 text-center border-t border-gray-100">
-          <p class="text-xs text-gray-500">
-            <i class="fas fa-shield-alt mr-1"></i>Thông tin của bạn được bảo mật tuyệt đối
-          </p>
-        </div>
-      </div>
-
-      <div class="mt-6 text-center">
-        <p class="text-sm text-gray-600">
-          <i class="fas fa-question-circle mr-1"></i>
-          Cần hỗ trợ? 
-          <a href="mailto:support@hotel.com" class="font-semibold hover:underline text-[#b8860b]">
-            Liên hệ chúng tôi
-          </a>
-        </p>
-      </div>
     </div>
-  </div>
-
-  <style>
-    /* Hiệu ứng vàng kim loại */
-    .btn-gold-hover {
-      background: linear-gradient(135deg, #c5a029, #f9e48f, #d4af37);
-      background-size: 250% 250%;
-      color: #fff;
-      border: none;
-      transition: all 0.4s ease;
-      box-shadow: 0 4px 10px rgba(212, 175, 55, 0.3);
-    }
-
-    .btn-gold-hover:hover {
-      background-position: right center;
-      filter: brightness(1.1);
-      box-shadow: 0 6px 18px rgba(212, 175, 55, 0.5);
-    }
-
-    .btn-gold-hover:active {
-      transform: scale(0.97);
-      box-shadow: 0 2px 6px rgba(212, 175, 55, 0.4);
-    }
-  </style>
-</body>
-</html>
+</x-auth-layout>
