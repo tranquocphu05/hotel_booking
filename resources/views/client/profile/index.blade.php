@@ -4,18 +4,27 @@
 
 @section('client_content')
 
-    <div class="bg-white py-16 w-full">
-        <div class="w-full px-4 text-center">
-            <nav class="text-sm text-gray-500 mb-8">
-                <a href="{{ route('client.dashboard') }}" class="hover:text-gray-700 transition-colors">Trang chủ</a>
-                <span class="mx-2">/</span>
-                <span class="text-gray-900">Thông tin cá nhân</span>
+    <div class="relative w-full bg-cover bg-center bg-no-repeat"
+        style="background-image: url('{{ asset('img/hero/thongtin.jpg') }}');">
+
+        {{-- Overlay tối --}}
+        <div class="absolute inset-0 bg-black bg-opacity-40"></div>
+
+        <div class="relative py-28 px-4 text-center text-white">
+            <nav class="text-sm text-gray-200 mb-4">
+                <a href="{{ route('client.dashboard') }}" class="hover:text-[#D4AF37] transition-colors">Trang chủ</a>
+                /
+                <span class="text-[#FFD700] font-semibold">Thông tin cá nhân</span>
             </nav>
 
-            <h1 class="text-5xl md:text-6xl font-bold text-black mb-4">Thông Tin Cá Nhân</h1>
-            <p class="text-xl text-gray-600">Quản lý thông tin và lịch sử đặt phòng của bạn</p>
+            <h1 class="text-5xl md:text-6xl font-bold mb-6">Thông Tin Cá Nhân</h1>
+
+            <p class="text-lg md:text-xl text-gray-100 leading-relaxed max-w-3xl mx-auto">
+                Quản lý thông tin và lịch sử đặt phòng của bạn
+            </p>
         </div>
     </div>
+
 
     <section class="bg-gray-50 py-16 w-full">
         <div class="max-w-7xl mx-auto px-4">
@@ -200,23 +209,23 @@
                     </div>
 
                     <script>
-    function toggleEdit() {
-        document.querySelectorAll('#profileForm input, #profileForm textarea').forEach(el => el.disabled = false);
-        document.getElementById('saveButtons').classList.remove('hidden');
-    }
+                        function toggleEdit() {
+                            document.querySelectorAll('#profileForm input, #profileForm textarea').forEach(el => el.disabled = false);
+                            document.getElementById('saveButtons').classList.remove('hidden');
+                        }
 
-    function cancelEdit() {
-        document.querySelectorAll('#profileForm input, #profileForm textarea').forEach(el => el.disabled = true);
-        document.getElementById('saveButtons').classList.add('hidden');
-    }
+                        function cancelEdit() {
+                            document.querySelectorAll('#profileForm input, #profileForm textarea').forEach(el => el.disabled = true);
+                            document.getElementById('saveButtons').classList.add('hidden');
+                        }
 
-    // ✅ Nếu có lỗi validate, tự bật chế độ chỉnh sửa luôn
-    @if ($errors->any())
-        window.addEventListener('DOMContentLoaded', () => {
-            toggleEdit();
-        });
-    @endif
-</script>
+                        // ✅ Nếu có lỗi validate, tự bật chế độ chỉnh sửa luôn
+                        @if ($errors->any())
+                            window.addEventListener('DOMContentLoaded', () => {
+                                toggleEdit();
+                            });
+                        @endif
+                    </script>
 
 
                     <!-- Lịch sử đặt phòng -->
@@ -751,12 +760,12 @@
             </div>
             
             ${data.cancelReason ? `
-                        <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
-                            <p class="text-sm font-semibold text-red-800 mb-2"><i class="fas fa-info-circle mr-2"></i>Lý do hủy:</p>
-                            <p class="text-sm text-red-700">${data.cancelReason}</p>
-                            ${data.cancelDate ? `<p class="text-xs text-red-600 mt-2">Ngày hủy: ${data.cancelDate}</p>` : ''}
-                        </div>
-                        ` : ''}
+                            <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
+                                <p class="text-sm font-semibold text-red-800 mb-2"><i class="fas fa-info-circle mr-2"></i>Lý do hủy:</p>
+                                <p class="text-sm text-red-700">${data.cancelReason}</p>
+                                ${data.cancelDate ? `<p class="text-xs text-red-600 mt-2">Ngày hủy: ${data.cancelDate}</p>` : ''}
+                            </div>
+                            ` : ''}
             
             <!-- Tổng tiền -->
             <div class="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg p-6 text-white">
