@@ -42,7 +42,20 @@ class DashboardController extends Controller
                 ->get();
         }
 
+        // Phòng ưu đãi cuối tuần (giảm giá, giá tầm trung)
+        $deals = Phong::where('trang_thai', 'hien')
+            ->where('co_khuyen_mai', 1)
+            ->whereNotNull('gia_khuyen_mai')
+            ->whereColumn('gia_khuyen_mai', '<', 'gia_goc')
+            ->with('loaiPhong')
+            ->orderBy('gia_khuyen_mai', 'asc')
+            ->get();
+
+        $totalDeals = $deals->count();
+        $startIndex = (int) floor(max(0, $totalDeals * 0.25)); // bỏ nhóm rẻ nhất ~25%
+        $phongsUuDai = $deals->slice($startIndex, 10)->values(); // lấy khoảng tầm trung (tối đa 10)
+
         // Trả về view và truyền các dữ liệu
-        return view('client.dashboard', compact('loaiPhongs', 'rooms', 'comments'));
+        return view('client.dashboard', compact('loaiPhongs', 'rooms', 'comments', 'phongsUuDai'));
     }
 }

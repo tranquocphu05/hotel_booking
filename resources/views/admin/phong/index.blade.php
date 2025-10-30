@@ -145,6 +145,9 @@
             </tbody>
         </table>
     </div>
+    <div class="mt-6">
+        {{ $phongs->appends(request()->query())->links() }}
+    </div>
 </div>
 @endsection
 
