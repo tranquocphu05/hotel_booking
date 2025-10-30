@@ -3,23 +3,35 @@
 
 @section('client_content')
 
-<div class="bg-white py-20 w-full">
-    <div class="w-full px-4 text-center">
-        <nav class="text-sm text-gray-500 mb-8">
-            <a href="{{ route('client.dashboard') }}" class="hover:text-gray-700 transition-colors">Trang chủ</a>
+<div class="relative w-full bg-cover bg-center bg-no-repeat"
+    style="background-image: url('{{ asset('img/hero/chitiet.jpg') }}');">
+
+    {{-- Overlay tối --}}
+    <div class="absolute inset-0 bg-black bg-opacity-40"></div>
+
+    <div class="relative py-28 px-4 text-center text-white">
+        <nav class="text-sm text-gray-200 mb-4">
+            <a href="{{ route('client.dashboard') }}" class="hover:text-[#D4AF37] transition-colors">Trang chủ</a>
             <span class="mx-2">/</span>
-            <a href="{{ route('client.phong') }}" class="hover:text-gray-700 transition-colors">Phòng nghỉ</a>
+            <a href="{{ route('client.phong') }}" class="hover:text-[#D4AF37] transition-colors">Phòng nghỉ</a>
             <span class="mx-2">/</span>
-            <span class="text-gray-900">{{ $reviewRoom->ten_phong ?? $loaiPhong->ten_loai }}</span>
+            <span class="text-[#FFD700] font-semibold">
+                {{ $reviewRoom->ten_phong ?? $loaiPhong->ten_loai }}
+            </span>
         </nav>
 
-        <h1 class="text-6xl md:text-8xl font-bold text-black mb-12">{{ $reviewRoom->ten_phong ?? $loaiPhong->ten_loai }}</h1>
+        <h1 class="text-5xl md:text-7xl font-bold mb-6">
+            {{ $reviewRoom->ten_phong ?? $loaiPhong->ten_loai }}
+        </h1>
 
-        <p class="text-xl text-gray-600 leading-relaxed max-w-4xl mx-auto">
-            {{ ($reviewRoom->mo_ta ?? $loaiPhong->mo_ta) ? Str::limit($reviewRoom->mo_ta ?? $loaiPhong->mo_ta, 200) : 'Phòng nghỉ sang trọng với đầy đủ tiện nghi hiện đại' }}
+        <p class="text-lg md:text-xl text-gray-100 leading-relaxed max-w-4xl mx-auto">
+            {{ ($reviewRoom->mo_ta ?? $loaiPhong->mo_ta)
+                ? Str::limit($reviewRoom->mo_ta ?? $loaiPhong->mo_ta, 200)
+                : 'Phòng nghỉ sang trọng với đầy đủ tiện nghi hiện đại' }}
         </p>
     </div>
 </div>
+
 
 <section class="bg-gray-50 py-16 w-full">
     <div class="w-full px-4">

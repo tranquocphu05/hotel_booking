@@ -135,6 +135,7 @@
         </form>
     </div>
 </div>
+@push('scripts')
 <script>
     // Preview hình ảnh khi chọn
     document.getElementById('hinh_anh').addEventListener('change', function(e) {
