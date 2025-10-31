@@ -25,9 +25,10 @@
             : 1;
 
         // Use promotional price if available
-        $gia_mot_dem = ($phong->co_khuyen_mai && !empty($phong->gia_khuyen_mai) && $phong->gia_khuyen_mai > 0)
-            ? $phong->gia_khuyen_mai
-            : $phong->gia;
+        $gia_mot_dem =
+            $phong->co_khuyen_mai && !empty($phong->gia_khuyen_mai) && $phong->gia_khuyen_mai > 0
+                ? $phong->gia_khuyen_mai
+                : $phong->gia;
         $gia_mot_dem = $gia_mot_dem ?? 0;
         $tong_tien_initial = $gia_mot_dem * $so_dem; // Tổng tiền ban đầu tính bằng PHP
 
@@ -55,23 +56,21 @@
                         <p class="text-sm text-gray-700" id="so-dem-luu-tru">Số đêm: *{{ $so_dem }} đêm*</p>
                     </div>
 
-                    <div id="openVoucherBtn"
-                        class="flex items-center justify-between bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg p-3 cursor-pointer transition shadow-sm mt-4">
-                        <div class="flex items-center space-x-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M13 7l5 5-5 5M6 7h7v10H6z" />
-                            </svg>
-                            <span class="text-blue-700 font-semibold text-sm" id="voucherActionText">
-                                Chọn hoặc nhập mã giảm giá
-                            </span>
-                        </div>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-500" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor">
+                    <a href="#" id="openVoucherLink"
+                        class="inline-flex items-center space-x-2 text-indigo-600 hover:text-indigo-800 font-semibold text-sm mt-4 cursor-pointer transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        <span id="voucherActionText">
+                            Chọn hoặc nhập mã giảm giá
+                        </span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                         </svg>
-                    </div>
+                    </a>
 
                     <div id="voucherDisplay" class="text-sm text-green-600 font-medium mt-2 hidden"></div>
 
@@ -159,7 +158,8 @@
                     </div>
 
                     <div class="mt-6 flex items-center gap-3">
-                        <button type="submit" class="bg-yellow-500 text-white px-4 py-2 hover:bg-yellow-600 rounded">Hoàn tất đặt
+                        <button type="submit" class="bg-yellow-500 text-white px-4 py-2 hover:bg-yellow-600 rounded">Hoàn
+                            tất đặt
                             phòng</button>
                         <a href="{{ url()->previous() }}" class="text-sm text-gray-600">Quay lại</a>
                     </div>
@@ -236,7 +236,8 @@
             const giaMotDem = parseFloat("{{ $gia_mot_dem ?? 0 }}");
             const loaiPhongId = '{{ optional($phong->loaiPhong)->id ?? 0 }}';
 
-            const openVoucherBtn = document.getElementById('openVoucherBtn');
+            // THAY ĐỔI: openVoucherBtn -> openVoucherLink
+            const openVoucherLink = document.getElementById('openVoucherLink');
             const voucherActionText = document.getElementById('voucherActionText');
             const voucherDisplayDiv = document.getElementById('voucherDisplay');
             const voucherCodeInput = document.getElementById('voucherCode');
@@ -368,7 +369,6 @@
                 const {
                     soDem
                 } = getDatesAndDays();
-
                 const totalBeforeDiscountAmount = giaMotDem * soDem;
                 const discountPercent = currentDiscountPercent;
 
@@ -392,23 +392,26 @@
                         `Giá gốc: <span class="line-through text-gray-500">${formatCurrency(totalBeforeDiscountAmount)}</span>`;
                     totalBeforeDiscountDiv.classList.remove('hidden');
 
+                    // BẮT ĐẦU PHẦN ĐÃ CHỈNH SỬA MÀU: Cập nhật giao diện cho LINK TEXT
                     voucherActionText.textContent = `Đã áp dụng mã: ${currentCode}`;
-                    openVoucherBtn.className =
-                        "flex items-center justify-between bg-green-100 hover:bg-green-200 border border-green-300 rounded-lg p-3 cursor-pointer transition shadow-md mt-4";
-                    voucherActionText.classList.remove('text-blue-700');
-                    voucherActionText.classList.add('text-green-700');
 
+                    // Vẫn giữ màu xanh nước biển (indigo) cho link hành động:
+                    openVoucherLink.classList.remove('text-green-600', 'hover:text-green-800');
+                    openVoucherLink.classList.add('text-indigo-600', 'hover:text-indigo-800');
+                    // KẾT THÚC PHẦN ĐÃ CHỈNH SỬA MÀU
+
+                    // Phần hiển thị chi tiết (voucherDisplayDiv) vẫn là màu xanh lá cây (green)
                     voucherDisplayDiv.innerHTML = `
-            <p class="flex justify-between items-center text-green-600">
-                <span class="flex items-center font-medium">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg> 
-                    Mã ${currentCode} (<span class="font-bold">- ${discountPercent}%</span>)
-                </span>
-                <button id="voucherClearLink" type="button" class="text-xs text-red-500 hover:text-red-700 font-semibold transition">
-                    Hủy
-                </button>
-            </p>
-        `;
+                <p class="flex justify-between items-center text-green-600">
+                    <span class="flex items-center font-medium">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg> 
+                        Mã ${currentCode} (<span class="font-bold">- ${discountPercent}%</span>)
+                    </span>
+                    <button id="voucherClearLink" type="button" class="text-xs text-red-500 hover:text-red-700 font-semibold transition">
+                        Hủy
+                    </button>
+                </p>
+            `;
                     voucherDisplayDiv.classList.remove('hidden');
 
                     const clearLink = voucherDisplayDiv.querySelector('#voucherClearLink');
@@ -421,11 +424,11 @@
                 } else {
                     totalBeforeDiscountDiv.classList.add('hidden');
 
+                    // Khi KHÔNG có voucher, link hành động về màu xanh nước biển mặc định
                     voucherActionText.textContent = 'Chọn hoặc nhập mã giảm giá';
-                    openVoucherBtn.className =
-                        "flex items-center justify-between bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg p-3 cursor-pointer transition shadow-sm mt-4";
-                    voucherActionText.classList.add('text-blue-700');
-                    voucherActionText.classList.remove('text-green-700');
+
+                    openVoucherLink.classList.remove('text-green-600', 'hover:text-green-800');
+                    openVoucherLink.classList.add('text-indigo-600', 'hover:text-indigo-800');
 
                     voucherDisplayDiv.classList.add('hidden');
                 }
@@ -449,7 +452,9 @@
 
                 if (popup) {
                     const closeBtn = popup.querySelector('#closeVoucherPopup');
-                    if (closeBtn) closeBtn.dispatchEvent(new Event('click'));
+                    if (closeBtn) {
+                        closeBtn.dispatchEvent(new Event('click'));
+                    }
                 }
             }
 
@@ -465,15 +470,20 @@
 
                 if (!message) {
                     alertContainer.classList.add('hidden');
+                    pTag.textContent = '';
                     return;
                 }
 
-                pTag.textContent = message;
+                pTag.innerHTML = message;
                 alertContainer.classList.remove('hidden');
-                alertContainer.className = isError ?
-                    'px-4 mt-2 bg-red-100 border border-red-300 rounded-lg animate-fadeIn' :
-                    'px-4 mt-2 bg-green-100 border border-green-300 rounded-lg animate-fadeIn';
-                pTag.className = isError ? 'text-sm text-red-700 py-2' : 'text-sm text-green-700 py-2';
+
+                // LOẠI BỎ 'text-center'
+                alertContainer.className = 'mt-2';
+
+                // LOẠI BỎ 'inline-block'
+                pTag.className = isError ?
+                    'text-sm py-2 px-3 rounded-lg bg-red-100 text-red-700 font-medium' :
+                    'text-sm py-2 px-3 rounded-lg bg-sky-100 text-sky-800 font-medium';
 
                 alertTimeout = setTimeout(() => {
                     alertContainer.classList.add('hidden');
@@ -514,6 +524,15 @@
 
                         if (applyBtn) {
                             if (currentDiscountPercent > 0) {
+                                const targetCard = applyBtn.closest('.custom-voucher-card');
+                                const newCode = targetCard.dataset.voucherCode;
+                                const currentCode = voucherCodeInput.value;
+
+                                if (newCode === currentCode) {
+                                    displayAlert(popup, `Mã ${newCode} đã được áp dụng rồi.`, false);
+                                    return;
+                                }
+
                                 displayAlert(popup,
                                     `Bạn chỉ có thể áp dụng 1 mã voucher duy nhất. Vui lòng nhấn "Hủy" mã ${voucherCodeInput.value} ở bên dưới hoặc ngoài trang thanh toán trước.`,
                                     true);
@@ -542,6 +561,7 @@
                 const searchBtn = popup.querySelector('#searchVoucherBtn');
 
                 if (searchBtn && searchInput) {
+                    // Reset event listener cũ
                     const newSearchBtn = searchBtn.cloneNode(true);
                     searchBtn.parentNode.replaceChild(newSearchBtn, searchBtn);
 
@@ -554,17 +574,24 @@
                             return;
                         }
 
+                        // === LOGIC TÌM KIẾM VÀ KIỂM TRA ÁP DỤNG ===
                         if (currentDiscountPercent > 0) {
-                            if (searchCode === voucherCodeInput.value) {
-                                displayAlert(popup, `Mã "${searchCode}" đã được áp dụng rồi.`, false);
+                            const currentAppliedCode = voucherCodeInput.value;
+
+                            // 1. Nếu mã nhập vào là mã đang áp dụng -> HỦY
+                            if (searchCode === currentAppliedCode) {
+                                clearVoucher(); // Hủy voucher
+                                displayAlert(popup, `Mã ${searchCode} đã được hủy thành công.`, false);
                                 return;
                             }
 
                             displayAlert(popup,
-                                `Bạn chỉ có thể áp dụng 1 mã voucher duy nhất. Vui lòng nhấn "Hủy" mã ${voucherCodeInput.value} ở bên dưới hoặc ngoài trang thanh toán trước.`,
+                                `Bạn chỉ có thể áp dụng 1 mã voucher duy nhất. Vui lòng nhấn "Hủy" mã ${currentAppliedCode} trước khi áp dụng mã mới.`,
                                 true);
                             return;
                         }
+                        // === END LOGIC KIỂM TRA ÁP DỤNG ===
+
 
                         const card = popup.querySelector(`[data-voucher-code="${searchCode}"]`);
 
@@ -596,23 +623,16 @@
 
             // --- BỔ SUNG LOGIC XÓA VOUCHER KHI RỜI TRANG ---
 
-            // 1. Gắn sự kiện khi click nút "Hoàn tất đặt phòng"
             if (finalBookingForm) {
                 finalBookingForm.addEventListener('submit', function() {
-                    // Đặt cờ là đang gửi form (đang hoàn tất đặt phòng)
                     isCompletingBooking = true;
-                    // GIỮ voucher để server xử lý thanh toán
                 });
             }
 
-            // 2. Gắn sự kiện trước khi người dùng rời khỏi trang thanh toán
             window.addEventListener('beforeunload', function() {
-                // Nếu người dùng KHÔNG phải đang gửi form đặt phòng
-                // (Tức là click nút Quay Lại, quay lại trang chi tiết phòng, hoặc đóng tab)
                 if (!isCompletingBooking) {
                     clearSavedVoucherState();
                 }
-                // Nếu là đang gửi form, voucher sẽ được giữ lại tạm thời. Server nên xóa nó sau khi đặt phòng thành công.
             });
 
 
@@ -621,8 +641,9 @@
             // 1. KHÔI PHỤC TRẠNG THÁI VOUCHER KHI TRANG TẢI LẠI
             restoreVoucherState();
 
-            // 2. Sự kiện mở Popup (Giữ nguyên)
-            openVoucherBtn.addEventListener('click', function() {
+            // 2. Sự kiện mở Popup (ĐÃ SỬA ID: openVoucherLink)
+            openVoucherLink.addEventListener('click', function(e) {
+                e.preventDefault(); // RẤT QUAN TRỌNG KHI SỬ DỤNG THẺ <a>
                 const {
                     soDem
                 } = getDatesAndDays();
@@ -648,7 +669,6 @@
                             if (innerContent) {
                                 const newDoc = new DOMParser().parseFromString(html, 'text/html');
                                 const newVoucherList = newDoc.querySelector('.custom-scrollbar');
-
                                 const oldVoucherList = innerContent.querySelector('.custom-scrollbar');
                                 if (oldVoucherList && newVoucherList) {
                                     oldVoucherList.parentNode.replaceChild(newVoucherList,
@@ -661,7 +681,10 @@
 
                         popupElement.classList.remove('hidden');
 
-                        if (currentDiscountPercent === 0) {
+                        if (currentDiscountPercent > 0) {
+                            displayAlert(popupElement,
+                                `Mã ${voucherCodeInput.value} đang được áp dụng.`, false);
+                        } else {
                             displayAlert(popupElement, '');
                         }
                     })
@@ -697,4 +720,3 @@
         });
     </script>
 @endsection
-
