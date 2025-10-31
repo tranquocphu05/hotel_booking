@@ -23,35 +23,30 @@
 
             {{-- Logo --}}
             <div class="flex items-center">
-                <a href="{{ url('/') }}" class="text-3xl font-serif font-bold text-gray-800 cursor-pointer">OZIA
+                <a href="{{ url('/') }}" class="text-4xl font-serif font-bold text-gray-800 cursor-pointer">OZIA
                     HOTEL</a>
             </div>
 
             {{-- Menu --}}
-            <div class="hidden md:flex items-center space-x-8 text-sm font-semibold uppercase tracking-wide">
+            <div class="hidden md:flex items-center space-x-8 text-base font-semibold uppercase tracking-wide">
 
-                {{-- Trang Chủ --}}
-                @php $isHome = request()->routeIs('tên.route.trangchu'); @endphp
-                <a href="{{ url('/') }}"
-                    class="nav-link
-        {{ $isHome ? 'text-yellow-600 nav-link-active' : 'text-gray-600 hover:text-yellow-600' }}">
+                <a href="{{ url('/') }}" class="nav-link text-gray-600 hover:text-yellow-600 py-2">
                     Trang Chủ
                 </a>
 
-                {{-- Phòng --}}
-                @php
-                    $isPhong = request()->routeIs('client.phong');
-                @endphp
                 <div class="relative group">
+                    {{-- **ĐÃ SỬA:** Thêm "inline-flex items-center" để căn chỉnh chính xác hơn với icon --}}
                     <a href="{{ route('client.phong') }}"
-                        class="nav-link transition duration-300 underline-offset-4 decoration-[2px] {{ $isPhong ? 'text-yellow-600 underline decoration-yellow-600' : 'text-gray-600 hover:text-yellow-600 hover:underline hover:decoration-yellow-600' }} py-2">
+                        class="nav-link text-gray-600 hover:text-yellow-600 py-2 text-base inline-flex items-center">
                         Phòng ▾
                     </a>
-                    <div class="absolute left-0 top-full mt-2 min-w-[14rem] bg-white border border-gray-100 shadow-xl rounded-lg overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-40">
+
+                    <div
+                        class="absolute left-0 top-full mt-2 min-w-[14rem] bg-white border border-gray-100 shadow-xl rounded-lg overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-40">
                         <div class="py-2 max-h-80 overflow-auto">
                             @forelse(($menuLoaiPhongs ?? []) as $lp)
                                 <a href="{{ route('client.phong', ['loai_phong' => $lp->id]) }}"
-                                    class="block px-4 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-600">
+                                    class="nav-link block px-4 py-2 text-sm text-gray-700 hover:text-yellow-600">
                                     {{ $lp->ten_loai }}
                                 </a>
                             @empty
@@ -61,61 +56,52 @@
                     </div>
                 </div>
 
-                {{-- Giới Thiệu --}}
-                @php $isGioiThieu = request()->routeIs('client.gioithieu'); @endphp
-                <a href="{{ route('client.gioithieu') }}"
-                    class="nav-link
-        {{ $isGioiThieu ? 'text-yellow-600 nav-link-active' : 'text-gray-600 hover:text-yellow-600' }}">
+                <a href="{{ route('client.gioithieu') }}" class="nav-link text-gray-600 hover:text-yellow-600 py-2">
                     Giới Thiệu
                 </a>
 
-                {{-- Dropdown Pages --}}
                 <div class="relative group">
-                    <a href="#" class="nav-link text-gray-600 hover:text-yellow-600 py-2">
-                        Pages ▾
+                    {{-- **ĐÃ SỬA:** Đã có "inline-flex items-center", đảm bảo không còn mt-[2px] --}}
+                    <a href="#"
+                        class="nav-link text-gray-600 hover:text-yellow-600 py-2 inline-flex items-center gap-1 text-base">
+                        Trang ▾
                     </a>
 
                     <div
-                        class="absolute left-1/2 -translate-x-1/2 top-full min-w-[12rem] w-max bg-white border border-gray-100 shadow-xl rounded-lg overflow-hidden
-            opacity-0 invisible group-hover:opacity-100 group-hover:visible translate-y-2 group-hover:translate-y-0 transition-all duration-300 ease-out z-20">
+                        class="absolute left-0 top-full mt-2 min-w-[20rem] bg-white border border-gray-100 shadow-xl rounded-lg
+    overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible
+    transition-all duration-200 z-40">
+                        <div class="py-2 max-h-80 overflow-auto">
 
-                        <div class="py-1">
                             <a href="{{ route('client.phong') }}"
-                                class="nav-link block px-4 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-600 transition">
+                                class="nav-link block px-6 py-2 text-sm text-gray-700 hover:text-yellow-600 whitespace-nowrap">
                                 Phòng của chúng tôi
                             </a>
 
                             <a href="{{ route('client.gioithieu') }}"
-                                class="nav-link block px-4 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-600 transition border-t border-gray-100">
+                                class="nav-link block px-6 py-2 text-sm text-gray-700 hover:text-yellow-600 whitespace-nowrap border-t border-gray-100">
                                 Giới Thiệu về khách sạn
                             </a>
 
                             <a href="{{ route('client.tintuc') }}"
-                                class="nav-link block px-4 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-600 transition border-t border-gray-100">
+                                class="nav-link block px-6 py-2 text-sm text-gray-700 hover:text-yellow-600 whitespace-nowrap border-t border-gray-100">
                                 Tin Tức liên quan
                             </a>
 
                             <a href="{{ route('client.lienhe') }}"
-                                class="nav-link block px-4 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-600 transition border-t border-gray-100">
+                                class="nav-link block px-6 py-2 text-sm text-gray-700 hover:text-yellow-600 whitespace-nowrap border-t border-gray-100">
                                 Liên Hệ chúng tôi
                             </a>
+
                         </div>
                     </div>
                 </div>
 
-                {{-- News --}}
-                @php $isTinTuc = request()->routeIs('client.tintuc'); @endphp
-                <a href="{{ route('client.tintuc') }}"
-                    class="nav-link
-        {{ $isTinTuc ? 'text-yellow-600 nav-link-active' : 'text-gray-600 hover:text-yellow-600' }}">
-                    News
+                <a href="{{ route('client.tintuc') }}" class="nav-link text-gray-600 hover:text-yellow-600 py-2">
+                    Tin Tức
                 </a>
 
-                {{-- Liên Hệ --}}
-                @php $isLienHe = request()->routeIs('client.lienhe'); @endphp
-                <a href="{{ route('client.lienhe') }}"
-                    class="nav-link
-        {{ $isLienHe ? 'text-yellow-600 nav-link-active' : 'text-gray-600 hover:text-yellow-600' }}">
+                <a href="{{ route('client.lienhe') }}" class="nav-link text-gray-600 hover:text-yellow-600 py-2">
                     Liên Hệ
                 </a>
 
@@ -200,22 +186,23 @@
 </nav>
 
 <style>
-    /* Hiệu ứng gạch chân chạy từ trái qua phải */
     .nav-link {
         position: relative;
-        background-image: linear-gradient(currentColor, currentColor);
-        background-position: 0% 100%;
-        background-repeat: no-repeat;
-        background-size: 0% 2px;
-        transition: background-size 0.35s ease-in-out, color 0.25s ease;
+        padding-bottom: 4px;
     }
 
-    .nav-link:hover {
-        background-size: 100% 2px;
+    .nav-link::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 0%;
+        height: 2px;
+        background-color: #d4af37;
+        transition: width 0.35s ease;
     }
 
-    /* Trang đang active */
-    .nav-link-active {
-        background-size: 100% 2px !important;
+    .nav-link:hover::after {
+        width: 100%;
     }
 </style>
