@@ -8,7 +8,7 @@
             <div class="bg-white overflow-hidden shadow-sm rounded-lg">
                 <div class="p-6">
                     <h2 class="text-2xl font-semibold text-gray-800 mb-6">Hủy đặt phòng</h2>
-                    
+
                     <div class="mb-6">
                         <div class="flex items-center space-x-4">
                             <div class="flex-shrink-0">
@@ -22,11 +22,11 @@
                         </div>
                     </div>
 
-                    <form action="{{ route('admin.dat_phong.cancel.submit', $booking->id) }}" method="POST">
+                    <form action="{{ route('admin.dat_phong.cancel.submit', $booking->id) }}" method="POST" novalidate>
                         @csrf
                         <div class="space-y-4">
                             <p class="text-sm font-medium text-gray-700 mb-3">Vui lòng chọn lý do hủy đặt phòng:</p>
-                            
+
                             <div class="space-y-3">
                                 <div class="flex items-center">
                                     <input id="reason1" name="ly_do" type="radio" value="thay_doi_lich_trinh" class="h-4 w-4 text-blue-600 border-gray-300" required>
@@ -34,21 +34,21 @@
                                         Thay đổi lịch trình
                                     </label>
                                 </div>
-                                
+
                                 <div class="flex items-center">
                                     <input id="reason2" name="ly_do" type="radio" value="thay_doi_ke_hoach" class="h-4 w-4 text-blue-600 border-gray-300">
                                     <label for="reason2" class="ml-3 block text-sm font-medium text-gray-700">
                                         Thay đổi kế hoạch
                                     </label>
                                 </div>
-                                
+
                                 <div class="flex items-center">
                                     <input id="reason3" name="ly_do" type="radio" value="khong_phu_hop" class="h-4 w-4 text-blue-600 border-gray-300">
                                     <label for="reason3" class="ml-3 block text-sm font-medium text-gray-700">
                                         Không phù hợp với yêu cầu
                                     </label>
                                 </div>
-                                
+
                                 <div class="flex items-center">
                                     <input id="reason4" name="ly_do" type="radio" value="ly_do_khac" class="h-4 w-4 text-blue-600 border-gray-300">
                                     <label for="reason4" class="ml-3 block text-sm font-medium text-gray-700">
