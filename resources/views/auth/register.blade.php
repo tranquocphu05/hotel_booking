@@ -26,7 +26,7 @@
                 <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Email:</label>
                 <div class="mt-1">
                     <x-text-input id="email" class="block w-full rounded-md border-gray-300 shadow-sm"
-                        type="email" name="email" :value="old('email')"  autocomplete="username" />
+                        type="text" name="email" :value="old('email')"  autocomplete="username" />
                 </div>
                 <x-input-error :messages="$errors->get('email')" class="mt-2" />
             </div>

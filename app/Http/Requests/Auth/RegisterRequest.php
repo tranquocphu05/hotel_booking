@@ -35,7 +35,12 @@ class RegisterRequest extends FormRequest
     public function rules()
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
+            'name' => [
+                'required',
+                'string',
+                'max:100',
+                'regex:/^[A-Za-zÀ-ỹ\s]+$/u',
+            ],
 
             'email' => [
                 'required',
@@ -79,11 +84,11 @@ class RegisterRequest extends FormRequest
 
             'sdt' => [
                 'nullable',
-                'regex:/^(03|05|07|08|09)[0-9]{8}$/', // Chuẩn số VN
+                'regex:/^(03|05|07|08|09)[0-9]{8}$/',
                 'unique:nguoi_dung,sdt',
             ],
 
-            'dia_chi' => ['nullable', 'string', 'max:255'],
+            'dia_chi' => ['nullable', 'string', 'max:255','regex:/^(?!\d+$)[A-Za-zÀ-ỹ0-9\s,.-]+$/u',],
         ];
     }
     public function withValidator($validator)
@@ -102,6 +107,7 @@ class RegisterRequest extends FormRequest
     {
         return [
             'name.required' => 'Vui lòng nhập họ tên.',
+            'name.regex' => 'Họ tên chỉ được chứa chữ cái và khoảng trắng, không được có số hoặc ký tự đặc biệt.',
 
             'email.required' => 'Vui lòng nhập email.',
             'email.email' => 'Địa chỉ email không hợp lệ.',
@@ -119,6 +125,7 @@ class RegisterRequest extends FormRequest
             'sdt.unique' => 'Số điện thoại này đã được đăng ký.',
 
             'dia_chi.max' => 'Địa chỉ không được vượt quá 255 ký tự.',
+            'dia_chi.regex' => 'Địa chỉ không được chỉ toàn số.',
         ];
     }
 }
