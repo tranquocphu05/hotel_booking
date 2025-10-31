@@ -140,7 +140,7 @@
         // Hàm đếm số
         const runCounter = (counter) => {
             const target = +counter.getAttribute('data-target');
-            const speed = 600; // Tốc độ càng lớn, thời gian đếm càng dài
+            const speed = 200; // Tốc độ càng lớn, thời gian đếm càng dài
 
             const updateCount = () => {
                 const count = +counter.innerText;

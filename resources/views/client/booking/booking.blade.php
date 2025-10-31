@@ -159,7 +159,7 @@
                     </div>
 
                     <div class="mt-6 flex items-center gap-3">
-                        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Hoàn tất đặt
+                        <button type="submit" class="bg-yellow-500 text-white px-4 py-2 hover:bg-yellow-600 rounded">Hoàn tất đặt
                             phòng</button>
                         <a href="{{ url()->previous() }}" class="text-sm text-gray-600">Quay lại</a>
                     </div>
@@ -206,9 +206,9 @@
 
         /* Style cho nút Áp Dụng khi đủ điều kiện */
         .apply-voucher-btn.active {
-            background-color: #2563eb;
+            background-color: #d0cc05;
             color: white;
-            border-color: #2563eb;
+            border-color: #ded307;
         }
 
         /* Thêm style cho custom-scrollbar nếu chưa có */

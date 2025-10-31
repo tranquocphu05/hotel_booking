@@ -28,3 +28,9 @@ class InvoicePaid extends Mailable
 
 
 
+
+
+
+
+
+
