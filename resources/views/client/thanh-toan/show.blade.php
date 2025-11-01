@@ -133,15 +133,15 @@
                             <div class="space-y-3 text-sm">
                                 <div class="flex justify-between">
                                     <span class="text-slate-600">Giá phòng ({{ $nights }} đêm)</span>
-                                    <span class="font-medium text-slate-900">{{ number_format($giaGoc, 0, ',', '.') }} VNĐ</span>
+                                    <span class="font-medium text-slate-900">{{ number_format($originalPrice, 0, ',', '.') }} VNĐ</span>
                                 </div>
 
-                                @if ($datPhong->voucher && $giamGia > 0)
+                                @if ($datPhong->voucher && $discountAmount > 0)
                                     <div class="flex justify-between">
                                         <span class="text-slate-600">
                                             Voucher <span class="font-mono bg-green-100 text-green-700 px-2 py-0.5 rounded-md">{{ $datPhong->voucher->ma_voucher }}</span>
                                         </span>
-                                        <span class="font-medium text-green-600">-{{ number_format($giamGia, 0, ',', '.') }} VNĐ</span>
+                                        <span class="font-medium text-green-600">-{{ number_format($discountAmount, 0, ',', '.') }} VNĐ</span>
                                     </div>
                                 @endif
 

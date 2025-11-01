@@ -93,6 +93,13 @@
                     <div class="bg-green-100 text-green-800 p-3 rounded mb-4">{{ session('status') }}</div>
                 @endif
 
+                @if ($errors->has('error'))
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                        <strong class="font-bold">Lỗi!</strong>
+                        <span class="block sm:inline">{{ $errors->first('error') }}</span>
+                    </div>
+                @endif
+
                 <form action="{{ route('booking.submit') }}" method="POST">
                     @csrf
                     <input type="hidden" name="phong_id" value="{{ $phong->id }}">
@@ -401,7 +408,7 @@
                     voucherDisplayDiv.innerHTML = `
             <p class="flex justify-between items-center text-green-600">
                 <span class="flex items-center font-medium">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg> 
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
                     Mã ${currentCode} (<span class="font-bold">- ${discountPercent}%</span>)
                 </span>
                 <button id="voucherClearLink" type="button" class="text-xs text-red-500 hover:text-red-700 font-semibold transition">
@@ -697,4 +704,3 @@
         });
     </script>
 @endsection
-
