@@ -5,14 +5,19 @@ namespace App\Http\Controllers\Admin;
 use App\Models\User;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\UserRequests;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
 
 class UserController extends Controller
 {
     public function index()
     {
-        $users = User::all();
-        return view('admin.users.index', compact('users'));
+        $users = User::paginate(5);
+        $activeAdminCount = User::where('vai_tro', 'admin')
+            ->where('trang_thai', 'hoat_dong')
+            ->count();
+        return view('admin.users.index', compact('users', 'activeAdminCount'));
     }
 
     public function create()
@@ -20,25 +25,15 @@ class UserController extends Controller
         return view('admin.users.create');
     }
 
-    public function store(Request $request)
+    public function store(UserRequests $request)
     {
-        $data = $request->validate([
-            'username' => 'required|string|max:100|unique:nguoi_dung,username',
-            'email' => 'required|email|unique:nguoi_dung,email',
-            'password' => 'required|string|min:6',
-            'ho_ten' => 'nullable|string|max:100',
-            'sdt' => 'nullable|string|max:20',
-            'dia_chi' => 'nullable|string|max:255',
-            'cccd' => 'nullable|string|max:20',
-            'vai_tro' => 'required|in:admin,nhan_vien,khach_hang',
-            'trang_thai' => 'required|in:hoat_dong,khoa',
-        ]);
+        $data = $request->validated();
 
         $data['password'] = Hash::make($data['password']);
         // model User maps to nguoi_dung table in this project; ensure fillable matches
         User::create($data);
 
-        return redirect()->route('admin.users.index')->with('success','User created');
+        return redirect()->route('admin.users.index')->with('success', 'User created');
     }
 
     public function edit(User $user)
@@ -46,33 +41,76 @@ class UserController extends Controller
         return view('admin.users.edit', compact('user'));
     }
 
-    public function update(Request $request, User $user)
+    public function update(UserRequests $request, User $user)
     {
-        $data = $request->validate([
-            'username' => 'required|string|max:100|unique:nguoi_dung,username,'.$user->id,
-            'email' => 'required|email|unique:nguoi_dung,email,'.$user->id,
-            'password' => 'nullable|string|min:6',
-            'ho_ten' => 'nullable|string|max:100',
-            'sdt' => 'nullable|string|max:20',
-            'dia_chi' => 'nullable|string|max:255',
-            'cccd' => 'nullable|string|max:20',
-            'vai_tro' => 'required|in:admin,nhan_vien,khach_hang',
-            'trang_thai' => 'required|in:hoat_dong,khoa',
-        ]);
+        try {
+            $data = $request->validated();
 
-        if (!empty($data['password'])) {
-            $data['password'] = Hash::make($data['password']);
-        } else {
-            unset($data['password']);
+            if (!empty($data['password'])) {
+                $data['password'] = Hash::make($data['password']);
+            } else {
+                unset($data['password']);
+            }
+
+            // Nếu là admin cuối cùng: không được hạ vai trò hoặc khóa
+            if ($user->vai_tro === 'admin') {
+                $activeAdmins = User::where('vai_tro', 'admin')->where('trang_thai', 'hoat_dong')->count();
+                $willDemote = array_key_exists('vai_tro', $data) && $data['vai_tro'] !== 'admin';
+                $willLock  = array_key_exists('trang_thai', $data) && $data['trang_thai'] !== 'hoat_dong';
+                // Không cho tự hạ vai trò/khóa chính mình
+                if (Auth::check() && Auth::user()->id === $user->id && ($willDemote || $willLock)) {
+                    return redirect()->route('admin.users.index')->with('error', 'Không thể tự vô hiệu hóa hoặc hạ vai trò tài khoản admin đang đăng nhập.');
+                }
+                if ($activeAdmins <= 1 && ($willDemote || $willLock)) {
+                    return redirect()->route('admin.users.index')->with('error', 'Phải còn ít nhất 1 tài khoản admin hoạt động.');
+                }
+            }
+
+            $user->update($data);
+
+            return redirect()
+                ->route('admin.users.index')
+                ->with('success', 'Cập nhật người dùng thành công!');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Có lỗi xảy ra: ' . $e->getMessage());
         }
-
-        $user->update($data);
-        return redirect()->route('admin.users.index')->with('success','User updated');
     }
 
     public function destroy(User $user)
     {
-        $user->delete();
-        return redirect()->route('admin.users.index')->with('success','User deleted');
+        // Không xóa cứng; nếu là admin cuối cùng thì không cho khóa
+        if ($user->vai_tro === 'admin') {
+            // Không cho tự khóa chính mình
+            if (Auth::check() && Auth::user()->id === $user->id) {
+                return redirect()->route('admin.users.index')->with('error', 'Không thể tự vô hiệu hóa tài khoản admin đang đăng nhập.');
+            }
+            $activeAdmins = User::where('vai_tro', 'admin')->where('trang_thai', 'hoat_dong')->count();
+            if ($activeAdmins <= 1) {
+                return redirect()->route('admin.users.index')->with('error', 'Không thể vô hiệu hóa admin cuối cùng.');
+            }
+        }
+
+        $user->update(['trang_thai' => 'khoa']);
+        return redirect()->route('admin.users.index')->with('success', 'Đã vô hiệu hóa tài khoản (không xóa dữ liệu).');
+    }
+
+    public function toggleStatus(User $user)
+    {
+        $newStatus = $user->trang_thai === 'hoat_dong' ? 'khoa' : 'hoat_dong';
+
+        if ($user->vai_tro === 'admin' && $newStatus === 'khoa') {
+            // Không cho tự khóa chính mình
+            if (Auth::check() && Auth::user()->id === $user->id) {
+                return redirect()->route('admin.users.index')->with('error', 'Không thể tự vô hiệu hóa tài khoản admin đang đăng nhập.');
+            }
+            $activeAdmins = User::where('vai_tro', 'admin')->where('trang_thai', 'hoat_dong')->count();
+            if ($activeAdmins <= 1) {
+                return redirect()->route('admin.users.index')->with('error', 'Phải còn ít nhất 1 tài khoản admin hoạt động.');
+            }
+        }
+
+        $user->update(['trang_thai' => $newStatus]);
+
+        return redirect()->route('admin.users.index')->with('success', $newStatus === 'khoa' ? 'Đã vô hiệu hóa tài khoản.' : 'Đã kích hoạt tài khoản.');
     }
 }

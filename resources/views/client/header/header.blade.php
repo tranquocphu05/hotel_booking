@@ -3,7 +3,7 @@
 
     <div class="absolute inset-0">
         @php
-            $slides = ['img/hero/hero-1.jpg', 'img/hero/hero-2.jpg', 'img/hero/hero-3.jpg'];
+            $slides = ['img/hero/3.webp', 'img/hero/abc.jpg', 'img/hero/dx.jpg'];
         @endphp
 
         @foreach ($slides as $index => $image)

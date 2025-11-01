@@ -16,7 +16,7 @@ class CommentController extends Controller
             ->when($request->rating, fn($q) => $q->where('so_sao', $request->rating))
             ->when($request->status, fn($q) => $q->where('trang_thai', $request->status))
             ->orderByDesc('ngay_danh_gia')
-            ->paginate(10);
+            ->paginate(5);
 
         return view('admin.reviews.index', compact('comments'));
     }

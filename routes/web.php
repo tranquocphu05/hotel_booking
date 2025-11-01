@@ -90,10 +90,13 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin
     
 
     Route::resource('users', \App\Http\Controllers\Admin\UserController::class)->names('users');
+    Route::put('users/{user}/toggle-status', [\App\Http\Controllers\Admin\UserController::class, 'toggleStatus'])->name('users.toggle');
     Route::resource('loai_phong', LoaiPhongController::class)->names('loai_phong');
+    Route::put('loai_phong/{id}/toggle-status', [LoaiPhongController::class, 'toggleStatus'])->name('loai_phong.toggle');
     Route::get('phong/available', [PhongController::class, 'available'])->name('phong.available');
     Route::put('phong/{id}/block', [PhongController::class, 'blockRoom'])->name('phong.block');
     Route::resource('phong', PhongController::class)->names('phong');
+    Route::put('phong/{id}/toggle-status', [PhongController::class, 'toggleStatus'])->name('phong.toggle');
     Route::resource('invoices', InvoiceController::class)->names('invoices');
     Route::resource('voucher', VoucherController::class)->names('voucher');
     Route::resource('news', \App\Http\Controllers\Admin\NewsController::class)->names('news');

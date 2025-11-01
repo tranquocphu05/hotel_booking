@@ -38,8 +38,8 @@ class VoucherController extends Controller
         // Sắp xếp theo ID giảm dần (mới nhất trước)
         $vouchersQuery->orderBy('id', 'desc');
 
-        // Lấy kết quả đã lọc và phân trang
-        $vouchers = $vouchersQuery->paginate(10);
+        // Lấy kết quả đã lọc và phân trang (5 dòng/trang)
+        $vouchers = $vouchersQuery->paginate(5);
 
         // Điều chỉnh lại đường dẫn phân trang để giữ lại các tham số lọc
         $vouchers->appends($request->all());
@@ -59,7 +59,13 @@ class VoucherController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'ma_voucher'     => 'required|string|max:50|unique:voucher,ma_voucher',
+            'ma_voucher' => [
+                'required',
+                'string',
+                'max:50',
+                'unique:voucher,ma_voucher',
+                'regex:/^(?![0-9]+$)[A-Za-z0-9]+$/',
+            ],
             'gia_tri'        => 'required|numeric|min:1|max:100',
             'ngay_bat_dau'   => 'required|date',
             'ngay_ket_thuc'  => 'required|date|after_or_equal:ngay_bat_dau',
@@ -70,16 +76,18 @@ class VoucherController extends Controller
         ], [
             'ma_voucher.required' => '* Không được để trống.',
             'ma_voucher.unique'   => '* Mã voucher đã tồn tại.',
+            'ma_voucher.regex'    => '* Mã voucher chỉ được chứa chữ và số, và không được toàn là số.',
             'gia_tri.required'    => '* Không được để trống.',
             'gia_tri.numeric'     => '* Phải là số.',
             'gia_tri.min'         => '* Giá trị giảm phải lớn hơn 0.',
+            'gia_tri.max'         => '* Giá trị giảm không được vượt quá 100%.',
             'so_luong.required'   => '* Không được để trống số lượng.',
             'so_luong.integer'    => '* Số lượng phải là số nguyên.',
             'so_luong.min'        => '* Số lượng phải lớn hơn 0.',
             'ngay_bat_dau.required'  => '* Vui lòng chọn ngày bắt đầu.',
             'ngay_ket_thuc.required' => '* Vui lòng chọn ngày kết thúc.',
             'ngay_ket_thuc.after_or_equal' => '* Ngày kết thúc phải sau hoặc bằng ngày bắt đầu.',
-            'dieu_kien.required' => '* Không được để trống .',
+            'dieu_kien.required' => '* Không được để trống.',
             'trang_thai.required' => '* Vui lòng chọn trạng thái.',
         ]);
 
@@ -99,7 +107,13 @@ class VoucherController extends Controller
     public function update(Request $request, Voucher $voucher)
     {
         $request->validate([
-            'ma_voucher'     => 'required|string|max:50|unique:voucher,ma_voucher,' . $voucher->id,
+            'ma_voucher' => [
+                'required',
+                'string',
+                'max:50',
+                'unique:voucher,ma_voucher,' . $voucher->id,
+                'regex:/^(?![0-9]+$)[A-Za-z0-9]+$/', // không toàn số, chỉ chữ + số
+            ],
             'gia_tri'        => 'required|numeric|min:1|max:100',
             'ngay_bat_dau'   => 'required|date',
             'ngay_ket_thuc'  => 'required|date|after_or_equal:ngay_bat_dau',
@@ -110,19 +124,20 @@ class VoucherController extends Controller
         ], [
             'ma_voucher.required' => '* Không được để trống.',
             'ma_voucher.unique'   => '* Mã voucher đã tồn tại.',
+            'ma_voucher.regex'    => '* Mã voucher chỉ được chứa chữ và số, và không được toàn là số.',
             'gia_tri.required'    => '* Không được để trống.',
             'gia_tri.numeric'     => '* Phải là số.',
             'gia_tri.min'         => '* Giá trị giảm phải lớn hơn 0.',
+            'gia_tri.max'         => '* Giá trị giảm không được vượt quá 100%.',
             'so_luong.required'   => '* Không được để trống số lượng.',
             'so_luong.integer'    => '* Số lượng phải là số nguyên.',
             'so_luong.min'        => '* Số lượng phải lớn hơn 0.',
             'ngay_bat_dau.required'  => '* Vui lòng chọn ngày bắt đầu.',
             'ngay_ket_thuc.required' => '* Vui lòng chọn ngày kết thúc.',
             'ngay_ket_thuc.after_or_equal' => '* Ngày kết thúc phải sau hoặc bằng ngày bắt đầu.',
-            'dieu_kien.required' => '* Không được để trống .',
+            'dieu_kien.required' => '* Không được để trống.',
             'trang_thai.required' => '* Vui lòng chọn trạng thái.',
         ]);
-
 
         $voucher->update($request->all());
 

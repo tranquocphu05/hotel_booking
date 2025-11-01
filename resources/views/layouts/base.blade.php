@@ -147,6 +147,90 @@ w-full px-0 mt-0
     {{-- TinyMCE CDN --}}
     <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
 
+  {{-- Popup ảnh: hiển thị trên TRANG CHỦ cho mọi người dùng --}}
+  @if (request()->routeIs('client.home'))
+    <style>
+      #login-popup-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 60;
+      }
+      #login-popup {
+        position: relative;
+        max-width: min(92vw, 720px);
+        max-height: 86vh;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 20px 60px rgba(0,0,0,.4);
+      }
+      #login-popup img {
+        display: block;
+        width: 100%;
+        height: auto;
+        object-fit: cover;
+      }
+      #login-popup-close {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 40px;
+        height: 40px;
+        border: none;
+        border-radius: 9999px;
+        background: rgba(0,0,0,0.55);
+        color: #fff;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #login-popup-close:hover { background: rgba(0,0,0,0.7); }
+    </style>
+
+    <div id="login-popup-backdrop" aria-hidden="true">
+      <div id="login-popup" role="dialog" aria-modal="true" aria-label="Thông báo">
+        <button id="login-popup-close" aria-label="Đóng">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+        <img src="{{ asset('img/hero/hero-3.jpg') }}?v=popup1" alt="Chào mừng bạn trở lại" />
+      </div>
+    </div>
+
+    <script>
+      (function(){
+        var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var backdrop = document.getElementById('login-popup-backdrop');
+        var btnClose = document.getElementById('login-popup-close');
+
+        function openPopup(){
+          if (!backdrop) return;
+          backdrop.style.display = 'flex';
+          document.body.style.overflow = 'hidden';
+        }
+        function closePopup(){
+          if (!backdrop) return;
+          backdrop.style.display = 'none';
+          document.body.style.overflow = '';
+        }
+
+        // Luôn mở popup trên trang chủ mỗi lần tải
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', function(){ setTimeout(openPopup, reduce ? 0 : 200); });
+        } else {
+          setTimeout(openPopup, reduce ? 0 : 200);
+        }
+
+        if (btnClose) btnClose.addEventListener('click', closePopup);
+        if (backdrop) backdrop.addEventListener('click', function(e){ if (e.target === backdrop) closePopup(); });
+        document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closePopup(); });
+      })();
+    </script>
+  @endif
+
     @stack('scripts')
 
     <script>

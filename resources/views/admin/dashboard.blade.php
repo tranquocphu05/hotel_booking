@@ -173,7 +173,13 @@
                                 </div>
                                 <div>
                                     <p class="font-medium text-gray-900">{{ $booking->user->ten ?? 'Khách' }}</p>
-                                    <p class="text-sm text-gray-500">Phòng {{ $booking->phong->so_phong ?? 'N/A' }}</p>
+                                    <p class="text-sm text-gray-500">
+                                        Phòng: <span class="font-medium text-gray-800">{{ $booking->phong->ten_phong ?? 'N/A' }}</span>
+                                        @if(optional($booking->phong)->loaiPhong)
+                                            <span class="text-gray-400">·</span>
+                                            Loại: <span class="text-gray-700">{{ $booking->phong->loaiPhong->ten_loai }}</span>
+                                        @endif
+                                    </p>
                                 </div>
                             </div>
                             <div class="text-right">

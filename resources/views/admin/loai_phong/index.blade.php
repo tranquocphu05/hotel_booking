@@ -114,15 +114,22 @@
                                    class="text-amber-600 hover:text-amber-700 flex items-center gap-1 transition">
                                     <i class="bi bi-pencil-square"></i> Edit
                                 </a>
-                                <form action="{{ route('admin.loai_phong.destroy', $loai->id) }}"
+                                <form action="{{ route('admin.loai_phong.toggle', $loai->id) }}"
                                       method="POST"
-                                      onsubmit="return confirm('Xác nhận xóa loại phòng này?')">
+                                      onsubmit="return confirm('{{ $loai->trang_thai === 'hoat_dong' ? 'Vô hiệu hóa loại phòng này?' : 'Kích hoạt lại loại phòng này?' }}')">
                                     @csrf
-                                    @method('DELETE')
-                                    <button type="submit"
-                                            class="text-red-600 hover:text-red-700 flex items-center gap-1 transition">
-                                        <i class="bi bi-trash3"></i> Delete
-                                    </button>
+                                    @method('PUT')
+                                    @if($loai->trang_thai === 'hoat_dong')
+                                        <button type="submit"
+                                                class="text-red-600 hover:text-red-700 flex items-center gap-1 transition">
+                                            <i class="bi bi-slash-circle"></i> Vô hiệu hóa
+                                        </button>
+                                    @else
+                                        <button type="submit"
+                                                class="text-green-600 hover:text-green-700 flex items-center gap-1 transition">
+                                            <i class="bi bi-check-circle"></i> Kích hoạt
+                                        </button>
+                                    @endif
                                 </form>
                             </div>
                         </td>
@@ -145,6 +152,9 @@
                 @endforelse
             </tbody>
         </table>
+    </div>
+    <div class="mt-6">
+        {{ $loaiPhongs->appends(request()->query())->links() }}
     </div>
 </div>
 @endsection

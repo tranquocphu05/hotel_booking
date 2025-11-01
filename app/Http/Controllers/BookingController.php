@@ -6,9 +6,13 @@ use Illuminate\Http\Request;
 use App\Models\Phong;
 use App\Models\DatPhong;
 use App\Models\Voucher;
+use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
+use App\Mail\AdminBookingEvent;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class BookingController extends Controller
 {
@@ -130,6 +134,20 @@ class BookingController extends Controller
                 'cccd' => $data['cccd'],
             ]);
         });
+
+        // Gửi email cho admin: đơn đặt phòng mới (chờ xác nhận)
+        try {
+            $adminEmails = \App\Models\User::where('vai_tro', 'admin')
+                ->where('trang_thai', 'hoat_dong')
+                ->pluck('email')
+                ->filter()
+                ->all();
+            if (!empty($adminEmails)) {
+                Mail::to($adminEmails)->send(new AdminBookingEvent($datPhong->load(['phong.loaiPhong']), 'created'));
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Send admin booking created mail (client) failed: '.$e->getMessage());
+        }
 
         // Chỉ thông báo về trang thanh toán, chưa thông báo thành công
         return redirect()->route('client.thanh-toan.show', ['datPhong' => $datPhong->id]);

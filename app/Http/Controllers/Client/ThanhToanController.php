@@ -8,8 +8,8 @@ use App\Models\Invoice;
 use App\Models\ThanhToan;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class ThanhToanController extends Controller
@@ -309,13 +309,11 @@ class ThanhToanController extends Controller
      */
     private function handleCancelledPayment(Invoice $invoice, float $amount): void
     {
-        // Create cancelled payment record
         ThanhToan::create([
             'hoa_don_id' => $invoice->id,
             'so_tien' => $amount,
             'ngay_thanh_toan' => Carbon::now(),
-            'trang_thai' => 'fail',
-            'ghi_chu' => 'User cancelled transaction (code 24)',
+            'trang_thai' => 'cancelled',
         ]);
     }
 
@@ -324,11 +322,11 @@ class ThanhToanController extends Controller
      *
      * @param Invoice $invoice
      * @param float $amount
+     * @param string|null $reason
      * @return void
      */
-    private function handleFailedPayment(Invoice $invoice, float $amount, string $reason = null): void
+    private function handleFailedPayment(Invoice $invoice, float $amount, ?string $reason = null): void
     {
-        // Create failed payment record
         ThanhToan::create([
             'hoa_don_id' => $invoice->id,
             'so_tien' => $amount,
@@ -337,21 +335,30 @@ class ThanhToanController extends Controller
             'ghi_chu' => $reason,
         ]);
     }
+
+    /**
+     * Get error message for VNPay response code
+     *
+     * @param string $responseCode
+     * @return string
+     */
     private function getVnpayErrorMessage(string $responseCode): string
     {
-        return match ($responseCode) {
-            '00' => 'Thanh toán thành công.',
-            '07' => 'Trừ tiền thành công.',
-            '09' => 'Giao dịch đang xử lý.',
-            '10' => 'Giao dịch được khởi tạo thành công.',
-            '24' => 'Giao dịch bị hủy.',
-            '51' => 'Giao dịch bị từ chối.',
-            '65' => 'Giao dịch bị từ chối.',
-            '75' => 'Giao dịch bị từ chối.',
-            '79' => 'Giao dịch bị từ chối.',
-            '85' => 'Giao dịch bị từ chối.',
-            '99' => 'Giao dịch bị từ chối.',
-            default => 'Giao dịch thất bại.',
-        };
+        $errorMessages = [
+            '07' => 'Trừ tiền thành công. Giao dịch bị nghi ngờ (liên quan tới lừa đảo, giao dịch bất thường).',
+            '09' => 'Giao dịch không thành công do: Thẻ/Tài khoản của khách hàng chưa đăng ký dịch vụ InternetBanking tại ngân hàng.',
+            '10' => 'Giao dịch không thành công do: Khách hàng xác thực thông tin thẻ/tài khoản không đúng quá 3 lần.',
+            '11' => 'Giao dịch không thành công do: Đã hết hạn chờ thanh toán.',
+            '12' => 'Giao dịch không thành công do: Thẻ/Tài khoản của khách hàng bị khóa.',
+            '13' => 'Giao dịch không thành công do Quý khách nhập sai mật khẩu xác thực giao dịch (OTP).',
+            '51' => 'Giao dịch không thành công do: Tài khoản của quý khách không đủ số dư để thực hiện giao dịch.',
+            '65' => 'Giao dịch không thành công do: Tài khoản của Quý khách đã vượt quá hạn mức giao dịch trong ngày.',
+            '75' => 'Ngân hàng thanh toán đang bảo trì.',
+            '79' => 'Giao dịch không thành công do: KH nhập sai mật khẩu thanh toán quá số lần quy định.',
+            '99' => 'Các lỗi khác (lỗi còn lại, không có trong danh sách mã lỗi đã liệt kê).',
+        ];
+
+        return $errorMessages[$responseCode] ?? 'Giao dịch không thành công. Vui lòng thử lại sau.';
     }
-}
+    }
+

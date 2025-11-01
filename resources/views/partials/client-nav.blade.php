@@ -10,7 +10,7 @@
             <i class="fab fa-facebook-f text-gray-500 hover:text-red-500 transition"></i>
             <i class="fab fa-twitter text-gray-500 hover:text-red-500 transition"></i>
             <i class="fab fa-instagram text-gray-500 hover:text-red-500 transition"></i>
-            <a href="#"
+            <a href="{{ route('client.phong') }}"
                 class="bg-yellow-600 px-3 py-1 text-white uppercase text-xs font-bold tracking-wider">Booking Now</a>
         </div>
     </div>
@@ -23,36 +23,88 @@
 
             {{-- Logo --}}
             <div class="flex items-center">
-                <a href="{{ url('/') }}"
-                    class="text-3xl font-serif font-bold text-gray-800 cursor-pointer">OZIA HOTEL</a>
+                <a href="{{ url('/') }}" class="text-4xl font-serif font-bold text-gray-800 cursor-pointer">OZIA
+                    HOTEL</a>
             </div>
 
             {{-- Menu --}}
-            <div class="hidden md:flex items-center space-x-8 text-sm font-semibold uppercase tracking-wide">
-                <a href="{{ url('/') }}"
-                    class="nav-link text-gray-900 hover:text-yellow-600 hover:underline hover:decoration-yellow-600 decoration-[2px] transition duration-300 underline-offset-4">
+            <div class="hidden md:flex items-center space-x-8 text-base font-semibold uppercase tracking-wide">
+
+                <a href="{{ url('/') }}" class="nav-link text-gray-600 hover:text-yellow-600 py-2">
                     Trang Chủ
                 </a>
-                <a href="{{ route('client.phong') }}"
-                    class="nav-link text-gray-600 hover:text-yellow-600 hover:underline hover:decoration-yellow-600 decoration-[2px] transition duration-300 underline-offset-4">
-                    Phòng
-                </a>
-                <a href="{{ route('client.gioithieu') }}"
-                    class="nav-link text-gray-600 hover:text-yellow-600 hover:underline hover:decoration-yellow-600 decoration-[2px] transition duration-300 underline-offset-4">
+
+                <div class="relative group">
+                    {{-- **ĐÃ SỬA:** Thêm "inline-flex items-center" để căn chỉnh chính xác hơn với icon --}}
+                    <a href="{{ route('client.phong') }}"
+                        class="nav-link text-gray-600 hover:text-yellow-600 py-2 text-base inline-flex items-center">
+                        Phòng ▾
+                    </a>
+
+                    <div
+                        class="absolute left-0 top-full mt-2 min-w-[14rem] bg-white border border-gray-100 shadow-xl rounded-lg overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-40">
+                        <div class="py-2 max-h-80 overflow-auto">
+                            @forelse(($menuLoaiPhongs ?? []) as $lp)
+                                <a href="{{ route('client.phong', ['loai_phong' => $lp->id]) }}"
+                                    class="nav-link block px-4 py-2 text-sm text-gray-700 hover:text-yellow-600">
+                                    {{ $lp->ten_loai }}
+                                </a>
+                            @empty
+                                <div class="px-4 py-3 text-sm text-gray-400">Chưa có loại phòng</div>
+                            @endforelse
+                        </div>
+                    </div>
+                </div>
+
+                <a href="{{ route('client.gioithieu') }}" class="nav-link text-gray-600 hover:text-yellow-600 py-2">
                     Giới Thiệu
                 </a>
-                <a href="#"
-                    class="nav-link text-gray-600 hover:text-yellow-600 hover:underline hover:decoration-yellow-600 decoration-[2px] transition duration-300 underline-offset-4">
-                    Pages
+
+                <div class="relative group">
+                    {{-- **ĐÃ SỬA:** Đã có "inline-flex items-center", đảm bảo không còn mt-[2px] --}}
+                    <a href="#"
+                        class="nav-link text-gray-600 hover:text-yellow-600 py-2 inline-flex items-center gap-1 text-base">
+                        Trang ▾
+                    </a>
+
+                    <div
+                        class="absolute left-0 top-full mt-2 min-w-[20rem] bg-white border border-gray-100 shadow-xl rounded-lg
+    overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible
+    transition-all duration-200 z-40">
+                        <div class="py-2 max-h-80 overflow-auto">
+
+                            <a href="{{ route('client.phong') }}"
+                                class="nav-link block px-6 py-2 text-sm text-gray-700 hover:text-yellow-600 whitespace-nowrap">
+                                Phòng của chúng tôi
+                            </a>
+
+                            <a href="{{ route('client.gioithieu') }}"
+                                class="nav-link block px-6 py-2 text-sm text-gray-700 hover:text-yellow-600 whitespace-nowrap border-t border-gray-100">
+                                Giới Thiệu về khách sạn
+                            </a>
+
+                            <a href="{{ route('client.tintuc') }}"
+                                class="nav-link block px-6 py-2 text-sm text-gray-700 hover:text-yellow-600 whitespace-nowrap border-t border-gray-100">
+                                Tin Tức liên quan
+                            </a>
+
+                            <a href="{{ route('client.lienhe') }}"
+                                class="nav-link block px-6 py-2 text-sm text-gray-700 hover:text-yellow-600 whitespace-nowrap border-t border-gray-100">
+                                Liên Hệ chúng tôi
+                            </a>
+
+                        </div>
+                    </div>
+                </div>
+
+                <a href="{{ route('client.tintuc') }}" class="nav-link text-gray-600 hover:text-yellow-600 py-2">
+                    Tin Tức
                 </a>
-                <a href="{{ route('client.tintuc') }}"
-                    class="nav-link text-gray-600 hover:text-yellow-600 hover:underline hover:decoration-yellow-600 decoration-[2px] transition duration-300 underline-offset-4">
-                    News
-                </a>
-                <a href="{{ route('client.lienhe') }}"
-                    class="nav-link text-gray-600 hover:text-yellow-600 hover:underline hover:decoration-yellow-600 decoration-[2px] transition duration-300 underline-offset-4">
+
+                <a href="{{ route('client.lienhe') }}" class="nav-link text-gray-600 hover:text-yellow-600 py-2">
                     Liên Hệ
                 </a>
+
             </div>
 
             {{-- Client Auth Logic với Dropdown --}}
@@ -132,3 +184,25 @@
         </div>
     </div>
 </nav>
+
+<style>
+    .nav-link {
+        position: relative;
+        padding-bottom: 4px;
+    }
+
+    .nav-link::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 0%;
+        height: 2px;
+        background-color: #d4af37;
+        transition: width 0.35s ease;
+    }
+
+    .nav-link:hover::after {
+        width: 100%;
+    }
+</style>
