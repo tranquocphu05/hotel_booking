@@ -536,7 +536,7 @@
     </ul>
 </section>
 
-<section id="testimonials" class="py-16 bg-gray-50 my-16 rounded-lg">
+<section id="testimonials" class="py-16 bg-gray-50 my-16 rounded-3xl overflow-hidden">
     <div class="text-center container mx-auto px-4">
         <p class="text-sm uppercase tracking-widest text-[#D4AF37] mb-2">Ý KIẾN KHÁCH HÀNG</p>
         <h2 class="text-3xl font-bold text-gray-800 mb-8">Khách Hàng Nói Gì?</h2>
@@ -546,9 +546,8 @@
                 <div class="swiper-wrapper">
                     @foreach ($comments as $comment)
                         <div
-                            class="swiper-slide bg-white rounded-2xl shadow-md p-8 flex flex-col items-center text-center transition duration-300 hover:shadow-lg">
+                            class="swiper-slide bg-white rounded-3xl p-8 flex flex-col items-center text-center transition duration-300 relative z-10">
 
-                            {{-- Ảnh đại diện --}}
                             @if (!empty($comment->user->avatar))
                                 <img src="{{ asset('storage/' . $comment->user->avatar) }}" alt="Avatar người dùng"
                                     class="w-20 h-20 rounded-full object-cover mb-4 shadow-md border-2 border-yellow-400 hover:scale-105 transition-transform duration-300">
@@ -560,12 +559,10 @@
                                     class="w-20 h-20 rounded-full object-cover mb-4 shadow-md border-2 border-gray-300">
                             @endif
 
-                            {{-- Nội dung đánh giá --}}
                             <p class="italic text-gray-600 text-lg leading-relaxed mb-6 max-w-2xl">
                                 “{{ $comment->noi_dung }}”
                             </p>
 
-                            {{-- Số sao --}}
                             <div class="flex justify-center text-yellow-500 mb-3">
                                 @for ($i = 1; $i <= 5; $i++)
                                     <i
@@ -573,7 +570,6 @@
                                 @endfor
                             </div>
 
-                            {{-- Người dùng & ngày đánh giá --}}
                             <p class="font-semibold text-gray-800">
                                 — {{ $comment->user->username ?? ($comment->user->name ?? 'Ẩn danh') }}
                             </p>
@@ -584,7 +580,6 @@
                     @endforeach
                 </div>
 
-                {{-- Pagination (Giữ lại phân trang nếu muốn) --}}
                 <div class="swiper-pagination mt-6"></div>
             </div>
         @else
@@ -592,7 +587,6 @@
         @endif
     </div>
 </section>
-
 <section class="relative bg-center bg-cover text-center text-white py-32 mb-20"
     style="background-image: url('{{ asset('img/hero/x.jpg') }}')">
     <div class="absolute inset-0 bg-black/60"></div>
@@ -617,7 +611,7 @@
             transition duration-300 ease-in-out 
             transform hover:scale-110 
             focus:outline-none">
-            
+
             <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" class="w-8 h-8 ml-1">
                 <path d="M3 22v-20l18 10-18 10z" />
             </svg>
@@ -626,27 +620,33 @@
 </section>
 
 <style>
-.play-button-glow {
-    /* MẶC ĐỊNH: Viền thứ 2 màu trắng mờ */
-    box-shadow: 
-        0 0 0 8px rgba(255, 255, 255, 0.2); /* Viền trắng mờ thứ hai */
-    
-    /* Icon đã được Tailwind đặt là text-white, nên không cần đặt lại ở đây */
-}
+    .play-button-glow {
+        /* MẶC ĐỊNH: Viền thứ 2 màu trắng mờ */
+        box-shadow:
+            0 0 0 8px rgba(255, 255, 255, 0.2);
+        /* Viền trắng mờ thứ hai */
 
-.play-button-glow:hover {
-    /* HOVER: Hiệu ứng phát sáng vàng mạnh mẽ (Neon Glow) */
-    /* Nền sẽ đậm hơn một chút hoặc giữ nguyên tùy theo bg-[#D4AF37]/30 */
-    box-shadow: 
-        /* Giữ lại viền trắng mờ 0 0 0 8px rgba(255, 255, 255, 0.2), */ /* Tùy chọn: bỏ dòng này nếu muốn viền trắng biến mất khi hover */
-        0 0 0 3px #D4AF37, /* Viền vàng rõ nét */
-        0 0 0 10px rgba(212, 175, 55, 0.6), /* Viền vàng mờ rộng hơn */
-        0 0 30px #D4AF37, /* Sáng vàng chính */
-        0 0 60px rgba(212, 175, 55, 0.6); /* Sáng vàng lan rộng */
-    
-    /* Icon vẫn là màu trắng (đã được Tailwind đặt text-white) */
-    /* Nếu muốn chắc chắn, có thể thêm: color: white !important; */
-}
+        /* Icon đã được Tailwind đặt là text-white, nên không cần đặt lại ở đây */
+    }
+
+    .play-button-glow:hover {
+        /* HOVER: Hiệu ứng phát sáng vàng mạnh mẽ (Neon Glow) */
+        /* Nền sẽ đậm hơn một chút hoặc giữ nguyên tùy theo bg-[#D4AF37]/30 */
+        box-shadow:
+            /* Giữ lại viền trắng mờ 0 0 0 8px rgba(255, 255, 255, 0.2), */
+            /* Tùy chọn: bỏ dòng này nếu muốn viền trắng biến mất khi hover */
+            0 0 0 3px #D4AF37,
+            /* Viền vàng rõ nét */
+            0 0 0 10px rgba(212, 175, 55, 0.6),
+            /* Viền vàng mờ rộng hơn */
+            0 0 30px #D4AF37,
+            /* Sáng vàng chính */
+            0 0 60px rgba(212, 175, 55, 0.6);
+        /* Sáng vàng lan rộng */
+
+        /* Icon vẫn là màu trắng (đã được Tailwind đặt text-white) */
+        /* Nếu muốn chắc chắn, có thể thêm: color: white !important; */
+    }
 </style>
 <!-- Popup Video -->
 <div id="videoPopup"
