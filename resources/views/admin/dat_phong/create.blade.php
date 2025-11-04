@@ -12,45 +12,102 @@
                     <form action="{{ route('admin.dat_phong.store') }}" method="POST" novalidate>
                         @csrf
                         <div class="space-y-6">
-                            <!-- Chọn phòng -->
+                            <!-- Chọn loại phòng -->
                             <div class="bg-gray-50 p-4 rounded-lg">
-                                <h3 class="text-lg font-medium text-gray-900 mb-4">Chọn phòng</h3>
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    @foreach($rooms as $room)
-                                        <div class="relative">
-                                            <input type="radio" name="phong_id" id="room_{{ $room->id }}"
-                                                value="{{ $room->id }}" class="sr-only peer" required
-                                                data-loai-phong-id="{{ $room->loai_phong_id }}">
-                                            <label for="room_{{ $room->id }}"
+                                <h3 class="text-lg font-medium text-gray-900 mb-4">Chọn loại phòng</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="roomTypesContainer">
+                                    @foreach($loaiPhongs as $loaiPhong)
+                                        <div class="room-type-card relative">
+                                            <input type="checkbox" name="room_types[]" id="loai_phong_{{ $loaiPhong->id }}"
+                                                value="{{ $loaiPhong->id }}" class="sr-only peer room-type-checkbox"
+                                                data-price="{{ $loaiPhong->gia_khuyen_mai ?? $loaiPhong->gia_co_ban }}"
+                                                data-base-price="{{ $loaiPhong->gia_co_ban }}"
+                                                data-available="{{ $loaiPhong->so_luong_trong }}"
+                                                onchange="toggleRoomType(this, {{ $loaiPhong->id }})">
+                                            <label for="loai_phong_{{ $loaiPhong->id }}"
                                                 class="block p-4 bg-white border-2 border-gray-200 rounded-xl cursor-pointer transition-all duration-300
                                                     peer-checked:border-blue-500 peer-checked:ring-2 peer-checked:ring-blue-500 peer-checked:bg-blue-50
                                                     hover:bg-gray-50 hover:border-gray-300 hover:shadow-md">
                                                 <div class="space-y-2">
-                                                    <img src="{{ asset( $room->img) }}"
-                                                        alt="{{ $room->ten_phong }}"
+                                                    <img src="{{ asset($loaiPhong->anh ?? '/img/room/default.jpg') }}"
+                                                        alt="{{ $loaiPhong->ten_loai }}"
                                                         class="w-full h-40 object-cover rounded-lg mb-2">
-                                                    <h4 class="font-semibold text-gray-900">{{ $room->ten_phong }}</h4>
-                                                    <p class="text-sm text-gray-600" data-loai-phong-id="{{ $room->loai_phong_id }}">{{ $room->loaiPhong->ten_loai }}</p>
+                                                    <h4 class="font-semibold text-gray-900">{{ $loaiPhong->ten_loai }}</h4>
+                                                    <p class="text-xs text-gray-600 line-clamp-2">{{ $loaiPhong->mo_ta ?? '' }}</p>
+                                                    <div class="flex items-center justify-between">
+                                                        @if($loaiPhong->gia_khuyen_mai)
+                                                            <div>
+                                                                <p class="text-sm font-medium text-red-600">
+                                                                    {{ number_format($loaiPhong->gia_khuyen_mai, 0, ',', '.') }} VNĐ/đêm
+                                                                </p>
+                                                                <p class="text-xs text-gray-500 line-through">
+                                                                    {{ number_format($loaiPhong->gia_co_ban, 0, ',', '.') }} VNĐ
+                                                                </p>
+                                                            </div>
+                                                        @else
                                                     <p class="text-sm font-medium text-blue-600">
-                                                        {{ number_format($room->gia, 0, ',', '.') }} VNĐ/đêm
+                                                                {{ number_format($loaiPhong->gia_co_ban, 0, ',', '.') }} VNĐ/đêm
                                                     </p>
+                                                        @endif
+                                                    </div>
                                                     <div class="flex items-center space-x-2 text-sm">
-                                                        <span class="px-2 py-1 rounded-full text-xs
-                                                            @if($room->trang_thai === 'hien') bg-green-100 text-green-800
-                                                            @elseif($room->trang_thai === 'an') bg-red-100 text-red-800
-                                                            @else bg-yellow-100 text-yellow-800 @endif">
-                                                            {{ $room->trang_thai === 'hien' ? 'Hiện' :
-                                                               ($room->trang_thai === 'an' ? 'Ẩn' : 'Bảo trì') }}
+                                                        <span class="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+                                                            {{ $loaiPhong->trang_thai === 'hoat_dong' ? 'Khả dụng' : 'Không khả dụng' }}
+                                                        </span>
+                                                        <span class="text-xs text-gray-600">
+                                                            Còn {{ $loaiPhong->so_luong_trong }} phòng
                                                         </span>
                                                     </div>
                                                 </div>
                                             </label>
+                                            {{-- Số lượng phòng với design mới (ẩn mặc định) --}}
+                                            <div class="room-quantity-container mt-3 hidden" id="quantity_container_{{ $loaiPhong->id }}">
+                                                <div class="flex items-center justify-between bg-white border border-gray-300 rounded-lg p-2 shadow-sm">
+                                                    <label for="quantity_{{ $loaiPhong->id }}" class="text-sm font-medium text-gray-700 mr-3 whitespace-nowrap">
+                                                        Số lượng:
+                                                    </label>
+                                                    <div class="flex items-center space-x-2 flex-1">
+                                                        <button type="button" 
+                                                            class="quantity-btn-decrease w-8 h-8 flex items-center justify-center bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md transition-colors font-bold text-lg"
+                                                            onclick="decreaseQuantity({{ $loaiPhong->id }}, {{ $loaiPhong->so_luong_trong }})"
+                                                            tabindex="-1">
+                                                            −
+                                                        </button>
+                                                        <input type="number" 
+                                                            name="rooms[{{ $loaiPhong->id }}][so_luong]" 
+                                                            id="quantity_{{ $loaiPhong->id }}"
+                                                            class="room-quantity-input w-16 text-center border-0 focus:ring-0 focus:outline-none text-sm font-semibold text-gray-900"
+                                                            min="1" 
+                                                            max="{{ $loaiPhong->so_luong_trong }}" 
+                                                            value="1"
+                                                            onchange="updateTotalPrice()"
+                                                            oninput="validateQuantity(this, {{ $loaiPhong->id }}, {{ $loaiPhong->so_luong_trong }})"
+                                                            readonly>
+                                                        <button type="button" 
+                                                            class="quantity-btn-increase w-8 h-8 flex items-center justify-center bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md transition-colors font-bold text-lg"
+                                                            onclick="increaseQuantity({{ $loaiPhong->id }}, {{ $loaiPhong->so_luong_trong }})"
+                                                            tabindex="-1">
+                                                            +
+                                                        </button>
+                                                    </div>
+                                                    <span class="text-xs text-gray-500 ml-2 whitespace-nowrap">
+                                                        / {{ $loaiPhong->so_luong_trong }} phòng
+                                                    </span>
+                                                </div>
+                                                <input type="hidden" name="rooms[{{ $loaiPhong->id }}][loai_phong_id]" value="{{ $loaiPhong->id }}">
+                                                <p class="text-xs text-red-600 mt-1 hidden" id="quantity_error_{{ $loaiPhong->id }}">
+                                                    Số lượng không được vượt quá {{ $loaiPhong->so_luong_trong }} phòng
+                                                </p>
+                                            </div>
                                         </div>
                                     @endforeach
                                 </div>
-                                @error('phong_id')
+                                @error('room_types')
                                     <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
+                                <div id="room_types_error" class="mt-2 text-sm text-red-600 hidden">
+                                    Vui lòng chọn ít nhất một loại phòng
+                                </div>
                             </div>
 
                             <!-- Thông tin đặt phòng -->
@@ -250,11 +307,74 @@
 
     @push('scripts')
     <script>
+        let roomIndex = 0;
+        const allLoaiPhongs = @json($loaiPhongs);
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('vi-VN', {
+                style: 'currency',
+                currency: 'VND'
+            }).format(amount).replace('₫', 'VNĐ');
+        }
+
+        function toggleRoomType(checkbox, roomTypeId) {
+            const quantityContainer = document.getElementById('quantity_container_' + roomTypeId);
+            const quantityInput = document.getElementById('quantity_' + roomTypeId);
+            
+            if (checkbox.checked) {
+                quantityContainer.classList.remove('hidden');
+                quantityInput.required = true;
+            } else {
+                quantityContainer.classList.add('hidden');
+                quantityInput.required = false;
+                quantityInput.value = 1;
+            }
+            
+            updateVoucherAvailability();
+            updateTotalPrice();
+        }
+
+        function validateQuantity(input, roomTypeId, maxAvailable) {
+            const value = parseInt(input.value) || 0;
+            const errorElement = document.getElementById('quantity_error_' + roomTypeId);
+            
+            if (value > maxAvailable) {
+                input.setCustomValidity('Số lượng không được vượt quá ' + maxAvailable + ' phòng');
+                errorElement.classList.remove('hidden');
+                input.value = maxAvailable;
+            } else if (value < 1) {
+                input.setCustomValidity('Số lượng phải lớn hơn 0');
+                errorElement.classList.add('hidden');
+                input.value = 1;
+            } else {
+                input.setCustomValidity('');
+                errorElement.classList.add('hidden');
+            }
+            
+            updateTotalPrice();
+        }
+
+        function decreaseQuantity(roomTypeId, maxAvailable) {
+            const input = document.getElementById('quantity_' + roomTypeId);
+            const currentValue = parseInt(input.value) || 1;
+            if (currentValue > 1) {
+                input.value = currentValue - 1;
+                validateQuantity(input, roomTypeId, maxAvailable);
+            }
+        }
+
+        function increaseQuantity(roomTypeId, maxAvailable) {
+            const input = document.getElementById('quantity_' + roomTypeId);
+            const currentValue = parseInt(input.value) || 1;
+            if (currentValue < maxAvailable) {
+                input.value = currentValue + 1;
+                validateQuantity(input, roomTypeId, maxAvailable);
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             const ngayNhanInput = document.getElementById('ngay_nhan');
             const ngayTraInput = document.getElementById('ngay_tra');
-            const roomInputs = document.querySelectorAll('input[name="phong_id"]');
-            const voucherInputs = document.querySelectorAll('.voucher-radio');
             const totalPriceElement = document.getElementById('total_price');
             const originalPriceElement = document.getElementById('original_price');
             const discountAmountElement = document.getElementById('discount_amount');
@@ -276,130 +396,111 @@
                 if (ngayTraInput.value && ngayTraInput.value < this.value) {
                     ngayTraInput.value = this.value;
                 }
-                calculateTotal();
+                updateTotalPrice();
             });
 
-            ngayTraInput.addEventListener('change', calculateTotal);
+            ngayTraInput.addEventListener('change', updateTotalPrice);
 
-            roomInputs.forEach(input => {
-                input.addEventListener('change', function() {
+            // Update voucher availability when room selection changes
+            document.querySelectorAll('.room-type-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    updateVoucherAvailability();
+                });
+            });
+
+            // Voucher change listener
+            document.querySelectorAll('.voucher-radio').forEach(v => {
+                v.addEventListener('change', updateTotalPrice);
+            });
+
+            // Tính toán ban đầu
+            updateTotalPrice();
+            updateVoucherAvailability();
+        });
+
+        function updateVoucherAvailability() {
+            const selectedRoomTypes = Array.from(document.querySelectorAll('.room-type-checkbox:checked')).map(cb => cb.value);
+            const voucherInputs = document.querySelectorAll('.voucher-radio');
+            
                     // Disable all vouchers first
                     voucherInputs.forEach(v => {
                         v.disabled = true;
-                        v.checked = false; // Uncheck all vouchers
+                v.checked = false;
                     });
 
-                    if (this.checked) {
-                        // Get the room type directly from the radio input
-                        const roomTypeId = this.dataset.loaiPhongId;
+            if (selectedRoomTypes.length === 0) {
+                // No rooms selected, keep all vouchers disabled
+                return;
+            }
 
-                        // Enable only vouchers that match this room type or have no room type (general vouchers)
+            // Enable vouchers that match any selected room type or have no room type restriction
                         voucherInputs.forEach(v => {
                             const voucherRoomType = v.dataset.loaiPhong;
-                            const voucherLabel = document.querySelector(`label[for="${v.id}"]`);
-                            const overlay = document.getElementById(`overlay_${v.id}`);
+                const overlay = document.getElementById(`overlay_${v.id.split('_')[1]}`);
 
-                            if (!voucherRoomType || voucherRoomType === roomTypeId) {
+                // If voucher has no room type restriction or matches any selected room type
+                if (!voucherRoomType || selectedRoomTypes.includes(voucherRoomType)) {
                                 v.disabled = false;
-                                voucherLabel.classList.remove('opacity-50');
                                 if (overlay) overlay.classList.add('hidden');
                             } else {
                                 v.disabled = true;
-                                voucherLabel.classList.add('opacity-50');
                                 if (overlay) overlay.classList.remove('hidden');
                             }
                         });
                     }
 
-                    calculateTotal();
-                });
+
+
+        function updateTotalPrice() {
+            const ngayNhan = document.getElementById('ngay_nhan').value;
+            const ngayTra = document.getElementById('ngay_tra').value;
+            
+            if (!ngayNhan || !ngayTra) {
+                document.getElementById('total_price').textContent = formatCurrency(0);
+                    return;
+                }
+
+            const startDate = new Date(ngayNhan);
+            const endDate = new Date(ngayTra);
+            const nights = Math.max(1, Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)));
+
+            let totalPrice = 0;
+            document.querySelectorAll('.room-type-checkbox:checked').forEach(checkbox => {
+                const roomTypeId = checkbox.value;
+                const quantityInput = document.getElementById('quantity_' + roomTypeId);
+                const quantity = parseInt(quantityInput?.value || 1);
+                const price = parseFloat(checkbox.dataset.price || 0);
+                
+                if (price > 0 && quantity > 0) {
+                    totalPrice += price * nights * quantity;
+                }
             });
 
-            voucherInputs.forEach(input => {
-                input.addEventListener('change', calculateTotal);
-            });
-
-            function calculateTotal() {
-                const selectedRoom = document.querySelector('input[name="phong_id"]:checked');
-                if (!selectedRoom || !ngayNhanInput.value || !ngayTraInput.value) {
-                    totalPriceElement.textContent = formatCurrency(0);
-                    discountInfoElement.classList.add('hidden');
-                    return;
-                }
-
-                // Get the label element that contains the price
-                const roomLabel = selectedRoom.parentElement.querySelector('label');
-                if (!roomLabel) {
-                    console.error('Room label not found');
-                    return;
-                }
-
-                // Find the price element within the label
-                const priceElement = roomLabel.querySelector('.text-blue-600');
-                if (!priceElement) {
-                    console.error('Price element not found');
-                    return;
-                }
-                const roomPrice = parseFloat(priceElement.textContent.replace(/[^0-9]/g, ''));
-                if (isNaN(roomPrice)) {
-                    console.error('Invalid room price:', priceText);
-                    return;
-                }
-
-                const startDate = new Date(ngayNhanInput.value);
-                const endDate = new Date(ngayTraInput.value);
-                const days = Math.max(1, Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)));
-
-                const originalTotal = roomPrice * days;
-                let finalTotal = originalTotal;
-
+            // Apply voucher discount if any
                 const selectedVoucher = document.querySelector('.voucher-radio:checked');
+            let finalTotal = totalPrice;
+            
                 if (selectedVoucher) {
-                    const voucherLabel = document.querySelector(`label[for="${selectedVoucher.id}"]`);
-                    if (!voucherLabel) {
-                        console.error('Voucher label not found');
-                        return;
-                    }
-
-                    // Lấy giá trị giảm giá từ thuộc tính data
-                    const discountValue = parseFloat(selectedVoucher.dataset.value);
-                    if (isNaN(discountValue)) {
-                        console.error('Invalid discount value');
-                        return;
-                    }
-
-                    let discountAmount;
+                const discountValue = parseFloat(selectedVoucher.dataset.value || 0);
+                let discountAmount = 0;
+                
                     if (discountValue <= 100) {
-                        // Giảm theo phần trăm
-                        discountAmount = (originalTotal * discountValue) / 100;
-                    } else {
-                        // Giảm trực tiếp số tiền
-                        discountAmount = discountValue;
-                    }
-
-                    finalTotal = originalTotal - discountAmount;
-
-                    // Hiển thị thông tin giảm giá
-                    originalPriceElement.textContent = formatCurrency(originalTotal);
-                    discountAmountElement.textContent = '-' + formatCurrency(discountAmount);
-                    discountInfoElement.classList.remove('hidden');
+                    discountAmount = (totalPrice * discountValue) / 100;
                 } else {
-                    discountInfoElement.classList.add('hidden');
+                    discountAmount = discountValue;
                 }
 
-                totalPriceElement.textContent = formatCurrency(finalTotal);
-                document.getElementById('tong_tien_input').value = finalTotal;
+                finalTotal = totalPrice - discountAmount;
+                document.getElementById('original_price').textContent = formatCurrency(totalPrice);
+                document.getElementById('discount_amount').textContent = '-' + formatCurrency(discountAmount);
+                document.getElementById('discount_info').classList.remove('hidden');
+            } else {
+                document.getElementById('discount_info').classList.add('hidden');
             }
 
-            function formatCurrency(amount) {
-                return new Intl.NumberFormat('vi-VN', {
-                    style: 'currency',
-                    currency: 'VND'
-                }).format(amount).replace('₫', 'VNĐ');
-            }
-
-            // Tính toán ban đầu
-            calculateTotal();
+            document.getElementById('total_price').textContent = formatCurrency(finalTotal);
+            document.getElementById('tong_tien_input').value = finalTotal;
+        }
 
             // Validation function
             function validateForm() {
@@ -437,6 +538,31 @@
                     errors.push('CCCD/CMND phải có 9-12 chữ số');
                 }
 
+            // Validate at least one room type selected
+            const selectedRoomTypes = Array.from(document.querySelectorAll('.room-type-checkbox:checked'));
+            if (selectedRoomTypes.length === 0) {
+                errors.push('Vui lòng chọn ít nhất một loại phòng');
+                document.getElementById('room_types_error').classList.remove('hidden');
+            } else {
+                document.getElementById('room_types_error').classList.add('hidden');
+            }
+            
+            // Validate quantity for each selected room type
+            selectedRoomTypes.forEach(checkbox => {
+                const roomTypeId = checkbox.value;
+                const quantityInput = document.getElementById('quantity_' + roomTypeId);
+                const maxAvailable = parseInt(checkbox.dataset.available || 0);
+                
+                if (quantityInput) {
+                    const quantity = parseInt(quantityInput.value) || 0;
+                    if (quantity < 1) {
+                        errors.push(`Số lượng phòng cho loại phòng "${checkbox.closest('.room-type-card').querySelector('h4').textContent}" phải lớn hơn 0`);
+                    } else if (quantity > maxAvailable) {
+                        errors.push(`Số lượng phòng cho loại phòng "${checkbox.closest('.room-type-card').querySelector('h4').textContent}" không được vượt quá ${maxAvailable} phòng`);
+                    }
+                }
+            });
+
                 // Show errors if any
                 const errorContainer = document.getElementById('validation-errors');
                 const errorList = document.getElementById('error-list');
@@ -458,7 +584,9 @@
                     return false;
                 }
             });
-        });
+
+        // Initial update
+        updateVoucherAvailability();
     </script>
     @endpush
 @endsection

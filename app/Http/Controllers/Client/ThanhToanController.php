@@ -16,18 +16,24 @@ class ThanhToanController extends Controller
 {
     public function show(DatPhong $datPhong)
     {
+        // Authorization: User can only view their own bookings
+        if (\Illuminate\Support\Facades\Auth::check() && $datPhong->nguoi_dung_id && $datPhong->nguoi_dung_id !== \Illuminate\Support\Facades\Auth::id()) {
+            abort(403, 'Bạn không có quyền xem đơn đặt phòng này.');
+        }
+
         // Eager load relationships for efficiency
-        $datPhong->load('voucher', 'phong.loaiPhong', 'user');
+        $datPhong->load('voucher', 'loaiPhong', 'user');
 
         // Calculate number of nights
         $nights = $this->calculateNights($datPhong->ngay_nhan, $datPhong->ngay_tra);
 
-        // Calculate original price using model accessor
-        $pricePerNight = $datPhong->phong->gia_hien_thi ?? $datPhong->phong->gia ?? 0;
-        $originalPrice = $pricePerNight * $nights;
+        // Calculate original price using loaiPhong (considering promotional price and quantity)
+        $soLuongPhong = $datPhong->so_luong_da_dat ?? 1;
+        $pricePerNight = $datPhong->loaiPhong->gia_khuyen_mai ?? $datPhong->loaiPhong->gia_co_ban ?? 0;
+        $originalPrice = $pricePerNight * $nights * $soLuongPhong;
 
-        // Calculate discount amount
-        $discountAmount = $originalPrice - $datPhong->tong_tien;
+        // Calculate discount amount (if voucher was applied)
+        $discountAmount = max(0, $originalPrice - $datPhong->tong_tien);
 
         // Find or create the invoice
         $invoice = Invoice::firstOrCreate(
@@ -60,7 +66,10 @@ class ThanhToanController extends Controller
     public function store(Request $request, DatPhong $datPhong)
     {
         $request->validate([
-            'phuong_thuc' => 'required|string|in:tien_mat,chuyen_khoan,momo,vnpay',
+            'phuong_thuc' => 'required|string|in:vnpay',
+        ], [
+            'phuong_thuc.required' => 'Vui lòng chọn phương thức thanh toán.',
+            'phuong_thuc.in' => 'Phương thức thanh toán không hợp lệ. Chỉ hỗ trợ thanh toán qua VNPay.',
         ]);
 
         $invoice = $datPhong->invoice;
@@ -79,7 +88,7 @@ class ThanhToanController extends Controller
             ->route('client.dashboard')
             ->with('booking_success', true)
             ->with('booking_id', $datPhong->id)
-            ->with('room_name', $datPhong->phong->ten_phong ?? 'N/A')
+            ->with('room_name', $datPhong->loaiPhong->ten_loai ?? 'N/A')
             ->with('success', 'Đặt phòng thành công! Mã đặt phòng #' . $datPhong->id . '. Vui lòng hoàn tất thanh toán để xác nhận đặt phòng.');
     }
 
@@ -225,7 +234,7 @@ class ThanhToanController extends Controller
                 ]);
                 $this->handleFailedPayment($invoice, $amount, 'Amount mismatch');
                 return redirect()
-                    ->route('client.thanh-toan.show', $bookingId)
+                    ->route('client.thanh-toan.show', $datPhong->id)
                     ->with('error', 'Số tiền thanh toán không khớp. Giao dịch đã bị hủy.');
             }
 
@@ -360,5 +369,5 @@ class ThanhToanController extends Controller
 
         return $errorMessages[$responseCode] ?? 'Giao dịch không thành công. Vui lòng thử lại sau.';
     }
-    }
+}
 

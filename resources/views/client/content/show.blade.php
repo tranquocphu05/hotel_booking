@@ -1,5 +1,5 @@
 @extends('layouts.client')
-@section('title', $reviewRoom->ten_phong ?? $loaiPhong->ten_loai)
+@section('title', $loaiPhong->ten_loai)
 
 @section('client_content')
 
@@ -16,17 +16,17 @@
                 <a href="{{ route('client.phong') }}" class="hover:text-[#D4AF37] transition-colors">Phòng nghỉ</a>
                 <span class="mx-2">/</span>
                 <span class="text-[#FFD700] font-semibold">
-                    {{ $reviewRoom->ten_phong ?? $loaiPhong->ten_loai }}
+                    {{ $loaiPhong->ten_loai }}
                 </span>
             </nav>
 
             <h1 class="text-5xl md:text-7xl font-bold mb-6">
-                {{ $reviewRoom->ten_phong ?? $loaiPhong->ten_loai }}
+                {{ $loaiPhong->ten_loai }}
             </h1>
 
             <p class="text-lg md:text-xl text-gray-100 leading-relaxed max-w-4xl mx-auto">
-                {{ $reviewRoom->mo_ta ?? $loaiPhong->mo_ta
-                    ? Str::limit($reviewRoom->mo_ta ?? $loaiPhong->mo_ta, 200)
+                {{ $loaiPhong->mo_ta
+                    ? Str::limit($loaiPhong->mo_ta, 200)
                     : 'Phòng nghỉ sang trọng với đầy đủ tiện nghi hiện đại' }}
             </p>
         </div>
@@ -40,63 +40,65 @@
                     {{-- Room Image Gallery --}}
                     <div class="mb-12">
                         <div class="bg-white rounded-lg shadow-md overflow-hidden">
-                            <img src="{{ $reviewRoom->img ? asset($reviewRoom->img) : ($loaiPhong->anh ? asset($loaiPhong->anh) : asset('img/room/room-1.jpg')) }}"
-                                alt="{{ $reviewRoom->ten_phong ?? $loaiPhong->ten_loai }}" class="w-full h-96 object-cover">
+                            <img src="{{ $loaiPhong->anh ? asset($loaiPhong->anh) : asset('img/room/room-1.jpg') }}"
+                                alt="{{ $loaiPhong->ten_loai }}" class="w-full h-96 object-cover">
                         </div>
                     </div>
 
                     {{-- Room Details --}}
                     <div class="bg-white rounded-lg shadow-md p-8 mb-8">
                         <h2 class="text-4xl font-bold text-gray-900 mb-6">
-                            {{ $reviewRoom->ten_phong ?? $loaiPhong->ten_loai }}</h2>
+                            {{ $loaiPhong->ten_loai }}</h2>
 
-                        @if ($reviewRoom->mo_ta ?? $loaiPhong->mo_ta)
+                        @if ($loaiPhong->mo_ta)
                             <p class="text-gray-600 text-lg leading-relaxed mb-8">
-                                {{ $reviewRoom->mo_ta ?? $loaiPhong->mo_ta }}</p>
+                                {{ $loaiPhong->mo_ta }}</p>
                         @endif
+
+                        {{-- Hiển thị số phòng còn trống --}}
+                        <div class="mb-6">
+                            <span class="inline-flex items-center gap-2 text-sm bg-green-50 text-green-700 px-4 py-2 rounded-full font-medium">
+                                <i class="fas fa-bed"></i>
+                                Còn {{ $loaiPhong->so_luong_trong }}/{{ $loaiPhong->so_luong_phong }} phòng trống
+                            </span>
+                        </div>
 
                         {{-- Room Information --}}
                         <div class="grid md:grid-cols-2 gap-8 mb-8">
                             {{-- Price Section (Viền màu vàng) --}}
                             <div class="border-l-4 border-[#D4AF37] pl-6">
                                 <h4 class="text-lg font-semibold text-gray-900 mb-2">Giá phòng</h4>
-                                @if (isset($reviewRoom))
-                                    @if ($reviewRoom->hasPromotion())
-                                        <div class="flex justify-between items-center mb-2">
-                                            <span class="text-gray-700 text-lg font-medium">Giá phòng</span>
-                                            <div class="text-right">
-                                                <div class="text-lg text-gray-500 line-through">
-                                                    {{ number_format($reviewRoom->gia_goc_hien_thi, 0, ',', '.') }} VNĐ
-                                                </div>
-                                                <div class="text-3xl font-bold text-red-600">
-                                                    {{ number_format($reviewRoom->gia_hien_thi, 0, ',', '.') }} VNĐ
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <p class="text-sm text-gray-600">/ đêm</p>
-                                        <div class="mt-2">
-                                            <span
-                                                class="inline-block bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                                                Tiết kiệm
-                                                {{ number_format($reviewRoom->gia_goc_hien_thi - $reviewRoom->gia_hien_thi, 0, ',', '.') }}
-                                                VNĐ
-                                            </span>
-                                        </div>
-                                    @else
-                                        <div class="flex justify-between items-center mb-2">
-                                            <span class="text-gray-700 text-lg font-medium">Giá phòng</span>
-                                            {{-- Màu xanh dương cho giá không khuyến mãi, như cũ --}}
-                                            <span
-                                                class="text-3xl font-bold text-blue-600">{{ number_format($reviewRoom->gia_hien_thi ?? $reviewRoom->gia, 0, ',', '.') }}
-                                                VNĐ</span>
-                                        </div>
-                                        <p class="text-sm text-gray-600">/ đêm</p>
-                                    @endif
+                                @if($loaiPhong->gia_khuyen_mai)
+                                    @php
+                                        $discountPercent = round((($loaiPhong->gia_co_ban - $loaiPhong->gia_khuyen_mai) / $loaiPhong->gia_co_ban) * 100);
+                                    @endphp
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <span class="inline-flex items-center gap-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
+                                            <i class="fas fa-tag"></i>
+                                            <span>GIẢM {{ $discountPercent }}%</span>
+                                        </span>
+                                    </div>
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-gray-700 text-lg font-medium">Giá khuyến mãi</span>
+                                        <span class="text-3xl font-bold text-red-600">
+                                            {{ number_format($loaiPhong->gia_khuyen_mai, 0, ',', '.') }} VNĐ
+                                        </span>
+                                    </div>
+                                    <div class="flex justify-between items-center mb-1">
+                                        <span class="text-gray-500 text-sm font-medium">Giá gốc</span>
+                                        <span class="text-xl font-medium text-gray-400 line-through">
+                                            {{ number_format($loaiPhong->gia_co_ban, 0, ',', '.') }} VNĐ
+                                        </span>
+                                    </div>
+                                    <p class="text-sm text-gray-600">/ đêm</p>
                                 @else
-                                    {{-- Màu xanh dương cho giá cơ bản, như cũ --}}
-                                    <p class="text-3xl font-bold text-blue-600">
-                                        {{ number_format($loaiPhong->gia_co_ban, 0, ',', '.') }} VNĐ</p>
-                                    <p class="text-sm text-gray-500">/ đêm</p>
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-gray-700 text-lg font-medium">Giá phòng</span>
+                                        <span class="text-3xl font-bold text-blue-600">
+                                            {{ number_format($loaiPhong->gia_co_ban, 0, ',', '.') }} VNĐ
+                                        </span>
+                                    </div>
+                                    <p class="text-sm text-gray-600">/ đêm</p>
                                 @endif
                             </div>
 
@@ -196,7 +198,6 @@
                         </div>
 
                         @php
-                            $roomForServices = $loaiPhong->phongs->first();
                             $serviceCatalog = [
                                 ['icon' => 'fas fa-utensils', 'name' => 'Phục vụ ăn uống tại phòng'],
                                 ['icon' => 'fas fa-concierge-bell', 'name' => 'Room Service 24/7'],
@@ -205,24 +206,18 @@
                                 ['icon' => 'fas fa-spa', 'name' => 'Spa & massage'],
                                 ['icon' => 'fas fa-dumbbell', 'name' => 'Phòng gym miễn phí'],
                             ];
-                            $serviceIndex = $roomForServices?->id ? $roomForServices->id % count($serviceCatalog) : 0;
+                            $serviceIndex = $loaiPhong->id % count($serviceCatalog);
                             $service = $serviceCatalog[$serviceIndex];
                         @endphp
 
                         <div class="mt-6">
                             <h4 class="text-xl font-semibold text-gray-900 mb-3">Dịch vụ phòng</h4>
-                            @if ($roomForServices && $roomForServices->dich_vu)
-                                <ul class="list-disc list-inside space-y-2 text-gray-700">
-                                    @foreach (explode(',', $roomForServices->dich_vu) as $dichVu)
-                                        <li class="flex items-center">
-                                            <i class="fas fa-check text-green-600 mr-2"></i>
-                                            {{ trim($dichVu) }}
-                                        </li>
-                                    @endforeach
-                                </ul>
-                            @else
-                                <p class="text-gray-500 italic">Chưa có dịch vụ phòng</p>
-                            @endif
+                            <ul class="list-disc list-inside space-y-2 text-gray-700">
+                                <li class="flex items-center">
+                                    <i class="{{ $service['icon'] }} text-green-600 mr-2"></i>
+                                    {{ $service['name'] }}
+                                </li>
+                            </ul>
                         </div>
                     </div>
                 </div>
@@ -231,44 +226,36 @@
     <div class="bg-white rounded-lg shadow-md p-6 sticky top-8">
         <h3 class="text-2xl font-bold text-gray-900 mb-6">Đặt phòng</h3>
 
-        {{-- Price Box (Giữ nguyên) --}}
+        {{-- Price Box --}}
         <div class="mb-6 p-4 bg-blue-50 rounded-lg">
-            @if(isset($reviewRoom))
-                @if($reviewRoom->hasPromotion())
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="text-gray-700 text-base font-medium">Giá phòng</span>
-                        <div class="text-right">
-                            <div class="text-base text-gray-500 line-through">
-                                {{ number_format($reviewRoom->gia_goc_hien_thi, 0, ',', '.') }} VNĐ
-                            </div>
-                            <div class="text-2xl font-bold text-red-600">
-                                {{ number_format($reviewRoom->gia_hien_thi, 0, ',', '.') }} VNĐ
-                            </div>
-                        </div>
-                    </div>
-                    <p class="text-xs text-gray-600">/ đêm</p>
-                    <div class="mt-1">
-                        <span class="inline-block bg-red-100 text-red-800 text-xs font-medium px-2 py-0.5 rounded-full">
-                            Tiết kiệm {{ number_format($reviewRoom->gia_goc_hien_thi - $reviewRoom->gia_hien_thi, 0, ',', '.') }} VNĐ
-                        </span>
-                    </div>
-                @else
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="text-gray-700 text-base font-medium">Giá phòng</span>
-                        <span class="text-2xl font-bold text-blue-600">{{ number_format($reviewRoom->gia_hien_thi ?? $reviewRoom->gia, 0, ',', '.') }} VNĐ</span>
-                    </div>
-                    <p class="text-xs text-gray-600">/ đêm</p>
-                @endif
+            @if($loaiPhong->gia_khuyen_mai)
+                @php
+                    $discountPercent = round((($loaiPhong->gia_co_ban - $loaiPhong->gia_khuyen_mai) / $loaiPhong->gia_co_ban) * 100);
+                @endphp
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="inline-flex items-center gap-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
+                        <i class="fas fa-tag"></i>
+                        <span>GIẢM {{ $discountPercent }}%</span>
+                    </span>
+                </div>
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-gray-700 text-base font-medium">Giá khuyến mãi</span>
+                    <span class="text-2xl font-bold text-red-600">{{ number_format($loaiPhong->gia_khuyen_mai, 0, ',', '.') }} VNĐ</span>
+                </div>
+                <div class="flex justify-between items-center mb-1">
+                    <span class="text-gray-500 text-sm">Giá gốc</span>
+                    <span class="text-lg font-medium text-gray-400 line-through">{{ number_format($loaiPhong->gia_co_ban, 0, ',', '.') }} VNĐ</span>
+                </div>
             @else
                 <div class="flex justify-between items-center mb-2">
                     <span class="text-gray-700 text-base font-medium">Giá phòng</span>
                     <span class="text-2xl font-bold text-blue-600">{{ number_format($loaiPhong->gia_co_ban, 0, ',', '.') }} VNĐ</span>
                 </div>
-                <p class="text-xs text-gray-600">/ đêm</p>
             @endif
+            <p class="text-xs text-gray-600">/ đêm</p>
         </div>
 
-        <form action="{{ route('booking.form', ['phong' => $reviewRoom->id ?? ($loaiPhong->phongs->first()->id ?? 1)]) }}" method="GET" onsubmit="return handleBooking(event)">
+        <form action="{{ route('booking.form', ['loaiPhongId' => $loaiPhong->id]) }}" method="GET" onsubmit="return handleBooking(event)">
             {{-- THAY ĐỔI: Tăng khoảng cách dọc giữa các trường nhập liệu từ space-y-5 lên space-y-6 --}}
             <div class="space-y-6">
                 <div>
@@ -285,7 +272,7 @@
 
                 <div>
                     <label class="block text-base font-medium text-gray-700 mb-2">Số người</label>
-                    <select name="guests" 
+                    <select name="guests"
                             class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-base">
                         <option value="1">1 người</option>
                         <option value="2" selected>2 người</option>
@@ -314,7 +301,7 @@
                             @foreach ($relatedLoaiPhongs as $relatedLoaiPhong)
                                 <div class="swiper-slide">
                                     <div class="group cursor-pointer"
-                                        onclick="window.location.href='{{ route('client.phong.show', optional($relatedLoaiPhong->phongs->first())->id ?? 0) }}'">
+                                        onclick="window.location.href='{{ route('client.phong.show', $relatedLoaiPhong->id) }}'">
                                         <div
                                             class="relative overflow-hidden bg-white shadow-sm hover:shadow-lg transition-all duration-500">
                                             <div class="relative h-64 overflow-hidden">
@@ -325,19 +312,28 @@
                                                     class="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-all duration-500">
                                                 </div>
 
-                                                <div class="absolute top-4 right-4">
-                                                    <div class="bg-black/80 backdrop-blur-sm text-white px-4 py-2">
-                                                        @if ($relatedLoaiPhong->phongs && $relatedLoaiPhong->phongs->count() > 0)
-                                                            @php $firstRoom = $relatedLoaiPhong->phongs->first(); @endphp
-                                                            <div class="text-lg font-light">
-                                                                {{ number_format($firstRoom->gia_hien_thi, 0, ',', '.') }}
-                                                            </div>
-                                                        @else
-                                                            <div class="text-lg font-light">
+                                                <div class="absolute top-4 right-4 flex flex-col items-end gap-1">
+                                                    @if($relatedLoaiPhong->gia_khuyen_mai)
+                                                        @php
+                                                            $discountPercent = round((($relatedLoaiPhong->gia_co_ban - $relatedLoaiPhong->gia_khuyen_mai) / $relatedLoaiPhong->gia_co_ban) * 100);
+                                                        @endphp
+                                                        {{-- Badge khuyến mãi --}}
+                                                        <div class="inline-flex items-center gap-1.5 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg">
+                                                            <i class="fas fa-tag text-white text-xs"></i>
+                                                            <span>GIẢM {{ $discountPercent }}%</span>
+                                                        </div>
+                                                    @endif
+                                                    {{-- Box giá --}}
+                                                    <div class="bg-black/90 text-white px-4 py-2.5 rounded-lg shadow-xl">
+                                                        <div class="text-xl font-bold">
+                                                            {{ number_format($relatedLoaiPhong->gia_khuyen_mai ?? $relatedLoaiPhong->gia_co_ban, 0, ',', '.') }}
+                                                        </div>
+                                                        @if($relatedLoaiPhong->gia_khuyen_mai)
+                                                            <div class="text-sm text-gray-300 line-through mt-0.5">
                                                                 {{ number_format($relatedLoaiPhong->gia_co_ban, 0, ',', '.') }}
                                                             </div>
                                                         @endif
-                                                        <div class="text-xs text-gray-300">VNĐ / đêm</div>
+                                                        <div class="text-xs text-gray-300 mt-0.5">VNĐ / đêm</div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -372,7 +368,7 @@
     <div class="mt-20">
         @include('client.content.comment', [
             'comments' => $comments,
-            'room' => $reviewRoom ?? ($loaiPhong->phongs->first() ?? null),
+            'room' => $reviewRoom ?? $loaiPhong,
         ])
     </div>
     <script>

@@ -3,7 +3,7 @@
     <p>Xin chào {{ $booking->username }},</p>
     <p>Chúng tôi đã nhận được thanh toán cho đơn đặt phòng của bạn.</p>
     <ul>
-        <li>Phòng: {{ $booking->phong->ten_phong ?? '—' }}</li>
+        <li>Loại phòng: {{ $booking->loaiPhong->ten_loai ?? '—' }}</li>
         <li>Nhận phòng: {{ \Carbon\Carbon::parse($booking->ngay_nhan)->format('d/m/Y') }}</li>
         <li>Trả phòng: {{ \Carbon\Carbon::parse($booking->ngay_tra)->format('d/m/Y') }}</li>
         <li>Số người: {{ $booking->so_nguoi }}</li>

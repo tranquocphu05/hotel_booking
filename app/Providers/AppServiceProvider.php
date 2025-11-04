@@ -32,7 +32,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Chia sẻ số lượng đặt phòng chờ xác nhận cho header admin
         View::composer('partials.admin.header', function ($view) {
-            $pendingQuery = DatPhong::with(['phong'])
+            $pendingQuery = DatPhong::with(['loaiPhong'])
                 ->where('trang_thai', 'cho_xac_nhan')
                 ->orderBy('ngay_dat', 'desc');
             $pendingBookingCount = (clone $pendingQuery)->count();

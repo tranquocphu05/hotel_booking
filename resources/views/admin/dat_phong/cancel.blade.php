@@ -13,7 +13,7 @@
                         <div class="flex items-center space-x-4">
                             <div class="flex-shrink-0">
                                 <span class="px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
-                                    Phòng {{ $booking->phong->ten_phong }}
+                                    Loại phòng {{ $booking->loaiPhong->ten_loai ?? 'N/A' }}
                                 </span>
                             </div>
                             <div class="text-sm text-gray-600">

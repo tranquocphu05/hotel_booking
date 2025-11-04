@@ -114,8 +114,8 @@
                                     <div class="flex justify-between items-start mb-4">
                                         <div>
                                             <h3 class="text-lg font-semibold text-gray-900">
-                                                {{ $booking->phong->ten_phong }}</h3>
-                                            <p class="text-sm text-gray-600">{{ $booking->phong->loaiPhong->ten_loai }}</p>
+                                                {{ $booking->loaiPhong->ten_loai ?? 'N/A' }}</h3>
+                                            <p class="text-sm text-gray-600">{{ $booking->so_luong_da_dat ?? 1 }} phòng</p>
                                         </div>
                                         <span
                                             class="px-3 py-1 rounded-full text-sm font-medium

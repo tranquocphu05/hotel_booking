@@ -13,7 +13,7 @@ class Comment extends Model
 
     protected $fillable = [
         'nguoi_dung_id',
-        'phong_id',
+        'loai_phong_id',  // Changed from phong_id
         'noi_dung',
         'so_sao',
         'img',
@@ -28,8 +28,8 @@ class Comment extends Model
         return $this->belongsTo(\App\Models\User::class, 'nguoi_dung_id');
     }
 
-    public function room()
+    public function loaiPhong()
     {
-        return $this->belongsTo(\App\Models\Phong::class, 'phong_id', 'id');
+        return $this->belongsTo(\App\Models\LoaiPhong::class, 'loai_phong_id', 'id');
     }
 }
