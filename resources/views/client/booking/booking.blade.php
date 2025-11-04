@@ -49,43 +49,53 @@
                     </div>
                     @endif
                     <div class="mt-4">
-                        <h4 class="font-medium">Chi tiết đặt phòng của bạn</h4>
-                        <p class="text-sm text-gray-700">
-                            Giá:
-                            @if($loaiPhong->gia_khuyen_mai)
-                                <span class="text-red-600 font-semibold">{{ number_format($loaiPhong->gia_khuyen_mai, 0, ',', '.') }}</span>
-                                <span class="text-gray-500 line-through text-xs ml-1">{{ number_format($loaiPhong->gia_co_ban, 0, ',', '.') }}</span>
-                            @else
-                                {{ number_format($loaiPhong->gia_co_ban ?? 0, 0, ',', '.') }}
-                            @endif
-                             VND / đêm
-                        </p>
-                        <p class="text-sm text-gray-700" id="so-dem-luu-tru">Số đêm: {{ $so_dem }} đêm</p>
-                        <p class="text-xs text-gray-500 mt-2 italic">* Phòng cụ thể sẽ được tự động chọn khi đặt</p>
+                        <h4 class="font-medium mb-3">Chi tiết đặt phòng của bạn</h4>
+
+                        <div class="space-y-2 text-sm">
+                            <p class="text-gray-700">
+                                Giá:
+                                @if($loaiPhong->gia_khuyen_mai)
+                                    <span class="text-red-600 font-semibold">{{ number_format($loaiPhong->gia_khuyen_mai, 0, ',', '.') }}</span>
+                                    <span class="text-gray-500 line-through text-xs ml-1">{{ number_format($loaiPhong->gia_co_ban, 0, ',', '.') }}</span>
+                                @else
+                                    {{ number_format($loaiPhong->gia_co_ban ?? 0, 0, ',', '.') }}
+                                @endif
+                                 VND / đêm
+                            </p>
+                            <p class="text-gray-700" id="so-dem-luu-tru">Số đêm: {{ $so_dem }} đêm</p>
+                        </div>
+
+                        {{-- Voucher Section --}}
+                        <div class="mt-4 pt-3 border-t border-gray-200">
+                            <a href="#" id="openVoucherLink"
+                                class="inline-flex items-center space-x-2 text-indigo-600 hover:text-indigo-800 font-semibold text-sm cursor-pointer transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+                                <span id="voucherActionText">
+                                    Chọn hoặc nhập mã giảm giá
+                                </span>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </a>
+
+                            {{-- Voucher Display --}}
+                            <div id="voucherDisplay" class="mt-2 hidden"></div>
+                        </div>
+
+                        <p class="text-xs text-gray-500 mt-3 italic">* Phòng cụ thể sẽ được tự động chọn khi đặt</p>
                     </div>
-
-                    <a href="#" id="openVoucherLink"
-                        class="inline-flex items-center space-x-2 text-indigo-600 hover:text-indigo-800 font-semibold text-sm mt-4 cursor-pointer transition">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                        <span id="voucherActionText">
-                            Chọn hoặc nhập mã giảm giá
-                        </span>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                        </svg>
-                    </a>
-
-                    <div id="voucherDisplay" class="text-sm text-green-600 font-medium mt-2 hidden"></div>
 
                     <input type="hidden" id="totalPriceBeforeDiscount" value="{{ $tong_tien_initial }}">
 
-                    <div class="mt-4 pt-2 border-t border-gray-200">
-                        <div id="totalBeforeDiscount" class="text-base hidden"></div>
+                    {{-- Tổng tiền --}}
+                    <div class="mt-4 pt-3 border-t-2 border-gray-300">
+                        <div id="totalBeforeDiscount" class="text-sm text-gray-600 mb-1 hidden"></div>
+                        <div id="discountAmountDisplay" class="text-sm text-green-600 mb-1 hidden"></div>
                         <div id="totalAfterDiscount" class="text-xl font-bold text-red-600">
                             Tổng: {{ number_format($tong_tien_initial) }} VNĐ
                         </div>
@@ -527,19 +537,42 @@
 
 
             function tinhTongTien() {
-<<<<<<< HEAD
                 // Tính tổng giá từ tất cả các loại phòng được chọn
                 const { soDem } = getDatesAndDays();
                 let totalBeforeDiscountAmount = 0;
 
-                document.querySelectorAll('.room-item').forEach(function(roomItem) {
-                    const select = roomItem.querySelector('.room-type-select');
-                    const quantityInput = roomItem.querySelector('.room-quantity');
+                // Tìm tất cả hidden input với class room-type-select (có thể là hidden input hoặc select)
+                document.querySelectorAll('.room-type-select').forEach(function(selectElement) {
+                    let price = 0;
+                    let quantity = 1;
 
-                    if (select && select.value && quantityInput) {
-                        const selectedOption = select.options[select.selectedIndex];
-                        const price = parseFloat(selectedOption.getAttribute('data-price')) || 0;
-                        const quantity = parseInt(quantityInput.value) || 1;
+                    // Nếu là hidden input
+                    if (selectElement.type === 'hidden') {
+                        price = parseFloat(selectElement.getAttribute('data-price')) || 0;
+                        // Tìm quantity input tương ứng (cùng container hoặc theo id)
+                        const roomId = selectElement.name.match(/rooms\[(\d+)\]/);
+                        if (roomId) {
+                            const quantityInput = document.querySelector(`input[name="rooms[${roomId[1]}][so_luong]"]`);
+                            if (quantityInput) {
+                                quantity = parseInt(quantityInput.value) || 1;
+                            }
+                        }
+                    }
+                    // Nếu là select element (fallback cho trường hợp cũ)
+                    else if (selectElement.tagName === 'SELECT' && selectElement.value) {
+                        const selectedOption = selectElement.options[selectElement.selectedIndex];
+                        price = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+                        // Tìm quantity trong cùng container
+                        const roomItem = selectElement.closest('.room-item');
+                        if (roomItem) {
+                            const quantityInput = roomItem.querySelector('.room-quantity');
+                            if (quantityInput) {
+                                quantity = parseInt(quantityInput.value) || 1;
+                            }
+                        }
+                    }
+
+                    if (price > 0) {
                         totalBeforeDiscountAmount += price * quantity * soDem;
                     }
                 });
@@ -560,15 +593,32 @@
 
                 // Cập nhật giao diện chính
                 soDemLuuTruElement.textContent = `Số đêm: ${soDem} đêm`;
-                totalAfterDiscountDiv.innerHTML = `Tổng: ${formatCurrency(totalAfterDiscount)}`;
-                totalAfterDiscountDiv.classList.add('text-xl', 'font-bold', 'text-red-600');
+
+                // Tìm element hiển thị discount amount
+                let discountAmountDisplay = document.getElementById('discountAmountDisplay');
+                if (!discountAmountDisplay) {
+                    discountAmountDisplay = document.createElement('div');
+                    discountAmountDisplay.id = 'discountAmountDisplay';
+                    discountAmountDisplay.className = 'text-sm text-green-600 mb-1 hidden';
+                    totalAfterDiscountDiv.parentNode.insertBefore(discountAmountDisplay, totalAfterDiscountDiv);
+                }
 
                 if (discountPercent > 0) {
                     const currentCode = voucherCodeInput.value || 'VOUCHER';
 
+                    // Hiển thị giá gốc (trước giảm giá)
                     totalBeforeDiscountDiv.innerHTML =
-                        `Giá gốc: <span class="line-through text-gray-500">${formatCurrency(totalBeforeDiscountAmount)}</span>`;
+                        `<span class="text-gray-600">Giá gốc:</span> <span class="line-through text-gray-500">${formatCurrency(totalBeforeDiscountAmount)}</span>`;
                     totalBeforeDiscountDiv.classList.remove('hidden');
+
+                    // Hiển thị số tiền giảm
+                    discountAmountDisplay.innerHTML =
+                        `<span class="text-green-600">Giảm giá:</span> <span class="font-semibold text-green-600">-${formatCurrency(discountAmount)}</span>`;
+                    discountAmountDisplay.classList.remove('hidden');
+
+                    // Cập nhật tổng tiền sau giảm giá
+                    totalAfterDiscountDiv.innerHTML = `Tổng: ${formatCurrency(totalAfterDiscount)}`;
+                    totalAfterDiscountDiv.classList.add('text-xl', 'font-bold', 'text-red-600');
 
                     // BẮT ĐẦU PHẦN ĐÃ CHỈNH SỬA MÀU: Cập nhật giao diện cho LINK TEXT
                     voucherActionText.textContent = `Đã áp dụng mã: ${currentCode}`;
@@ -578,30 +628,45 @@
                     openVoucherLink.classList.add('text-indigo-600', 'hover:text-indigo-800');
                     // KẾT THÚC PHẦN ĐÃ CHỈNH SỬA MÀU
 
-                    // Phần hiển thị chi tiết (voucherDisplayDiv) vẫn là màu xanh lá cây (green)
+                    // Phần hiển thị chi tiết voucher (voucherDisplayDiv) với style đẹp hơn
                     voucherDisplayDiv.innerHTML = `
-<<<<<<< HEAD
-            <p class="flex justify-between items-center text-green-600">
-                <span class="flex items-center font-medium">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
-                    Mã ${currentCode} (<span class="font-bold">- ${discountPercent}%</span>)
-                </span>
-                <button id="voucherClearLink" type="button" class="text-xs text-red-500 hover:text-red-700 font-semibold transition">
-                    Hủy
-                </button>
-            </p>
-        `;
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-3 mt-2">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                    </svg>
+                                    <div>
+                                        <p class="text-sm font-semibold text-green-800">Mã ${currentCode}</p>
+                                        <p class="text-xs text-green-600">Giảm ${discountPercent}%</p>
+                                    </div>
+                                </div>
+                                <button id="voucherClearLink" type="button" class="text-xs text-red-600 hover:text-red-700 font-semibold transition hover:underline">
+                                    Hủy
+                                </button>
+                            </div>
+                        </div>
+                    `;
                     voucherDisplayDiv.classList.remove('hidden');
 
                     const clearLink = voucherDisplayDiv.querySelector('#voucherClearLink');
                     if (clearLink) {
-                        clearLink.addEventListener('click', function() {
+                        // Remove old listener nếu có
+                        const newClearLink = clearLink.cloneNode(true);
+                        clearLink.parentNode.replaceChild(newClearLink, clearLink);
+                        newClearLink.addEventListener('click', function() {
                             clearVoucher();
                         });
                     }
 
                 } else {
+                    // Không có voucher
                     totalBeforeDiscountDiv.classList.add('hidden');
+                    discountAmountDisplay.classList.add('hidden');
+
+                    // Cập nhật tổng tiền (không có giảm giá)
+                    totalAfterDiscountDiv.innerHTML = `Tổng: ${formatCurrency(totalAfterDiscount)}`;
+                    totalAfterDiscountDiv.classList.add('text-xl', 'font-bold', 'text-red-600');
 
                     // Khi KHÔNG có voucher, link hành động về màu xanh nước biển mặc định
                     voucherActionText.textContent = 'Chọn hoặc nhập mã giảm giá';
