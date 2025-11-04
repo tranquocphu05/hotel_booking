@@ -7,7 +7,7 @@
         <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm rounded-lg">
                 <div class="p-6">
-                    <h2 class="text-2xl font-semibold text-gray-800 mb-6">Sửa thông tin đặt phòng <b>{{ $booking->phong->ten_phong }}</b></h2>
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-6">Sửa thông tin đặt phòng <b>{{ $booking->loaiPhong->ten_loai ?? 'N/A' }}</b></h2>
 
                     <form id="bookingForm" action="{{ route('admin.dat_phong.update', $booking->id) }}" method="POST">
                         @csrf
@@ -19,16 +19,25 @@
                                 <h3 class="text-lg font-medium text-gray-900 mb-4">Thông tin phòng</h3>
                                 <div class="space-y-4">
                                     <div>
-                                        <label for="phong_id" class="block text-sm font-medium text-gray-700">Chọn phòng mới</label>
-                                        <select name="phong_id" id="phong_id" 
+                                        <label for="loai_phong_id" class="block text-sm font-medium text-gray-700">Loại phòng</label>
+                                        <select name="loai_phong_id" id="loai_phong_id" 
                                             class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                                            @foreach($rooms as $room)
-                                                <option value="{{ $room->id }}" {{ $booking->phong_id == $room->id ? 'selected' : '' }}>
-                                                    {{ $room->ten_phong }} ({{ $room->loaiPhong->ten_loai }}) - {{ number_format($room->gia, 0, ',', '.') }} VNĐ
+                                            @foreach($loaiPhongs as $loaiPhong)
+                                                <option value="{{ $loaiPhong->id }}" {{ $booking->loai_phong_id == $loaiPhong->id ? 'selected' : '' }}>
+                                                    {{ $loaiPhong->ten_loai }} - {{ number_format($loaiPhong->gia_co_ban, 0, ',', '.') }} VNĐ/đêm (Còn {{ $loaiPhong->so_luong_trong }} phòng)
                                                 </option>
                                             @endforeach
                                         </select>
-                                        @error('phong_id')
+                                        @error('loai_phong_id')
+                                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+                                    <div>
+                                        <label for="so_luong_da_dat" class="block text-sm font-medium text-gray-700">Số lượng phòng</label>
+                                        <input type="number" name="so_luong_da_dat" id="so_luong_da_dat" 
+                                            value="{{ old('so_luong_da_dat', $booking->so_luong_da_dat ?? 1) }}" min="1"
+                                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                        @error('so_luong_da_dat')
                                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                         @enderror
                                     </div>

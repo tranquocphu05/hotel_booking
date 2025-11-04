@@ -61,7 +61,7 @@
                 <div class="max-h-80 overflow-auto">
                     @forelse(($pendingRecentBookings ?? []) as $bk)
                         <a href="{{ route('admin.dat_phong.show', data_get($bk,'id')) }}" class="block px-4 py-3 hover:bg-gray-50">
-                            <div class="text-sm text-gray-800 font-medium">{{ data_get($bk,'username','Khách') }} - {{ data_get($bk,'phong.ten_phong','Phòng') }}</div>
+                            <div class="text-sm text-gray-800 font-medium">{{ data_get($bk,'username','Khách') }} - {{ data_get($bk,'loaiPhong.ten_loai','Loại phòng') }}</div>
                             <div class="text-xs text-gray-500">Đặt lúc {{ \Carbon\Carbon::parse(data_get($bk,'ngay_dat'))->format('d/m/Y H:i') }}</div>
                         </a>
                     @empty

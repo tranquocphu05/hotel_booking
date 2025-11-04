@@ -1,6 +1,6 @@
 @extends('layouts.client')
 
-@section('title', $phong->ten_phong ?? 'Đặt phòng')
+@section('title', $loaiPhong->ten_loai ?? 'Đặt phòng')
 
 @section('client_content')
     @php
@@ -24,60 +24,78 @@
             ? $ngay_nhan_carbon->diffInDays($ngay_tra_carbon)
             : 1;
 
-        // Use promotional price if available
-        $gia_mot_dem =
-            $phong->co_khuyen_mai && !empty($phong->gia_khuyen_mai) && $phong->gia_khuyen_mai > 0
-                ? $phong->gia_khuyen_mai
-                : $phong->gia;
-        $gia_mot_dem = $gia_mot_dem ?? 0;
+        // Use promotional price if available, otherwise use base price
+        $gia_mot_dem = $loaiPhong->gia_khuyen_mai ?? $loaiPhong->gia_co_ban ?? 0;
         $tong_tien_initial = $gia_mot_dem * $so_dem; // Tổng tiền ban đầu tính bằng PHP
 
     @endphp
     <div class="container mx-auto px-4 py-8">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="lg:col-span-1 bg-white p-6 rounded shadow">
-                @if (isset($phong->img) && $phong->img)
-                    <img src="{{ asset($phong->img) }}" alt="room" class="w-full h-48 object-cover rounded mb-4">
+                @if (isset($loaiPhong->anh) && $loaiPhong->anh)
+                    <img src="{{ asset($loaiPhong->anh) }}" alt="room type" class="w-full h-48 object-cover rounded mb-4">
                 @else
-                    <img src="/img/room/room-1.jpg" alt="room" class="w-full h-48 object-cover rounded mb-4">
+                    <img src="/img/room/room-1.jpg" alt="room type" class="w-full h-48 object-cover rounded mb-4">
                 @endif
 
-                <h3 class="text-lg font-semibold">{{ $phong->ten_phong ?? 'Room Title' }}</h3>
-                <p class="text-sm text-gray-600">Loại: {{ optional($phong->loaiPhong)->ten_loai ?? '-' }}</p>
+                <h3 class="text-lg font-semibold">{{ $loaiPhong->ten_loai ?? 'Loại phòng' }}</h3>
+                <p class="text-sm text-gray-600 mt-2">{{ $loaiPhong->mo_ta ?? '' }}</p>
 
                 <div class="mt-4 text-sm">
+                    @if($loaiPhong->diem_danh_gia && $loaiPhong->so_luong_danh_gia > 0)
                     <div class="flex items-center gap-2">
-                        <span class="bg-green-500 text-white rounded px-2 py-1 text-xs">9.2</span>
-                        <span class="text-sm text-gray-700">Tuyệt hảo · N/A đánh giá</span>
+                        <span class="bg-green-500 text-white rounded px-2 py-1 text-xs">{{ number_format($loaiPhong->diem_danh_gia, 1) }}</span>
+                        <span class="text-sm text-gray-700">{{ $loaiPhong->rating_text }} · {{ $loaiPhong->so_luong_danh_gia }} đánh giá</span>
                     </div>
+                    @endif
                     <div class="mt-4">
-                        <h4 class="font-medium">Chi tiết đặt phòng của bạn</h4>
-                        <p class="text-sm text-gray-700">Giá: {{ number_format($phong->gia ?? 0) }} VND</p>
-                        <p class="text-sm text-gray-700" id="so-dem-luu-tru">Số đêm: *{{ $so_dem }} đêm*</p>
+                        <h4 class="font-medium mb-3">Chi tiết đặt phòng của bạn</h4>
+
+                        <div class="space-y-2 text-sm">
+                            <p class="text-gray-700">
+                                Giá:
+                                @if($loaiPhong->gia_khuyen_mai)
+                                    <span class="text-red-600 font-semibold">{{ number_format($loaiPhong->gia_khuyen_mai, 0, ',', '.') }}</span>
+                                    <span class="text-gray-500 line-through text-xs ml-1">{{ number_format($loaiPhong->gia_co_ban, 0, ',', '.') }}</span>
+                                @else
+                                    {{ number_format($loaiPhong->gia_co_ban ?? 0, 0, ',', '.') }}
+                                @endif
+                                 VND / đêm
+                            </p>
+                            <p class="text-gray-700" id="so-dem-luu-tru">Số đêm: {{ $so_dem }} đêm</p>
+                        </div>
+
+                        {{-- Voucher Section --}}
+                        <div class="mt-4 pt-3 border-t border-gray-200">
+                            <a href="#" id="openVoucherLink"
+                                class="inline-flex items-center space-x-2 text-indigo-600 hover:text-indigo-800 font-semibold text-sm cursor-pointer transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+                                <span id="voucherActionText">
+                                    Chọn hoặc nhập mã giảm giá
+                                </span>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </a>
+
+                            {{-- Voucher Display --}}
+                            <div id="voucherDisplay" class="mt-2 hidden"></div>
+                        </div>
+
+                        <p class="text-xs text-gray-500 mt-3 italic">* Phòng cụ thể sẽ được tự động chọn khi đặt</p>
                     </div>
-
-                    <a href="#" id="openVoucherLink"
-                        class="inline-flex items-center space-x-2 text-indigo-600 hover:text-indigo-800 font-semibold text-sm mt-4 cursor-pointer transition">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                        <span id="voucherActionText">
-                            Chọn hoặc nhập mã giảm giá
-                        </span>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                        </svg>
-                    </a>
-
-                    <div id="voucherDisplay" class="text-sm text-green-600 font-medium mt-2 hidden"></div>
 
                     <input type="hidden" id="totalPriceBeforeDiscount" value="{{ $tong_tien_initial }}">
 
-                    <div class="mt-4 pt-2 border-t border-gray-200">
-                        <div id="totalBeforeDiscount" class="text-base hidden"></div>
+                    {{-- Tổng tiền --}}
+                    <div class="mt-4 pt-3 border-t-2 border-gray-300">
+                        <div id="totalBeforeDiscount" class="text-sm text-gray-600 mb-1 hidden"></div>
+                        <div id="discountAmountDisplay" class="text-sm text-green-600 mb-1 hidden"></div>
                         <div id="totalAfterDiscount" class="text-xl font-bold text-red-600">
                             Tổng: {{ number_format($tong_tien_initial) }} VNĐ
                         </div>
@@ -92,11 +110,152 @@
                     <div class="bg-green-100 text-green-800 p-3 rounded mb-4">{{ session('status') }}</div>
                 @endif
 
-                <form action="{{ route('booking.submit') }}" method="POST">
+                {{-- Display general errors --}}
+                @if ($errors->has('error'))
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                        <strong class="font-bold">Lỗi!</strong>
+                        <span class="block sm:inline">{{ $errors->first('error') }}</span>
+                    </div>
+                @endif
+
+                {{-- Display validation errors for rooms array --}}
+                @if ($errors->has('rooms'))
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                        <strong class="font-bold">Lỗi!</strong>
+                        <ul class="list-disc list-inside mt-1">
+                            @foreach ($errors->get('rooms') as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
+                @if ($errors->has('rooms.*.loai_phong_id'))
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                        <strong class="font-bold">Lỗi!</strong>
+                        <ul class="list-disc list-inside mt-1">
+                            @foreach ($errors->get('rooms.*.loai_phong_id') as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
+                @if ($errors->has('rooms.*.so_luong'))
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                        <strong class="font-bold">Lỗi!</strong>
+                        <ul class="list-disc list-inside mt-1">
+                            @foreach ($errors->get('rooms.*.so_luong') as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
+                <form action="{{ route('booking.submit') }}" method="POST" id="finalBookingForm">
                     @csrf
-                    <input type="hidden" name="phong_id" value="{{ $phong->id }}">
                     <input type="hidden" name="tong_tien_dat_phong" id="finalBookingPrice"
                         value="{{ $tong_tien_initial }}">
+
+                    {{-- Room Selection Section --}}
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-4">Chọn phòng</h3>
+                        <div id="roomsContainer">
+                            {{-- First room (default selected) - Display only, no dropdown --}}
+                            <div class="room-item mb-4 p-4 border-2 border-blue-200 rounded-lg bg-blue-50" data-room-index="0">
+                                <div class="mb-3">
+                                    <h4 class="font-medium text-gray-900">Loại phòng đã chọn</h4>
+                                </div>
+
+                                {{-- Room Type Info Card --}}
+                                <div class="mb-4 bg-white rounded-lg border border-gray-200 overflow-hidden">
+                                    <div class="flex flex-col md:flex-row">
+                                        {{-- Room Image --}}
+                                        @if($loaiPhong->anh)
+                                            <div class="md:w-48 w-full h-48 md:h-auto flex-shrink-0">
+                                                <img src="{{ asset($loaiPhong->anh) }}" alt="{{ $loaiPhong->ten_loai }}"
+                                                     class="w-full h-full object-cover">
+                                            </div>
+                                        @else
+                                            <div class="md:w-48 w-full h-48 md:h-auto flex-shrink-0 bg-gray-200 flex items-center justify-center">
+                                                <i class="fas fa-image text-gray-400 text-4xl"></i>
+                                            </div>
+                                        @endif
+                                        {{-- Room Info --}}
+                                        <div class="flex-1 p-4">
+                                            <h5 class="font-semibold text-lg text-gray-900 mb-2">{{ $loaiPhong->ten_loai }}</h5>
+                                            <div class="flex items-center gap-2 mb-2">
+                                                @php
+                                                    $displayPrice = $loaiPhong->gia_khuyen_mai ?? $loaiPhong->gia_co_ban;
+                                                    $basePrice = $loaiPhong->gia_co_ban;
+                                                @endphp
+                                                @if($loaiPhong->gia_khuyen_mai)
+                                                    <span class="text-red-600 font-bold text-lg">{{ number_format($loaiPhong->gia_khuyen_mai, 0, ',', '.') }}</span>
+                                                    <span class="text-gray-500 line-through text-sm">{{ number_format($loaiPhong->gia_co_ban, 0, ',', '.') }}</span>
+                                                @else
+                                                    <span class="text-blue-600 font-bold text-lg">{{ number_format($loaiPhong->gia_co_ban, 0, ',', '.') }}</span>
+                                                @endif
+                                                <span class="text-gray-600 text-sm">VNĐ/đêm</span>
+                                            </div>
+                                            <p class="text-sm text-gray-600">
+                                                <i class="fas fa-bed text-blue-500"></i> Còn {{ $loaiPhong->so_luong_trong }} phòng trống
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Quantity Selection --}}
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Số lượng phòng *</label>
+                                    <div class="flex items-center gap-3">
+                                        <button type="button"
+                                            class="w-10 h-10 flex items-center justify-center bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md transition-colors font-bold text-lg"
+                                            onclick="decreaseRoomQuantity(0)"
+                                            tabindex="-1">
+                                            −
+                                        </button>
+                                        <input type="text"
+                                            name="rooms[0][so_luong]"
+                                            id="room_quantity_0"
+                                            value="{{ old('rooms.0.so_luong', 1) }}"
+                                            data-max="{{ $loaiPhong->so_luong_trong }}"
+                                            class="room-quantity w-20 text-center border-2 border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-semibold @error('rooms.0.so_luong') border-red-500 @enderror"
+                                            onchange="updateRoomQuantity(0)">
+                                        <button type="button"
+                                            class="w-10 h-10 flex items-center justify-center bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md transition-colors font-bold text-lg"
+                                            onclick="increaseRoomQuantity(0)"
+                                            tabindex="-1">
+                                            +
+                                        </button>
+                                        <span class="text-sm text-gray-600 ml-2">
+                                            / {{ $loaiPhong->so_luong_trong }} phòng
+                                        </span>
+                                    </div>
+                                    @error('rooms.0.so_luong')
+                                        <div class="text-red-600 text-xs mt-1">{{ $message }}</div>
+                                    @enderror
+                                    @if($errors->has('rooms.*.so_luong'))
+                                        @foreach($errors->get('rooms.*.so_luong') as $error)
+                                            <div class="text-red-600 text-xs mt-1">{{ $error }}</div>
+                                        @endforeach
+                                    @endif
+                                    <p class="text-xs text-red-600 mt-1 hidden" id="quantity_error_0">
+                                        Số lượng không được vượt quá {{ $loaiPhong->so_luong_trong }} phòng
+                                    </p>
+                                </div>
+
+                                <div class="mt-3 text-sm text-gray-700">
+                                    <span class="room-subtotal font-medium">Giá: <span id="room_subtotal_0">0</span> VNĐ</span>
+                                </div>
+
+                                {{-- Hidden input for room type ID --}}
+                                <input type="hidden" name="rooms[0][loai_phong_id]" value="{{ $loaiPhong->id }}"
+                                       data-price="{{ $displayPrice }}"
+                                       data-base-price="{{ $basePrice }}"
+                                       class="room-type-select">
+                            </div>
+                        </div>
+                    </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
@@ -112,7 +271,7 @@
 
                         <div>
                             <label class="block text-sm font-medium">Địa chỉ email *</label>
-                            <input type="email" name="email" value="{{ old('email', auth()->user()->email ?? '') }}"
+                            <input type="text" name="email" value="{{ old('email', auth()->user()->email ?? '') }}"
                                 class="mt-1 block w-full border rounded p-2 @error('email') border-red-500 @enderror">
                             @error('email')
                                 <div class="text-red-600 text-sm">{{ $message }}</div>
@@ -121,7 +280,10 @@
                         <div>
                             <label class="block text-sm font-medium">Số điện thoại</label>
                             <input type="text" name="phone" value="{{ old('phone', auth()->user()->sdt ?? '') }}"
-                                class="mt-1 block w-full border rounded p-2">
+                                class="mt-1 block w-full border rounded p-2 @error('phone') border-red-500 @enderror">
+                            @error('phone')
+                                <div class="text-red-600 text-sm mt-1">{{ $message }}</div>
+                            @enderror
                         </div>
 
                         <div>
@@ -135,23 +297,32 @@
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium">Ngày nhận</label>
+                            <label class="block text-sm font-medium">Ngày nhận *</label>
                             <input type="date" name="ngay_nhan"
                                 value="{{ old('ngay_nhan', isset($checkin) ? $checkin : $ngay_nhan_carbon->format('Y-m-d')) }}"
-                                class="mt-1 block w-full border rounded p-2" id="ngay_nhan_input">
+                                class="mt-1 block w-full border rounded p-2 @error('ngay_nhan') border-red-500 @enderror" id="ngay_nhan_input">
+                            @error('ngay_nhan')
+                                <div class="text-red-600 text-sm mt-1">{{ $message }}</div>
+                            @enderror
                         </div>
                         <div>
-                            <label class="block text-sm font-medium">Ngày trả</label>
+                            <label class="block text-sm font-medium">Ngày trả *</label>
                             <input type="date" name="ngay_tra"
                                 value="{{ old('ngay_tra', isset($checkout) ? $checkout : $ngay_tra_carbon->format('Y-m-d')) }}"
-                                class="mt-1 block w-full border rounded p-2" id="ngay_tra_input">
+                                class="mt-1 block w-full border rounded p-2 @error('ngay_tra') border-red-500 @enderror" id="ngay_tra_input">
+                            @error('ngay_tra')
+                                <div class="text-red-600 text-sm mt-1">{{ $message }}</div>
+                            @enderror
                         </div>
 
                         <div class="md:col-span-2">
                             <label class="block text-sm font-medium">Số người</label>
-                            <input type="number" name="so_nguoi"
-                                value="{{ old('so_nguoi', isset($guests) ? $guests : 1) }}" min="1"
-                                class="mt-1 block w-1/6 border rounded p-2">
+                            <input type="text" name="so_nguoi"
+                                value="{{ old('so_nguoi', isset($guests) ? $guests : 1) }}"
+                                class="mt-1 block w-1/6 border rounded p-2 @error('so_nguoi') border-red-500 @enderror">
+                            @error('so_nguoi')
+                                <div class="text-red-600 text-sm mt-1">{{ $message }}</div>
+                            @enderror
                         </div>
                         <input type="hidden" name="voucherCode" id="voucherCode" value="">
                         <input type="hidden" name="discountValue" id="discountValue" value="0">
@@ -234,7 +405,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             // === CÁC PHẦN TỬ CẦN THIẾT (DOM REFERENCES) ===
             const giaMotDem = parseFloat("{{ $gia_mot_dem ?? 0 }}");
-            const loaiPhongId = '{{ optional($phong->loaiPhong)->id ?? 0 }}';
+            const loaiPhongId = '{{ $loaiPhong->id ?? 0 }}';
 
             // THAY ĐỔI: openVoucherBtn -> openVoucherLink
             const openVoucherLink = document.getElementById('openVoucherLink');
@@ -366,10 +537,50 @@
 
 
             function tinhTongTien() {
-                const {
-                    soDem
-                } = getDatesAndDays();
-                const totalBeforeDiscountAmount = giaMotDem * soDem;
+                // Tính tổng giá từ tất cả các loại phòng được chọn
+                const { soDem } = getDatesAndDays();
+                let totalBeforeDiscountAmount = 0;
+
+                // Tìm tất cả hidden input với class room-type-select (có thể là hidden input hoặc select)
+                document.querySelectorAll('.room-type-select').forEach(function(selectElement) {
+                    let price = 0;
+                    let quantity = 1;
+
+                    // Nếu là hidden input
+                    if (selectElement.type === 'hidden') {
+                        price = parseFloat(selectElement.getAttribute('data-price')) || 0;
+                        // Tìm quantity input tương ứng (cùng container hoặc theo id)
+                        const roomId = selectElement.name.match(/rooms\[(\d+)\]/);
+                        if (roomId) {
+                            const quantityInput = document.querySelector(`input[name="rooms[${roomId[1]}][so_luong]"]`);
+                            if (quantityInput) {
+                                quantity = parseInt(quantityInput.value) || 1;
+                            }
+                        }
+                    }
+                    // Nếu là select element (fallback cho trường hợp cũ)
+                    else if (selectElement.tagName === 'SELECT' && selectElement.value) {
+                        const selectedOption = selectElement.options[selectElement.selectedIndex];
+                        price = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+                        // Tìm quantity trong cùng container
+                        const roomItem = selectElement.closest('.room-item');
+                        if (roomItem) {
+                            const quantityInput = roomItem.querySelector('.room-quantity');
+                            if (quantityInput) {
+                                quantity = parseInt(quantityInput.value) || 1;
+                            }
+                        }
+                    }
+
+                    if (price > 0) {
+                        totalBeforeDiscountAmount += price * quantity * soDem;
+                    }
+                });
+
+                // Nếu không có phòng nào được chọn, sử dụng giá mặc định
+                if (totalBeforeDiscountAmount === 0) {
+                    totalBeforeDiscountAmount = giaMotDem * soDem;
+                }
                 const discountPercent = currentDiscountPercent;
 
                 let discountAmount = 0;
@@ -382,15 +593,32 @@
 
                 // Cập nhật giao diện chính
                 soDemLuuTruElement.textContent = `Số đêm: ${soDem} đêm`;
-                totalAfterDiscountDiv.innerHTML = `Tổng: ${formatCurrency(totalAfterDiscount)}`;
-                totalAfterDiscountDiv.classList.add('text-xl', 'font-bold', 'text-red-600');
+
+                // Tìm element hiển thị discount amount
+                let discountAmountDisplay = document.getElementById('discountAmountDisplay');
+                if (!discountAmountDisplay) {
+                    discountAmountDisplay = document.createElement('div');
+                    discountAmountDisplay.id = 'discountAmountDisplay';
+                    discountAmountDisplay.className = 'text-sm text-green-600 mb-1 hidden';
+                    totalAfterDiscountDiv.parentNode.insertBefore(discountAmountDisplay, totalAfterDiscountDiv);
+                }
 
                 if (discountPercent > 0) {
                     const currentCode = voucherCodeInput.value || 'VOUCHER';
 
+                    // Hiển thị giá gốc (trước giảm giá)
                     totalBeforeDiscountDiv.innerHTML =
-                        `Giá gốc: <span class="line-through text-gray-500">${formatCurrency(totalBeforeDiscountAmount)}</span>`;
+                        `<span class="text-gray-600">Giá gốc:</span> <span class="line-through text-gray-500">${formatCurrency(totalBeforeDiscountAmount)}</span>`;
                     totalBeforeDiscountDiv.classList.remove('hidden');
+
+                    // Hiển thị số tiền giảm
+                    discountAmountDisplay.innerHTML =
+                        `<span class="text-green-600">Giảm giá:</span> <span class="font-semibold text-green-600">-${formatCurrency(discountAmount)}</span>`;
+                    discountAmountDisplay.classList.remove('hidden');
+
+                    // Cập nhật tổng tiền sau giảm giá
+                    totalAfterDiscountDiv.innerHTML = `Tổng: ${formatCurrency(totalAfterDiscount)}`;
+                    totalAfterDiscountDiv.classList.add('text-xl', 'font-bold', 'text-red-600');
 
                     // BẮT ĐẦU PHẦN ĐÃ CHỈNH SỬA MÀU: Cập nhật giao diện cho LINK TEXT
                     voucherActionText.textContent = `Đã áp dụng mã: ${currentCode}`;
@@ -400,29 +628,45 @@
                     openVoucherLink.classList.add('text-indigo-600', 'hover:text-indigo-800');
                     // KẾT THÚC PHẦN ĐÃ CHỈNH SỬA MÀU
 
-                    // Phần hiển thị chi tiết (voucherDisplayDiv) vẫn là màu xanh lá cây (green)
+                    // Phần hiển thị chi tiết voucher (voucherDisplayDiv) với style đẹp hơn
                     voucherDisplayDiv.innerHTML = `
-                <p class="flex justify-between items-center text-green-600">
-                    <span class="flex items-center font-medium">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg> 
-                        Mã ${currentCode} (<span class="font-bold">- ${discountPercent}%</span>)
-                    </span>
-                    <button id="voucherClearLink" type="button" class="text-xs text-red-500 hover:text-red-700 font-semibold transition">
-                        Hủy
-                    </button>
-                </p>
-            `;
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-3 mt-2">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                    </svg>
+                                    <div>
+                                        <p class="text-sm font-semibold text-green-800">Mã ${currentCode}</p>
+                                        <p class="text-xs text-green-600">Giảm ${discountPercent}%</p>
+                                    </div>
+                                </div>
+                                <button id="voucherClearLink" type="button" class="text-xs text-red-600 hover:text-red-700 font-semibold transition hover:underline">
+                                    Hủy
+                                </button>
+                            </div>
+                        </div>
+                    `;
                     voucherDisplayDiv.classList.remove('hidden');
 
                     const clearLink = voucherDisplayDiv.querySelector('#voucherClearLink');
                     if (clearLink) {
-                        clearLink.addEventListener('click', function() {
+                        // Remove old listener nếu có
+                        const newClearLink = clearLink.cloneNode(true);
+                        clearLink.parentNode.replaceChild(newClearLink, clearLink);
+                        newClearLink.addEventListener('click', function() {
                             clearVoucher();
                         });
                     }
 
                 } else {
+                    // Không có voucher
                     totalBeforeDiscountDiv.classList.add('hidden');
+                    discountAmountDisplay.classList.add('hidden');
+
+                    // Cập nhật tổng tiền (không có giảm giá)
+                    totalAfterDiscountDiv.innerHTML = `Tổng: ${formatCurrency(totalAfterDiscount)}`;
+                    totalAfterDiscountDiv.classList.add('text-xl', 'font-bold', 'text-red-600');
 
                     // Khi KHÔNG có voucher, link hành động về màu xanh nước biển mặc định
                     voucherActionText.textContent = 'Chọn hoặc nhập mã giảm giá';
@@ -624,8 +868,10 @@
             // --- BỔ SUNG LOGIC XÓA VOUCHER KHI RỜI TRANG ---
 
             if (finalBookingForm) {
-                finalBookingForm.addEventListener('submit', function() {
+                finalBookingForm.addEventListener('submit', function(e) {
+                    // Đặt cờ là đang gửi form (đang hoàn tất đặt phòng)
                     isCompletingBooking = true;
+                    // Form sẽ submit bình thường, validation sẽ được xử lý bởi Laravel
                 });
             }
 
@@ -709,14 +955,238 @@
             checkinInput.addEventListener('change', function() {
                 clearVoucher();
                 tinhTongTien();
+                // Cập nhật giá cho tất cả các phòng
+                document.querySelectorAll('.room-type-select').forEach(function(select) {
+                    if (select.value && typeof updateRoomPrice === 'function') {
+                        updateRoomPrice(select);
+                    }
+                });
             });
             checkoutInput.addEventListener('change', function() {
                 clearVoucher();
                 tinhTongTien();
+                // Cập nhật giá cho tất cả các phòng
+                document.querySelectorAll('.room-type-select').forEach(function(select) {
+                    if (select.value && typeof updateRoomPrice === 'function') {
+                        updateRoomPrice(select);
+                    }
+                });
             });
 
-            // 4. Khởi tạo tính toán lần đầu (sau khi restore)
+            // 4. Hàm cập nhật giá khi thay đổi loại phòng hoặc số lượng
+            window.updateRoomPrice = function(selectElement) {
+                // selectElement có thể là select hoặc hidden input
+                let price = 0;
+                let roomItem = null;
+                let selectedOption = null;
+
+                if (selectElement.tagName === 'SELECT') {
+                    selectedOption = selectElement.options[selectElement.selectedIndex];
+                    if (!selectedOption.value) {
+                        // Nếu chưa chọn phòng, ẩn các phần hiển thị
+                        const roomItem = selectElement.closest('.room-item');
+                        const roomIndex = roomItem.getAttribute('data-room-index');
+                        document.querySelector(`#room_name_${roomIndex}`).closest('.selected-room-details').classList.add('hidden');
+                        document.querySelector(`#room_quantity_${roomIndex}`).closest('.quantity-section').classList.add('hidden');
+                        document.getElementById(`subtotal_section_${roomIndex}`).classList.add('hidden');
+                        return;
+                    }
+                    price = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+                    roomItem = selectElement.closest('.room-item');
+
+                    // Hiển thị thông tin phòng đã chọn
+                    const roomIndex = roomItem.getAttribute('data-room-index');
+                    const tenLoai = selectedOption.getAttribute('data-ten-loai');
+                    const anh = selectedOption.getAttribute('data-anh');
+                    const soLuongTrong = parseInt(selectedOption.getAttribute('data-so-luong-trong')) || 0;
+                    const giaKhuyenMai = parseFloat(selectedOption.getAttribute('data-gia-khuyen-mai')) || 0;
+                    const giaCoBan = parseFloat(selectedOption.getAttribute('data-gia-co-ban')) || 0;
+
+                    // Cập nhật tên phòng
+                    document.getElementById(`room_name_${roomIndex}`).textContent = tenLoai;
+
+                    // Cập nhật giá
+                    const priceDiv = document.getElementById(`room_price_${roomIndex}`);
+                    const formatNumber = (num) => Math.round(num).toLocaleString('vi-VN');
+
+                    if (giaKhuyenMai > 0) {
+                        priceDiv.innerHTML = `
+                            <span class="text-red-600 font-bold text-lg">${formatNumber(giaKhuyenMai)}</span>
+                            <span class="text-gray-500 line-through text-sm">${formatNumber(giaCoBan)}</span>
+                            <span class="text-gray-600 text-sm">VNĐ/đêm</span>
+                        `;
+                    } else {
+                        priceDiv.innerHTML = `
+                            <span class="text-blue-600 font-bold text-lg">${formatNumber(giaCoBan)}</span>
+                            <span class="text-gray-600 text-sm">VNĐ/đêm</span>
+                        `;
+                    }
+
+                    // Cập nhật số lượng còn lại
+                    document.getElementById(`room_availability_${roomIndex}`).innerHTML = `
+                        <i class="fas fa-bed text-blue-500"></i> Còn ${soLuongTrong} phòng trống
+                    `;
+
+                    // Cập nhật ảnh
+                    const imageDiv = document.getElementById(`room_image_${roomIndex}`);
+                    if (anh && anh.trim() !== '') {
+                        // Đảm bảo đường dẫn ảnh đúng (nếu chưa có / thì thêm)
+                        const imagePath = anh.startsWith('/') ? anh : '/' + anh;
+                        imageDiv.innerHTML = `<img src="${imagePath}" alt="${tenLoai}" class="w-20 h-20 object-cover rounded-lg ml-3">`;
+                    } else {
+                        imageDiv.innerHTML = '';
+                    }
+
+                    // Hiển thị card thông tin phòng
+                    document.querySelector(`#room_name_${roomIndex}`).closest('.selected-room-details').classList.remove('hidden');
+
+                    // Cập nhật số lượng tối đa và hiển thị phần quantity
+                    const quantityInput = document.getElementById(`room_quantity_${roomIndex}`);
+                    quantityInput.setAttribute('data-max', soLuongTrong);
+                    quantityInput.setAttribute('oninput', `validateRoomQuantity(this, ${roomIndex})`);
+                    document.getElementById(`max_quantity_${roomIndex}`).textContent = `/ ${soLuongTrong} phòng`;
+                    document.getElementById(`quantity_error_${roomIndex}`).textContent = `Số lượng không được vượt quá ${soLuongTrong} phòng`;
+                    document.querySelector(`#room_quantity_${roomIndex}`).closest('.quantity-section').classList.remove('hidden');
+                    document.getElementById(`subtotal_section_${roomIndex}`).classList.remove('hidden');
+
+                    // Cập nhật các hàm onclick với maxQuantity mới
+                    const decreaseBtn = quantityInput.closest('.quantity-section').querySelector('button[onclick*="decreaseRoomQuantity"]');
+                    const increaseBtn = quantityInput.closest('.quantity-section').querySelector('button[onclick*="increaseRoomQuantity"]');
+                    decreaseBtn.setAttribute('onclick', `decreaseRoomQuantity(${roomIndex})`);
+                    increaseBtn.setAttribute('onclick', `increaseRoomQuantity(${roomIndex})`);
+
+                } else if (selectElement.tagName === 'INPUT' && selectElement.type === 'hidden') {
+                    price = parseFloat(selectElement.getAttribute('data-price')) || 0;
+                    roomItem = selectElement.closest('.room-item');
+                }
+
+                if (!roomItem) return;
+
+                const quantityInput = roomItem.querySelector('.room-quantity');
+                const roomIndex = roomItem.getAttribute('data-room-index');
+                const subtotalSpan = document.getElementById('room_subtotal_' + roomIndex);
+
+                if (quantityInput && subtotalSpan) {
+                    const quantity = parseInt(quantityInput.value) || 1;
+                    const { soDem } = getDatesAndDays();
+                    const subtotal = price * quantity * soDem;
+                    subtotalSpan.textContent = formatCurrency(subtotal);
+                }
+
+                updateTotalPrice();
+            };
+
+            // 4.5. Hàm tăng số lượng phòng
+            window.increaseRoomQuantity = function(roomIndex) {
+                const quantityInput = document.getElementById('room_quantity_' + roomIndex);
+                if (!quantityInput) return;
+
+                const maxQuantity = parseInt(quantityInput.getAttribute('data-max')) || 0;
+                const currentValue = parseInt(quantityInput.value) || 1;
+
+                if (maxQuantity > 0 && currentValue < maxQuantity) {
+                    quantityInput.value = currentValue + 1;
+                    updateRoomQuantity(roomIndex);
+                }
+            };
+
+            // 4.6. Hàm giảm số lượng phòng
+            window.decreaseRoomQuantity = function(roomIndex) {
+                const quantityInput = document.getElementById('room_quantity_' + roomIndex);
+                if (!quantityInput) return;
+
+                const currentValue = parseInt(quantityInput.value) || 1;
+                if (currentValue > 1) {
+                    quantityInput.value = currentValue - 1;
+                    updateRoomQuantity(roomIndex);
+                }
+            };
+
+
+            // 4.8. Hàm cập nhật khi thay đổi số lượng (cho input onchange)
+            window.updateRoomQuantity = function(roomIndex) {
+                const quantityInput = document.getElementById('room_quantity_' + roomIndex);
+                if (!quantityInput) return;
+
+                const roomItem = quantityInput.closest('.room-item');
+                const hiddenInput = roomItem.querySelector('.room-type-select[type="hidden"]');
+                if (hiddenInput) {
+                    updateRoomPrice(hiddenInput);
+                }
+                updateTotalPrice();
+            };
+
+            // 6. Hàm tính tổng giá từ tất cả các loại phòng được chọn
+            window.updateTotalPrice = function() {
+                const { soDem } = getDatesAndDays();
+                let totalBeforeDiscount = 0;
+
+                // Tính tổng giá từ tất cả các loại phòng
+                document.querySelectorAll('.room-item').forEach(function(roomItem) {
+                    const select = roomItem.querySelector('.room-type-select');
+                    const quantityInput = roomItem.querySelector('.room-quantity');
+
+                    if (select && select.value && quantityInput) {
+                        let price = 0;
+
+                        // Nếu là select dropdown
+                        if (select.tagName === 'SELECT') {
+                            const selectedOption = select.options[select.selectedIndex];
+                            price = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+                        }
+                        // Nếu là hidden input
+                        else if (select.tagName === 'INPUT' && select.type === 'hidden') {
+                            price = parseFloat(select.getAttribute('data-price')) || 0;
+                        }
+
+                        const quantity = parseInt(quantityInput.value) || 1;
+                        totalBeforeDiscount += price * quantity * soDem;
+                    }
+                });
+
+                // Áp dụng voucher discount nếu có
+                const discountPercent = currentDiscountPercent;
+                let discountAmount = 0;
+                let totalAfterDiscount = totalBeforeDiscount;
+
+                if (discountPercent > 0) {
+                    discountAmount = totalBeforeDiscount * (discountPercent / 100);
+                    totalAfterDiscount = Math.max(0, totalBeforeDiscount - discountAmount);
+                }
+
+                // Cập nhật giao diện
+                soDemLuuTruElement.textContent = `Số đêm: ${soDem} đêm`;
+                totalAfterDiscountDiv.innerHTML = `Tổng: ${formatCurrency(totalAfterDiscount)}`;
+                totalAfterDiscountDiv.classList.add('text-xl', 'font-bold', 'text-red-600');
+
+                if (discountPercent > 0) {
+                    totalBeforeDiscountDiv.innerHTML =
+                        `Giá gốc: <span class="line-through text-gray-500">${formatCurrency(totalBeforeDiscount)}</span>`;
+                    totalBeforeDiscountDiv.classList.remove('hidden');
+                } else {
+                    totalBeforeDiscountDiv.classList.add('hidden');
+                }
+
+                finalBookingPriceInput.value = Math.round(totalAfterDiscount);
+            };
+
+            // 7. Khởi tạo tính toán lần đầu (sau khi tất cả hàm đã được định nghĩa)
             tinhTongTien();
+
+            // 10. Cập nhật giá cho phòng mặc định khi page load
+            setTimeout(function() {
+                const defaultRoomSelect = document.querySelector('.room-type-select');
+                if (defaultRoomSelect && defaultRoomSelect.value) {
+                    updateRoomPrice(defaultRoomSelect);
+                }
+                // Cập nhật subtotal cho tất cả các phòng
+                document.querySelectorAll('.room-item').forEach(function(roomItem) {
+                    const hiddenInput = roomItem.querySelector('.room-type-select[type="hidden"]');
+                    if (hiddenInput) {
+                        updateRoomPrice(hiddenInput);
+                    }
+                });
+            }, 100);
         });
     </script>
 @endsection

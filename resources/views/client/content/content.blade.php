@@ -407,6 +407,32 @@
                 {{-- Ảnh phòng --}}
                 <img src="{{ asset($phong->anh ?: 'img/room/room-1.jpg') }}" alt="{{ $phong->ten_loai }}"
                     class="w-full h-full object-cover transform transition-transform duration-700 ease-in-out group-hover:scale-110">
+                
+                {{-- Badge và giá ở góc trên phải --}}
+                <div class="absolute top-4 right-4 flex flex-col items-end gap-1 z-10">
+                    @if($phong->gia_khuyen_mai)
+                        @php
+                            $discountPercent = round((($phong->gia_co_ban - $phong->gia_khuyen_mai) / $phong->gia_co_ban) * 100);
+                        @endphp
+                        {{-- Badge khuyến mãi --}}
+                        <div class="inline-flex items-center gap-1.5 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg">
+                            <i class="fas fa-tag text-white text-xs"></i>
+                            <span>GIẢM {{ $discountPercent }}%</span>
+                        </div>
+                    @endif
+                    {{-- Box giá --}}
+                    <div class="bg-black/90 text-white px-4 py-2.5 rounded-lg shadow-xl">
+                        <div class="text-xl font-bold">
+                            {{ number_format($phong->gia_khuyen_mai ?? $phong->gia_co_ban, 0, ',', '.') }}
+                        </div>
+                        @if($phong->gia_khuyen_mai)
+                            <div class="text-sm text-gray-300 line-through mt-0.5">
+                                {{ number_format($phong->gia_co_ban, 0, ',', '.') }}
+                            </div>
+                        @endif
+                        <div class="text-xs text-gray-300 mt-0.5">VNĐ / đêm</div>
+                    </div>
+                </div>
 
                 {{-- Overlay --}}
                 <div
@@ -416,25 +442,26 @@
                 {{-- Nội dung khi chưa hover (Giá ở dưới) --}}
                 <div
                     class="absolute inset-0 flex items-end p-6 text-white transition-all duration-500 group-hover:opacity-0 room-details-unhover">
-                    <div>
+                    <div class="w-full">
                         <h4 class="text-2xl font-bold mb-1 font-serif">{{ $phong->ten_loai }}</h4>
-
-                        @if ($phong->phongs && $phong->phongs->count() > 0)
-                            @php $firstRoom = $phong->phongs->first(); @endphp
-                            @if ($firstRoom->hasPromotion())
-                                <div class="flex items-center space-x-2">
-                                    <span class="text-lg text-gray-300 line-through">
-                                        {{ number_format($firstRoom->gia_goc_hien_thi, 0, ',', '.') }}đ
-                                    </span>
-                                    <span class="text-xl text-[#D4AF37] font-semibold">
-                                        {{ number_format($firstRoom->gia_hien_thi, 0, ',', '.') }}đ
-                                    </span>
-                                </div>
-                            @else
-                                <span class="text-xl text-[#D4AF37] font-semibold">
-                                    {{ number_format($firstRoom->gia_hien_thi, 0, ',', '.') }}đ
+                        @if($phong->gia_khuyen_mai)
+                            @php
+                                $discountPercent = round((($phong->gia_co_ban - $phong->gia_khuyen_mai) / $phong->gia_co_ban) * 100);
+                            @endphp
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="inline-flex items-center gap-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg animate-pulse">
+                                    <i class="fas fa-tag"></i>
+                                    <span>GIẢM {{ $discountPercent }}%</span>
                                 </span>
-                            @endif
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xl text-red-400 font-semibold">
+                                    {{ number_format($phong->gia_khuyen_mai, 0, ',', '.') }}đ
+                                </span>
+                                <span class="text-sm text-gray-400 line-through">
+                                    {{ number_format($phong->gia_co_ban, 0, ',', '.') }}đ
+                                </span>
+                            </div>
                         @else
                             <span class="text-xl text-[#D4AF37] font-semibold">
                                 {{ number_format($phong->gia_co_ban, 0, ',', '.') }}đ
@@ -450,29 +477,31 @@
                     {{-- Tên + Giá --}}
                     <div class="mb-4">
                         <h4 class="text-3xl font-serif font-bold mb-1">{{ $phong->ten_loai }}</h4>
-
-                        @if ($phong->phongs && $phong->phongs->count() > 0)
-                            @php $firstRoom = $phong->phongs->first(); @endphp
-                            @if ($firstRoom->hasPromotion())
-                                <div class="flex items-center space-x-2">
-                                    <span class="text-xl text-gray-300 line-through">
-                                        {{ number_format($firstRoom->gia_goc_hien_thi, 0, ',', '.') }}đ
-                                    </span>
-                                    <span class="text-2xl text-[#FFD700] font-bold">
-                                        {{ number_format($firstRoom->gia_hien_thi, 0, ',', '.') }}đ
-                                    </span>
-                                </div>
-                            @else
-                                <span class="text-2xl text-[#FFD700] font-bold">
-                                    {{ number_format($firstRoom->gia_hien_thi, 0, ',', '.') }}đ
+                        @if($phong->gia_khuyen_mai)
+                            @php
+                                $discountPercent = round((($phong->gia_co_ban - $phong->gia_khuyen_mai) / $phong->gia_co_ban) * 100);
+                            @endphp
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="inline-flex items-center gap-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
+                                    <i class="fas fa-tag"></i>
+                                    <span>GIẢM {{ $discountPercent }}%</span>
                                 </span>
-                            @endif
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="text-2xl text-red-400 font-bold">
+                                    {{ number_format($phong->gia_khuyen_mai, 0, ',', '.') }}đ
+                                </span>
+                                <span class="text-base text-gray-400 line-through">
+                                    {{ number_format($phong->gia_co_ban, 0, ',', '.') }}đ
+                                </span>
+                                <span class="text-base text-gray-300">/ Đêm</span>
+                            </div>
                         @else
                             <span class="text-2xl text-[#FFD700] font-bold">
                                 {{ number_format($phong->gia_co_ban, 0, ',', '.') }}đ
                             </span>
+                            <span class="text-base text-gray-300">/ Đêm</span>
                         @endif
-                        <span class="text-base text-gray-300">/ Đêm</span>
                     </div>
 
                     <div class="mt-2 mb-4">
@@ -597,19 +626,19 @@
         </p>
 
         <button onclick="openVideoPopup()"
-            class="inline-flex items-center justify-center w-20 h-20 rounded-full 
-            
+            class="inline-flex items-center justify-center w-20 h-20 rounded-full
+
             /* Nền vàng trong suốt mặc định */
-            bg-[#D4AF37]/30 border-0 
-            
+            bg-[#D4AF37]/30 border-0
+
             /* Icon luôn màu trắng */
             text-white
-            
+
             /* CSS tùy chỉnh cho hiệu ứng viền/glow */
             play-button-glow
-            
-            transition duration-300 ease-in-out 
-            transform hover:scale-110 
+
+            transition duration-300 ease-in-out
+            transform hover:scale-110
             focus:outline-none">
 
             <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" class="w-8 h-8 ml-1">
@@ -620,33 +649,27 @@
 </section>
 
 <style>
-    .play-button-glow {
-        /* MẶC ĐỊNH: Viền thứ 2 màu trắng mờ */
-        box-shadow:
-            0 0 0 8px rgba(255, 255, 255, 0.2);
-        /* Viền trắng mờ thứ hai */
+.play-button-glow {
+    /* MẶC ĐỊNH: Viền thứ 2 màu trắng mờ */
+    box-shadow:
+        0 0 0 8px rgba(255, 255, 255, 0.2); /* Viền trắng mờ thứ hai */
 
-        /* Icon đã được Tailwind đặt là text-white, nên không cần đặt lại ở đây */
-    }
+    /* Icon đã được Tailwind đặt là text-white, nên không cần đặt lại ở đây */
+}
 
-    .play-button-glow:hover {
-        /* HOVER: Hiệu ứng phát sáng vàng mạnh mẽ (Neon Glow) */
-        /* Nền sẽ đậm hơn một chút hoặc giữ nguyên tùy theo bg-[#D4AF37]/30 */
-        box-shadow:
-            /* Giữ lại viền trắng mờ 0 0 0 8px rgba(255, 255, 255, 0.2), */
-            /* Tùy chọn: bỏ dòng này nếu muốn viền trắng biến mất khi hover */
-            0 0 0 3px #D4AF37,
-            /* Viền vàng rõ nét */
-            0 0 0 10px rgba(212, 175, 55, 0.6),
-            /* Viền vàng mờ rộng hơn */
-            0 0 30px #D4AF37,
-            /* Sáng vàng chính */
-            0 0 60px rgba(212, 175, 55, 0.6);
-        /* Sáng vàng lan rộng */
+.play-button-glow:hover {
+    /* HOVER: Hiệu ứng phát sáng vàng mạnh mẽ (Neon Glow) */
+    /* Nền sẽ đậm hơn một chút hoặc giữ nguyên tùy theo bg-[#D4AF37]/30 */
+    box-shadow:
+        /* Giữ lại viền trắng mờ 0 0 0 8px rgba(255, 255, 255, 0.2), */ /* Tùy chọn: bỏ dòng này nếu muốn viền trắng biến mất khi hover */
+        0 0 0 3px #D4AF37, /* Viền vàng rõ nét */
+        0 0 0 10px rgba(212, 175, 55, 0.6), /* Viền vàng mờ rộng hơn */
+        0 0 30px #D4AF37, /* Sáng vàng chính */
+        0 0 60px rgba(212, 175, 55, 0.6); /* Sáng vàng lan rộng */
 
-        /* Icon vẫn là màu trắng (đã được Tailwind đặt text-white) */
-        /* Nếu muốn chắc chắn, có thể thêm: color: white !important; */
-    }
+    /* Icon vẫn là màu trắng (đã được Tailwind đặt text-white) */
+    /* Nếu muốn chắc chắn, có thể thêm: color: white !important; */
+}
 </style>
 <!-- Popup Video -->
 <div id="videoPopup"
@@ -712,8 +735,8 @@
                             class="block bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm relative group cursor-pointer
                    hover:shadow-xl hover:scale-[1.02] transition duration-300 ease-in-out">
                             <div class="relative">
-                                <img src="{{ asset($phong->img ?: 'img/gallery/gallery-1.jpg') }}"
-                                    alt="{{ $phong->ten_phong }}" class="w-full h-48 object-cover">
+                                <img src="{{ asset($phong->anh ?? 'img/gallery/gallery-1.jpg') }}"
+                                    alt="{{ $phong->ten_loai ?? 'Loại phòng' }}" class="w-full h-48 object-cover">
 
                                 <button
                                     class="absolute top-4 right-4 bg-white p-2 rounded-full shadow-md text-gray-700 hover:text-red-500 transition duration-300 z-10"
@@ -731,10 +754,10 @@
                                 @endif
                             </div>
                             <div class="p-4">
-                                <h3 class="text-lg font-bold text-gray-800 mb-1 leading-tight">{{ $phong->ten_phong }}
+                                <h3 class="text-lg font-bold text-gray-800 mb-1 leading-tight">{{ $phong->ten_loai ?? 'Loại phòng' }}
                                 </h3>
                                 <p class="text-sm text-gray-500 mb-2">
-                                    {{ data_get($phong, 'loaiPhong.ten_loai', 'Phòng') }}</p>
+                                    Còn {{ $phong->so_luong_trong ?? 0 }}/{{ $phong->so_luong_phong ?? 0 }} phòng trống</p>
 
                                 <div class="flex items-center mb-3">
                                     @php($stars = data_get($phong, 'loaiPhong.stars'))
@@ -753,15 +776,8 @@
 
                                 <div class="flex items-baseline justify-between mt-auto pt-2 border-t border-gray-100">
                                     <div>
-                                        @if ($phong->hasPromotion())
-                                            <p class="text-xs text-gray-500 line-through">
-                                                {{ number_format($phong->gia_goc_hien_thi, 0, ',', '.') }}₫</p>
-                                            <p class="text-lg font-bold text-yellow-600">
-                                                {{ number_format($phong->gia_hien_thi, 0, ',', '.') }}₫</p>
-                                        @else
-                                            <p class="text-lg font-bold text-yellow-600">
-                                                {{ number_format($phong->gia_hien_thi, 0, ',', '.') }}₫</p>
-                                        @endif
+                                        <p class="text-lg font-bold text-yellow-600">
+                                            {{ number_format($phong->gia_co_ban, 0, ',', '.') }}₫</p>
                                     </div>
                                     <span class="text-sm text-gray-500">1 đêm</span>
                                 </div>

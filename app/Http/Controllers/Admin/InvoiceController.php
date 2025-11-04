@@ -11,7 +11,9 @@ class InvoiceController extends Controller
 
     public function index(Request $request)
     {
-        $query = Invoice::with('datPhong.user');
+        $query = Invoice::with(['datPhong' => function($q) {
+            $q->with('user', 'loaiPhong');
+        }]);
 
         if ($request->filled('user_id')) {
             $query->whereHas('datPhong', function ($q) use ($request) {
@@ -36,13 +38,18 @@ class InvoiceController extends Controller
 
     public function show(Invoice $invoice)
     {
-        $invoice->load('datPhong.user', 'datPhong.phong.loaiPhong');
+        $invoice->load(['datPhong' => function($q) {
+            $q->with('user', 'loaiPhong');
+        }]);
         return view('admin.invoices.show', compact('invoice'));
     }
 
     public function edit($id)
     {
         $invoice = Invoice::findOrFail($id);
+        $invoice->load(['datPhong' => function($q) {
+            $q->with('user', 'loaiPhong');
+        }]);
         return view('admin.invoices.edit', compact('invoice'));
     }
 

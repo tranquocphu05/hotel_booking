@@ -26,7 +26,7 @@ class CommentController extends Controller
         $request->validate([
             'so_sao' => 'required|integer|min:1|max:5',
             'noi_dung' => 'required|string|max:2000',
-            'phong_id' => 'required|integer|exists:phong,id',
+            'loai_phong_id' => 'required|integer|exists:loai_phong,id',
             'img' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
         ], [
             'img.image' => 'Tệp tải lên phải là hình ảnh.',
@@ -39,7 +39,19 @@ class CommentController extends Controller
         }
 
         $userId = Auth::id();
-        $existing = Comment::where('phong_id', $request->phong_id)
+        
+        // Business rule: User must have booked and checked out this room type
+        $hasValidBooking = \App\Models\DatPhong::where('nguoi_dung_id', $userId)
+            ->where('loai_phong_id', $request->loai_phong_id)
+            ->where('trang_thai', 'da_xac_nhan')
+            ->where('ngay_tra', '<=', now()->toDateString())
+            ->exists();
+        
+        if (!$hasValidBooking) {
+            return redirect()->back()->with('error', 'Bạn chỉ có thể đánh giá sau khi đã đặt phòng và đã check-out.');
+        }
+
+        $existing = Comment::where('loai_phong_id', $request->loai_phong_id)
             ->where('nguoi_dung_id', $userId)
             ->first();
 
@@ -68,7 +80,7 @@ class CommentController extends Controller
         // Tạo mới
         Comment::create([
             'nguoi_dung_id' => $userId,
-            'phong_id' => $request->phong_id,
+            'loai_phong_id' => $request->loai_phong_id,
             'noi_dung' => $request->noi_dung,
             'so_sao' => $request->so_sao,
             'img' => $imgPath,
