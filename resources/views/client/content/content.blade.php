@@ -565,7 +565,7 @@
     </ul>
 </section>
 
-<section id="testimonials" class="py-16 bg-gray-50 my-16 rounded-lg">
+<section id="testimonials" class="py-16 bg-gray-50 my-16 rounded-3xl overflow-hidden">
     <div class="text-center container mx-auto px-4">
         <p class="text-sm uppercase tracking-widest text-[#D4AF37] mb-2">Ý KIẾN KHÁCH HÀNG</p>
         <h2 class="text-3xl font-bold text-gray-800 mb-8">Khách Hàng Nói Gì?</h2>
@@ -575,9 +575,8 @@
                 <div class="swiper-wrapper">
                     @foreach ($comments as $comment)
                         <div
-                            class="swiper-slide bg-white rounded-2xl shadow-md p-8 flex flex-col items-center text-center transition duration-300 hover:shadow-lg">
+                            class="swiper-slide bg-white rounded-3xl p-8 flex flex-col items-center text-center transition duration-300 relative z-10">
 
-                            {{-- Ảnh đại diện --}}
                             @if (!empty($comment->user->avatar))
                                 <img src="{{ asset('storage/' . $comment->user->avatar) }}" alt="Avatar người dùng"
                                     class="w-20 h-20 rounded-full object-cover mb-4 shadow-md border-2 border-yellow-400 hover:scale-105 transition-transform duration-300">
@@ -589,12 +588,10 @@
                                     class="w-20 h-20 rounded-full object-cover mb-4 shadow-md border-2 border-gray-300">
                             @endif
 
-                            {{-- Nội dung đánh giá --}}
                             <p class="italic text-gray-600 text-lg leading-relaxed mb-6 max-w-2xl">
                                 “{{ $comment->noi_dung }}”
                             </p>
 
-                            {{-- Số sao --}}
                             <div class="flex justify-center text-yellow-500 mb-3">
                                 @for ($i = 1; $i <= 5; $i++)
                                     <i
@@ -602,7 +599,6 @@
                                 @endfor
                             </div>
 
-                            {{-- Người dùng & ngày đánh giá --}}
                             <p class="font-semibold text-gray-800">
                                 — {{ $comment->user->username ?? ($comment->user->name ?? 'Ẩn danh') }}
                             </p>
@@ -613,7 +609,6 @@
                     @endforeach
                 </div>
 
-                {{-- Pagination (Giữ lại phân trang nếu muốn) --}}
                 <div class="swiper-pagination mt-6"></div>
             </div>
         @else
@@ -621,7 +616,6 @@
         @endif
     </div>
 </section>
-
 <section class="relative bg-center bg-cover text-center text-white py-32 mb-20"
     style="background-image: url('{{ asset('img/hero/x.jpg') }}')">
     <div class="absolute inset-0 bg-black/60"></div>
