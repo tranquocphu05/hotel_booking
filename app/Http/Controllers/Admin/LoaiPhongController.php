@@ -35,6 +35,8 @@ class LoaiPhongController extends Controller
             'ten_loai' => 'required|string|max:255|unique:loai_phong,ten_loai|regex:/^[\pL\s]+$/u',
             'mo_ta' => 'nullable|string|max:1000|regex:/^[\pL\pN\s.,()!?\-\'":;%&@\/]+$/u',
             'gia_co_ban' => 'required|numeric|min:100000|max:99999999',
+            'gia_khuyen_mai' => 'nullable|numeric|min:0|max:99999999|lt:gia_co_ban',
+            'so_luong_phong' => 'nullable|integer|min:0',
             'anh' => 'required|image|max:2048'
         ], [
             'ten_loai.required' => 'Tên loại phòng không được để trống.',
@@ -43,6 +45,10 @@ class LoaiPhongController extends Controller
             'gia_co_ban.required' => 'Giá cơ bản là bắt buộc.',
             'gia_co_ban.min' => 'Giá cơ bản phải lớn hơn hoặc bằng 100.000đ',
             'gia_co_ban.max' => 'Giá cơ bản không được vượt quá 99.999.999đ',
+            'gia_khuyen_mai.min' => 'Giá khuyến mãi phải lớn hơn hoặc bằng 0',
+            'gia_khuyen_mai.max' => 'Giá khuyến mãi không được vượt quá 99.999.999đ',
+            'gia_khuyen_mai.lt' => 'Giá khuyến mãi phải nhỏ hơn giá cơ bản',
+            'so_luong_phong.min' => 'Số lượng phòng phải lớn hơn hoặc bằng 0',
             'anh.required' => 'Ảnh loại phòng là bắt buộc.',
             'anh.image' => 'Tệp tải lên phải là một hình ảnh.',
             'anh.max' => 'Kích thước hình ảnh không được vượt quá 2MB.',
@@ -57,6 +63,9 @@ class LoaiPhongController extends Controller
             $file->move(public_path('uploads/loai_phong'), $filename);
             $validated['anh'] = 'uploads/loai_phong/' . $filename;
         }
+
+        // Set so_luong_trong = so_luong_phong when creating new room type
+        $validated['so_luong_trong'] = $validated['so_luong_phong'] ?? 0;
 
         LoaiPhong::create($validated);
 
@@ -77,14 +86,19 @@ class LoaiPhongController extends Controller
             'ten_loai' => 'required|string|max:255|regex:/^[\pL\s]+$/u',
             'mo_ta' => 'nullable|string|max:1000|regex:/^[\pL\pN\s.,()!?\-\'":;%&@\/]+$/u',
             'gia_co_ban' => 'required|numeric|min:100000|max:99999999',
-            'anh' => 'required|image|max:2048'
+            'gia_khuyen_mai' => 'nullable|numeric|min:0|max:99999999|lt:gia_co_ban',
+            'so_luong_phong' => 'nullable|integer|min:0',
+            'anh' => 'nullable|image|max:2048'
         ], [
             'ten_loai.required' => 'Tên loại phòng không được để trống.',
             'ten_loai.regex' => 'Tên loại phòng chỉ được chứa chữ cái và khoảng trắng.',
             'gia_co_ban.required' => 'Giá cơ bản là bắt buộc.',
             'gia_co_ban.min' => 'Giá cơ bản phải lớn hơn hoặc bằng 100.000đ',
             'gia_co_ban.max' => 'Giá cơ bản không được vượt quá 99.999.999đ',
-            'anh.required' => 'Ảnh loại phòng là bắt buộc.',
+            'gia_khuyen_mai.min' => 'Giá khuyến mãi phải lớn hơn hoặc bằng 0',
+            'gia_khuyen_mai.max' => 'Giá khuyến mãi không được vượt quá 99.999.999đ',
+            'gia_khuyen_mai.lt' => 'Giá khuyến mãi phải nhỏ hơn giá cơ bản',
+            'so_luong_phong.min' => 'Số lượng phòng phải lớn hơn hoặc bằng 0',
             'anh.image' => 'Tệp tải lên phải là một hình ảnh.',
             'anh.max' => 'Kích thước hình ảnh không được vượt quá 2MB.',
             'mo_ta.max' => 'Mô tả không được vượt quá 1000 ký tự.',
@@ -104,6 +118,22 @@ class LoaiPhongController extends Controller
             $filename = time() . '_' . $file->getClientOriginalName();
             $file->move(public_path('uploads/loai_phong'), $filename);
             $validated['anh'] = 'uploads/loai_phong/' . $filename;
+        } else {
+            // Giữ nguyên ảnh cũ nếu không upload ảnh mới
+            unset($validated['anh']);
+        }
+
+        // Nếu thay đổi so_luong_phong, điều chỉnh so_luong_trong
+        if (isset($validated['so_luong_phong'])) {
+            $oldTotal = $loaiPhong->so_luong_phong ?? 0;
+            $newTotal = $validated['so_luong_phong'];
+            $oldAvailable = $loaiPhong->so_luong_trong ?? 0;
+            
+            // Tính số phòng đang được đặt
+            $bookedRooms = $oldTotal - $oldAvailable;
+            
+            // Cập nhật so_luong_trong = so_luong_phong - số phòng đã đặt
+            $validated['so_luong_trong'] = max(0, $newTotal - $bookedRooms);
         }
 
         $loaiPhong->update($validated);

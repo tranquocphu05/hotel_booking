@@ -17,13 +17,13 @@ class ProfileController extends Controller
     public function edit(Request $request): View
     {
         $user = $request->user();
-        
+
         // Lấy lịch sử đặt phòng - Mỗi trang hiển thị 3 phòng
         $bookings = \App\Models\DatPhong::where('nguoi_dung_id', $user->id)
-            ->with(['phong', 'phong.loaiPhong'])
+            ->with(['loaiPhong'])
             ->orderBy('ngay_dat', 'desc')
             ->paginate(3);
-        
+
         return view('client.profile.index', [
             'user' => $user,
             'bookings' => $bookings,
@@ -36,7 +36,7 @@ class ProfileController extends Controller
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
         $user = $request->user();
-        
+
         // Update user information
         $user->ho_ten = $request->ho_ten;
         $user->email = $request->email;
@@ -124,7 +124,7 @@ class ProfileController extends Controller
         ]);
 
         $user = $request->user();
-        
+
         // Find booking
         $booking = \App\Models\DatPhong::where('id', $id)
             ->where('nguoi_dung_id', $user->id)

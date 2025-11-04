@@ -3,15 +3,15 @@ use App\Models\Comment;
 
 $existing = null;
 if (auth()->check()) {
-    $existing = Comment::where('phong_id', $room->id)
+    $existing = Comment::where('loai_phong_id', $room->id)
         ->where('nguoi_dung_id', auth()->id())
         ->first();
 }
 
-$averageRating = Comment::where('phong_id', $room->id)
+$averageRating = Comment::where('loai_phong_id', $room->id)
     ->where('trang_thai', 'hien_thi')
     ->avg('so_sao');
-$totalReviews = Comment::where('phong_id', $room->id)
+$totalReviews = Comment::where('loai_phong_id', $room->id)
     ->where('trang_thai', 'hien_thi')
     ->count();
 @endphp
@@ -32,7 +32,7 @@ $totalReviews = Comment::where('phong_id', $room->id)
 @if ($totalReviews > 0)
 <div class="bg-white rounded-xl shadow-md p-6 mb-8 flex items-center justify-between">
     <div>
-        <h3 class="text-2xl font-bold text-gray-800">{{ $room->ten_phong }}</h3>
+        <h3 class="text-2xl font-bold text-gray-800">{{ $room->ten_loai ?? 'Loại phòng' }}</h3>
         <p class="text-gray-600">
             ⭐ {{ number_format($averageRating, 1) }} / 5 · {{ $totalReviews }} đánh giá
         </p>
@@ -56,7 +56,7 @@ $totalReviews = Comment::where('phong_id', $room->id)
 <form action="{{ route('client.comment.store') }}" method="POST" enctype="multipart/form-data"
       class="bg-white p-6 rounded-xl shadow-md mb-12">
     @csrf
-    <input type="hidden" name="phong_id" value="{{ $room->id }}">
+    <input type="hidden" name="loai_phong_id" value="{{ $room->id }}">
 
     {{-- Đánh giá sao --}}
     <div class="mb-6" x-data="{ rating: 0, hover: 0 }">
@@ -165,7 +165,7 @@ $totalReviews = Comment::where('phong_id', $room->id)
                 <input type="file" name="img" accept="image/*"
                        class="w-full text-sm border border-gray-200 rounded-lg p-2">
                 @if($comment->img)
-                    <img src="{{ asset('storage/' . $comment->img) }}" 
+                    <img src="{{ asset('storage/' . $comment->img) }}"
                          alt="Ảnh cũ" class="w-20 h-20 mt-2 rounded border">
                 @endif
 
@@ -187,8 +187,8 @@ $totalReviews = Comment::where('phong_id', $room->id)
         <template x-if="!editing">
             <div>
                 @if($comment->img)
-                    <img src="{{ asset('storage/' . $comment->img) }}" 
-                         alt="Ảnh đánh giá" 
+                    <img src="{{ asset('storage/' . $comment->img) }}"
+                         alt="Ảnh đánh giá"
                          class="w-32 h-32 object-cover rounded-lg mt-2 border border-gray-200 shadow-sm">
                 @endif
                 <p class="text-gray-400 text-xs mt-1">
@@ -206,12 +206,12 @@ $totalReviews = Comment::where('phong_id', $room->id)
                 ✏️ <span x-text="editing ? 'Đang sửa...' : 'Chỉnh sửa'"></span>
             </button>
 
-            <form action="{{ route('client.comment.destroy', $comment->id) }}" 
-                  method="POST" 
+            <form action="{{ route('client.comment.destroy', $comment->id) }}"
+                  method="POST"
                   onsubmit="return confirm('Bạn có chắc muốn xóa đánh giá này không?')">
                 @csrf
                 @method('DELETE')
-                <button type="submit" 
+                <button type="submit"
                         class="text-red-600 hover:text-red-800 font-medium text-sm">
                     🗑️ Xóa
                 </button>

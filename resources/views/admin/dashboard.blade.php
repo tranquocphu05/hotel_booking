@@ -74,14 +74,14 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm font-medium text-gray-600 mb-1">Tổng phòng</p>
-                        <p class="text-3xl font-bold text-gray-900" data-target="{{ App\Models\Phong::count() }}">0</p>
+                        <p class="text-3xl font-bold text-gray-900" data-target="{{ App\Models\LoaiPhong::sum('so_luong_phong') }}">0</p>
                         <div class="flex items-center mt-2">
-                            <a href="{{ route('admin.phong.available') }}" class="text-blue-600 text-sm font-medium flex items-center hover:text-blue-800 transition-colors">
+                            <a href="{{ route('admin.loai_phong.index') }}" class="text-blue-600 text-sm font-medium flex items-center hover:text-blue-800 transition-colors">
                                 <i class="fas fa-bed mr-1"></i>
                                 @php
-                                    $totalRooms = App\Models\Phong::where('trang_thai', 'hien')->count();
-                                    $bookedRooms = App\Models\DatPhong::whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])->pluck('phong_id')->unique()->count();
-                                    $availableRooms = max(0, $totalRooms - $bookedRooms);
+                                    $totalRooms = App\Models\LoaiPhong::sum('so_luong_phong');
+                                    $bookedRooms = App\Models\LoaiPhong::sum('so_luong_phong') - App\Models\LoaiPhong::sum('so_luong_trong');
+                                    $availableRooms = App\Models\LoaiPhong::sum('so_luong_trong');
                                 @endphp
                                 {{ $availableRooms }} trống
                                 <i class="fas fa-external-link-alt ml-1 text-xs"></i>
@@ -135,8 +135,8 @@
                     <h3 class="text-lg font-semibold text-gray-900">Tỷ lệ lấp đầy phòng</h3>
                     <div class="text-right">
                         @php
-                            $totalRooms = App\Models\Phong::where('trang_thai', 'hien')->count();
-                            $bookedRooms = App\Models\DatPhong::whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])->pluck('phong_id')->unique()->count();
+                            $totalRooms = App\Models\LoaiPhong::sum('so_luong_phong');
+                            $bookedRooms = App\Models\LoaiPhong::sum('so_luong_phong') - App\Models\LoaiPhong::sum('so_luong_trong');
                             $occupancyRate = $totalRooms > 0 ? round(($bookedRooms / $totalRooms) * 100) : 0;
                             // Đảm bảo occupancy rate không vượt quá 100%
                             $occupancyRate = min($occupancyRate, 100);
@@ -165,20 +165,16 @@
                     </a>
                 </div>
                 <div class="space-y-4">
-                    @forelse(App\Models\DatPhong::with('user', 'phong')->orderBy('ngay_dat', 'desc')->take(5)->get() as $booking)
+                    @forelse(App\Models\DatPhong::with('user', 'loaiPhong')->orderBy('ngay_dat', 'desc')->take(5)->get() as $booking)
                         <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                             <div class="flex items-center space-x-4">
                                 <div class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
                                     <i class="fas fa-calendar text-indigo-600"></i>
                                 </div>
                                 <div>
-                                    <p class="font-medium text-gray-900">{{ $booking->user->ten ?? 'Khách' }}</p>
+                                    <p class="font-medium text-gray-900">{{ $booking->username ?? ($booking->user->ten ?? ($booking->user->ho_ten ?? 'Khách')) }}</p>
                                     <p class="text-sm text-gray-500">
-                                        Phòng: <span class="font-medium text-gray-800">{{ $booking->phong->ten_phong ?? 'N/A' }}</span>
-                                        @if(optional($booking->phong)->loaiPhong)
-                                            <span class="text-gray-400">·</span>
-                                            Loại: <span class="text-gray-700">{{ $booking->phong->loaiPhong->ten_loai }}</span>
-                                        @endif
+                                        Loại phòng: <span class="font-medium text-gray-800">{{ $booking->loaiPhong->ten_loai ?? 'N/A' }}</span>
                                     </p>
                                 </div>
                             </div>
@@ -361,13 +357,13 @@
             const start = 0;
             const duration = 2000;
             let startTime = null;
-            
+
             function step(timestamp) {
                 if (!startTime) startTime = timestamp;
                 const progress = Math.min((timestamp - startTime) / duration, 1);
                 const eased = 1 - Math.pow(1 - progress, 3); // easeOutCubic
                 const current = start + (to - start) * eased;
-                
+
                 // Check if this is the revenue element by looking for the dollar sign icon
                 const isRevenueCard = el.closest('.bg-white').querySelector('.fa-dollar-sign');
                 if (isRevenueCard) {
@@ -378,7 +374,7 @@
                 } else {
                     el.textContent = Math.floor(current).toLocaleString('vi-VN');
                 }
-                
+
                 if (progress < 1) {
                     requestAnimationFrame(step);
                 }
@@ -401,7 +397,7 @@
                 this.style.transform = 'translateY(-8px)';
                 this.style.transition = 'all 0.3s ease';
             });
-            
+
             card.addEventListener('mouseleave', function() {
                 this.style.transform = 'translateY(0)';
             });

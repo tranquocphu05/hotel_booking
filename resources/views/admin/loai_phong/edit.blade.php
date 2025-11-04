@@ -42,6 +42,31 @@
             </div>
         </div>
 
+        {{-- Hàng 1.5: Giá khuyến mãi & Số lượng phòng --}}
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div>
+                <label for="gia_khuyen_mai" class="block text-gray-700 font-medium mb-2 text-sm">Giá khuyến mãi (₫) <span class="text-gray-500 text-xs">(Tùy chọn)</span></label>
+                <input type="number" name="gia_khuyen_mai" id="gia_khuyen_mai" value="{{ old('gia_khuyen_mai', $loaiPhong->gia_khuyen_mai) }}"
+                       class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 hover:border-gray-300 bg-white text-gray-700 placeholder-gray-400"
+                       placeholder="Nhập giá khuyến mãi (để trống nếu không có)">
+                <p class="text-xs text-gray-500 mt-1">Nếu có giá khuyến mãi, hệ thống sẽ ưu tiên sử dụng giá này thay vì giá cơ bản</p>
+                @error('gia_khuyen_mai')
+                    <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <div>
+                <label for="so_luong_phong" class="block text-gray-700 font-medium mb-2 text-sm">Số lượng phòng</label>
+                <input type="number" name="so_luong_phong" id="so_luong_phong" value="{{ old('so_luong_phong', $loaiPhong->so_luong_phong ?? 0) }}"
+                       class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 hover:border-gray-300 bg-white text-gray-700 placeholder-gray-400"
+                       placeholder="Tổng số phòng" min="0" required>
+                <p class="text-xs text-gray-500 mt-1">Số lượng phòng trống: {{ $loaiPhong->so_luong_trong ?? 0 }}</p>
+                @error('so_luong_phong')
+                    <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+        </div>
+
         {{-- Hàng 2: Mô tả & Trạng thái --}}
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
@@ -61,26 +86,53 @@
         </div>
 
         {{-- Hàng 3: Hình ảnh --}}
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div>
-                <label class="block text-gray-700 font-medium mb-2 text-sm">Hình ảnh hiện tại</label>
+        <div>
+            <label class="block text-gray-700 font-medium mb-2 text-sm">Hình ảnh loại phòng</label>
+            <div class="space-y-4">
+                {{-- Ảnh hiện tại --}}
                 @if ($loaiPhong->anh)
-                    <img src="{{ asset($loaiPhong->anh) }}"
-                         alt="{{ $loaiPhong->ten_loai }}"
-                         class="w-48 h-36 object-cover rounded-lg shadow border border-gray-200">
-                @else
-                    <p class="text-gray-500 italic">Chưa có ảnh</p>
+                    <div>
+                        <label class="block text-gray-700 font-medium mb-2 text-sm">Ảnh hiện tại:</label>
+                        <div class="relative inline-block">
+                            <img src="{{ asset($loaiPhong->anh) }}"
+                                 alt="{{ $loaiPhong->ten_loai }}"
+                                 id="currentImage"
+                                 class="max-w-full h-64 object-cover rounded-lg shadow border border-gray-200">
+                        </div>
+                    </div>
                 @endif
-            </div>
 
-            <div>
-                <label for="anh" class="block text-gray-700 font-medium mb-2 text-sm">Chọn ảnh mới</label>
-                <input type="file" name="anh" id="anh"
-                       accept="image/*"
-                       class="w-full px-3 py-2 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 hover:border-gray-300 bg-white text-gray-700">
-                @error('anh')
-                    <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
-                @enderror
+                {{-- Preview ảnh mới --}}
+                <div id="imagePreview" class="hidden">
+                    <label class="block text-gray-700 font-medium mb-2 text-sm">Ảnh mới (xem trước):</label>
+                    <div class="relative inline-block">
+                        <img id="previewImg" src="" alt="Preview" 
+                             class="max-w-full h-64 object-cover rounded-lg shadow border border-gray-200">
+                        <button type="button" onclick="removePreview()" 
+                                class="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                {{-- Upload area --}}
+                <div>
+                    <label for="anh" class="block text-gray-700 font-medium mb-2 text-sm">Chọn ảnh mới (để trống nếu giữ nguyên ảnh cũ)</label>
+                    <div class="border-2 border-dashed border-gray-300 rounded-xl p-6 hover:border-amber-500 transition-colors">
+                        <label for="anh" class="cursor-pointer flex flex-col items-center">
+                            <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
+                            <span class="text-gray-700 font-medium mb-1">Click để chọn ảnh hoặc kéo thả ảnh vào đây</span>
+                            <span class="text-sm text-gray-500">JPG, PNG, JPEG (Tối đa 2MB)</span>
+                        </label>
+                        <input type="file" name="anh" id="anh" accept="image/*"
+                               class="hidden"
+                               onchange="previewImage(this)">
+                    </div>
+                    <div id="fileName" class="text-sm text-gray-600 mt-2 hidden"></div>
+                    @error('anh')
+                        <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
             </div>
         </div>
 
@@ -118,7 +170,74 @@
         }
       });
     }
+
+    // Drag and drop for image upload
+    const dropZone = document.querySelector('.border-dashed');
+    const fileInput = document.getElementById('anh');
+
+    if (dropZone && fileInput) {
+      dropZone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        dropZone.classList.add('border-amber-500', 'bg-amber-50');
+      });
+
+      dropZone.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        dropZone.classList.remove('border-amber-500', 'bg-amber-50');
+      });
+
+      dropZone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        dropZone.classList.remove('border-amber-500', 'bg-amber-50');
+        const files = e.dataTransfer.files;
+        if (files.length > 0 && files[0].type.startsWith('image/')) {
+          fileInput.files = files;
+          previewImage(fileInput);
+        }
+      });
+    }
   });
+
+  function previewImage(input) {
+    const preview = document.getElementById('imagePreview');
+    const previewImg = document.getElementById('previewImg');
+    const fileName = document.getElementById('fileName');
+    const currentImage = document.getElementById('currentImage');
+
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      
+      reader.onload = function(e) {
+        previewImg.src = e.target.result;
+        preview.classList.remove('hidden');
+        fileName.textContent = 'File: ' + input.files[0].name;
+        fileName.classList.remove('hidden');
+        
+        // Ẩn ảnh hiện tại nếu có
+        if (currentImage) {
+          currentImage.style.display = 'none';
+        }
+      };
+
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+
+  function removePreview() {
+    const preview = document.getElementById('imagePreview');
+    const fileInput = document.getElementById('anh');
+    const fileName = document.getElementById('fileName');
+    const currentImage = document.getElementById('currentImage');
+    
+    preview.classList.add('hidden');
+    fileInput.value = '';
+    fileName.classList.add('hidden');
+    
+    // Hiện lại ảnh hiện tại nếu có
+    if (currentImage) {
+      currentImage.style.display = 'block';
+    }
+  }
 </script>
 @endpush
 @endsection

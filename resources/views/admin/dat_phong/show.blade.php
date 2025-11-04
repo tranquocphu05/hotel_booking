@@ -6,7 +6,7 @@
     <div class="py-6">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="mb-6 flex justify-between items-center">
-                <h2 class="text-2xl font-semibold text-gray-800">Chi tiết đặt phòng <b>{{ $booking->phong->ten_phong }}</b></h2>
+                <h2 class="text-2xl font-semibold text-gray-800">Chi tiết đặt phòng <b>{{ $booking->loaiPhong->ten_loai ?? 'N/A' }}</b></h2>
                 <span class="px-3 py-1 rounded-full text-sm font-medium
                     @if ($booking->trang_thai === 'da_xac_nhan') bg-green-100 text-green-800
                     @elseif($booking->trang_thai === 'cho_xac_nhan') bg-yellow-100 text-yellow-800
@@ -32,18 +32,16 @@
                     </div>
                     <div class="p-4">
                         <div class="space-y-3">
-                            <img src="{{ asset( $booking->phong->img) }}" 
-                                alt="{{ $booking->phong->ten_phong }}"
+                            <img src="{{ asset($booking->loaiPhong->anh ?? 'img/room/room-1.jpg') }}" 
+                                alt="{{ $booking->loaiPhong->ten_loai ?? 'N/A' }}"
                                 class="w-full h-48 object-cover rounded-lg">
-                            <p class="text-sm text-gray-600">Tên phòng: <span class="font-medium">{{ $booking->phong->ten_phong }}</span></p>
-                            <p class="text-sm text-gray-600">Loại phòng: <span class="font-medium">{{ $booking->phong->loaiPhong->ten_loai }}</span></p>
-                            <p class="text-sm text-gray-600">Giá phòng: <span class="font-medium">{{ number_format($booking->phong->gia, 0, ',', '.') }} VNĐ</span></p>
+                            <p class="text-sm text-gray-600">Loại phòng: <span class="font-medium">{{ $booking->loaiPhong->ten_loai ?? 'N/A' }}</span></p>
+                            <p class="text-sm text-gray-600">Số lượng phòng: <span class="font-medium">{{ $booking->so_luong_da_dat ?? 1 }} phòng</span></p>
+                            <p class="text-sm text-gray-600">Giá phòng: <span class="font-medium">{{ number_format($booking->loaiPhong->gia_co_ban ?? 0, 0, ',', '.') }} VNĐ/đêm</span></p>
                             <p class="text-sm px-3 py-1 rounded-full text-sm font-medium
-                                @if ($booking->phong->trang_thai === 'hien') bg-green-100 text-green-800
-                                @elseif($booking->phong->trang_thai === 'an') bg-yellow-100 text-yellow-800
-                                @elseif($booking->phong->trang_thai === 'bao_tri') bg-red-100 text-red-800
-                                @else bg-blue-100 text-blue-800 @endif">
-                                {{ $booking->phong->trang_thai === 'hien' ? 'Hiện' : ($booking->phong->trang_thai === 'an' ? 'Ẩn' : 'Bảo trì') }}
+                                @if ($booking->loaiPhong->trang_thai === 'hoat_dong') bg-green-100 text-green-800
+                                @else bg-yellow-100 text-yellow-800 @endif">
+                                {{ $booking->loaiPhong->trang_thai === 'hoat_dong' ? 'Hoạt động' : 'Ngừng' }}
                             </p>
                         </div>
                     </div>

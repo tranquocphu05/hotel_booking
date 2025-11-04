@@ -43,15 +43,15 @@
                             <dl class="mt-4 space-y-2">
                                 <div class="flex justify-between">
                                     <dt class="text-sm font-medium text-gray-500">Họ và tên</dt>
-                                    <dd class="text-sm text-gray-900">{{ $invoice->datPhong->user->ho_ten }}</dd>
+                                    <dd class="text-sm text-gray-900">{{ $invoice->datPhong ? ($invoice->datPhong->username ?? ($invoice->datPhong->user->ho_ten ?? 'N/A')) : 'N/A' }}</dd>
                                 </div>
                                 <div class="flex justify-between">
                                     <dt class="text-sm font-medium text-gray-500">Email</dt>
-                                    <dd class="text-sm text-gray-900">{{ $invoice->datPhong->user->email }}</dd>
+                                    <dd class="text-sm text-gray-900">{{ $invoice->datPhong ? ($invoice->datPhong->email ?? ($invoice->datPhong->user->email ?? 'N/A')) : 'N/A' }}</dd>
                                 </div>
                                 <div class="flex justify-between">
                                     <dt class="text-sm font-medium text-gray-500">Số điện thoại</dt>
-                                    <dd class="text-sm text-gray-900">{{ $invoice->datPhong->user->sdt }}</dd>
+                                    <dd class="text-sm text-gray-900">{{ $invoice->datPhong ? ($invoice->datPhong->sdt ?? ($invoice->datPhong->user->sdt ?? 'N/A')) : 'N/A' }}</dd>
                                 </div>
                             </dl>
                         </div>
@@ -59,20 +59,39 @@
                             <h3 class="text-lg font-medium text-gray-900">Thông tin Đặt phòng</h3>
                             <dl class="mt-4 space-y-2">
                                 <div class="flex justify-between">
-                                    <dt class="text-sm font-medium text-gray-500">Phòng</dt>
-                                    <dd class="text-sm text-gray-900">{{ $invoice->datPhong->phong->ten_phong }}</dd>
+                                    <dt class="text-sm font-medium text-gray-500">Loại phòng</dt>
+                                    <dd class="text-sm text-gray-900">{{ $invoice->datPhong && $invoice->datPhong->loaiPhong ? $invoice->datPhong->loaiPhong->ten_loai : 'N/A' }}</dd>
                                 </div>
                                 <div class="flex justify-between">
-                                    <dt class="text-sm font-medium text-gray-500">Loại phòng</dt>
-                                    <dd class="text-sm text-gray-900">{{ $invoice->datPhong->phong->loaiPhong->ten_loai }}</dd>
+                                    <dt class="text-sm font-medium text-gray-500">Số lượng phòng</dt>
+                                    <dd class="text-sm text-gray-900">{{ $invoice->datPhong ? ($invoice->datPhong->so_luong_da_dat ?? 1) : 1 }} phòng</dd>
+                                </div>
+                                <div class="flex justify-between">
+                                    <dt class="text-sm font-medium text-gray-500">Số người</dt>
+                                    <dd class="text-sm text-gray-900">{{ $invoice->datPhong ? ($invoice->datPhong->so_nguoi ?? 'N/A') : 'N/A' }}</dd>
                                 </div>
                                 <div class="flex justify-between">
                                     <dt class="text-sm font-medium text-gray-500">Ngày nhận</dt>
-                                    <dd class="text-sm text-gray-900">{{ $invoice->datPhong->ngay_nhan }}</dd>
+                                    <dd class="text-sm text-gray-900">{{ $invoice->datPhong ? $invoice->datPhong->ngay_nhan : 'N/A' }}</dd>
                                 </div>
                                 <div class="flex justify-between">
                                     <dt class="text-sm font-medium text-gray-500">Ngày trả</dt>
-                                    <dd class="text-sm text-gray-900">{{ $invoice->datPhong->ngay_tra }}</dd>
+                                    <dd class="text-sm text-gray-900">{{ $invoice->datPhong ? $invoice->datPhong->ngay_tra : 'N/A' }}</dd>
+                                </div>
+                                <div class="flex justify-between">
+                                    <dt class="text-sm font-medium text-gray-500">Số đêm</dt>
+                                    <dd class="text-sm text-gray-900">
+                                        @if($invoice->datPhong && $invoice->datPhong->ngay_nhan && $invoice->datPhong->ngay_tra)
+                                            @php
+                                                $checkin = \Carbon\Carbon::parse($invoice->datPhong->ngay_nhan);
+                                                $checkout = \Carbon\Carbon::parse($invoice->datPhong->ngay_tra);
+                                                $nights = $checkin->diffInDays($checkout);
+                                            @endphp
+                                            {{ $nights }} đêm
+                                        @else
+                                            N/A
+                                        @endif
+                                    </dd>
                                 </div>
                             </dl>
                         </div>
