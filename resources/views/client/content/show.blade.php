@@ -56,11 +56,38 @@
                         @endif
 
                         {{-- Hiển thị số phòng còn trống --}}
-                        <div class="mb-6">
-                            <span class="inline-flex items-center gap-2 text-sm bg-green-50 text-green-700 px-4 py-2 rounded-full font-medium">
-                                <i class="fas fa-bed"></i>
-                                Còn {{ $loaiPhong->so_luong_trong }}/{{ $loaiPhong->so_luong_phong }} phòng trống
-                            </span>
+                        <div class="mb-6" id="availability_display">
+                            @if(isset($availableCount) && $availableCount !== null)
+                                @if($availableCount > 0)
+                                    <div class="inline-flex items-center gap-2 text-sm bg-green-50 text-green-700 px-5 py-3 rounded-full font-medium shadow-sm">
+                                        <i class="fas fa-bed text-lg"></i>
+                                        <span class="text-base">Còn <strong class="text-xl text-green-800">{{ $availableCount }}</strong>/{{ $loaiPhong->so_luong_phong }} phòng trống</span>
+                                        @if($checkin && $checkout)
+                                            <span class="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">({{ date('d/m/Y', strtotime($checkin)) }} - {{ date('d/m/Y', strtotime($checkout)) }})</span>
+                                        @endif
+                                    </div>
+                                @else
+                                    <div class="bg-orange-50 border-l-4 border-orange-400 p-4 rounded-lg">
+                                        <div class="flex items-start">
+                                            <i class="fas fa-exclamation-triangle text-orange-600 text-xl mr-3 mt-1"></i>
+                                            <div class="flex-1">
+                                                <h4 class="text-orange-800 font-bold text-base mb-2">Đã hết phòng trong khoảng thời gian này</h4>
+                                                @if($checkin && $checkout)
+                                                    <p class="text-sm text-orange-700">
+                                                        Không còn phòng trống từ <strong>{{ date('d/m/Y', strtotime($checkin)) }}</strong> đến <strong>{{ date('d/m/Y', strtotime($checkout)) }}</strong>
+                                                    </p>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
+                            @else
+                                <div class="inline-flex items-center gap-2 text-sm bg-gray-50 text-gray-700 px-4 py-2 rounded-full font-medium">
+                                    <i class="fas fa-bed"></i>
+                                    <span>Còn {{ max(0, $loaiPhong->so_luong_trong) }}/{{ $loaiPhong->so_luong_phong }} phòng</span>
+                                    <span class="text-xs text-gray-500">(chọn ngày để xem số phòng trống chính xác)</span>
+                                </div>
+                            @endif
                         </div>
 
                         {{-- Room Information --}}
@@ -260,13 +287,17 @@
             <div class="space-y-6">
                 <div>
                     <label class="block text-base font-medium text-gray-700 mb-2">Ngày nhận phòng</label>
-                    <input type="date" name="checkin" required
+                    <input type="date" name="checkin" id="checkin_input" 
+                            value="{{ old('checkin', $checkin ?? now()->format('Y-m-d')) }}"
+                            required
                             class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-base">
                 </div>
 
                 <div>
                     <label class="block text-base font-medium text-gray-700 mb-2">Ngày trả phòng</label>
-                    <input type="date" name="checkout" required
+                    <input type="date" name="checkout" id="checkout_input"
+                            value="{{ old('checkout', $checkout ?? now()->addDay()->format('Y-m-d')) }}"
+                            required
                             class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-base">
                 </div>
 
@@ -392,6 +423,98 @@
             // Valid — allow the form to submit normally
             return true;
         }
+
+        // Cập nhật availability khi user thay đổi ngày
+        function updateAvailabilityOnDateChange() {
+            const checkinInput = document.getElementById('checkin_input');
+            const checkoutInput = document.getElementById('checkout_input');
+            
+            if (!checkinInput || !checkoutInput) return;
+
+            function fetchAvailability() {
+                const checkin = checkinInput.value;
+                const checkout = checkoutInput.value;
+                
+                if (!checkin || !checkout) return;
+                
+                if (new Date(checkout) <= new Date(checkin)) return;
+
+                fetch('{{ route("booking.available_count") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({
+                        loai_phong_id: {{ $loaiPhong->id }},
+                        checkin: checkin,
+                        checkout: checkout
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const availableCount = Math.max(0, data.availableCount);
+                        const availabilityEl = document.getElementById('availability_display');
+                        
+                        if (availabilityEl) {
+                            const formatDate = (dateStr) => {
+                                const date = new Date(dateStr);
+                                const day = String(date.getDate()).padStart(2, '0');
+                                const month = String(date.getMonth() + 1).padStart(2, '0');
+                                const year = date.getFullYear();
+                                return `${day}/${month}/${year}`;
+                            };
+                            
+                            if (availableCount === 0) {
+                                // Hiển thị thông báo chi tiết khi hết phòng
+                                availabilityEl.innerHTML = `
+                                    <div class="bg-orange-50 border-l-4 border-orange-400 p-4 rounded-lg">
+                                        <div class="flex items-start">
+                                            <i class="fas fa-exclamation-triangle text-orange-600 text-xl mr-3 mt-1"></i>
+                                            <div class="flex-1">
+                                                <h4 class="text-orange-800 font-bold text-base mb-2">Đã hết phòng trong khoảng thời gian này</h4>
+                                                <p class="text-sm text-orange-700">
+                                                    Không còn phòng trống từ <strong>${formatDate(checkin)}</strong> đến <strong>${formatDate(checkout)}</strong>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            } else {
+                                // Hiển thị số phòng trống
+                                availabilityEl.innerHTML = `
+                                    <div class="inline-flex items-center gap-2 text-sm bg-green-50 text-green-700 px-5 py-3 rounded-full font-medium shadow-sm">
+                                        <i class="fas fa-bed text-lg"></i>
+                                        <span class="text-base">Còn <strong class="text-xl text-green-800">${availableCount}</strong>/{{ $loaiPhong->so_luong_phong }} phòng trống</span>
+                                        <span class="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">(${formatDate(checkin)} - ${formatDate(checkout)})</span>
+                                    </div>
+                                `;
+                            }
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating availability:', error);
+                });
+            }
+
+            checkinInput.addEventListener('change', fetchAvailability);
+            checkoutInput.addEventListener('change', fetchAvailability);
+            
+            // Gọi lần đầu nếu đã có giá trị (từ query params hoặc form)
+            if (checkinInput.value && checkoutInput.value) {
+                // Delay để đảm bảo DOM đã sẵn sàng
+                setTimeout(function() {
+                    fetchAvailability();
+                }, 300);
+            }
+        }
+
+        // Gọi khi DOM ready
+        document.addEventListener('DOMContentLoaded', function() {
+            updateAvailabilityOnDateChange();
+        });
 
         // Initialize Related Rooms Swiper (3 rooms per slide on desktop)
         document.addEventListener('DOMContentLoaded', function() {

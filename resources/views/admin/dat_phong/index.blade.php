@@ -112,10 +112,33 @@
                                 class="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-300">
                                 <div class="p-4 border-b">
                                     <div class="flex justify-between items-start mb-4">
-                                        <div>
-                                            <h3 class="text-lg font-semibold text-gray-900">
-                                                {{ $booking->loaiPhong->ten_loai ?? 'N/A' }}</h3>
-                                            <p class="text-sm text-gray-600">{{ $booking->so_luong_da_dat ?? 1 }} phòng</p>
+                                        <div class="flex-1">
+                                            @php
+                                                $roomTypes = $booking->getRoomTypes();
+                                            @endphp
+                                            @if(count($roomTypes) > 1)
+                                                <h3 class="text-lg font-semibold text-gray-900 mb-2">
+                                                    {{ count($roomTypes) }} loại phòng
+                                                </h3>
+                                                <div class="space-y-1">
+                                                    @foreach($roomTypes as $roomType)
+                                                        @php
+                                                            $loaiPhong = \App\Models\LoaiPhong::find($roomType['loai_phong_id']);
+                                                        @endphp
+                                                        @if($loaiPhong)
+                                                            <p class="text-sm text-gray-700">
+                                                                <span class="font-medium">{{ $loaiPhong->ten_loai }}</span>
+                                                                <span class="text-gray-500">({{ $roomType['so_luong'] }} phòng)</span>
+                                                            </p>
+                                                        @endif
+                                                    @endforeach
+                                                </div>
+                                                <p class="text-xs text-gray-500 mt-2">Tổng: {{ $booking->so_luong_da_dat ?? 1 }} phòng</p>
+                                            @else
+                                                <h3 class="text-lg font-semibold text-gray-900">
+                                                    {{ $booking->loaiPhong->ten_loai ?? 'N/A' }}</h3>
+                                                <p class="text-sm text-gray-600">{{ $booking->so_luong_da_dat ?? 1 }} phòng</p>
+                                            @endif
                                         </div>
                                         <span
                                             class="px-3 py-1 rounded-full text-sm font-medium

@@ -7,69 +7,41 @@
     {{-- Header --}}
     <div class="flex justify-between items-center mb-8">
         <h2 class="text-2xl font-semibold text-green-600 flex items-center gap-2">
-            <i class="bi bi-plus-circle"></i> Thêm phòng mới
+            <i class="fas fa-plus-circle"></i> Thêm phòng mới
         </h2>
         <a href="{{ route('admin.phong.index') }}"
            class="px-4 py-2 text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition">
-            <i class="bi bi-arrow-left"></i> Quay lại
+            <i class="fas fa-arrow-left"></i> Quay lại
         </a>
     </div>
 
+    @if ($errors->any())
+        <div class="mb-6 p-4 rounded-lg bg-red-50 border border-red-200">
+            <h4 class="text-red-800 font-semibold mb-2">Có lỗi xảy ra:</h4>
+            <ul class="list-disc list-inside text-sm text-red-700">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    @if (session('error'))
+        <div class="mb-6 p-4 rounded-lg bg-red-100 text-red-800 text-sm font-medium">
+            {{ session('error') }}
+        </div>
+    @endif
+
     {{-- Form --}}
-    <form action="{{ route('admin.phong.store') }}" method="POST" enctype="multipart/form-data" class="space-y-10">
+    <form action="{{ route('admin.phong.store') }}" method="POST" class="space-y-6">
         @csrf
 
-        {{-- Hàng 1: Tên phòng & Giá gốc --}}
+        {{-- Hàng 1: Loại phòng & Số phòng --}}
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
-                <label for="ten_phong" class="block text-gray-800 font-medium mb-2 text-sm">Tên phòng <span class="text-red-500">*</span></label>
-                <input type="text" name="ten_phong" id="ten_phong" value="{{ old('ten_phong') }}"
-                       placeholder="Ví dụ: Phòng Deluxe 101" maxlength="255"
-                       class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500" required>
-                @error('ten_phong')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-            </div>
-            <div>
-                <label for="gia_goc" class="block text-gray-800 font-medium mb-2 text-sm">Giá gốc (₫) <span class="text-red-500">*</span></label>
-                <input type="number" name="gia_goc" id="gia_goc" value="{{ old('gia_goc') }}" maxlength="9"
-                       placeholder="Ví dụ: 2000000"
-                       class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500" required>
-                @error('gia_goc')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-            </div>
-        </div>
-
-        {{-- Hàng 2: Giá khuyến mãi & Có khuyến mãi --}}
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div>
-                <label for="gia_khuyen_mai" class="block text-gray-800 font-medium mb-2 text-sm">Giá khuyến mãi (₫)</label>
-                <input type="number" name="gia_khuyen_mai" id="gia_khuyen_mai" value="{{ old('gia_khuyen_mai') }}" maxlength="9"
-                       placeholder="Ví dụ: 1500000"
-                       class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500">
-                @error('gia_khuyen_mai')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-            </div>
-            <div>
-                <label class="block text-gray-800 font-medium mb-2 text-sm">Có khuyến mãi</label>
-                <div class="flex items-center space-x-4">
-                    <label class="flex items-center">
-                        <input type="radio" name="co_khuyen_mai" value="1" {{ old('co_khuyen_mai') == '1' ? 'checked' : '' }}
-                               class="mr-2 text-green-600 focus:ring-green-500">
-                        <span class="text-sm text-gray-700">Có</span>
-                    </label>
-                    <label class="flex items-center">
-                        <input type="radio" name="co_khuyen_mai" value="0" {{ old('co_khuyen_mai') == '0' || old('co_khuyen_mai') == null ? 'checked' : '' }}
-                               class="mr-2 text-green-600 focus:ring-green-500">
-                        <span class="text-sm text-gray-700">Không</span>
-                    </label>
-                </div>
-                @error('co_khuyen_mai')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-            </div>
-        </div>
-
-        {{-- Hàng 2: Loại phòng & Trạng thái --}}
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div>
-                <label for="loai_phong_id" class="block text-gray-800 font-medium mb-2 text-sm">Loại phòng <span class="text-red-500">*</span></label>
+                <label for="loai_phong_id" class="block text-gray-800 font-medium mb-2">Loại phòng <span class="text-red-500">*</span></label>
                 <select name="loai_phong_id" id="loai_phong_id"
-                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-300 hover:border-gray-300 bg-white text-gray-700" required>
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
                     <option value="">-- Chọn loại phòng --</option>
                     @foreach ($loaiPhongs as $loai)
                         <option value="{{ $loai->id }}" {{ old('loai_phong_id') == $loai->id ? 'selected' : '' }}>
@@ -80,173 +52,118 @@
                 @error('loai_phong_id')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
             </div>
             <div>
-                <label for="trang_thai" class="block text-gray-800 font-medium mb-2 text-sm">Trạng thái <span class="text-red-500">*</span></label>
+                <label for="so_phong" class="block text-gray-800 font-medium mb-2">Số phòng <span class="text-red-500">*</span></label>
+                <input type="text" name="so_phong" id="so_phong" value="{{ old('so_phong') }}"
+                       placeholder="Ví dụ: 101, 201, A01" maxlength="20"
+                       class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                @error('so_phong')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+            </div>
+        </div>
+
+        {{-- Hàng 2: Tên phòng & Tầng --}}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+                <label for="ten_phong" class="block text-gray-800 font-medium mb-2">Tên phòng</label>
+                <input type="text" name="ten_phong" id="ten_phong" value="{{ old('ten_phong') }}"
+                       placeholder="Ví dụ: Phòng Deluxe 101" maxlength="255"
+                       class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                @error('ten_phong')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label for="tang" class="block text-gray-800 font-medium mb-2">Tầng</label>
+                <input type="number" name="tang" id="tang" value="{{ old('tang') }}"
+                       placeholder="Ví dụ: 1, 2, 3..." min="1" max="50"
+                       class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                @error('tang')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+            </div>
+        </div>
+
+        {{-- Hàng 3: Hướng cửa sổ & Trạng thái --}}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+                <label for="huong_cua_so" class="block text-gray-800 font-medium mb-2">Hướng cửa sổ</label>
+                <select name="huong_cua_so" id="huong_cua_so"
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                    <option value="">-- Chọn hướng --</option>
+                    <option value="bien" {{ old('huong_cua_so') == 'bien' ? 'selected' : '' }}>Biển</option>
+                    <option value="nui" {{ old('huong_cua_so') == 'nui' ? 'selected' : '' }}>Núi</option>
+                    <option value="thanh_pho" {{ old('huong_cua_so') == 'thanh_pho' ? 'selected' : '' }}>Thành phố</option>
+                    <option value="san_vuon" {{ old('huong_cua_so') == 'san_vuon' ? 'selected' : '' }}>Sân vườn</option>
+                </select>
+                @error('huong_cua_so')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label for="trang_thai" class="block text-gray-800 font-medium mb-2">Trạng thái <span class="text-red-500">*</span></label>
                 <select name="trang_thai" id="trang_thai"
-                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-300 hover:border-gray-300 bg-white text-gray-700" required>
-                    <option value="hien" {{ old('trang_thai') == 'hien' ? 'selected' : '' }}>Hiện</option>
-                    <option value="an" {{ old('trang_thai') == 'an' ? 'selected' : '' }}>Ẩn</option>
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                    <option value="trong" {{ old('trang_thai', 'trong') == 'trong' ? 'selected' : '' }}>Trống</option>
+                    <option value="dang_thue" {{ old('trang_thai') == 'dang_thue' ? 'selected' : '' }}>Đang thuê</option>
+                    <option value="dang_don" {{ old('trang_thai') == 'dang_don' ? 'selected' : '' }}>Đang dọn</option>
                     <option value="bao_tri" {{ old('trang_thai') == 'bao_tri' ? 'selected' : '' }}>Bảo trì</option>
-                    <option value="chong" {{ old('trang_thai') == 'chong' ? 'selected' : '' }}>Chống (không cho đặt)</option>
                 </select>
                 @error('trang_thai')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
             </div>
         </div>
 
-        {{-- Hàng 3: Mô tả & Ảnh + Xem trước --}}
-        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        {{-- Hàng 4: Tiện ích --}}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
-                <label for="mo_ta" class="block text-gray-800 font-medium mb-2">Mô tả</label>
-                <textarea name="mo_ta" id="mo_ta" rows="8" placeholder="Mô tả ngắn gọn về phòng, tiện nghi..."
-                          class="w-full border-gray-300 rounded-lg shadow-sm">{{ old('mo_ta') }}</textarea>
-                @error('mo_ta')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-            </div>
-            <div class="xl:col-span-1">
-                <label for="img" class="block text-gray-800 font-medium mb-2">Ảnh phòng</label>
-                <input type="file" name="img" id="img"
-                       class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500">
-                <div class="mt-3 flex items-center gap-3">
-                    <img id="preview" class="hidden w-[140px] h-[100px] object-cover rounded-lg border border-gray-300 shadow-sm">
-                    <span id="fileName" class="text-xs text-gray-500"></span>
-                </div>
-                @error('img')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-            </div>
-
-            {{-- Card xem trước --}}
-            <div class="xl:col-span-1">
-                <div class="border rounded-xl p-4 bg-gray-50">
-                    <h4 class="font-semibold text-gray-800 mb-3">Xem trước</h4>
-                    <div class="flex items-start gap-3">
-                        <img id="previewSmall" class="w-[96px] h-[72px] object-cover rounded-lg border border-gray-200 hidden">
-                        <div class="text-sm text-gray-700 space-y-1">
-                            <p><span class="text-gray-500">Tên phòng:</span> <span id="pvTenPhong" class="font-medium">—</span></p>
-                            <p><span class="text-gray-500">Giá:</span> <span id="pvGia" class="font-medium">—</span></p>
-                            <p><span class="text-gray-500">Loại:</span> <span id="pvLoai" class="font-medium">—</span></p>
-                            <p><span class="text-gray-500">Trạng thái:</span> <span id="pvTrangThai" class="font-medium">—</span></p>
-                        </div>
-                    </div>
+                <label class="block text-gray-800 font-medium mb-2">Tiện ích</label>
+                <div class="space-y-2">
+                    <label class="flex items-center">
+                        <input type="checkbox" name="co_ban_cong" value="1" {{ old('co_ban_cong') ? 'checked' : '' }}
+                               class="mr-2 rounded border-gray-300 text-green-600 focus:ring-green-500">
+                        <span class="text-gray-700">Có ban công</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" name="co_view_dep" value="1" {{ old('co_view_dep') ? 'checked' : '' }}
+                               class="mr-2 rounded border-gray-300 text-green-600 focus:ring-green-500">
+                        <span class="text-gray-700">Có view đẹp</span>
+                    </label>
                 </div>
             </div>
         </div>
 
-        {{-- Dịch vụ phòng --}}
+        {{-- Hàng 5: Giá riêng & Giá bổ sung --}}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+                <label for="gia_rieng" class="block text-gray-800 font-medium mb-2">Giá riêng (VNĐ)</label>
+                <input type="number" name="gia_rieng" id="gia_rieng" value="{{ old('gia_rieng') }}"
+                       placeholder="Ví dụ: 2000000" min="0" step="1000"
+                       class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                <p class="mt-1 text-xs text-gray-500">Giá riêng của phòng (nếu khác với loại phòng)</p>
+                @error('gia_rieng')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label for="gia_bo_sung" class="block text-gray-800 font-medium mb-2">Giá bổ sung (VNĐ)</label>
+                <input type="number" name="gia_bo_sung" id="gia_bo_sung" value="{{ old('gia_bo_sung') }}"
+                       placeholder="Ví dụ: 200000" min="0" step="1000"
+                       class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                <p class="mt-1 text-xs text-gray-500">Giá bổ sung (ví dụ: view đẹp +200k)</p>
+                @error('gia_bo_sung')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+            </div>
+        </div>
+
+        {{-- Hàng 6: Ghi chú --}}
         <div>
-            <label for="dich_vu" class="block text-gray-800 font-medium mb-2">Dịch vụ phòng (phân tách bằng dấu phẩy)</label>
-            <input type="text" name="dich_vu" id="dich_vu" value="{{ old('dich_vu') }}"
-                   placeholder="VD: Bữa sáng, Đưa đón sân bay, Spa"
-                   class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500">
-            @error('dich_vu')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+            <label for="ghi_chu" class="block text-gray-800 font-medium mb-2">Ghi chú</label>
+            <textarea name="ghi_chu" id="ghi_chu" rows="4"
+                      placeholder="Ghi chú đặc biệt về phòng..."
+                      class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">{{ old('ghi_chu') }}</textarea>
+            @error('ghi_chu')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
         </div>
 
         {{-- Nút hành động --}}
-        <div class="sticky bottom-0 bg-white pt-4 border-t border-gray-100 flex justify-end gap-3">
+        <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
             <a href="{{ route('admin.phong.index') }}"
-               class="px-5 py-2.5 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition">Hủy</a>
+               class="px-5 py-2.5 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition">
+                Hủy
+            </a>
             <button type="submit"
                     class="px-5 py-2.5 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition">
-                <i class="bi bi-save2 me-1"></i> Thêm
+                <i class="fas fa-save mr-1"></i> Thêm phòng
             </button>
         </div>
     </form>
 </div>
-
-@push('scripts')
-<script>
-  // Initialize CKEditor for description field
-  document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(function() {
-      if (typeof ClassicEditor !== 'undefined') {
-        ClassicEditor
-          .create(document.querySelector('#mo_ta'), {
-            toolbar: {
-              items: [
-                'undo', 'redo', '|',
-                'bold', 'italic', 'underline', '|',
-                'bulletedList', 'numberedList', '|',
-                'link', 'image', '|',
-                'insertTable', 'codeBlock'
-              ]
-            },
-            language: 'vi',
-            height: 400
-          })
-          .then(editor => {
-            console.log('CKEditor loaded successfully');
-          })
-          .catch(error => {
-            console.error('CKEditor error:', error);
-          });
-      } else {
-        console.log('CKEditor not loaded, retrying...');
-        setTimeout(arguments.callee, 500);
-      }
-    }, 1000);
-  });
-</script>
-
-  document.getElementById('img').addEventListener('change', function(e) {
-      const file = e.target.files[0];
-      const preview = document.getElementById('preview');
-      const previewSmall = document.getElementById('previewSmall');
-      const fileName = document.getElementById('fileName');
-      if (file) {
-          const reader = new FileReader();
-          reader.onload = event => {
-              preview.src = event.target.result;
-              preview.classList.remove('hidden');
-              previewSmall.src = event.target.result;
-              previewSmall.classList.remove('hidden');
-          };
-          reader.readAsDataURL(file);
-          fileName.textContent = file.name;
-      } else {
-          preview.classList.add('hidden');
-          previewSmall.classList.add('hidden');
-          fileName.textContent = '';
-      }
-  });
-
-  // Live preview cho các trường
-  const tenPhongEl = document.getElementById('ten_phong');
-  const giaEl = document.getElementById('gia_goc'); // Corrected ID for gia_goc
-  const loaiEl = document.getElementById('loai_phong_id');
-  const trangThaiEl = document.getElementById('trang_thai');
-  const pvTenPhong = document.getElementById('pvTenPhong');
-  const pvGia = document.getElementById('pvGia');
-  const pvLoai = document.getElementById('pvLoai');
-  const pvTrangThai = document.getElementById('pvTrangThai');
-
-  function formatVnd(num){
-      if(!num) return '—';
-      return new Intl.NumberFormat('vi-VN').format(num) + ' ₫';
-  }
-
-  tenPhongEl?.addEventListener('input',()=> pvTenPhong.textContent = tenPhongEl.value || '—');
-  giaEl?.addEventListener('input',()=> pvGia.textContent = formatVnd(giaEl.value));
-  loaiEl?.addEventListener('change',()=> pvLoai.textContent = loaiEl.options[loaiEl.selectedIndex]?.text || '—');
-  trangThaiEl?.addEventListener('change',()=> pvTrangThai.textContent = trangThaiEl.options[trangThaiEl.selectedIndex]?.text || '—');
-
-  // Init default preview
-  pvLoai.textContent = loaiEl?.options[loaiEl.selectedIndex]?.text || '—';
-  pvTrangThai.textContent = trangThaiEl?.options[trangThaiEl.selectedIndex]?.text || '—';
-
-  // Initialize TinyMCE
-  tinymce.init({
-    selector: '#mo_ta',
-    height: 300,
-    menubar: false,
-    plugins: [
-      'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
-      'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-      'insertdatetime', 'media', 'table', 'help', 'wordcount'
-    ],
-    toolbar: 'undo redo | blocks | ' +
-      'bold italic forecolor | alignleft aligncenter ' +
-      'alignright alignjustify | bullist numlist outdent indent | ' +
-      'removeformat | help',
-    content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif; font-size: 14px; }',
-    language: 'vi',
-    branding: false,
-    promotion: false
-  });
-</script>
-@endpush
+@endsection

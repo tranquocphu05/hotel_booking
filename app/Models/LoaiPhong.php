@@ -38,6 +38,14 @@ class LoaiPhong extends Model
     }
 
     /**
+     * Relationship với bảng phong (rooms)
+     */
+    public function phongs()
+    {
+        return $this->hasMany(Phong::class, 'loai_phong_id');
+    }
+
+    /**
      * Relationship với bảng danh_gia (comments)
      */
     public function comments()

@@ -173,8 +173,15 @@
                                 </div>
                                 <div>
                                     <p class="font-medium text-gray-900">{{ $booking->username ?? ($booking->user->ten ?? ($booking->user->ho_ten ?? 'Khách')) }}</p>
+                                    @php
+                                        $roomTypes = $booking->getRoomTypes();
+                                    @endphp
                                     <p class="text-sm text-gray-500">
-                                        Loại phòng: <span class="font-medium text-gray-800">{{ $booking->loaiPhong->ten_loai ?? 'N/A' }}</span>
+                                        @if(count($roomTypes) > 1)
+                                            Loại phòng: <span class="font-medium text-gray-800">{{ count($roomTypes) }} loại phòng</span>
+                                        @else
+                                            Loại phòng: <span class="font-medium text-gray-800">{{ $booking->loaiPhong->ten_loai ?? 'N/A' }}</span>
+                                        @endif
                                     </p>
                                 </div>
                             </div>
