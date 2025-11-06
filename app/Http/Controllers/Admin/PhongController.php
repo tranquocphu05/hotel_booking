@@ -9,264 +9,418 @@ use Illuminate\Http\Request;
 
 class PhongController extends Controller
 {
-    // ====================== DANH SÁCH PHÒNG ======================
+    /**
+     * Display a listing of the resource.
+     */
     public function index(Request $request)
     {
         $query = Phong::with('loaiPhong');
 
+        // Filter theo loại phòng
         if ($request->filled('loai_phong_id')) {
             $query->where('loai_phong_id', $request->loai_phong_id);
         }
+
+        // Filter theo trạng thái
         if ($request->filled('trang_thai')) {
             $query->where('trang_thai', $request->trang_thai);
         }
 
-        $phongs = $query->orderBy('id', 'desc')->paginate(5);
-        $loaiPhongs = LoaiPhong::all();
+        // Filter theo tầng
+        if ($request->filled('tang')) {
+            $query->where('tang', $request->tang);
+        }
+
+        // Search theo số phòng hoặc tên phòng
+        if ($request->filled('search')) {
+            $query->where(function($q) use ($request) {
+                $q->where('so_phong', 'like', '%' . $request->search . '%')
+                  ->orWhere('ten_phong', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        $phongs = $query->orderBy('tang')->orderBy('so_phong')->paginate(15);
+        $loaiPhongs = LoaiPhong::where('trang_thai', 'hoat_dong')->get();
 
         return view('admin.phong.index', compact('phongs', 'loaiPhongs'));
     }
 
-    // ====================== FORM THÊM ======================
+    /**
+     * Show the form for creating a new resource.
+     */
     public function create()
     {
-        $loaiPhongs = LoaiPhong::all();
+        $loaiPhongs = LoaiPhong::where('trang_thai', 'hoat_dong')->get();
         return view('admin.phong.create', compact('loaiPhongs'));
     }
 
-    // ====================== LƯU PHÒNG MỚI ======================
+    /**
+     * Store a newly created resource in storage.
+     */
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'loai_phong_id'   => 'required|exists:loai_phong,id',
-            'ten_phong'       => [
+            'loai_phong_id' => 'required|exists:loai_phong,id',
+            'so_phong' => [
                 'required',
                 'string',
-                'max:255',
-                'unique:phong,ten_phong',
-                'regex:/^(?!\d+$)(?!\d)[\p{L}\p{N}\s]+$/u' // Không toàn số, không bắt đầu bằng số
+                'max:20',
+                'min:1',
+                'unique:phong,so_phong',
+                'regex:/^[A-Za-z0-9\-\s]+$/',
             ],
-            'gia_goc'         => 'required|numeric|min:100000|max:999999999',
-            'gia_khuyen_mai'  => 'nullable|numeric|min:100000|max:999999999|lt:gia_goc',
-            'co_khuyen_mai'   => 'nullable|boolean',
-            'trang_thai'      => 'required|in:hien,an,bao_tri,chong',
-            'img'             => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240', // 10MB
-            'dich_vu'         => 'nullable|string|max:255',
-            'mo_ta'           => 'nullable|string|max:5000'
+            'ten_phong' => 'nullable|string|max:255',
+            'tang' => 'nullable|integer|min:1|max:50',
+            'huong_cua_so' => 'nullable|in:bien,nui,thanh_pho,san_vuon',
+            'co_ban_cong' => 'nullable|boolean',
+            'co_view_dep' => 'nullable|boolean',
+            'gia_rieng' => 'nullable|numeric|min:0|max:999999999',
+            'gia_bo_sung' => 'nullable|numeric|min:0|max:999999999',
+            'trang_thai' => 'required|in:trong,dang_thue,dang_don,bao_tri',
+            'ghi_chu' => 'nullable|string|max:1000',
         ], [
-            'loai_phong_id.required' => 'Vui lòng chọn loại phòng cho phòng này.',
-            'loai_phong_id.exists'   => 'Loại phòng được chọn không tồn tại.',
-
-            'ten_phong.required' => 'Tên phòng không được để trống.',
-            'ten_phong.string'   => 'Tên phòng phải là chuỗi ký tự.',
-            'ten_phong.max'      => 'Tên phòng không được vượt quá 255 ký tự.',
-            'ten_phong.unique'   => 'Tên phòng đã tồn tại. Vui lòng chọn tên khác.',
-            'ten_phong.regex'    => 'Tên phòng không được chỉ chứa số hoặc bắt đầu bằng số.',
-
-            'gia_goc.required' => 'Vui lòng nhập giá gốc cho phòng.',
-            'gia_goc.numeric'  => 'Giá gốc phải là một số hợp lệ.',
-            'gia_goc.min'      => 'Giá gốc phải lớn hơn hoặc bằng 100000.',
-            'gia_goc.max'      => 'Giá gốc không được vượt quá 999,999,999.',
-
-            'gia_khuyen_mai.numeric' => 'Giá khuyến mãi phải là số.',
-            'gia_khuyen_mai.min'     => 'Giá khuyến mãi không được âm.',
-            'gia_khuyen_mai.max'     => 'Giá khuyến mãi không được vượt quá 999,999,999.',
-            'gia_khuyen_mai.lt'      => 'Giá khuyến mãi phải nhỏ hơn giá gốc.',
-
-            'co_khuyen_mai.boolean'  => 'Giá trị "có khuyến mãi" phải là true/false hoặc 0/1.',
+            'loai_phong_id.required' => 'Vui lòng chọn loại phòng.',
+            'loai_phong_id.exists' => 'Loại phòng không tồn tại trong hệ thống.',
+            'so_phong.required' => 'Vui lòng nhập số phòng.',
+            'so_phong.string' => 'Số phòng phải là chuỗi ký tự.',
+            'so_phong.min' => 'Số phòng phải có ít nhất 1 ký tự.',
+            'so_phong.max' => 'Số phòng không được vượt quá 20 ký tự.',
+            'so_phong.unique' => 'Số phòng này đã tồn tại trong hệ thống. Vui lòng chọn số phòng khác.',
+            'so_phong.regex' => 'Số phòng chỉ được chứa chữ cái, số, dấu gạch ngang và khoảng trắng.',
+            'ten_phong.string' => 'Tên phòng phải là chuỗi ký tự.',
+            'ten_phong.max' => 'Tên phòng không được vượt quá 255 ký tự.',
+            'tang.integer' => 'Tầng phải là số nguyên.',
+            'tang.min' => 'Tầng phải lớn hơn hoặc bằng 1.',
+            'tang.max' => 'Tầng không được vượt quá 50.',
+            'huong_cua_so.in' => 'Hướng cửa sổ không hợp lệ. Chỉ chấp nhận: Biển, Núi, Thành phố, Sân vườn.',
+            'co_ban_cong.boolean' => 'Trường "Có ban công" phải là true hoặc false.',
+            'co_view_dep.boolean' => 'Trường "Có view đẹp" phải là true hoặc false.',
+            'gia_rieng.numeric' => 'Giá riêng phải là số.',
+            'gia_rieng.min' => 'Giá riêng phải lớn hơn hoặc bằng 0.',
+            'gia_rieng.max' => 'Giá riêng không được vượt quá 999,999,999 VNĐ.',
+            'gia_bo_sung.numeric' => 'Giá bổ sung phải là số.',
+            'gia_bo_sung.min' => 'Giá bổ sung phải lớn hơn hoặc bằng 0.',
+            'gia_bo_sung.max' => 'Giá bổ sung không được vượt quá 999,999,999 VNĐ.',
             'trang_thai.required' => 'Vui lòng chọn trạng thái phòng.',
-            'trang_thai.in'       => 'Trạng thái phòng không hợp lệ.',
-
-            'img.image' => 'Tệp tải lên phải là hình ảnh.',
-            'img.mimes' => 'Ảnh phải có định dạng jpg, jpeg, png hoặc webp.',
-            'img.max'   => 'Dung lượng ảnh không được vượt quá 10MB.',
-
-            'dich_vu.string' => 'Dịch vụ phải là chuỗi ký tự.',
-            'dich_vu.max'    => 'Dịch vụ không được vượt quá 255 ký tự.',
-            'mo_ta.max'      => 'Mô tả không được vượt quá 5000 ký tự.',
+            'trang_thai.in' => 'Trạng thái không hợp lệ. Chỉ chấp nhận: Trống, Đang thuê, Đang dọn, Bảo trì.',
+            'ghi_chu.string' => 'Ghi chú phải là chuỗi ký tự.',
+            'ghi_chu.max' => 'Ghi chú không được vượt quá 1000 ký tự.',
         ]);
 
-        // ⚙️ Nếu chọn “Có khuyến mãi” mà không nhập giá khuyến mãi
-        if ($request->input('co_khuyen_mai') == 1 && empty($request->input('gia_khuyen_mai'))) {
-            return redirect()->back()
-                ->withErrors(['gia_khuyen_mai' => 'Vui lòng nhập giá khuyến mãi khi có khuyến mãi.'])
-                ->withInput();
+        // Kiểm tra loại phòng có đang hoạt động không
+        $loaiPhong = LoaiPhong::find($validated['loai_phong_id']);
+        if (!$loaiPhong) {
+            return back()->withErrors(['loai_phong_id' => 'Loại phòng không tồn tại.'])->withInput();
+        }
+
+        if ($loaiPhong->trang_thai !== 'hoat_dong') {
+            return back()->withErrors(['loai_phong_id' => 'Loại phòng này không đang hoạt động. Vui lòng chọn loại phòng khác.'])->withInput();
+        }
+
+        // Xử lý checkbox boolean
+        $validated['co_ban_cong'] = $request->has('co_ban_cong') ? true : false;
+        $validated['co_view_dep'] = $request->has('co_view_dep') ? true : false;
+
+        // Trim whitespace
+        $validated['so_phong'] = trim($validated['so_phong']);
+        if (isset($validated['ten_phong'])) {
+            $validated['ten_phong'] = trim($validated['ten_phong']) ?: null;
+        }
+        if (isset($validated['ghi_chu'])) {
+            $validated['ghi_chu'] = trim($validated['ghi_chu']) ?: null;
         }
 
         try {
-            $data = $validated;
-            $data['co_khuyen_mai'] = $request->input('co_khuyen_mai', 0);
+            $phong = Phong::create($validated);
 
-            // Upload ảnh
-            if ($request->hasFile('img')) {
-                $file = $request->file('img');
-                $filename = time() . '_' . preg_replace('/\s+/', '_', $file->getClientOriginalName());
-                $file->move(public_path('uploads/phong'), $filename);
-                $data['img'] = 'uploads/phong/' . $filename;
+            // Cập nhật so_luong_phong và so_luong_trong của loại phòng
+            $loaiPhong->increment('so_luong_phong');
+            if ($validated['trang_thai'] === 'trong') {
+                $loaiPhong->increment('so_luong_trong');
             }
 
-            $data['gia'] = $data['gia_goc'];
-
-            Phong::create($data);
-
             return redirect()->route('admin.phong.index')
-                ->with('success', 'Thêm phòng thành công!');
+                ->with('success', 'Thêm phòng "' . $phong->so_phong . '" thành công!');
         } catch (\Exception $e) {
-            return redirect()->back()
-                ->with('error', 'Lỗi khi thêm phòng: ' . $e->getMessage())
-                ->withInput();
+            return back()->withErrors(['error' => 'Có lỗi xảy ra khi thêm phòng: ' . $e->getMessage()])->withInput();
         }
     }
 
-    // ====================== FORM CHỈNH SỬA ======================
-    public function edit($id)
-    {
-        $phong = Phong::findOrFail($id);
-        $loaiPhongs = LoaiPhong::all();
-        return view('admin.phong.edit', compact('phong', 'loaiPhongs'));
-    }
-
-    // ====================== CẬP NHẬT PHÒNG ======================
-    public function update(Request $request, $id)
-    {
-        $phong = Phong::findOrFail($id);
-
-        $validated = $request->validate([
-            'loai_phong_id'   => 'required|exists:loai_phong,id',
-            'ten_phong'       => [
-                'required',
-                'string',
-                'max:255',
-                'unique:phong,ten_phong,' . $id,
-                'regex:/^(?!\d+$)(?!\d)[\p{L}\p{N}\s]+$/u'
-            ],
-            'gia_goc'         => 'required|numeric|min:100000|max:999999999',
-            'gia_khuyen_mai'  => 'nullable|numeric|min:100000|max:999999999|lt:gia_goc',
-            'co_khuyen_mai'   => 'nullable|boolean',
-            'trang_thai'      => 'required|in:hien,an,bao_tri,chong',
-            'img'             => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240',
-            'dich_vu'         => 'nullable|string|max:255',
-            'mo_ta'           => 'nullable|string|max:5000'
-        ], [
-            'ten_phong.regex'    => 'Tên phòng không được chỉ chứa số hoặc bắt đầu bằng số.',
-            'gia_khuyen_mai.lt'  => 'Giá khuyến mãi phải nhỏ hơn giá gốc.',
-            'mo_ta.max'          => 'Mô tả không được vượt quá 5000 ký tự.',
-        ]);
-
-        // ⚙️ Nếu chọn “Có khuyến mãi” mà không nhập giá khuyến mãi
-        if ($request->input('co_khuyen_mai') == 1 && empty($request->input('gia_khuyen_mai'))) {
-            return redirect()->back()
-                ->withErrors(['gia_khuyen_mai' => 'Vui lòng nhập giá khuyến mãi khi có khuyến mãi.'])
-                ->withInput();
-        }
-
-        try {
-            $data = $validated;
-            $data['gia'] = $data['gia_goc'];
-            $data['co_khuyen_mai'] = $request->input('co_khuyen_mai', 0);
-
-            if ($request->hasFile('img')) {
-                if ($phong->img && file_exists(public_path($phong->img))) {
-                    @unlink(public_path($phong->img));
-                }
-                $file = $request->file('img');
-                $filename = time() . '_' . preg_replace('/\s+/', '_', $file->getClientOriginalName());
-                $file->move(public_path('uploads/phong'), $filename);
-                $data['img'] = 'uploads/phong/' . $filename;
-            }
-
-            $phong->update($data);
-
-            return redirect()->route('admin.phong.index')
-                ->with('success', 'Cập nhật phòng thành công!');
-        } catch (\Exception $e) {
-            return redirect()->back()
-                ->with('error', 'Lỗi cập nhật phòng: ' . $e->getMessage())
-                ->withInput();
-        }
-    }
-
-    // ====================== XÓA PHÒNG ======================
-    public function destroy($id)
-    {
-        $phong = Phong::findOrFail($id);
-
-        // Không xóa dữ liệu; chuyển trạng thái sang ẩn (vô hiệu hóa)
-        $phong->update(['trang_thai' => 'an']);
-
-        return redirect()->route('admin.phong.index')
-            ->with('success', 'Đã vô hiệu hóa phòng (không xóa dữ liệu).');
-    }
-
-    // ====================== PHÒNG TRỐNG ======================
-    public function available(Request $request)
-    {
-        $ngayNhan = $request->input('ngay_nhan', now()->format('Y-m-d'));
-        $ngayTra = $request->input('ngay_tra', now()->addDay()->format('Y-m-d'));
-
-        $allRooms = Phong::with('loaiPhong')->get();
-
-        $bookedRoomIds = \App\Models\DatPhong::where(function ($query) use ($ngayNhan, $ngayTra) {
-            $query->whereBetween('ngay_nhan', [$ngayNhan, $ngayTra])
-                ->orWhereBetween('ngay_tra', [$ngayNhan, $ngayTra])
-                ->orWhere(function ($subQ) use ($ngayNhan, $ngayTra) {
-                    $subQ->where('ngay_nhan', '<=', $ngayNhan)
-                         ->where('ngay_tra', '>=', $ngayTra);
-                });
-
-        })
-            ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
-            ->pluck('phong_id')
-            ->toArray();
-
-        $availableRooms = $allRooms->filter(function ($room) use ($bookedRoomIds) {
-            return !in_array($room->id, $bookedRoomIds)
-                && $room->trang_thai === 'hien'
-                && $room->trang_thai !== 'chong';
-        });
-
-        $loaiPhongs = LoaiPhong::all();
-        $bookedCount = count($bookedRoomIds);
-
-        return view('admin.phong.available', compact('availableRooms', 'loaiPhongs', 'ngayNhan', 'ngayTra', 'bookedRoomIds', 'bookedCount'));
-    }
-
-    // ====================== CHI TIẾT PHÒNG ======================
+    /**
+     * Display the specified resource.
+     */
     public function show($id)
     {
-        $phong = Phong::with('loaiPhong')->findOrFail($id);
+        $phong = Phong::with(['loaiPhong', 'datPhongs' => function($query) {
+            $query->orderBy('ngay_nhan', 'desc')->limit(10);
+        }])->findOrFail($id);
+
         return view('admin.phong.show', compact('phong'));
     }
 
-    // ====================== CHỐNG PHÒNG ======================
-    public function blockRoom($id)
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit($id)
     {
         $phong = Phong::findOrFail($id);
-
-        $hasActiveBooking = \App\Models\DatPhong::where('phong_id', $id)
-            ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
-            ->exists();
-
-        if ($hasActiveBooking) {
-            return redirect()->route('admin.phong.index')
-                ->with('error', 'Không thể chống phòng đang được đặt.');
-        }
-
-        $phong->update(['trang_thai' => 'chong']);
-
-        return redirect()->route('admin.phong.index')
-            ->with('success', 'Đã chống phòng thành công! Phòng không thể đặt cho đến khi hủy chống.');
+        $loaiPhongs = LoaiPhong::where('trang_thai', 'hoat_dong')->get();
+        return view('admin.phong.edit', compact('phong', 'loaiPhongs'));
     }
 
-    // ====================== BẬT/TẮT TRẠNG THÁI ======================
-    public function toggleStatus($id)
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, $id)
     {
         $phong = Phong::findOrFail($id);
+        $oldLoaiPhongId = $phong->loai_phong_id;
+        $oldTrangThai = $phong->trang_thai;
 
-        $new = $phong->trang_thai === 'hien' ? 'an' : 'hien';
-        $phong->update(['trang_thai' => $new]);
+        // Kiểm tra xem phòng có đang được sử dụng trong booking đang hoạt động không
+        $hasActiveBooking = $phong->datPhongs()
+            ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan', 'da_thanh_toan'])
+            ->exists();
+        
+        // Kiểm tra qua pivot table
+        $hasActivePivotBooking = false;
+        if (method_exists($phong, 'datPhongPhongs')) {
+            $hasActivePivotBooking = $phong->datPhongPhongs()
+                ->whereHas('datPhong', function($q) {
+                    $q->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan', 'da_thanh_toan']);
+                })
+                ->exists();
+        }
 
-        return redirect()->route('admin.phong.index')
-            ->with('success', $new === 'an' ? 'Đã vô hiệu hóa phòng.' : 'Đã kích hoạt phòng.');
+        if ($hasActiveBooking || $hasActivePivotBooking) {
+            // Nếu có booking đang hoạt động, chỉ cho phép thay đổi một số trường (không cho đổi số phòng)
+            $validated = $request->validate([
+                'loai_phong_id' => 'required|exists:loai_phong,id',
+                'ten_phong' => 'nullable|string|max:255',
+                'tang' => 'nullable|integer|min:1|max:50',
+                'huong_cua_so' => 'nullable|in:bien,nui,thanh_pho,san_vuon',
+                'co_ban_cong' => 'nullable|boolean',
+                'co_view_dep' => 'nullable|boolean',
+                'gia_rieng' => 'nullable|numeric|min:0|max:999999999',
+                'gia_bo_sung' => 'nullable|numeric|min:0|max:999999999',
+                'trang_thai' => 'required|in:trong,dang_thue,dang_don,bao_tri',
+                'ghi_chu' => 'nullable|string|max:1000',
+            ], [
+                'loai_phong_id.required' => 'Vui lòng chọn loại phòng.',
+                'loai_phong_id.exists' => 'Loại phòng không tồn tại trong hệ thống.',
+                'ten_phong.string' => 'Tên phòng phải là chuỗi ký tự.',
+                'ten_phong.max' => 'Tên phòng không được vượt quá 255 ký tự.',
+                'tang.integer' => 'Tầng phải là số nguyên.',
+                'tang.min' => 'Tầng phải lớn hơn hoặc bằng 1.',
+                'tang.max' => 'Tầng không được vượt quá 50.',
+                'huong_cua_so.in' => 'Hướng cửa sổ không hợp lệ. Chỉ chấp nhận: Biển, Núi, Thành phố, Sân vườn.',
+                'co_ban_cong.boolean' => 'Trường "Có ban công" phải là true hoặc false.',
+                'co_view_dep.boolean' => 'Trường "Có view đẹp" phải là true hoặc false.',
+                'gia_rieng.numeric' => 'Giá riêng phải là số.',
+                'gia_rieng.min' => 'Giá riêng phải lớn hơn hoặc bằng 0.',
+                'gia_rieng.max' => 'Giá riêng không được vượt quá 999,999,999 VNĐ.',
+                'gia_bo_sung.numeric' => 'Giá bổ sung phải là số.',
+                'gia_bo_sung.min' => 'Giá bổ sung phải lớn hơn hoặc bằng 0.',
+                'gia_bo_sung.max' => 'Giá bổ sung không được vượt quá 999,999,999 VNĐ.',
+                'trang_thai.required' => 'Vui lòng chọn trạng thái phòng.',
+                'trang_thai.in' => 'Trạng thái không hợp lệ. Chỉ chấp nhận: Trống, Đang thuê, Đang dọn, Bảo trì.',
+                'ghi_chu.string' => 'Ghi chú phải là chuỗi ký tự.',
+                'ghi_chu.max' => 'Ghi chú không được vượt quá 1000 ký tự.',
+            ]);
+            // Giữ nguyên số phòng nếu có booking đang hoạt động
+            $validated['so_phong'] = $phong->so_phong;
+        } else {
+            // Nếu không có booking, cho phép thay đổi tất cả
+            $validated = $request->validate([
+                'loai_phong_id' => 'required|exists:loai_phong,id',
+                'so_phong' => [
+                    'required',
+                    'string',
+                    'max:20',
+                    'min:1',
+                    'unique:phong,so_phong,' . $id,
+                    'regex:/^[A-Za-z0-9\-\s]+$/',
+                ],
+                'ten_phong' => 'nullable|string|max:255',
+                'tang' => 'nullable|integer|min:1|max:50',
+                'huong_cua_so' => 'nullable|in:bien,nui,thanh_pho,san_vuon',
+                'co_ban_cong' => 'nullable|boolean',
+                'co_view_dep' => 'nullable|boolean',
+                'gia_rieng' => 'nullable|numeric|min:0|max:999999999',
+                'gia_bo_sung' => 'nullable|numeric|min:0|max:999999999',
+                'trang_thai' => 'required|in:trong,dang_thue,dang_don,bao_tri',
+                'ghi_chu' => 'nullable|string|max:1000',
+            ], [
+                'loai_phong_id.required' => 'Vui lòng chọn loại phòng.',
+                'loai_phong_id.exists' => 'Loại phòng không tồn tại trong hệ thống.',
+                'so_phong.required' => 'Vui lòng nhập số phòng.',
+                'so_phong.string' => 'Số phòng phải là chuỗi ký tự.',
+                'so_phong.min' => 'Số phòng phải có ít nhất 1 ký tự.',
+                'so_phong.max' => 'Số phòng không được vượt quá 20 ký tự.',
+                'so_phong.unique' => 'Số phòng này đã tồn tại trong hệ thống. Vui lòng chọn số phòng khác.',
+                'so_phong.regex' => 'Số phòng chỉ được chứa chữ cái, số, dấu gạch ngang và khoảng trắng.',
+                'ten_phong.string' => 'Tên phòng phải là chuỗi ký tự.',
+                'ten_phong.max' => 'Tên phòng không được vượt quá 255 ký tự.',
+                'tang.integer' => 'Tầng phải là số nguyên.',
+                'tang.min' => 'Tầng phải lớn hơn hoặc bằng 1.',
+                'tang.max' => 'Tầng không được vượt quá 50.',
+                'huong_cua_so.in' => 'Hướng cửa sổ không hợp lệ. Chỉ chấp nhận: Biển, Núi, Thành phố, Sân vườn.',
+                'co_ban_cong.boolean' => 'Trường "Có ban công" phải là true hoặc false.',
+                'co_view_dep.boolean' => 'Trường "Có view đẹp" phải là true hoặc false.',
+                'gia_rieng.numeric' => 'Giá riêng phải là số.',
+                'gia_rieng.min' => 'Giá riêng phải lớn hơn hoặc bằng 0.',
+                'gia_rieng.max' => 'Giá riêng không được vượt quá 999,999,999 VNĐ.',
+                'gia_bo_sung.numeric' => 'Giá bổ sung phải là số.',
+                'gia_bo_sung.min' => 'Giá bổ sung phải lớn hơn hoặc bằng 0.',
+                'gia_bo_sung.max' => 'Giá bổ sung không được vượt quá 999,999,999 VNĐ.',
+                'trang_thai.required' => 'Vui lòng chọn trạng thái phòng.',
+                'trang_thai.in' => 'Trạng thái không hợp lệ. Chỉ chấp nhận: Trống, Đang thuê, Đang dọn, Bảo trì.',
+                'ghi_chu.string' => 'Ghi chú phải là chuỗi ký tự.',
+                'ghi_chu.max' => 'Ghi chú không được vượt quá 1000 ký tự.',
+            ]);
+        }
+
+        // Kiểm tra loại phòng có đang hoạt động không
+        $loaiPhong = LoaiPhong::find($validated['loai_phong_id']);
+        if (!$loaiPhong) {
+            return back()->withErrors(['loai_phong_id' => 'Loại phòng không tồn tại.'])->withInput();
+        }
+
+        if ($loaiPhong->trang_thai !== 'hoat_dong') {
+            return back()->withErrors(['loai_phong_id' => 'Loại phòng này không đang hoạt động. Vui lòng chọn loại phòng khác.'])->withInput();
+        }
+
+        // Xử lý checkbox boolean
+        $validated['co_ban_cong'] = $request->has('co_ban_cong') ? true : false;
+        $validated['co_view_dep'] = $request->has('co_view_dep') ? true : false;
+
+        // Trim whitespace
+        $validated['so_phong'] = trim($validated['so_phong']);
+        if (isset($validated['ten_phong'])) {
+            $validated['ten_phong'] = trim($validated['ten_phong']) ?: null;
+        }
+        if (isset($validated['ghi_chu'])) {
+            $validated['ghi_chu'] = trim($validated['ghi_chu']) ?: null;
+        }
+
+        try {
+            $phong->update($validated);
+
+            // Cập nhật so_luong_phong nếu đổi loại phòng
+            if ($oldLoaiPhongId != $validated['loai_phong_id']) {
+                $oldLoaiPhong = LoaiPhong::find($oldLoaiPhongId);
+                $newLoaiPhong = LoaiPhong::find($validated['loai_phong_id']);
+                
+                if ($oldLoaiPhong) {
+                    if ($oldLoaiPhong->so_luong_phong > 0) {
+                        $oldLoaiPhong->decrement('so_luong_phong');
+                    }
+                    if ($oldTrangThai === 'trong' && $oldLoaiPhong->so_luong_trong > 0) {
+                        $oldLoaiPhong->decrement('so_luong_trong');
+                    }
+                }
+                
+                if ($newLoaiPhong) {
+                    $newLoaiPhong->increment('so_luong_phong');
+                    if ($validated['trang_thai'] === 'trong') {
+                        $newLoaiPhong->increment('so_luong_trong');
+                    }
+                }
+            } else {
+                // Cập nhật so_luong_trong nếu trạng thái thay đổi
+                if ($oldTrangThai === 'trong' && $validated['trang_thai'] !== 'trong') {
+                    if ($loaiPhong->so_luong_trong > 0) {
+                        $loaiPhong->decrement('so_luong_trong');
+                    }
+                } elseif ($oldTrangThai !== 'trong' && $validated['trang_thai'] === 'trong') {
+                    $loaiPhong->increment('so_luong_trong');
+                }
+            }
+
+            return redirect()->route('admin.phong.index')
+                ->with('success', 'Cập nhật phòng "' . $phong->so_phong . '" thành công!');
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => 'Có lỗi xảy ra khi cập nhật phòng: ' . $e->getMessage()])->withInput();
+        }
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy($id)
+    {
+        try {
+            $phong = Phong::findOrFail($id);
+            $loaiPhongId = $phong->loai_phong_id;
+            $trangThai = $phong->trang_thai;
+            $soPhong = $phong->so_phong;
+
+            // Kiểm tra xem phòng có đang được sử dụng không (legacy)
+            $hasActiveBooking = $phong->datPhongs()
+                ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan', 'da_thanh_toan'])
+                ->exists();
+
+            // Kiểm tra qua pivot table
+            $hasActivePivotBooking = false;
+            if (method_exists($phong, 'datPhongPhongs')) {
+                $hasActivePivotBooking = $phong->datPhongPhongs()
+                    ->whereHas('datPhong', function($q) {
+                        $q->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan', 'da_thanh_toan']);
+                    })
+                    ->exists();
+            }
+
+            if ($hasActiveBooking || $hasActivePivotBooking) {
+                return redirect()->route('admin.phong.index')
+                    ->with('error', 'Không thể xóa phòng "' . $soPhong . '" vì đang có booking đang hoạt động!');
+            }
+
+            $phong->delete();
+
+            // Cập nhật so_luong_phong và so_luong_trong của loại phòng
+            $loaiPhong = LoaiPhong::find($loaiPhongId);
+            if ($loaiPhong) {
+                if ($loaiPhong->so_luong_phong > 0) {
+                    $loaiPhong->decrement('so_luong_phong');
+                }
+                if ($trangThai === 'trong' && $loaiPhong->so_luong_trong > 0) {
+                    $loaiPhong->decrement('so_luong_trong');
+                }
+            }
+
+            return redirect()->route('admin.phong.index')
+                ->with('success', 'Xóa phòng "' . $soPhong . '" thành công!');
+        } catch (\Exception $e) {
+            return redirect()->route('admin.phong.index')
+                ->with('error', 'Có lỗi xảy ra khi xóa phòng: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Update room status quickly
+     */
+    public function updateStatus(Request $request, $id)
+    {
+        $phong = Phong::findOrFail($id);
+        $oldTrangThai = $phong->trang_thai;
+
+        $request->validate([
+            'trang_thai' => 'required|in:trong,dang_thue,dang_don,bao_tri',
+        ]);
+
+        $phong->update(['trang_thai' => $request->trang_thai]);
+
+        // Cập nhật so_luong_trong của loại phòng
+        $loaiPhong = LoaiPhong::find($phong->loai_phong_id);
+        if ($loaiPhong) {
+            if ($oldTrangThai === 'trong' && $request->trang_thai !== 'trong') {
+                $loaiPhong->decrement('so_luong_trong');
+            } elseif ($oldTrangThai !== 'trong' && $request->trang_thai === 'trong') {
+                $loaiPhong->increment('so_luong_trong');
+            }
+        }
+
+        return redirect()->back()
+            ->with('success', 'Cập nhật trạng thái phòng thành công!');
     }
 }

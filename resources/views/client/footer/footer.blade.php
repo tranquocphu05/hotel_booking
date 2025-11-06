@@ -3,29 +3,26 @@
     <div class="max-w-7xl mx-auto px-6 grid md:grid-cols-3 gap-10">
         {{-- GIỚI THIỆU --}}
         <div class="p-3">
-            <!-- Tiêu đề -->
             <div class="flex items-center mb-3">
                 <a href="javascript:void(0)" onclick="window.location.reload()"
-                    class="text-3xl font-serif font-bold text-white cursor-pointer tracking-wide hover:text-red-400 transition duration-300">
+                    class="text-3xl font-serif font-bold text-white cursor-pointer tracking-wide hover:text-[#D4AF37] transition duration-300">
                     OZIA HOTEL
                 </a>
             </div>
 
-            <!-- Đoạn mô tả -->
             <p class="text-sm text-gray-300 mb-6 leading-relaxed">
-                Chào mừng bạn đến với <span class="font-semibold text-white">Ozia Hotel</span> —
+                Chào mừng bạn đến với <span class="font-semibold text-[#D4AF37]">Ozia Hotel</span> —
                 đối tác đáng tin cậy giúp bạn tìm kiếm những khách sạn chất lượng với mức giá hợp lý.
                 Chúng tôi mang đến trải nghiệm đặt phòng tiện lợi, nhanh chóng và an toàn trên toàn quốc.
             </p>
 
-            <!-- Mạng xã hội -->
             <div class="flex space-x-4 text-gray-400">
-                <a href="#" class="hover:text-red-400 transition duration-300"><i
+                <a href="#" class="hover:text-[#D4AF37] transition duration-300"><i
                         class="fab fa-facebook-f"></i></a>
-                <a href="#" class="hover:text-red-400 transition duration-300"><i class="fab fa-twitter"></i></a>
-                <a href="#" class="hover:text-red-400 transition duration-300"><i
+                <a href="#" class="hover:text-[#D4AF37] transition duration-300"><i class="fab fa-twitter"></i></a>
+                <a href="#" class="hover:text-[#D4AF37] transition duration-300"><i
                         class="fab fa-instagram"></i></a>
-                <a href="#" class="hover:text-red-400 transition duration-300"><i class="fab fa-youtube"></i></a>
+                <a href="#" class="hover:text-[#D4AF37] transition duration-300"><i class="fab fa-youtube"></i></a>
             </div>
         </div>
 
@@ -33,9 +30,9 @@
         <div>
             <h6 class="text-white font-semibold mb-4">Liên hệ với chúng tôi</h6>
             <ul class="space-y-2 text-sm">
-                <li><i class="fa fa-phone mr-2"></i> (+84) 987 654 321</li>
-                <li><i class="fa fa-envelope mr-2"></i> support@oziahotel.vn</li>
-                <li><i class="fa fa-map-marker mr-2"></i> FPT Complex, đường Trịnh Văn Bô, Nam Từ Liêm, Hà Nội</li>
+                <li class="hover:text-[#D4AF37] transition duration-300 cursor-pointer"><i class="fa fa-phone mr-2"></i> (+84) 987 654 321</li>
+                <li class="hover:text-[#D4AF37] transition duration-300 cursor-pointer"><i class="fa fa-envelope mr-2"></i> support@oziahotel.vn</li>
+                <li class="hover:text-[#D4AF37] transition duration-300 cursor-pointer"><i class="fa fa-map-marker mr-2"></i> FPT Complex, đường Trịnh Văn Bô, Nam Từ Liêm, Hà Nội</li>
             </ul>
         </div>
 
@@ -46,7 +43,7 @@
             <form action="#" method="POST" class="flex bg-gray-800 rounded-lg overflow-hidden">
                 <input type="email" name="email" placeholder="Nhập email của bạn..." required
                     class="w-full px-4 py-2 text-gray-100 bg-transparent focus:outline-none">
-                <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 text-white">
+                <button type="submit" class="bg-[#D4AF37] hover:bg-[#b68b00] px-4 py-2 text-white transition duration-300">
                     Gửi
                 </button>
             </form>
@@ -57,10 +54,10 @@
     <div class="border-t border-gray-700 mt-10 pt-6">
         <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center text-sm">
             <ul class="flex flex-wrap justify-center md:justify-start space-x-4 mb-4 md:mb-0">
-                <li><a href="#" class="hover:text-indigo-400">Liên hệ</a></li>
-                <li><a href="#" class="hover:text-indigo-400">Điều khoản sử dụng</a></li>
-                <li><a href="#" class="hover:text-indigo-400">Chính sách bảo mật</a></li>
-                <li><a href="{{ route('client.gioithieu') }}" class="hover:text-indigo-400">Giới thiệu</a></li>
+                <li><a href="#" class="hover:text-[#D4AF37]">Liên hệ</a></li>
+                <li><a href="#" class="hover:text-[#D4AF37]">Điều khoản sử dụng</a></li>
+                <li><a href="#" class="hover:text-[#D4AF37]">Chính sách bảo mật</a></li>
+                <li><a href="{{ route('client.gioithieu') }}" class="hover:text-[#D4AF37]">Giới thiệu</a></li>
             </ul>
             <p class="text-gray-400 text-center md:text-right">
                 © {{ date('Y') }} <span class="text-white font-semibold">Ozia Hotel</span> —

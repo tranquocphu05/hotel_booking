@@ -45,8 +45,7 @@
                 <div class="row"><span class="label">Khách hàng:</span> <span class="value">{{ $booking->username ?? 'N/A' }}</span></div>
                 <div class="row"><span class="label">Email:</span> <span class="value">{{ $booking->email ?? 'N/A' }}</span></div>
                 <div class="row"><span class="label">SĐT:</span> <span class="value">{{ $booking->sdt ?? 'N/A' }}</span></div>
-                <div class="row"><span class="label">Phòng:</span> <span class="value">{{ optional($booking->phong)->ten_phong ?? 'N/A' }}</span></div>
-                <div class="row"><span class="label">Loại phòng:</span> <span class="value">{{ optional(optional($booking->phong)->loaiPhong)->ten_loai ?? 'N/A' }}</span></div>
+                <div class="row"><span class="label">Loại phòng:</span> <span class="value">{{ optional($booking->loaiPhong)->ten_loai ?? 'N/A' }}</span></div>
                 <div class="row"><span class="label">Ngày nhận - trả:</span> <span class="value">{{ date('d/m/Y', strtotime($booking->ngay_nhan)) }} → {{ date('d/m/Y', strtotime($booking->ngay_tra)) }}</span></div>
                 <div class="row"><span class="label">Tổng tiền:</span> <span class="value">{{ number_format($booking->tong_tien, 0, ',', '.') }}₫</span></div>
                 <div class="row"><span class="label">Trạng thái:</span> <span class="value">{{ $booking->trang_thai }}</span></div>

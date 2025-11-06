@@ -235,18 +235,18 @@
                         @if ($bookings->count() > 0)
                             <div class="space-y-6">
                                 @foreach ($bookings as $booking)
-                                    <div class="booking-item bg-gradient-to-r from-white to-gray-50 border-l-4 
+                                    <div class="booking-item bg-gradient-to-r from-white to-gray-50 border-l-4
                                 @if ($booking->trang_thai == 'da_xac_nhan') border-green-500
                                 @elseif($booking->trang_thai == 'da_huy') border-red-500
                                 @elseif($booking->trang_thai == 'da_tra') border-blue-500
                                 @else border-yellow-500 @endif
                                 rounded-lg shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden"
                                         data-booking-id="{{ $booking->id }}"
-                                        data-room-name="{{ $booking->phong->ten_phong ?? 'N/A' }}"
-                                        data-room-type="{{ $booking->phong->loaiPhong->ten_loai ?? 'N/A' }}"
-                                        data-room-price="{{ number_format($booking->phong->gia ?? 0, 0, ',', '.') }}"
-                                        data-room-desc="{{ strip_tags($booking->phong->mo_ta ?? '') }}"
-                                        data-room-img="{{ asset($booking->phong->img ?? 'img/room/room-1.jpg') }}"
+                                        data-room-name="{{ $booking->loaiPhong->ten_loai ?? 'N/A' }}"
+                                        data-room-type="{{ $booking->loaiPhong->ten_loai ?? 'N/A' }}"
+                                        data-room-price="{{ number_format($booking->loaiPhong->gia_co_ban ?? 0, 0, ',', '.') }}"
+                                        data-room-desc="{{ strip_tags($booking->loaiPhong->mo_ta ?? '') }}"
+                                        data-room-img="{{ asset($booking->loaiPhong->anh ?? 'img/room/room-1.jpg') }}"
                                         data-checkin="{{ \Carbon\Carbon::parse($booking->ngay_nhan)->format('d/m/Y') }}"
                                         data-checkout="{{ \Carbon\Carbon::parse($booking->ngay_tra)->format('d/m/Y') }}"
                                         data-booking-date="{{ \Carbon\Carbon::parse($booking->ngay_dat)->format('d/m/Y H:i') }}"
@@ -267,12 +267,32 @@
                                                             <i class="fas fa-hotel text-blue-600 text-xl"></i>
                                                         </div>
                                                         <div>
-                                                            <h3 class="text-xl font-bold text-gray-900">
-                                                                {{ $booking->phong->ten_phong ?? 'N/A' }}</h3>
-                                                            <p class="text-sm text-gray-600">
-                                                                <i class="fas fa-bed-alt mr-1"></i>
-                                                                {{ $booking->phong->loaiPhong->ten_loai ?? 'N/A' }}
-                                                            </p>
+                                                            @php
+                                                                $roomTypes = $booking->getRoomTypes();
+                                                            @endphp
+                                                            @if(count($roomTypes) > 1)
+                                                                <h3 class="text-xl font-bold text-gray-900">
+                                                                    {{ count($roomTypes) }} loại phòng
+                                                                </h3>
+                                                                <p class="text-sm text-gray-600">
+                                                                    <i class="fas fa-bed-alt mr-1"></i>
+                                                                    @foreach($roomTypes as $index => $roomType)
+                                                                        @php
+                                                                            $loaiPhong = \App\Models\LoaiPhong::find($roomType['loai_phong_id']);
+                                                                        @endphp
+                                                                        @if($loaiPhong)
+                                                                            {{ $loaiPhong->ten_loai }} ({{ $roomType['so_luong'] }} phòng)@if($index < count($roomTypes) - 1), @endif
+                                                                        @endif
+                                                                    @endforeach
+                                                                </p>
+                                                            @else
+                                                                <h3 class="text-xl font-bold text-gray-900">
+                                                                    {{ $booking->loaiPhong->ten_loai ?? 'N/A' }}</h3>
+                                                                <p class="text-sm text-gray-600">
+                                                                    <i class="fas fa-bed-alt mr-1"></i>
+                                                                    Loại phòng
+                                                                </p>
+                                                            @endif
                                                         </div>
                                                     </div>
                                                 </div>
@@ -723,14 +743,14 @@
             <div class="rounded-lg overflow-hidden">
                 <img src="${data.roomImg}" alt="${data.roomName}" class="w-full h-64 object-cover">
             </div>
-            
+
             <!-- Thông tin phòng -->
             <div class="bg-gray-50 rounded-lg p-6">
                 <h3 class="text-2xl font-bold text-gray-900 mb-2">${data.roomName}</h3>
                 <p class="text-gray-600 mb-4"><i class="fas fa-bed mr-2"></i>${data.roomType}</p>
                 ${data.roomDesc ? `<p class="text-gray-700 text-sm leading-relaxed">${data.roomDesc}</p>` : ''}
             </div>
-            
+
             <!-- Trạng thái -->
             <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
                 <span class="text-gray-700 font-medium">Trạng thái:</span>
@@ -738,7 +758,7 @@
                     <i class="fas ${status.icon} mr-1"></i> ${status.text}
                 </span>
             </div>
-            
+
             <!-- Chi tiết đặt phòng -->
             <div class="grid md:grid-cols-2 gap-4">
                 <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border-l-4 border-green-500">
@@ -758,7 +778,7 @@
                     <p class="text-lg font-bold text-purple-900"><i class="fas fa-users mr-2"></i>${data.guests} người</p>
                 </div>
             </div>
-            
+
             ${data.cancelReason ? `
                             <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
                                 <p class="text-sm font-semibold text-red-800 mb-2"><i class="fas fa-info-circle mr-2"></i>Lý do hủy:</p>
@@ -766,7 +786,7 @@
                                 ${data.cancelDate ? `<p class="text-xs text-red-600 mt-2">Ngày hủy: ${data.cancelDate}</p>` : ''}
                             </div>
                             ` : ''}
-            
+
             <!-- Tổng tiền -->
             <div class="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg p-6 text-white">
                 <div class="flex justify-between items-center">

@@ -9,10 +9,6 @@
             <i class="bi bi-building"></i> Quản lý phòng
         </h2>
         <div class="flex gap-3">
-            <a href="{{ route('admin.phong.available') }}" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-full shadow transition">
-                <i class="fas fa-search"></i>
-                Phòng trống
-            </a>
             <a href="{{ route('admin.phong.create') }}" class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2 rounded-full shadow transition">
                 <i class="fas fa-plus"></i>
                 Thêm phòng
@@ -37,10 +33,17 @@
 
         <select name="trang_thai" class="border rounded-lg p-2">
             <option value="">-- Trạng thái --</option>
-            <option value="hien" {{ request('trang_thai')=='hien'?'selected':'' }}>Hiện</option>
-            <option value="an" {{ request('trang_thai')=='an'?'selected':'' }}>Ẩn</option>
+            <option value="trong" {{ request('trang_thai')=='trong'?'selected':'' }}>Trống</option>
+            <option value="dang_thue" {{ request('trang_thai')=='dang_thue'?'selected':'' }}>Đang thuê</option>
+            <option value="dang_don" {{ request('trang_thai')=='dang_don'?'selected':'' }}>Đang dọn</option>
             <option value="bao_tri" {{ request('trang_thai')=='bao_tri'?'selected':'' }}>Bảo trì</option>
         </select>
+        
+        <input type="text" name="search" placeholder="Tìm theo số phòng, tên phòng..." 
+               value="{{ request('search') }}" class="border rounded-lg p-2 flex-1">
+        
+        <input type="number" name="tang" placeholder="Tầng" 
+               value="{{ request('tang') }}" class="border rounded-lg p-2 w-24">
 
         <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">Lọc</button>
     </form>
@@ -49,14 +52,14 @@
         <table class="w-full text-sm text-gray-700 border border-gray-200 rounded-lg shadow-sm">
             <thead class="bg-gray-100 text-gray-800 text-xs uppercase font-semibold">
                 <tr>
-                    <th class="px-6 py-3 text-center border-b">ID</th>
+                    <th class="px-6 py-3 text-center border-b">STT</th>
+                    <th class="px-6 py-3 text-center border-b">Số phòng</th>
                     <th class="px-6 py-3 text-center border-b">Tên phòng</th>
-                    <th class="px-6 py-3 text-center border-b">Loại</th>
-                    <th class="px-6 py-3 text-center border-b">Giá gốc</th>
-                    <th class="px-6 py-3 text-center border-b">Giá khuyến mãi</th>
-                    <th class="px-6 py-3 text-center border-b">Mô tả</th>
-                    <th class="px-6 py-3 text-center border-b">Dịch vụ phòng</th>
-                    <th class="px-6 py-3 text-center border-b">Ảnh</th>
+                    <th class="px-6 py-3 text-center border-b">Loại phòng</th>
+                    <th class="px-6 py-3 text-center border-b">Tầng</th>
+                    <th class="px-6 py-3 text-center border-b">Hướng cửa sổ</th>
+                    <th class="px-6 py-3 text-center border-b">Tiện ích</th>
+                    <th class="px-6 py-3 text-center border-b">Giá riêng</th>
                     <th class="px-6 py-3 text-center border-b">Trạng thái</th>
                     <th class="px-6 py-3 text-center border-b">Thao tác</th>
                 </tr>
@@ -65,86 +68,83 @@
                 @forelse ($phongs as $phong)
                     <tr class="hover:bg-gray-50 transition">
                         <td class="px-6 py-3 text-center">{{ $loop->iteration }}</td>
-                        <td class="px-6 py-3 text-center font-medium">{{ $phong->ten_phong }}</td>
+                        <td class="px-6 py-3 text-center font-semibold text-blue-600">{{ $phong->so_phong }}</td>
+                        <td class="px-6 py-3 text-center">{{ $phong->ten_phong ?? '-' }}</td>
                         <td class="px-6 py-3 text-center">{{ $phong->loaiPhong->ten_loai ?? '-' }}</td>
-                        <td class="px-6 py-3 text-center text-blue-600 font-semibold">{{ number_format($phong->gia_goc ?: $phong->gia, 0, ',', '.') }}₫</td>
+                        <td class="px-6 py-3 text-center">{{ $phong->tang ?? '-' }}</td>
                         <td class="px-6 py-3 text-center">
-                            @if($phong->gia_khuyen_mai && $phong->gia_khuyen_mai > 0)
-                                <span class="text-red-600 font-semibold">{{ number_format($phong->gia_khuyen_mai, 0, ',', '.') }}₫</span>
+                            @if($phong->huong_cua_so)
+                                @php
+                                    $huongMap = ['bien' => 'Biển', 'nui' => 'Núi', 'thanh_pho' => 'Thành phố', 'san_vuon' => 'Sân vườn'];
+                                @endphp
+                                <span class="text-xs text-gray-600">{{ $huongMap[$phong->huong_cua_so] ?? $phong->huong_cua_so }}</span>
                             @else
-                                <span class="text-gray-400 text-sm">-</span>
-                            @endif
-                        </td>
-                        <td class="px-6 py-3 text-left text-gray-600">
-                            @if($phong->mo_ta)
-                                <div class="table-description">
-                                    <div class="text-xs text-gray-600 description-tooltip" title="{{ strip_tags($phong->mo_ta) }}">
-                                        {{ Str::limit(strip_tags($phong->mo_ta), 60) }}
-                                    </div>
-                                </div>
-                            @else
-                                <span class="text-gray-400 text-xs italic">Chưa có mô tả</span>
-                            @endif
-                        </td>
-                        <td class="px-6 py-3 text-left">
-                            @if($phong->dich_vu)
-                                <ul class="list-disc list-inside text-xs text-gray-600 space-y-1">
-                                    @foreach(explode(',', $phong->dich_vu) as $dichVu)
-                                        <li>{{ trim($dichVu) }}</li>
-                                    @endforeach
-                                </ul>
-                            @else
-                                <span class="text-gray-400 text-xs italic">—</span>
+                                <span class="text-gray-400 text-xs">-</span>
                             @endif
                         </td>
                         <td class="px-6 py-3 text-center">
-                            @if($phong->img)
-                                <img src="{{ asset($phong->img) }}" alt="Ảnh phòng" class="w-14 h-14 object-cover rounded-lg mx-auto shadow">
+                            <div class="flex flex-wrap justify-center gap-1">
+                                @if($phong->co_ban_cong)
+                                    <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">Ban công</span>
+                                @endif
+                                @if($phong->co_view_dep)
+                                    <span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded">View đẹp</span>
+                                @endif
+                                @if(!$phong->co_ban_cong && !$phong->co_view_dep)
+                                    <span class="text-gray-400 text-xs">-</span>
+                                @endif
+                            </div>
+                        </td>
+                        <td class="px-6 py-3 text-center">
+                            @if($phong->gia_rieng)
+                                <span class="text-blue-600 font-semibold">{{ number_format($phong->gia_rieng, 0, ',', '.') }} VNĐ</span>
                             @else
-                                <span class="text-gray-400 text-xs italic">Không có ảnh</span>
+                                <span class="text-gray-400 text-xs">-</span>
                             @endif
                         </td>
                         <td class="px-6 py-3 text-center">
-                            @if ($phong->trang_thai === 'hien')
-                                <span class="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">Hiện</span>
-                            @elseif ($phong->trang_thai === 'an')
-                                <span class="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs font-medium rounded-full">Ẩn</span>
-                            @elseif ($phong->trang_thai === 'chong')
-                                <span class="px-2 py-1 bg-orange-100 text-orange-700 text-xs font-medium rounded-full">Chống</span>
+                            @if ($phong->trang_thai === 'trong')
+                                <span class="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">Trống</span>
+                            @elseif ($phong->trang_thai === 'dang_thue')
+                                <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">Đang thuê</span>
+                            @elseif ($phong->trang_thai === 'dang_don')
+                                <span class="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs font-medium rounded-full">Đang dọn</span>
                             @else
                                 <span class="px-2 py-1 bg-red-100 text-red-700 text-xs font-medium rounded-full">Bảo trì</span>
                             @endif
                         </td>
                         <td class="px-6 py-3 text-center">
                             <div class="flex justify-center items-center gap-2">
-                                <a href="{{ route('admin.phong.edit', $phong->id) }}" class="text-amber-600 hover:text-amber-700 flex items-center gap-1 transition text-xs">
-                                    <i class="bi bi-pencil-square"></i> Edit
+                                <a href="{{ route('admin.phong.show', $phong->id) }}" 
+                                   class="text-blue-600 hover:text-blue-700 flex items-center gap-1 transition text-xs" 
+                                   title="Xem chi tiết">
+                                    <i class="fas fa-eye"></i>
                                 </a>
-                                @if($phong->trang_thai === 'hien' && !\App\Models\DatPhong::where('phong_id', $phong->id)->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])->exists())
-                                    <button onclick="blockRoomDirect({{ $phong->id }})" class="text-orange-600 hover:text-orange-700 flex items-center gap-1 transition text-xs">
-                                        <i class="fas fa-ban"></i> Chống
-                                    </button>
-                                @endif
-                                <form action="{{ route('admin.phong.toggle', $phong->id) }}" method="POST" onsubmit="return confirm('{{ $phong->trang_thai === 'hien' ? 'Vô hiệu hóa phòng này?' : 'Kích hoạt lại phòng này?' }}')">
+                                <a href="{{ route('admin.phong.edit', $phong->id) }}" 
+                                   class="text-amber-600 hover:text-amber-700 flex items-center gap-1 transition text-xs"
+                                   title="Sửa">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <form action="{{ route('admin.phong.destroy', $phong->id) }}" 
+                                      method="POST" 
+                                      onsubmit="return confirm('Bạn có chắc chắn muốn xóa phòng {{ $phong->so_phong }}?')"
+                                      class="inline">
                                     @csrf
-                                    @method('PUT')
-                                    @if($phong->trang_thai === 'hien')
-                                        <button type="submit" class="text-red-600 hover:text-red-700 flex items-center gap-1 transition text-xs">
-                                            <i class="bi bi-slash-circle"></i> Vô hiệu hóa
-                                        </button>
-                                    @else
-                                        <button type="submit" class="text-green-600 hover:text-green-700 flex items-center gap-1 transition text-xs">
-                                            <i class="bi bi-check-circle"></i> Kích hoạt
-                                        </button>
-                                    @endif
+                                    @method('DELETE')
+                                    <button type="submit" 
+                                            class="text-red-600 hover:text-red-700 flex items-center gap-1 transition text-xs"
+                                            title="Xóa">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
                                 </form>
                             </div>
                         </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="9" class="px-6 py-6 text-center text-gray-500">
+                        <td colspan="10" class="px-6 py-6 text-center text-gray-500">
                             Chưa có phòng nào được thêm.
+                            <a href="{{ route('admin.phong.create') }}" class="text-blue-600 hover:underline ml-2">Thêm phòng mới</a>
                         </td>
                     </tr>
                 @endforelse
@@ -157,34 +157,3 @@
 </div>
 @endsection
 
-@push('scripts')
-<script>
-    // Function to block room directly from room list
-    function blockRoomDirect(roomId) {
-        if (confirm('Bạn có chắc chắn muốn chống phòng này? Phòng sẽ không thể đặt được cho đến khi bạn hủy chống.')) {
-            // Create form to submit block request
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = `/admin/phong/${roomId}/block`;
-            
-            // Add CSRF token
-            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-            const csrfInput = document.createElement('input');
-            csrfInput.type = 'hidden';
-            csrfInput.name = '_token';
-            csrfInput.value = csrfToken;
-            form.appendChild(csrfInput);
-            
-            // Add method override for PUT
-            const methodInput = document.createElement('input');
-            methodInput.type = 'hidden';
-            methodInput.name = '_method';
-            methodInput.value = 'PUT';
-            form.appendChild(methodInput);
-            
-            document.body.appendChild(form);
-            form.submit();
-        }
-    }
-</script>
-@endpush

@@ -1,24 +1,19 @@
-<!-- Top navigation -->
-<header class="fixed top-0 left-0 right-0 lg:left-64 z-40 bg-white/95 backdrop-blur shadow-sm border-b border-gray-200">
+<header id="admin-header" class="fixed top-0 left-0 right-0 lg:left-64 z-40 bg-white/95 backdrop-blur shadow-sm border-b border-gray-200 transition-all duration-300">
     <style>
         /* Bảo đảm ẩn dropdown thông báo theo mặc định */
         #notifDropdown{display:none !important;}
     </style>
     <div class="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-        <!-- Mobile menu button -->
         <button id="sidebar-toggle" type="button" class="-m-2.5 p-2.5 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-300 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
             <span class="sr-only">Toggle sidebar</span>
-            <!-- Hamburger icon -->
             <svg id="hamburger-icon" class="h-6 w-6 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
             </svg>
-            <!-- Close icon -->
             <svg id="close-icon" class="h-6 w-6 transition-transform duration-300 hidden" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
         </button>
 
-        <!-- Search -->
         <div class="flex flex-1 items-center justify-center px-2 lg:ml-6 lg:justify-end">
             <div class="w-full max-w-lg lg:max-w-xs">
                 <label for="search" class="sr-only">Search</label>
@@ -33,22 +28,17 @@
             </div>
         </div>
 
-        <!-- Right side -->
         <div class="flex items-center gap-6">
-            <!-- Dark Mode Toggle -->
             <button id="dark-mode-toggle" type="button" class="relative p-2 text-gray-400 hover:text-gray-500 transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 rounded-full dark-mode-toggle">
                 <span class="sr-only">Toggle dark mode</span>
-                <!-- Sun icon (light mode) -->
                 <svg id="sun-icon" class="h-6 w-6 transition-all duration-300" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
                 </svg>
-                <!-- Moon icon (dark mode) -->
                 <svg id="moon-icon" class="h-6 w-6 transition-all duration-300 hidden" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
                 </svg>
             </button>
 
-            <!-- Notifications -->
             <div class="relative">
             <button type="button" id="notifToggle" class="relative p-2 text-gray-400 hover:text-gray-500 transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 rounded-full notification-bell">
                 <span class="sr-only">View notifications</span>
@@ -71,7 +61,7 @@
                 <div class="max-h-80 overflow-auto">
                     @forelse(($pendingRecentBookings ?? []) as $bk)
                         <a href="{{ route('admin.dat_phong.show', data_get($bk,'id')) }}" class="block px-4 py-3 hover:bg-gray-50">
-                            <div class="text-sm text-gray-800 font-medium">{{ data_get($bk,'username','Khách') }} - {{ data_get($bk,'phong.ten_phong','Phòng') }}</div>
+                            <div class="text-sm text-gray-800 font-medium">{{ data_get($bk,'username','Khách') }} - {{ data_get($bk,'loaiPhong.ten_loai','Loại phòng') }}</div>
                             <div class="text-xs text-gray-500">Đặt lúc {{ \Carbon\Carbon::parse(data_get($bk,'ngay_dat'))->format('d/m/Y H:i') }}</div>
                         </a>
                     @empty
@@ -84,7 +74,6 @@
             </div>
             </div>
 
-            <!-- Profile dropdown -->
             <div class="relative">
                 <button type="button" class="admin-profile-button flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" id="user-menu-button" aria-expanded="false" aria-haspopup="true">
                     <span class="sr-only">Open user menu</span>
@@ -97,7 +86,6 @@
                     </svg>
                 </button>
 
-                <!-- Dropdown menu -->
                 <div class="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none hidden" id="user-menu" role="menu" aria-orientation="vertical" aria-labelledby="user-menu-button">
                     <div class="px-4 py-2 border-b border-gray-100">
                         <p class="text-sm font-medium text-gray-900">{{ auth()->user()->ten ?? 'Admin' }}</p>
@@ -127,7 +115,6 @@
         </div>
     </div>
 </header>
-
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const userMenuButton = document.getElementById('user-menu-button');
@@ -211,72 +198,119 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Sidebar toggle functionality
+    // Sidebar toggle functionality (Logic đã sửa đổi)
     if (sidebarToggle && sidebar) {
-        let sidebarOpen = true; // Sidebar mở mặc định
+        const header = document.getElementById('admin-header');
         
+        // Trạng thái ban đầu: kiểm tra nếu sidebar bị thu gọn trong localStorage
+        let isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
+
+        // Áp dụng trạng thái ban đầu cho Desktop
+        if (window.innerWidth >= 1024) {
+            if (isCollapsed) {
+                sidebar.classList.add('sidebar-collapsed');
+                header.classList.remove('lg:left-64');
+                header.classList.add('lg:left-20');
+                hamburgerIcon.classList.add('hidden'); // Hiển thị 'X'
+                closeIcon.classList.remove('hidden');
+            } else {
+                sidebar.classList.remove('sidebar-collapsed');
+                header.classList.remove('lg:left-20');
+                header.classList.add('lg:left-64');
+                hamburgerIcon.classList.remove('hidden'); // Hiển thị '3 gạch'
+                closeIcon.classList.add('hidden');
+            }
+        }
+
         sidebarToggle.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            
-            sidebarOpen = !sidebarOpen;
-            
-            if (sidebarOpen) {
-                // Show sidebar (full width)
-                sidebar.classList.remove('show');
-                
-                // Hide backdrop
-                if (backdrop) {
-                    backdrop.classList.add('hidden');
-                    backdrop.classList.remove('block');
+
+            if (window.innerWidth < 1024) {
+                // Logic Mobile: Mở/Đóng toàn bộ Sidebar
+                if (sidebar.classList.contains('-translate-x-full')) {
+                    sidebar.classList.remove('-translate-x-full');
+                    if (backdrop) backdrop.classList.remove('hidden');
+                    hamburgerIcon.classList.add('hidden');
+                    closeIcon.classList.remove('hidden');
+                } else {
+                    sidebar.classList.add('-translate-x-full');
+                    if (backdrop) backdrop.classList.add('hidden');
+                    hamburgerIcon.classList.remove('hidden');
+                    closeIcon.classList.add('hidden');
                 }
-                
-                // Change icon to hamburger (sidebar visible)
-                hamburgerIcon.classList.remove('hidden');
-                closeIcon.classList.add('hidden');
-                
-                // Remove animation
-                sidebarToggle.classList.remove('rotate-90');
-                
             } else {
-                // Collapse sidebar (icon only)
-                sidebar.classList.add('show');
-                
-                // Show backdrop
-                if (backdrop) {
-                    backdrop.classList.remove('hidden');
-                    backdrop.classList.add('block');
+                // Logic Desktop: Thu gọn/Mở rộng (Icon-Only mode)
+                if (sidebar.classList.contains('sidebar-collapsed')) {
+                    // Mở rộng Sidebar (full width)
+                    sidebar.classList.remove('sidebar-collapsed');
+                    header.classList.remove('lg:left-20');
+                    header.classList.add('lg:left-64');
+                    localStorage.setItem('sidebar-collapsed', 'false');
+
+                    hamburgerIcon.classList.remove('hidden'); // '3 gạch'
+                    closeIcon.classList.add('hidden');
+                } else {
+                    // Thu gọn Sidebar (icon only)
+                    sidebar.classList.add('sidebar-collapsed');
+                    header.classList.remove('lg:left-64');
+                    header.classList.add('lg:left-20');
+                    localStorage.setItem('sidebar-collapsed', 'true');
+
+                    hamburgerIcon.classList.add('hidden');
+                    closeIcon.classList.remove('hidden'); // 'X'
                 }
+            }
+        });
+
+        // Logic xử lý khi resize màn hình
+        window.addEventListener('resize', function() {
+            if (window.innerWidth >= 1024) {
+                // Đảm bảo Sidebar không bị ẩn bằng transform khi ở desktop
+                sidebar.classList.remove('-translate-x-full');
                 
-                // Change icon to X (sidebar collapsed)
-                hamburgerIcon.classList.add('hidden');
-                closeIcon.classList.remove('hidden');
-                
-                // Add animation
-                sidebarToggle.classList.add('rotate-90');
+                // Cập nhật lại trạng thái Sidebar và Header
+                const shouldBeCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
+                if (shouldBeCollapsed) {
+                    header.classList.remove('lg:left-64');
+                    header.classList.add('lg:left-20');
+                    sidebar.classList.add('sidebar-collapsed');
+                    hamburgerIcon.classList.add('hidden');
+                    closeIcon.classList.remove('hidden');
+                } else {
+                    header.classList.remove('lg:left-20');
+                    header.classList.add('lg:left-64');
+                    sidebar.classList.remove('sidebar-collapsed');
+                    hamburgerIcon.classList.remove('hidden');
+                    closeIcon.classList.add('hidden');
+                }
+                if (backdrop) backdrop.classList.add('hidden');
+            } else {
+                // Đảm bảo Header không có lg:left-64/lg:left-20 trên mobile
+                header.classList.remove('lg:left-20', 'lg:left-64');
             }
         });
         
-        // Close sidebar when clicking backdrop
+        // Close sidebar when clicking backdrop (chỉ dùng cho mobile)
         if (backdrop) {
             backdrop.addEventListener('click', function() {
-                if (!sidebarOpen) {
+                 // Ở mobile, nếu sidebar đang mở (không có -translate-x-full), thì đóng nó
+                if (!sidebar.classList.contains('-translate-x-full') && window.innerWidth < 1024) {
                     sidebarToggle.click();
                 }
             });
         }
         
-        // Close sidebar on escape key
+        // Close sidebar on escape key (cần xử lý cho cả 2 trạng thái)
         document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape' && !sidebarOpen) {
-                sidebarToggle.click();
-            }
-        });
-        
-        // Close sidebar when clicking outside on mobile
-        document.addEventListener('click', function(event) {
-            if (!sidebarOpen && !sidebar.contains(event.target) && !sidebarToggle.contains(event.target)) {
-                sidebarToggle.click();
+            if (event.key === 'Escape') {
+                if (window.innerWidth < 1024 && !sidebar.classList.contains('-translate-x-full')) {
+                    // Mobile: Đóng sidebar
+                    sidebarToggle.click();
+                } else if (window.innerWidth >= 1024 && sidebar.classList.contains('sidebar-collapsed')) {
+                    // Desktop: Mở rộng sidebar
+                    sidebarToggle.click();
+                }
             }
         });
     }
@@ -284,24 +318,24 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 @push('scripts')
 <script>
-  (function(){
-    const toggleBtn = document.getElementById('notifToggle');
-    const dropdown = document.getElementById('notifDropdown');
-    if(!toggleBtn || !dropdown) return;
+    (function(){
+        const toggleBtn = document.getElementById('notifToggle');
+        const dropdown = document.getElementById('notifDropdown');
+        if(!toggleBtn || !dropdown) return;
 
-    function openDropdown(){ dropdown.style.display = 'block'; }
-    function closeDropdown(){ dropdown.style.display = 'none'; }
-    function toggle(){
-      if (dropdown.style.display === 'none' || dropdown.style.display === '') openDropdown(); else closeDropdown();
-    }
+        function openDropdown(){ dropdown.style.display = 'block'; }
+        function closeDropdown(){ dropdown.style.display = 'none'; }
+        function toggle(){
+            if (dropdown.style.display === 'none' || dropdown.style.display === '') openDropdown(); else closeDropdown();
+        }
 
-    toggleBtn.addEventListener('click', function(e){
-      e.stopPropagation();
-      toggle();
-    });
-    document.addEventListener('click', function(e){
-      if (!dropdown.contains(e.target) && e.target !== toggleBtn) closeDropdown();
-    });
-  })();
+        toggleBtn.addEventListener('click', function(e){
+            e.stopPropagation();
+            toggle();
+        });
+        document.addEventListener('click', function(e){
+            if (!dropdown.contains(e.target) && e.target !== toggleBtn) closeDropdown();
+        });
+    })();
 </script>
 @endpush

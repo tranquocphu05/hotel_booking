@@ -1,0 +1,81 @@
+name: Deploy to Shared Hosting via FTP
+
+on:
+  push:
+    branches: [ phu ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, intl, pdo, pdo_mysql, bcmath, curl, json, xml, fileinfo, openssl, tokenizer
+
+      - name: Install Composer dependencies (prod)
+        run: |
+          composer install --no-dev --prefer-dist --no-progress --no-interaction --optimize-autoloader
+
+      - name: Build Laravel caches (temp)
+        run: |
+          cp .env.example .env || true
+          php artisan key:generate || true
+          php artisan config:cache || true
+          php artisan route:cache || true
+          php artisan view:cache || true
+
+      - name: Prepare deploy artifact structure
+        run: |
+          mkdir -p deploy/laravel deploy/public_html
+          rsync -a --delete --exclude=public --exclude=.git --exclude=.github ./ deploy/laravel/
+          rsync -a --delete public/ deploy/public_html/
+
+      - name: Adjust public index.php for shared hosting layout
+        shell: bash
+        run: |
+          set -e
+          INDEX_FILE="deploy/public_html/index.php"
+          # Change vendor autoload path from ../vendor/autoload.php to ../laravel/vendor/autoload.php if present
+          if grep -q "../vendor/autoload.php" "$INDEX_FILE"; then
+            sed -i "s|../vendor/autoload.php|../laravel/vendor/autoload.php|" "$INDEX_FILE"
+          fi
+          # Change bootstrap app path from ../bootstrap/app.php to ../laravel/bootstrap/app.php if present
+          if grep -q "../bootstrap/app.php" "$INDEX_FILE"; then
+            sed -i "s|../bootstrap/app.php|../laravel/bootstrap/app.php|" "$INDEX_FILE"
+          fi
+
+      - name: FTP Deploy laravel core
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          local-dir: deploy/laravel/
+          server-dir: /laravel/
+          # keep vendor in sync
+          dangerous-clean-slate: true
+
+      - name: FTP Deploy public_html
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          local-dir: deploy/public_html/
+          server-dir: /public_html/
+          dangerous-clean-slate: true
+
+      - name: Post-deploy notes
+        run: |
+          echo "Upload thành công. Hãy đảm bảo tạo file .env trên host và chạy các lệnh artisan cần thiết qua SSH/Terminal nếu có."
+
+
+
+

@@ -16,6 +16,9 @@ class LoaiPhong extends Model
         'ten_loai',
         'mo_ta',
         'gia_co_ban',
+        'gia_khuyen_mai',    // Promotional price
+        'so_luong_phong',    // Total number of rooms
+        'so_luong_trong',    // Available rooms
         'diem_danh_gia',
         'so_luong_danh_gia',
         'trang_thai',
@@ -27,11 +30,52 @@ class LoaiPhong extends Model
     public $timestamps = false;
 
     /**
-     * Relationship với bảng phong
+     * Relationship với bảng dat_phong
+     */
+    public function datPhongs()
+    {
+        return $this->hasMany(DatPhong::class, 'loai_phong_id');
+    }
+
+    /**
+     * Relationship với bảng phong (rooms)
      */
     public function phongs()
     {
         return $this->hasMany(Phong::class, 'loai_phong_id');
+    }
+
+    /**
+     * Relationship với bảng danh_gia (comments)
+     */
+    public function comments()
+    {
+        return $this->hasMany(Comment::class, 'loai_phong_id');
+    }
+
+    /**
+     * Check if room type has available rooms
+     */
+    public function hasAvailableRooms()
+    {
+        return $this->so_luong_trong > 0;
+    }
+
+    /**
+     * Get percentage of rooms occupied
+     */
+    public function getOccupancyRateAttribute()
+    {
+        if ($this->so_luong_phong == 0) return 0;
+        return round((($this->so_luong_phong - $this->so_luong_trong) / $this->so_luong_phong) * 100, 2);
+    }
+
+    /**
+     * Get number of booked rooms
+     */
+    public function getRoomsDatAttribute()
+    {
+        return $this->so_luong_phong - $this->so_luong_trong;
     }
 
     /**
@@ -61,5 +105,21 @@ class LoaiPhong extends Model
         if ($this->diem_danh_gia >= 3.5) return 'Tốt';
         if ($this->diem_danh_gia >= 3.0) return 'Khá tốt';
         return 'Trung bình';
+    }
+
+    /**
+     * Get display price (promotional price if available, otherwise base price)
+     */
+    public function getGiaHienThiAttribute()
+    {
+        return $this->gia_khuyen_mai ?? $this->gia_co_ban;
+    }
+
+    /**
+     * Check if room type has promotional price
+     */
+    public function hasPromotion()
+    {
+        return !is_null($this->gia_khuyen_mai) && $this->gia_khuyen_mai < $this->gia_co_ban;
     }
 }

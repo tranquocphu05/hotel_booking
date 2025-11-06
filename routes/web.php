@@ -11,7 +11,6 @@ use App\Http\Controllers\Admin\VoucherController;
 use App\Http\Controllers\Admin\DatPhongController;
 use App\Http\Controllers\Admin\LoaiPhongController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
-use App\Http\Controllers\Admin\PhongController;
 
 // Client Controllers
 use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
@@ -51,9 +50,10 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-// Simple booking demo routes (public)
-Route::get('/booking/{phong}', [BookingController::class, 'showForm'])->name('booking.form')->middleware('auth');
+// Booking routes - Now booking by room type instead of specific room
+Route::get('/booking/{loaiPhongId?}', [BookingController::class, 'showForm'])->name('booking.form')->middleware('auth');
 Route::post('/booking', [BookingController::class, 'submit'])->name('booking.submit')->middleware('auth');
+Route::post('/booking/available-count', [BookingController::class, 'getAvailableCount'])->name('booking.available_count')->middleware('auth'); // AJAX endpoint
 
 require __DIR__ . '/auth.php';
 
@@ -83,20 +83,18 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin
     Route::get('/test', function () {
         return view('admin.test');
     })->name('test');
-    
-    
-    
-    
-    
+
+
+
+
+
 
     Route::resource('users', \App\Http\Controllers\Admin\UserController::class)->names('users');
     Route::put('users/{user}/toggle-status', [\App\Http\Controllers\Admin\UserController::class, 'toggleStatus'])->name('users.toggle');
     Route::resource('loai_phong', LoaiPhongController::class)->names('loai_phong');
     Route::put('loai_phong/{id}/toggle-status', [LoaiPhongController::class, 'toggleStatus'])->name('loai_phong.toggle');
-    Route::get('phong/available', [PhongController::class, 'available'])->name('phong.available');
-    Route::put('phong/{id}/block', [PhongController::class, 'blockRoom'])->name('phong.block');
-    Route::resource('phong', PhongController::class)->names('phong');
-    Route::put('phong/{id}/toggle-status', [PhongController::class, 'toggleStatus'])->name('phong.toggle');
+    Route::resource('phong', \App\Http\Controllers\Admin\PhongController::class)->names('phong');
+    Route::put('phong/{id}/update-status', [\App\Http\Controllers\Admin\PhongController::class, 'updateStatus'])->name('phong.update-status');
     Route::resource('invoices', InvoiceController::class)->names('invoices');
     Route::resource('voucher', VoucherController::class)->names('voucher');
     Route::resource('news', \App\Http\Controllers\Admin\NewsController::class)->names('news');
@@ -120,9 +118,11 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin
         Route::get('/', [DatPhongController::class, 'index'])->name('index');
         Route::get('/create', [DatPhongController::class, 'create'])->name('create');
         Route::post('/', [DatPhongController::class, 'store'])->name('store');
+        Route::post('/available-count', [DatPhongController::class, 'getAvailableCount'])->name('available_count'); // AJAX endpoint
         Route::get('/{id}', [DatPhongController::class, 'show'])->name('show');
         Route::get('/{id}/edit', [DatPhongController::class, 'edit'])->name('edit');
         Route::put('/{id}', [DatPhongController::class, 'update'])->name('update');
+        Route::put('/{id}/assign-room', [DatPhongController::class, 'assignRoom'])->name('assign_room');
         Route::delete('/{id}', [DatPhongController::class, 'destroy'])->name('destroy');
         Route::get('/{id}/cancel', [DatPhongController::class, 'showCancelForm'])->name('cancel');
         Route::post('/{id}/cancel', [DatPhongController::class, 'submitCancel'])->name('cancel.submit');
@@ -146,8 +146,7 @@ Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\Allow
     Route::get('/lien-he', [ClientContactController::class, 'index'])->name('lienhe');
     Route::get('/gioi-thieu', [ClientGioiThieuController::class, 'index'])->name('gioithieu');
 
-    Route::get('/{phong}/dat-phong', [BookingController::class, 'showForm'])->name('phong.create_booking');
-    Route::post('/{phong}/dat-phong', [BookingController::class, 'submit'])->name('phong.store_booking');
+    // Payment routes
     Route::get('/thanh-toan/{datPhong}', [ClientThanhToanController::class, 'show'])->name('thanh-toan.show');
     Route::post('/thanh-toan/{datPhong}', [ClientThanhToanController::class, 'store'])->name('thanh-toan.store');
     Route::get('/vnpay/payment/{datPhong}', [ClientThanhToanController::class, 'create_vnpay_payment'])->name('vnpay_payment');

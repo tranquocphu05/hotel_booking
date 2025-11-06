@@ -48,6 +48,35 @@
             </div>
         </div>
 
+        {{-- Hàng 1.5: Giá khuyến mãi --}}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label for="gia_khuyen_mai" class="block text-gray-700 font-medium mb-2 text-sm">Giá khuyến mãi (₫) <span class="text-gray-500 text-xs">(Tùy chọn)</span></label>
+                <input type="number" name="gia_khuyen_mai" id="gia_khuyen_mai" value="{{ old('gia_khuyen_mai') }}"
+                       class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm
+                              focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all
+                              hover:border-gray-300 bg-white text-gray-700 placeholder-gray-400"
+                       placeholder="Nhập giá khuyến mãi (để trống nếu không có)">
+                <p class="text-xs text-gray-500 mt-1">Nếu có giá khuyến mãi, hệ thống sẽ ưu tiên sử dụng giá này thay vì giá cơ bản</p>
+                @error('gia_khuyen_mai')
+                    <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <div>
+                <label for="so_luong_phong" class="block text-gray-700 font-medium mb-2 text-sm">Số lượng phòng</label>
+                <input type="number" name="so_luong_phong" id="so_luong_phong" value="{{ old('so_luong_phong', 0) }}"
+                       class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm
+                              focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all
+                              hover:border-gray-300 bg-white text-gray-700 placeholder-gray-400"
+                       placeholder="Tổng số phòng" min="0" required>
+                <p class="text-xs text-gray-500 mt-1">Số lượng phòng trống sẽ tự động bằng số lượng phòng khi tạo mới</p>
+                @error('so_luong_phong')
+                    <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+        </div>
+
         {{-- Hàng 2: Mô tả & Trạng thái --}}
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -79,14 +108,37 @@
 
         {{-- Hàng 3: Ảnh loại phòng --}}
 <div>
-    <label for="anh" class="block text-gray-700 font-medium mb-2 text-sm">Ảnh loại phòng</label>
-    <input type="file" name="anh" id="anh"
-           class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm
-                  focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all
-                  hover:border-gray-300 bg-white text-gray-700">
+            <label for="anh" class="block text-gray-700 font-medium mb-2 text-sm">Ảnh loại phòng *</label>
+            <div class="space-y-4">
+                {{-- Preview ảnh --}}
+                <div id="imagePreview" class="hidden">
+                    <label class="block text-gray-700 font-medium mb-2 text-sm">Ảnh xem trước:</label>
+                    <div class="relative inline-block">
+                        <img id="previewImg" src="" alt="Preview" 
+                             class="max-w-full h-64 object-cover rounded-lg shadow border border-gray-200">
+                        <button type="button" onclick="removePreview()" 
+                                class="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                {{-- Upload area --}}
+                <div class="border-2 border-dashed border-gray-300 rounded-xl p-6 hover:border-green-500 transition-colors">
+                    <label for="anh" class="cursor-pointer flex flex-col items-center">
+                        <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
+                        <span class="text-gray-700 font-medium mb-1">Click để chọn ảnh hoặc kéo thả ảnh vào đây</span>
+                        <span class="text-sm text-gray-500">JPG, PNG, JPEG (Tối đa 2MB)</span>
+                    </label>
+                    <input type="file" name="anh" id="anh" accept="image/*"
+                           class="hidden"
+                           onchange="previewImage(this)">
+                </div>
+                <div id="fileName" class="text-sm text-gray-600 hidden"></div>
     @error('anh')
         <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
     @enderror
+            </div>
 </div>
 
 
@@ -124,7 +176,60 @@
         }
       });
     }
+
+    // Drag and drop for image upload
+    const dropZone = document.querySelector('.border-dashed');
+    const fileInput = document.getElementById('anh');
+
+    dropZone.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      dropZone.classList.add('border-green-500', 'bg-green-50');
+    });
+
+    dropZone.addEventListener('dragleave', function(e) {
+      e.preventDefault();
+      dropZone.classList.remove('border-green-500', 'bg-green-50');
+    });
+
+    dropZone.addEventListener('drop', function(e) {
+      e.preventDefault();
+      dropZone.classList.remove('border-green-500', 'bg-green-50');
+      const files = e.dataTransfer.files;
+      if (files.length > 0 && files[0].type.startsWith('image/')) {
+        fileInput.files = files;
+        previewImage(fileInput);
+      }
+    });
   });
+
+  function previewImage(input) {
+    const preview = document.getElementById('imagePreview');
+    const previewImg = document.getElementById('previewImg');
+    const fileName = document.getElementById('fileName');
+
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      
+      reader.onload = function(e) {
+        previewImg.src = e.target.result;
+        preview.classList.remove('hidden');
+        fileName.textContent = 'File: ' + input.files[0].name;
+        fileName.classList.remove('hidden');
+      };
+
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+
+  function removePreview() {
+    const preview = document.getElementById('imagePreview');
+    const fileInput = document.getElementById('anh');
+    const fileName = document.getElementById('fileName');
+    
+    preview.classList.add('hidden');
+    fileInput.value = '';
+    fileName.classList.add('hidden');
+  }
 </script>
 @endpush
 @endsection

@@ -57,7 +57,7 @@
           <th class="px-6 py-3 text-center border-b">Khách hàng</th>
           <th class="px-6 py-3 text-center border-b">CCCD</th>
           <th class="px-6 py-3 text-center border-b">Loại Phòng</th>
-          <th class="px-6 py-3 text-center border-b">Tên Phòng</th>
+          <th class="px-6 py-3 text-center border-b">Số lượng</th>
           <th class="px-6 py-3 text-center border-b">Tổng tiền</th>
           <th class="px-6 py-3 text-center border-b">Phương thức</th>
           <th class="px-6 py-3 text-center border-b">Trạng thái</th>
@@ -72,19 +72,31 @@
             <td class="px-6 py-4 text-center font-semibold text-gray-900">#{{ $inv->id }}</td>
 
             <td class="px-6 py-4 text-center font-medium">
-              {{ $inv->datPhong->user->ho_ten ?? 'N/A' }}
+              {{ $inv->datPhong ? ($inv->datPhong->username ?? ($inv->datPhong->user->ho_ten ?? 'N/A')) : 'N/A' }}
             </td>
 
             <td class="px-6 py-4 text-center text-gray-600">
-              {{ $inv->datPhong->user->cccd ?? 'N/A' }}
+              {{ $inv->datPhong ? ($inv->datPhong->cccd ?? ($inv->datPhong->user->cccd ?? 'N/A')) : 'N/A' }}
             </td>
 
             <td class="px-6 py-4 text-center font-medium">
-              {{ $inv->datPhong->phong->loaiPhong->ten_loai ?? 'N/A' }}
+              @php
+                  $booking = $inv->datPhong;
+                  if($booking) {
+                      $roomTypes = $booking->getRoomTypes();
+                      if(count($roomTypes) > 1) {
+                          echo count($roomTypes) . ' loại phòng';
+                      } else {
+                          echo $booking->loaiPhong ? $booking->loaiPhong->ten_loai : 'N/A';
+                      }
+                  } else {
+                      echo 'N/A';
+                  }
+              @endphp
             </td>
 
             <td class="px-6 py-4 text-center font-medium">
-              {{ $inv->datPhong->phong->ten_phong ?? 'N/A' }}
+              {{ $inv->datPhong ? ($inv->datPhong->so_luong_da_dat ?? 1) : 1 }} phòng
             </td>
 
             <td class="px-6 py-4 text-center text-blue-600 font-semibold">

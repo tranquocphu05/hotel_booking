@@ -177,9 +177,9 @@
                             <i class="fas fa-hotel text-blue-600"></i>
                         </div>
                         <div>
-                            <h4 class="font-medium text-gray-900">{{ $booking->phong->ten_phong ?? 'N/A' }}</h4>
+                            <h4 class="font-medium text-gray-900">{{ $booking->loaiPhong->ten_loai ?? 'N/A' }}</h4>
                             <p class="text-sm text-gray-600">
-                                {{ $booking->phong->loaiPhong->ten_loai ?? 'N/A' }} • 
+                                {{ $booking->so_luong_da_dat ?? 1 }} phòng • 
                                 {{ \Carbon\Carbon::parse($booking->ngay_dat)->format('d/m/Y H:i') }}
                             </p>
                         </div>
@@ -317,6 +317,9 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 @endpush
 @endsection
+
+
+
 
 
 

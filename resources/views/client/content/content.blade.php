@@ -1,88 +1,151 @@
 {{-- Toast success đã render global ở layouts/base.blade.php để tránh trùng lặp --}}
 
-<section id="about-us" class="w-full flex justify-center bg-white py-16">
+<section id="about-us" class="w-full flex justify-center bg-white pt-12 pb-6">
+    <style>
+        /* CSS tùy chỉnh cho hiệu ứng hover chạy màu của nút "XEM THÊM" */
+        /* Đã loại bỏ .animated-hover-button vì sẽ dùng lại .btn-booking */
+
+        @media (min-width: 1024px) {
+            .about-block:nth-child(even) .lg\:flex-row {
+                flex-direction: row-reverse;
+            }
+        }
+
+        /* ===================== Contact Info Hover Luxury (Đã có sẵn) ===================== */
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: 0.3s ease;
+        }
+
+        .info-item i {
+            font-size: 18px;
+            width: 22px;
+            color: #D4AF37;
+            transition: 0.3s ease;
+        }
+
+        .info-item:hover i {
+            transform: translateY(-3px);
+            color: #b68b00;
+        }
+
+        .info-item:hover span,
+        .info-item:hover a {
+            color: #b68b00 !important;
+        }
+
+        /* ===================== NÚT ĐẶT PHÒNG Luxury (Đã có sẵn) ===================== */
+        .btn-booking {
+            position: relative;
+            overflow: hidden;
+            background: transparent;
+            border: 2px solid #d4af37;
+            color: #d4af37;
+            padding: 0.75rem 2.2rem;
+            border-radius: 50px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.35s ease;
+            z-index: 1;
+            /* Thêm z-index để ensure ::before không che mất text */
+        }
+
+        .btn-booking::before {
+            content: "";
+            position: absolute;
+            left: -100%;
+            top: 0;
+            width: 100%;
+            /* Giữ nguyên 100% thay vì 200% để đổ đầy nút */
+            height: 100%;
+            background: linear-gradient(to right, #d4af37, #b68b00);
+            transition: all 0.4s ease;
+            z-index: 0;
+        }
+
+        .btn-booking:hover::before {
+            left: 0;
+        }
+
+        .btn-booking svg,
+        .btn-booking span {
+            z-index: 10;
+            transition: color 0.3s ease;
+        }
+
+        .btn-booking:hover svg,
+        .btn-booking:hover span {
+            color: #fff;
+        }
+
+        .btn-booking:hover svg {
+            transform: translateX(6px);
+        }
+    </style>
     <div class="max-w-7xl w-full px-4">
         <div class="flex flex-col lg:flex-row items-center justify-between">
-            <!-- Nội dung bên trái -->
-            <div class="lg:w-3/5 text-center mb-8 lg:mb-0">
+            <div class="lg:w-3/5 text-center mb-0 lg:mb-0">
                 <p class="text-sm uppercase tracking-widest text-[#D4AF37] mb-2 font-medium">VỀ CHÚNG TÔI</p>
                 <h2 class="text-5xl font-serif font-extralight text-gray-800 mb-6 leading-tight">
                     Khách sạn OZIA HOTEL
                 </h2>
                 <p class="text-gray-600 mb-4 max-w-2xl mx-auto">
-                    Ozia Hotel là một trang web đặt phòng trực tuyến hàng đầu. Chúng tôi đam mê du lịch.
-                    Mỗi ngày, chúng tôi truyền cảm hứng và tiếp cận hàng triệu du khách trên toàn cầu
-                    thông qua các trang web của riêng mình.
+                    OZIA HOTEL không chỉ là một nơi lưu trú, mà là một tuyệt tác kiến trúc giữa lòng thành phố, định
+                    nghĩa lại tiêu chuẩn của sự sang trọng và tinh tế. Lấy cảm hứng từ vẻ đẹp vĩnh cửu của Vàng (Ozia -
+                    Gold), Khách sạn mang đến một không gian nghỉ dưỡng biệt lập, nơi mọi chi tiết đều được chăm chút tỉ
+                    mỉ.
                 </p>
-                <p class="text-gray-600 mb-8 max-w-2xl mx-auto">
-                    Vì vậy, khi bạn muốn đặt một khách sạn hoàn hảo, thuê nhà nghỉ dưỡng, khu nghỉ dưỡng,
-                    căn hộ, nhà khách, hay nhà trên cây, chúng tôi đều có thể đáp ứng.
+                <p class="text-gray-600 mb-4 max-w-2xl mx-auto">
+                    Trải Nghiệm Độc Quyền: Mỗi căn phòng tại OZIA là một chốn riêng tư đậm chất nghệ thuật, với nội thất
+                    được chế tác thủ công
+                    và tầm nhìn ngoạn mục. Chúng tôi cam kết mang đến dịch vụ Butler (Quản gia) 24/7 cá nhân hóa, đảm
+                    bảo mọi nhu cầu của bạn được đáp ứng hoàn hảo.
                 </p>
-                <a href="{{ route('client.gioithieu') }}"
-                    class="inline-block font-semibold uppercase tracking-wider text-sm px-6 py-2.5 rounded-full
-                    border border-[#d4af37] text-[#d4af37]
-                    transition-all duration-500 ease-out transform
-                    hover:bg-gradient-to-r hover:from-[#ffef9f] hover:to-[#d4af37]
-                    hover:text-white hover:shadow-[0_0_20px_rgba(212,175,55,0.6)]
-                    hover:-translate-y-1 hover:border-transparent">
-                    XEM THÊM
-                </a>
             </div>
-
-            <!-- Ảnh bên phải -->
             <div class="lg:w-2/5 flex justify-center lg:justify-end space-x-4">
-                <img src="{{ asset('img/about/about-1.jpg') }}" alt="Tháp truyền thống"
+                <img src="{{ asset('img/hero/d.jpeg') }}" alt="Tháp truyền thống"
                     class="w-[24rem] h-[31rem] object-cover rounded shadow-xl transform transition duration-500 ease-in-out hover:scale-[1.02] hover:shadow-2xl hover:rotate-1">
             </div>
         </div>
     </div>
 </section>
-<section id="about-uss2" class="about-block w-full flex justify-center bg-white py-16">
+
+<section id="about-uss2" class="about-block w-full flex justify-center bg-white pt-6 pb-12">
     <div class="max-w-7xl w-full px-4">
         <div class="flex flex-col lg:flex-row items-center justify-between">
-            <!-- Nội dung bên trái -->
             <div class="lg:w-3/5 text-center mb-8 lg:mb-0">
-                <p class="text-sm uppercase tracking-widest text-[#D4AF37] mb-2 font-medium">VỀ CHÚNG TÔI</p>
-                <h2 class="text-5xl font-serif font-extralight text-gray-800 mb-6 leading-tight">
-                    Khách sạn OZIA HOTEL
-                </h2>
+                <p class="text-sm tracking-widest text-[#D4AF37] mb-2 font-medium">Tiện Nghi</p>
+                <h3 class="text-4xl font-serif font-extralight text-gray-800 mb-6 leading-tight">
+                    Tiện nghi đẳng cấp & khoảnh khắc vàng son
+                </h3>
                 <p class="text-gray-600 mb-4 max-w-2xl mx-auto">
-                    Ozia Hotel là một trang web đặt phòng trực tuyến hàng đầu. Chúng tôi đam mê du lịch.
-                    Mỗi ngày, chúng tôi truyền cảm hứng và tiếp cận hàng triệu du khách trên toàn cầu
-                    thông qua các trang web của riêng mình.
+                    Khám phá thế giới ẩm thực tại nhà hàng "The Aurum" với những món ăn tinh hoa quốc tế, hay thư giãn
+                    tuyệt đối tại OZIA Spa với các liệu pháp trị liệu từ vàng. Hồ bơi vô cực trên tầng thượng là nơi
+                    hoàn hảo để chiêm ngưỡng hoàng hôn rực rỡ.
                 </p>
                 <p class="text-gray-600 mb-8 max-w-2xl mx-auto">
-                    Vì vậy, khi bạn muốn đặt một khách sạn hoàn hảo, thuê nhà nghỉ dưỡng, khu nghỉ dưỡng,
-                    căn hộ, nhà khách, hay nhà trên cây, chúng tôi đều có thể đáp ứng.
+                    OZIA HOTEL: Nơi thời gian dường như ngưng đọng, và mọi khoảnh khắc đều trở thành kỷ niệm vàng son
+                    không thể quên.
                 </p>
-                <a href="{{ route('client.gioithieu') }}"
-                    class="inline-block font-semibold uppercase tracking-wider text-sm px-6 py-2.5 rounded-full
-                    border border-[#d4af37] text-[#d4af37]
-                    transition-all duration-500 ease-out transform
-                    hover:bg-gradient-to-r hover:from-[#ffef9f] hover:to-[#d4af37]
-                    hover:text-white hover:shadow-[0_0_20px_rgba(212,175,55,0.6)]
-                    hover:-translate-y-1 hover:border-transparent">
-                    XEM THÊM
+                <a href="{{ route('client.gioithieu') }}" class="btn-booking group">
+                    <span>XEM THÊM</span>
                 </a>
             </div>
-
-            <!-- Ảnh bên phải -->
             <div class="lg:w-2/5 flex justify-center lg:justify-end space-x-4">
-                <img src="{{ asset('img/about/about-2.jpg') }}" alt="Chi tiết Nhà hàng"
+                <img src="{{ asset('img/hero/b.jpg') }}" alt="Chi tiết Nhà hàng"
                     class="w-[24rem] h-[31rem] object-cover rounded shadow-xl transform transition duration-500 ease-in-out hover:scale-[1.02] hover:shadow-2xl hover:-rotate-1">
             </div>
         </div>
     </div>
 </section>
-<style>
-    @media (min-width: 1024px) {
-
-        /* Đổi vị trí ảnh và text cho block chẵn */
-        .about-block:nth-child(even) .lg\:flex-row {
-            flex-direction: row-reverse;
-        }
-    }
-</style>
 
 
 <section id="services" class="relative">
@@ -93,13 +156,15 @@
             --dark-overlay: rgba(0, 0, 0, 0.6);
             --light-text: #f9f9f9;
             --card-bg: rgba(255, 255, 255, 0.08);
+            /* Giá trị gốc, sẽ bị override trong .service-card */
             --hover-shadow: rgba(212, 175, 55, 0.3);
             --initial-bright-gold: #ffeb3b;
-            --icon-size: 26px;
+            --icon-size: 22px;
         }
 
         #services {
-            background: url('{{ asset('img/hero/hero-1.jpg') }}') center/cover no-repeat;
+            background: url('{{ asset('img/hero/hero-5.jpg') }}') center fixed no-repeat;
+            background-size: cover;
             position: relative;
             z-index: 1;
         }
@@ -117,20 +182,24 @@
             will-change: transform, box-shadow;
             border-radius: 16px;
             padding: 1.8rem;
-            background: var(--card-bg);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(8px);
+            background: rgba(255, 255, 255, 0.12);
+            /* Tăng độ trong suốt */
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            /* Viền sáng hơn */
+            backdrop-filter: blur(10px);
+            /* Tăng độ mờ */
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            /* Thêm bóng đổ nhẹ ban đầu */
         }
 
         .service-card:hover {
             transform: translateY(-10px);
-            box-shadow: 0 0 25px var(--hover-shadow);
-            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 10px 30px var(--hover-shadow), 0 0 40px rgba(255, 215, 0, 0.4);
+            /* Bóng đổ khi hover đẹp hơn */
+            background: rgba(255, 255, 255, 0.2);
+            /* Sáng hơn khi hover */
         }
 
-        /* ======================================================= */
-        /* VÒNG TRÒN VÀNG + HIỆU ỨNG */
-        /* ======================================================= */
         .service-icon-wrap {
             width: 64px;
             height: 64px;
@@ -147,7 +216,6 @@
             position: relative;
         }
 
-        /* Vòng sáng ngoài */
         .service-icon-wrap::after {
             content: "";
             position: absolute;
@@ -180,22 +248,23 @@
                 inset 0 0 10px rgba(255, 255, 255, 0.5);
         }
 
-        .service-icon-wrap svg {
+        .service-icon-wrap i {
             width: var(--icon-size);
             height: var(--icon-size);
-            fill: #fff;
+            font-size: var(--icon-size);
+            color: #fff;
             filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.5));
             transition: all .4s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
-        .service-card:hover .service-icon-wrap svg {
+        .service-card:hover .service-icon-wrap i {
             transform: scale(1.1);
-            fill: var(--light-text);
+            color: var(--light-text);
         }
 
-        /* ======================================================= */
-        /* TEXT */
-        /* ======================================================= */
         .service-title {
             color: var(--light-text);
             font-weight: 700;
@@ -234,61 +303,44 @@
 
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
             @php
-                // MẢNG DỊCH VỤ VÀ SVG ICONS
                 $services = [
                     [
-                        // Kế Hoạch Du Lịch (Compass - La Bàn)
-                        'icon_svg' =>
-                            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M256 0a256 256 0 1 0 0 512A256 256 0 1 0 256 0zM127 64c-35.3 0-64 28.7-64 64V384c0 35.3 28.7 64 64 64H385c35.3 0 64-28.7 64-64V128c0-35.3-28.7-64-64-64H127zM384 192a32 32 0 1 1 0 64 32 32 0 1 1 0-64zM256 320c-17.7 0-32 14.3-32 32v64H160c-17.7 0-32 14.3-32 32s14.3 32 32 32H352c17.7 0 32-14.3 32-32s-14.3-32-32-32H288V352c0-17.7-14.3-32-32-32z"/></svg>',
+                        'icon_class' => 'fas fa-compass',
                         'title' => 'Kế Hoạch Du Lịch',
                         'desc' => 'Chúng tôi sẽ giúp bạn lên lịch trình tốt nhất.',
                     ],
                     [
-                        // Dịch Vụ Ăn Uống (Mug Hot - Cốc Nóng)
-                        'icon_svg' =>
-                            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path d="M336 64a48 48 0 1 0 0 96 48 48 0 1 0 0-96zM32 64a48 48 0 1 0 0 96 48 48 0 1 0 0-96zM192 0c-44.2 0-80 35.8-80 80V256H304V80c0-44.2-35.8-80-80-80zM352 288v48c0 26.5-21.5 48-48 48H128c-26.5 0-48-21.5-48-48V288c0-17.7 14.3-32 32-32h224c17.7 0 32 14.3 32 32zM288 448c0 17.7-14.3 32-32 32H128c-17.7 0-32-14.3-32-32V416h192v32z"/></svg>',
+                        'icon_class' => 'fas fa-mug-hot',
                         'title' => 'Dịch Vụ Ăn Uống',
                         'desc' => 'Phục vụ bữa ăn ngon miệng tại phòng hoặc nhà hàng.',
                     ],
                     [
-                        // Hướng Dẫn Đặt Phòng (Lock - Khóa)
-                        'icon_svg' =>
-                            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M400 224h-24v-72C376 68.2 307.8 0 224 0S72 68.2 72 152v72H48c-26.5 0-48 21.5-48 48v192c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V272c0-26.5-21.5-48-48-48zm-104 0H152v-72c0-39.7 32.3-72 72-72s72 32.3 72 72v72z"/></svg>',
+                        'icon_class' => 'fas fa-lock',
                         'title' => 'Hướng Dẫn Đặt Phòng',
                         'desc' => 'Quy trình đặt phòng nhanh chóng và dễ dàng.',
                     ],
                     [
-                        // Bãi Đậu Xe (Car - Xe Hơi)
-                        'icon_svg' =>
-                            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M499.7 114.7l-48.4-56.7c-3.1-3.6-7.8-5.6-12.7-5.6h-34.6c-11.7 0-21.2 9.5-21.2 21.2V128H128V21.2c0-11.7-9.5-21.2-21.2-21.2H72.3c-4.9 0-9.6 2-12.7 5.6L11.7 114.7c-7.7 9-11.7 20.3-11.7 32V460c0 28 22 52 50 52h412c28 0 50-24 50-52V146.7c0-11.7-4-22.9-11.7-32zM336 288c-17.7 0-32-14.3-32-32s14.3-32 32-32 32 14.3 32 32-14.3 32-32 32zm-160 0c-17.7 0-32-14.3-32-32s14.3-32 32-32 32 14.3 32 32-14.3 32-32 32z"/></svg>',
+                        'icon_class' => 'fas fa-car',
                         'title' => 'Bãi Đậu Xe',
                         'desc' => 'Bãi đậu xe rộng rãi và an toàn 24/7.',
                     ],
                     [
-                        // Dịch Vụ Phòng (Door Open - Cửa Mở)
-                        'icon_svg' =>
-                            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M384 64H128C57.3 64 0 121.3 0 192v256c0 35.3 28.7 64 64 64H448c35.3 0 64-28.7 64-64V192c0-70.7-57.3-128-128-128zM48 448V192c0-44.1 35.9-80 80-80H384c44.1 0 80 35.9 80 80v256H48zM240 288V224c0-8.8 7.2-16 16-16s16 7.2 16 16v64c0 8.8-7.2 16-16 16s-16-7.2-16-16z"/></svg>',
+                        'icon_class' => 'fas fa-door-open',
                         'title' => 'Dịch Vụ Phòng',
                         'desc' => 'Dịch vụ dọn phòng hàng ngày theo yêu cầu.',
                     ],
                     [
-                        // Phòng Tập & Spa (Dumbbell & Heart - Tạ và Trái Tim)
-                        'icon_svg' =>
-                            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 38.8 9.2 47.1L192 192 9.2 336.9c-10.4 8.2-12.3 23.3-4.1 33.7s23.3 12.3 33.7 4.1L192 320 384 464c10.4 8.2 25.5 6.4 33.7-4.1s6.4-25.5-4.1-33.7L224 304l160-160c10.4-8.2 12.3-23.3 4.1-33.7S399.5 76.4 389.1 84.6L224 224 38.8 5.1zM512 96a96 96 0 1 0 0 192 96 96 0 1 0 0-192zM512 320a96 96 0 1 0 0 192 96 96 0 1 0 0-192z"/></svg>',
+                        'icon_class' => 'fas fa-dumbbell',
                         'title' => 'Phòng Tập & Spa',
                         'desc' => 'Thư giãn với dịch vụ spa và phòng tập hiện đại.',
                     ],
                     [
-                        // Bar & Ăn Uống (Wine Glass - Ly Rượu)
-                        'icon_svg' =>
-                            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><path d="M320 0c-17.7 0-32 14.3-32 32s14.3 32 32 32h72.2c25.4 0 46.1 20.7 46.1 46.1V400H159.7V144c0-13.3-10.7-24-24-24s-24 10.7-24 24V400H64c-17.7 0-32 14.3-32 32s14.3 32 32 32H512c17.7 0 32-14.3 32-32s-14.3-32-32-32H448V128c0-50.5-41-91.5-91.5-91.5H320zM32 256c0 17.7-14.3 32-32 32s-32-14.3-32-32V128C0 57.3 57.3 0 128 0H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H128c-35.3 0-64 28.7-64 64V256z"/></svg>',
+                        'icon_class' => 'fas fa-wine-glass-alt',
                         'title' => 'Bar & Ăn Uống',
                         'desc' => 'Thưởng thức đồ uống và món ăn đặc sắc.',
                     ],
                     [
-                        // Hồ Bơi (Swimmer - Người Bơi)
-                        'icon_svg' =>
-                            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M512 256C512 397.4 397.4 512 256 512S0 397.4 0 256 114.6 0 256 0s256 114.6 256 256zM256 48A208 208 0 1 0 256 464 208 208 0 1 0 256 48zM312 328c0-26.5-21.5-48-48-48s-48 21.5-48 48 21.5 48 48 48 48-21.5 48-48zm-112-96c0 26.5-21.5 48-48 48s-48-21.5-48-48 21.5-48 48-48 48 21.5 48 48zm224 0c0 26.5-21.5 48-48 48s-48-21.5-48-48 21.5-48 48-48 48 21.5 48 48z"/></svg>',
+                        'icon_class' => 'fas fa-swimmer',
                         'title' => 'Hồ Bơi',
                         'desc' => 'Hồ bơi trong nhà và ngoài trời sang trọng.',
                     ],
@@ -298,7 +350,7 @@
             @foreach ($services as $service)
                 <div class="service-card text-center">
                     <div class="service-icon-wrap mx-auto">
-                        {!! $service['icon_svg'] !!}
+                        <i class="{{ $service['icon_class'] }}"></i>
                     </div>
                     <h4 class="service-title text-xl">{{ $service['title'] }}</h4>
                     <p class="service-desc text-sm">{{ $service['desc'] }}</p>
@@ -355,6 +407,32 @@
                 {{-- Ảnh phòng --}}
                 <img src="{{ asset($phong->anh ?: 'img/room/room-1.jpg') }}" alt="{{ $phong->ten_loai }}"
                     class="w-full h-full object-cover transform transition-transform duration-700 ease-in-out group-hover:scale-110">
+                
+                {{-- Badge và giá ở góc trên phải --}}
+                <div class="absolute top-4 right-4 flex flex-col items-end gap-1 z-10">
+                    @if($phong->gia_khuyen_mai)
+                        @php
+                            $discountPercent = round((($phong->gia_co_ban - $phong->gia_khuyen_mai) / $phong->gia_co_ban) * 100);
+                        @endphp
+                        {{-- Badge khuyến mãi --}}
+                        <div class="inline-flex items-center gap-1.5 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg">
+                            <i class="fas fa-tag text-white text-xs"></i>
+                            <span>GIẢM {{ $discountPercent }}%</span>
+                        </div>
+                    @endif
+                    {{-- Box giá --}}
+                    <div class="bg-black/90 text-white px-4 py-2.5 rounded-lg shadow-xl">
+                        <div class="text-xl font-bold">
+                            {{ number_format($phong->gia_khuyen_mai ?? $phong->gia_co_ban, 0, ',', '.') }}
+                        </div>
+                        @if($phong->gia_khuyen_mai)
+                            <div class="text-sm text-gray-300 line-through mt-0.5">
+                                {{ number_format($phong->gia_co_ban, 0, ',', '.') }}
+                            </div>
+                        @endif
+                        <div class="text-xs text-gray-300 mt-0.5">VNĐ / đêm</div>
+                    </div>
+                </div>
 
                 {{-- Overlay --}}
                 <div
@@ -364,25 +442,26 @@
                 {{-- Nội dung khi chưa hover (Giá ở dưới) --}}
                 <div
                     class="absolute inset-0 flex items-end p-6 text-white transition-all duration-500 group-hover:opacity-0 room-details-unhover">
-                    <div>
+                    <div class="w-full">
                         <h4 class="text-2xl font-bold mb-1 font-serif">{{ $phong->ten_loai }}</h4>
-
-                        @if ($phong->phongs && $phong->phongs->count() > 0)
-                            @php $firstRoom = $phong->phongs->first(); @endphp
-                            @if ($firstRoom->hasPromotion())
-                                <div class="flex items-center space-x-2">
-                                    <span class="text-lg text-gray-300 line-through">
-                                        {{ number_format($firstRoom->gia_goc_hien_thi, 0, ',', '.') }}đ
-                                    </span>
-                                    <span class="text-xl text-[#D4AF37] font-semibold">
-                                        {{ number_format($firstRoom->gia_hien_thi, 0, ',', '.') }}đ
-                                    </span>
-                                </div>
-                            @else
-                                <span class="text-xl text-[#D4AF37] font-semibold">
-                                    {{ number_format($firstRoom->gia_hien_thi, 0, ',', '.') }}đ
+                        @if($phong->gia_khuyen_mai)
+                            @php
+                                $discountPercent = round((($phong->gia_co_ban - $phong->gia_khuyen_mai) / $phong->gia_co_ban) * 100);
+                            @endphp
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="inline-flex items-center gap-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg animate-pulse">
+                                    <i class="fas fa-tag"></i>
+                                    <span>GIẢM {{ $discountPercent }}%</span>
                                 </span>
-                            @endif
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xl text-red-400 font-semibold">
+                                    {{ number_format($phong->gia_khuyen_mai, 0, ',', '.') }}đ
+                                </span>
+                                <span class="text-sm text-gray-400 line-through">
+                                    {{ number_format($phong->gia_co_ban, 0, ',', '.') }}đ
+                                </span>
+                            </div>
                         @else
                             <span class="text-xl text-[#D4AF37] font-semibold">
                                 {{ number_format($phong->gia_co_ban, 0, ',', '.') }}đ
@@ -398,29 +477,31 @@
                     {{-- Tên + Giá --}}
                     <div class="mb-4">
                         <h4 class="text-3xl font-serif font-bold mb-1">{{ $phong->ten_loai }}</h4>
-
-                        @if ($phong->phongs && $phong->phongs->count() > 0)
-                            @php $firstRoom = $phong->phongs->first(); @endphp
-                            @if ($firstRoom->hasPromotion())
-                                <div class="flex items-center space-x-2">
-                                    <span class="text-xl text-gray-300 line-through">
-                                        {{ number_format($firstRoom->gia_goc_hien_thi, 0, ',', '.') }}đ
-                                    </span>
-                                    <span class="text-2xl text-[#FFD700] font-bold">
-                                        {{ number_format($firstRoom->gia_hien_thi, 0, ',', '.') }}đ
-                                    </span>
-                                </div>
-                            @else
-                                <span class="text-2xl text-[#FFD700] font-bold">
-                                    {{ number_format($firstRoom->gia_hien_thi, 0, ',', '.') }}đ
+                        @if($phong->gia_khuyen_mai)
+                            @php
+                                $discountPercent = round((($phong->gia_co_ban - $phong->gia_khuyen_mai) / $phong->gia_co_ban) * 100);
+                            @endphp
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="inline-flex items-center gap-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
+                                    <i class="fas fa-tag"></i>
+                                    <span>GIẢM {{ $discountPercent }}%</span>
                                 </span>
-                            @endif
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="text-2xl text-red-400 font-bold">
+                                    {{ number_format($phong->gia_khuyen_mai, 0, ',', '.') }}đ
+                                </span>
+                                <span class="text-base text-gray-400 line-through">
+                                    {{ number_format($phong->gia_co_ban, 0, ',', '.') }}đ
+                                </span>
+                                <span class="text-base text-gray-300">/ Đêm</span>
+                            </div>
                         @else
                             <span class="text-2xl text-[#FFD700] font-bold">
                                 {{ number_format($phong->gia_co_ban, 0, ',', '.') }}đ
                             </span>
+                            <span class="text-base text-gray-300">/ Đêm</span>
                         @endif
-                        <span class="text-base text-gray-300">/ Đêm</span>
                     </div>
 
                     <div class="mt-2 mb-4">
@@ -484,7 +565,7 @@
     </ul>
 </section>
 
-<section id="testimonials" class="py-16 bg-gray-50 my-16 rounded-lg">
+<section id="testimonials" class="py-16 bg-gray-50 my-16 rounded-3xl overflow-hidden">
     <div class="text-center container mx-auto px-4">
         <p class="text-sm uppercase tracking-widest text-[#D4AF37] mb-2">Ý KIẾN KHÁCH HÀNG</p>
         <h2 class="text-3xl font-bold text-gray-800 mb-8">Khách Hàng Nói Gì?</h2>
@@ -494,9 +575,8 @@
                 <div class="swiper-wrapper">
                     @foreach ($comments as $comment)
                         <div
-                            class="swiper-slide bg-white rounded-2xl shadow-md p-8 flex flex-col items-center text-center transition duration-300 hover:shadow-lg">
+                            class="swiper-slide bg-white rounded-3xl p-8 flex flex-col items-center text-center transition duration-300 relative z-10">
 
-                            {{-- Ảnh đại diện --}}
                             @if (!empty($comment->user->avatar))
                                 <img src="{{ asset('storage/' . $comment->user->avatar) }}" alt="Avatar người dùng"
                                     class="w-20 h-20 rounded-full object-cover mb-4 shadow-md border-2 border-yellow-400 hover:scale-105 transition-transform duration-300">
@@ -508,12 +588,10 @@
                                     class="w-20 h-20 rounded-full object-cover mb-4 shadow-md border-2 border-gray-300">
                             @endif
 
-                            {{-- Nội dung đánh giá --}}
                             <p class="italic text-gray-600 text-lg leading-relaxed mb-6 max-w-2xl">
                                 “{{ $comment->noi_dung }}”
                             </p>
 
-                            {{-- Số sao --}}
                             <div class="flex justify-center text-yellow-500 mb-3">
                                 @for ($i = 1; $i <= 5; $i++)
                                     <i
@@ -521,7 +599,6 @@
                                 @endfor
                             </div>
 
-                            {{-- Người dùng & ngày đánh giá --}}
                             <p class="font-semibold text-gray-800">
                                 — {{ $comment->user->username ?? ($comment->user->name ?? 'Ẩn danh') }}
                             </p>
@@ -532,7 +609,6 @@
                     @endforeach
                 </div>
 
-                {{-- Pagination (Giữ lại phân trang nếu muốn) --}}
                 <div class="swiper-pagination mt-6"></div>
             </div>
         @else
@@ -540,9 +616,8 @@
         @endif
     </div>
 </section>
-
 <section class="relative bg-center bg-cover text-center text-white py-32 mb-20"
-    style="background-image: url('{{ asset('img/video-bg.jpg') }}')">
+    style="background-image: url('{{ asset('img/hero/x.jpg') }}')">
     <div class="absolute inset-0 bg-black/60"></div>
     <div class="relative z-10 max-w-3xl mx-auto">
         <h2 class="text-4xl font-extrabold mb-6">Khám phá khách sạn & dịch vụ của chúng tôi</h2>
@@ -550,16 +625,52 @@
             Tận hưởng kỳ nghỉ tuyệt vời cùng không gian sang trọng và dịch vụ đẳng cấp.
         </p>
 
-        <!-- Nút xem video -->
         <button onclick="openVideoPopup()"
-            class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-blue-600 hover:bg-red-600 shadow-lg transition transform hover:scale-110">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="white" viewBox="0 0 24 24" class="w-8 h-8 ml-1">
+            class="inline-flex items-center justify-center w-20 h-20 rounded-full
+
+            /* Nền vàng trong suốt mặc định */
+            bg-[#D4AF37]/30 border-0
+
+            /* Icon luôn màu trắng */
+            text-white
+
+            /* CSS tùy chỉnh cho hiệu ứng viền/glow */
+            play-button-glow
+
+            transition duration-300 ease-in-out
+            transform hover:scale-110
+            focus:outline-none">
+
+            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" class="w-8 h-8 ml-1">
                 <path d="M3 22v-20l18 10-18 10z" />
             </svg>
         </button>
     </div>
 </section>
 
+<style>
+.play-button-glow {
+    /* MẶC ĐỊNH: Viền thứ 2 màu trắng mờ */
+    box-shadow:
+        0 0 0 8px rgba(255, 255, 255, 0.2); /* Viền trắng mờ thứ hai */
+
+    /* Icon đã được Tailwind đặt là text-white, nên không cần đặt lại ở đây */
+}
+
+.play-button-glow:hover {
+    /* HOVER: Hiệu ứng phát sáng vàng mạnh mẽ (Neon Glow) */
+    /* Nền sẽ đậm hơn một chút hoặc giữ nguyên tùy theo bg-[#D4AF37]/30 */
+    box-shadow:
+        /* Giữ lại viền trắng mờ 0 0 0 8px rgba(255, 255, 255, 0.2), */ /* Tùy chọn: bỏ dòng này nếu muốn viền trắng biến mất khi hover */
+        0 0 0 3px #D4AF37, /* Viền vàng rõ nét */
+        0 0 0 10px rgba(212, 175, 55, 0.6), /* Viền vàng mờ rộng hơn */
+        0 0 30px #D4AF37, /* Sáng vàng chính */
+        0 0 60px rgba(212, 175, 55, 0.6); /* Sáng vàng lan rộng */
+
+    /* Icon vẫn là màu trắng (đã được Tailwind đặt text-white) */
+    /* Nếu muốn chắc chắn, có thể thêm: color: white !important; */
+}
+</style>
 <!-- Popup Video -->
 <div id="videoPopup"
     class="fixed inset-0 hidden z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity duration-300">
@@ -624,8 +735,8 @@
                             class="block bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm relative group cursor-pointer
                    hover:shadow-xl hover:scale-[1.02] transition duration-300 ease-in-out">
                             <div class="relative">
-                                <img src="{{ asset($phong->img ?: 'img/gallery/gallery-1.jpg') }}"
-                                    alt="{{ $phong->ten_phong }}" class="w-full h-48 object-cover">
+                                <img src="{{ asset($phong->anh ?? 'img/gallery/gallery-1.jpg') }}"
+                                    alt="{{ $phong->ten_loai ?? 'Loại phòng' }}" class="w-full h-48 object-cover">
 
                                 <button
                                     class="absolute top-4 right-4 bg-white p-2 rounded-full shadow-md text-gray-700 hover:text-red-500 transition duration-300 z-10"
@@ -643,10 +754,10 @@
                                 @endif
                             </div>
                             <div class="p-4">
-                                <h3 class="text-lg font-bold text-gray-800 mb-1 leading-tight">{{ $phong->ten_phong }}
+                                <h3 class="text-lg font-bold text-gray-800 mb-1 leading-tight">{{ $phong->ten_loai ?? 'Loại phòng' }}
                                 </h3>
                                 <p class="text-sm text-gray-500 mb-2">
-                                    {{ data_get($phong, 'loaiPhong.ten_loai', 'Phòng') }}</p>
+                                    Còn {{ $phong->so_luong_trong ?? 0 }}/{{ $phong->so_luong_phong ?? 0 }} phòng trống</p>
 
                                 <div class="flex items-center mb-3">
                                     @php($stars = data_get($phong, 'loaiPhong.stars'))
@@ -665,15 +776,8 @@
 
                                 <div class="flex items-baseline justify-between mt-auto pt-2 border-t border-gray-100">
                                     <div>
-                                        @if ($phong->hasPromotion())
-                                            <p class="text-xs text-gray-500 line-through">
-                                                {{ number_format($phong->gia_goc_hien_thi, 0, ',', '.') }}₫</p>
-                                            <p class="text-lg font-bold text-yellow-600">
-                                                {{ number_format($phong->gia_hien_thi, 0, ',', '.') }}₫</p>
-                                        @else
-                                            <p class="text-lg font-bold text-yellow-600">
-                                                {{ number_format($phong->gia_hien_thi, 0, ',', '.') }}₫</p>
-                                        @endif
+                                        <p class="text-lg font-bold text-yellow-600">
+                                            {{ number_format($phong->gia_co_ban, 0, ',', '.') }}₫</p>
                                     </div>
                                     <span class="text-sm text-gray-500">1 đêm</span>
                                 </div>
@@ -786,7 +890,7 @@
 
             <!-- Ảnh -->
             <div class="equal-box overflow-hidden rounded-lg shadow-md">
-                <img src="{{ asset('img/about/about-1.jpg') }}" alt="Hình ảnh khách sạn"
+                <img src="{{ asset('img/hero/7.webp') }}" alt="Hình ảnh khách sạn"
                     class="w-full h-full object-cover">
             </div>
 
@@ -808,7 +912,8 @@
                         THÔNG TIN ĐẶT PHÒNG
                     </h1>
                     <p class="text-gray-600 mb-8 leading-relaxed text-base">
-                        Bạn có thắc mắc? Đội ngũ của chúng tôi luôn sẵn sàng giúp đỡ. Hãy thoải mái gọi điện hoặc gửi email cho chúng tôi.
+                        Bạn có thắc mắc? Đội ngũ của chúng tôi luôn sẵn sàng giúp đỡ. Hãy thoải mái gọi điện hoặc gửi
+                        email cho chúng tôi.
                     </p>
 
                     <!-- ✅ Contact Info (ĐÃ NÂNG CẤP HOVER) -->
@@ -838,8 +943,8 @@
                 <div class="flex justify-center mt-8">
                     <a href="{{ route('client.phong') }}" class="btn-booking group">
                         <span>Đặt phòng ngay</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor" class="w-4 h-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" class="w-4 h-4">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M17 8l4 4m0 0l-4 4m4-4H3" />
                         </svg>
@@ -852,19 +957,28 @@
         <div class="mt-16 pt-8 border-t border-gray-200">
             <div class="flex justify-between items-center max-w-5xl mx-auto w-full px-8">
 
-                <a href="#" class="flex items-center text-gray-700 hover:text-[#D4AF37] transition duration-300">
-                    <span class="p-3 mr-2 text-xl text-[#D4AF37]"><i class="fab fa-facebook-f"></i></span>
-                    <span class="text-sm font-medium">Theo dõi trên Facebook</span>
+                <a href="#"
+                    class="flex items-center text-gray-700 hover:text-[#D4AF37] transition duration-300">
+                    {{-- Đã thay đổi p-3 -> p-4 và text-xl -> text-2xl --}}
+                    <span class="p-4 mr-2 text-2xl text-[#D4AF37]"><i class="fab fa-facebook-f"></i></span>
+                    {{-- Đã thay đổi text-sm -> text-base và font-medium -> font-semibold --}}
+                    <span class="text-base font-semibold">Theo dõi trên Facebook</span>
                 </a>
 
-                <a href="#" class="flex items-center text-gray-700 hover:text-[#D4AF37] transition duration-300">
-                    <span class="p-3 mr-2 text-xl text-[#D4AF37]"><i class="fab fa-instagram"></i></span>
-                    <span class="text-sm font-medium">Theo dõi trên Instagram</span>
+                <a href="#"
+                    class="flex items-center text-gray-700 hover:text-[#D4AF37] transition duration-300">
+                    {{-- Đã thay đổi p-3 -> p-4 và text-xl -> text-2xl --}}
+                    <span class="p-4 mr-2 text-2xl text-[#D4AF37]"><i class="fab fa-instagram"></i></span>
+                    {{-- Đã thay đổi text-sm -> text-base và font-medium -> font-semibold --}}
+                    <span class="text-base font-semibold">Theo dõi trên Instagram</span>
                 </a>
 
-                <a href="#" class="flex items-center text-gray-700 hover:text-[#D4AF37] transition duration-300">
-                    <span class="p-3 mr-2 text-xl text-[#D4AF37]"><i class="fab fa-tiktok"></i></span>
-                    <span class="text-sm font-medium">Theo dõi trên Tiktok</span>
+                <a href="#"
+                    class="flex items-center text-gray-700 hover:text-[#D4AF37] transition duration-300">
+                    {{-- Đã thay đổi p-3 -> p-4 và text-xl -> text-2xl --}}
+                    <span class="p-4 mr-2 text-2xl text-[#D4AF37]"><i class="fab fa-tiktok"></i></span>
+                    {{-- Đã thay đổi text-sm -> text-base và font-medium -> font-semibold --}}
+                    <span class="text-base font-semibold">Theo dõi trên Tiktok</span>
                 </a>
 
             </div>
