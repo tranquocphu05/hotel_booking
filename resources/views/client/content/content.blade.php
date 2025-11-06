@@ -1,6 +1,6 @@
 {{-- Toast success đã render global ở layouts/base.blade.php để tránh trùng lặp --}}
 
-<section id="about-us" class="w-full flex justify-center bg-white pt-12 pb-6">
+<section id="about-us" class="w-full flex justify-center bg-white pt-32 pb-6">
     <style>
         /* CSS tùy chỉnh cho hiệu ứng hover chạy màu của nút "XEM THÊM" */
         /* Đã loại bỏ .animated-hover-button vì sẽ dùng lại .btn-booking */
