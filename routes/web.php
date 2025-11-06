@@ -51,8 +51,9 @@ Route::middleware('auth')->group(function () {
 });
 
 // Booking routes - Now booking by room type instead of specific room
-Route::get('/booking/{loaiPhongId}', [BookingController::class, 'showForm'])->name('booking.form')->middleware('auth');
+Route::get('/booking/{loaiPhongId?}', [BookingController::class, 'showForm'])->name('booking.form')->middleware('auth');
 Route::post('/booking', [BookingController::class, 'submit'])->name('booking.submit')->middleware('auth');
+Route::post('/booking/available-count', [BookingController::class, 'getAvailableCount'])->name('booking.available_count')->middleware('auth'); // AJAX endpoint
 
 require __DIR__ . '/auth.php';
 
@@ -92,6 +93,8 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin
     Route::put('users/{user}/toggle-status', [\App\Http\Controllers\Admin\UserController::class, 'toggleStatus'])->name('users.toggle');
     Route::resource('loai_phong', LoaiPhongController::class)->names('loai_phong');
     Route::put('loai_phong/{id}/toggle-status', [LoaiPhongController::class, 'toggleStatus'])->name('loai_phong.toggle');
+    Route::resource('phong', \App\Http\Controllers\Admin\PhongController::class)->names('phong');
+    Route::put('phong/{id}/update-status', [\App\Http\Controllers\Admin\PhongController::class, 'updateStatus'])->name('phong.update-status');
     Route::resource('invoices', InvoiceController::class)->names('invoices');
     Route::resource('voucher', VoucherController::class)->names('voucher');
     Route::resource('news', \App\Http\Controllers\Admin\NewsController::class)->names('news');
@@ -115,9 +118,11 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin
         Route::get('/', [DatPhongController::class, 'index'])->name('index');
         Route::get('/create', [DatPhongController::class, 'create'])->name('create');
         Route::post('/', [DatPhongController::class, 'store'])->name('store');
+        Route::post('/available-count', [DatPhongController::class, 'getAvailableCount'])->name('available_count'); // AJAX endpoint
         Route::get('/{id}', [DatPhongController::class, 'show'])->name('show');
         Route::get('/{id}/edit', [DatPhongController::class, 'edit'])->name('edit');
         Route::put('/{id}', [DatPhongController::class, 'update'])->name('update');
+        Route::put('/{id}/assign-room', [DatPhongController::class, 'assignRoom'])->name('assign_room');
         Route::delete('/{id}', [DatPhongController::class, 'destroy'])->name('destroy');
         Route::get('/{id}/cancel', [DatPhongController::class, 'showCancelForm'])->name('cancel');
         Route::post('/{id}/cancel', [DatPhongController::class, 'submitCancel'])->name('cancel.submit');

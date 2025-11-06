@@ -267,12 +267,32 @@
                                                             <i class="fas fa-hotel text-blue-600 text-xl"></i>
                                                         </div>
                                                         <div>
-                                                            <h3 class="text-xl font-bold text-gray-900">
-                                                                {{ $booking->loaiPhong->ten_loai ?? 'N/A' }}</h3>
-                                                            <p class="text-sm text-gray-600">
-                                                                <i class="fas fa-bed-alt mr-1"></i>
-                                                                Loại phòng
-                                                            </p>
+                                                            @php
+                                                                $roomTypes = $booking->getRoomTypes();
+                                                            @endphp
+                                                            @if(count($roomTypes) > 1)
+                                                                <h3 class="text-xl font-bold text-gray-900">
+                                                                    {{ count($roomTypes) }} loại phòng
+                                                                </h3>
+                                                                <p class="text-sm text-gray-600">
+                                                                    <i class="fas fa-bed-alt mr-1"></i>
+                                                                    @foreach($roomTypes as $index => $roomType)
+                                                                        @php
+                                                                            $loaiPhong = \App\Models\LoaiPhong::find($roomType['loai_phong_id']);
+                                                                        @endphp
+                                                                        @if($loaiPhong)
+                                                                            {{ $loaiPhong->ten_loai }} ({{ $roomType['so_luong'] }} phòng)@if($index < count($roomTypes) - 1), @endif
+                                                                        @endif
+                                                                    @endforeach
+                                                                </p>
+                                                            @else
+                                                                <h3 class="text-xl font-bold text-gray-900">
+                                                                    {{ $booking->loaiPhong->ten_loai ?? 'N/A' }}</h3>
+                                                                <p class="text-sm text-gray-600">
+                                                                    <i class="fas fa-bed-alt mr-1"></i>
+                                                                    Loại phòng
+                                                                </p>
+                                                            @endif
                                                         </div>
                                                     </div>
                                                 </div>

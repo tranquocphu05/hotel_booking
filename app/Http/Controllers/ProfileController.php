@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\DB;
 
 class ProfileController extends Controller
 {
@@ -20,7 +21,7 @@ class ProfileController extends Controller
 
         // Lấy lịch sử đặt phòng - Mỗi trang hiển thị 3 phòng
         $bookings = \App\Models\DatPhong::where('nguoi_dung_id', $user->id)
-            ->with(['loaiPhong'])
+            ->with(['loaiPhong', 'phong'])
             ->orderBy('ngay_dat', 'desc')
             ->paginate(3);
 
@@ -139,11 +140,43 @@ class ProfileController extends Controller
             return Redirect::route('profile.edit')->with('error', 'Chỉ có thể hủy đặt phòng đang chờ xác nhận!');
         }
 
-        // Update booking status
-        $booking->trang_thai = 'da_huy';
-        $booking->ly_do_huy = $request->ly_do_huy;
-        $booking->ngay_huy = now();
-        $booking->save();
+        // Update booking status and free up rooms
+        DB::transaction(function () use ($booking, $request) {
+            // Load relationships
+            $booking->load(['phong', 'loaiPhong']);
+
+            // Update booking status
+            $booking->trang_thai = 'da_huy';
+            $booking->ly_do_huy = $request->ly_do_huy;
+            $booking->ngay_huy = now();
+            $booking->save();
+
+            // Free up room via phong_id (legacy)
+            if ($booking->phong_id && $booking->phong) {
+                $booking->phong->update(['trang_thai' => 'trong']);
+            }
+
+            // Free up rooms via phong_ids JSON
+            $phongIds = $booking->getPhongIds();
+            foreach ($phongIds as $phongId) {
+                $phong = Phong::find($phongId);
+                if ($phong) {
+                    $phong->update(['trang_thai' => 'trong']);
+                }
+            }
+            
+            // Clear phong_ids after freeing rooms
+            $booking->phong_ids = [];
+            $booking->save();
+
+            // Update so_luong_trong in loai_phong
+            if ($booking->loaiPhong) {
+                $trongCount = \App\Models\Phong::where('loai_phong_id', $booking->loai_phong_id)
+                    ->where('trang_thai', 'trong')
+                    ->count();
+                $booking->loaiPhong->update(['so_luong_trong' => $trongCount]);
+            }
+        });
 
         return Redirect::route('profile.edit')->with('success', 'Hủy đặt phòng thành công!');
     }

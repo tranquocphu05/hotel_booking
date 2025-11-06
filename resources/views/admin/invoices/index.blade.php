@@ -80,7 +80,19 @@
             </td>
 
             <td class="px-6 py-4 text-center font-medium">
-              {{ $inv->datPhong && $inv->datPhong->loaiPhong ? $inv->datPhong->loaiPhong->ten_loai : 'N/A' }}
+              @php
+                  $booking = $inv->datPhong;
+                  if($booking) {
+                      $roomTypes = $booking->getRoomTypes();
+                      if(count($roomTypes) > 1) {
+                          echo count($roomTypes) . ' loại phòng';
+                      } else {
+                          echo $booking->loaiPhong ? $booking->loaiPhong->ten_loai : 'N/A';
+                      }
+                  } else {
+                      echo 'N/A';
+                  }
+              @endphp
             </td>
 
             <td class="px-6 py-4 text-center font-medium">

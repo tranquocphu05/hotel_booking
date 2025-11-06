@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Client;
 use App\Http\Controllers\Controller;
 use App\Models\LoaiPhong;
 use App\Models\Comment;
+use App\Models\Phong;
 use Illuminate\Http\Request;
 
 class PhongController extends Controller
@@ -42,11 +43,27 @@ class PhongController extends Controller
         $phongs = $query->paginate(12)->appends(request()->query());
         $allLoaiPhongs = LoaiPhong::where('trang_thai', 'hoat_dong')->get();
 
-        return view('client.content.phong', compact('phongs', 'allLoaiPhongs'));
+        // Tính availability theo khoảng thời gian (nếu có)
+        $checkin = $request->get('checkin');
+        $checkout = $request->get('checkout');
+        $availabilityMap = [];
+        
+        if ($checkin && $checkout) {
+            foreach ($phongs as $phong) {
+                try {
+                    $availableCount = Phong::countAvailableRooms($phong->id, $checkin, $checkout);
+                    $availabilityMap[$phong->id] = $availableCount;
+                } catch (\Exception $e) {
+                    $availabilityMap[$phong->id] = null;
+                }
+            }
+        }
+
+        return view('client.content.phong', compact('phongs', 'allLoaiPhongs', 'checkin', 'checkout', 'availabilityMap'));
     }
 
     // Chi tiết loại phòng theo ID
-    public function show($id)
+    public function show($id, Request $request)
     {
         // Tìm loại phòng
         $loaiPhong = LoaiPhong::find($id);
@@ -57,7 +74,6 @@ class PhongController extends Controller
         // Lấy các loại phòng liên quan (cùng trạng thái hoạt động, trừ loại hiện tại)
         $relatedLoaiPhongs = LoaiPhong::where('id', '!=', $loaiPhong->id)
             ->where('trang_thai', 'hoat_dong')
-            ->where('so_luong_trong', '>', 0) // Only show available room types
             ->limit(4)
             ->get();
 
@@ -71,7 +87,20 @@ class PhongController extends Controller
         // Biến tương thích với view cũ
         $reviewRoom = $loaiPhong; // Dùng loại phòng thay vì phòng cụ thể
 
-        return view('client.content.show', compact('loaiPhong', 'relatedLoaiPhongs', 'comments', 'reviewRoom'));
+        // Tính availability theo khoảng thời gian (nếu có)
+        $checkin = $request->get('checkin');
+        $checkout = $request->get('checkout');
+        $availableCount = null;
+        
+        if ($checkin && $checkout) {
+            try {
+                $availableCount = Phong::countAvailableRooms($loaiPhong->id, $checkin, $checkout);
+            } catch (\Exception $e) {
+                $availableCount = null;
+            }
+        }
+
+        return view('client.content.show', compact('loaiPhong', 'relatedLoaiPhongs', 'comments', 'reviewRoom', 'checkin', 'checkout', 'availableCount'));
     }
 
     // API endpoint để lấy danh sách loại phòng (cho AJAX)

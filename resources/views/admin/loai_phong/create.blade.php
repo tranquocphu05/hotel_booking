@@ -107,7 +107,7 @@
         </div>
 
         {{-- Hàng 3: Ảnh loại phòng --}}
-        <div>
+<div>
             <label for="anh" class="block text-gray-700 font-medium mb-2 text-sm">Ảnh loại phòng *</label>
             <div class="space-y-4">
                 {{-- Preview ảnh --}}
@@ -135,11 +135,11 @@
                            onchange="previewImage(this)">
                 </div>
                 <div id="fileName" class="text-sm text-gray-600 hidden"></div>
-                @error('anh')
-                    <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
-                @enderror
+    @error('anh')
+        <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+    @enderror
             </div>
-        </div>
+</div>
 
 
         {{-- Nút hành động --}}

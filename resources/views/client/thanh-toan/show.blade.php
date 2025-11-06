@@ -69,8 +69,8 @@
 
             <div class="max-w-6xl mx-auto">
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <!-- Booking Details -->
-                    <div class="bg-white rounded-lg shadow-md p-6">
+                    <!-- Booking Details - Enhanced Card -->
+                    <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
                         <h2 class="text-xl font-semibold text-gray-900 mb-6 border-b pb-3 flex items-center">
                             <i class="fas fa-receipt text-blue-600 mr-2"></i>
                             Chi tiết đặt phòng
@@ -128,13 +128,132 @@
                                     </span>
                                     <span class="font-semibold text-blue-600 text-lg">#{{ $datPhong->id }}</span>
                                 </div>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-gray-600 flex items-center">
-                                        <i class="fas fa-door-open text-gray-400 mr-2 text-sm"></i>
-                                        Loại phòng:
-                                    </span>
-                                    <span class="font-medium text-gray-900">{{ $datPhong->loaiPhong->ten_loai ?? 'N/A' }}</span>
-                                </div>
+                                @php
+                                    $roomTypes = $datPhong->getRoomTypes();
+                                @endphp
+
+                                @if(count($roomTypes) > 1)
+                                    {{-- Hiển thị nhiều loại phòng --}}
+                                    <div class="flex flex-col gap-2">
+                                        <span class="text-gray-600 flex items-center">
+                                            <i class="fas fa-door-open text-gray-400 mr-2 text-sm"></i>
+                                            Các loại phòng:
+                                        </span>
+                                        <div class="ml-6 space-y-2">
+                                            @foreach($roomTypes as $roomType)
+                                                @php
+                                                    $loaiPhong = \App\Models\LoaiPhong::find($roomType['loai_phong_id']);
+                                                @endphp
+                                                @if($loaiPhong)
+                                                    <div class="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                                                        <div class="flex justify-between items-center">
+                                                            <span class="font-semibold text-gray-900">{{ $loaiPhong->ten_loai }}</span>
+                                                            <span class="text-sm text-gray-600">{{ $roomType['so_luong'] }} phòng</span>
+                                                        </div>
+                                                        <div class="text-sm text-gray-600 mt-1">
+                                                            Giá: {{ number_format($roomType['gia_rieng'] ?? 0, 0, ',', '.') }} VNĐ
+                                                        </div>
+                                                    </div>
+                                                @endif
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @else
+                                    {{-- Hiển thị 1 loại phòng (legacy hoặc single room) --}}
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-gray-600 flex items-center">
+                                            <i class="fas fa-door-open text-gray-400 mr-2 text-sm"></i>
+                                            Loại phòng:
+                                        </span>
+                                        <span class="font-medium text-gray-900">{{ $datPhong->loaiPhong->ten_loai ?? 'N/A' }}</span>
+                                    </div>
+                                @endif
+                                @php
+                                    $assignedPhongs = $datPhong->getAssignedPhongs();
+                                    $assignedCount = $assignedPhongs->count();
+                                    $totalRooms = array_sum(array_column($roomTypes, 'so_luong')) ?: ($datPhong->so_luong_da_dat ?? 1);
+                                @endphp
+
+                                @if($assignedCount > 0)
+                                    <div class="flex flex-col gap-2">
+                                        <span class="text-gray-600 flex items-center">
+                                            <i class="fas fa-key text-gray-400 mr-2 text-sm"></i>
+                                            Phòng ({{ $assignedCount }}/{{ $totalRooms }}):
+                                        </span>
+                                        <div class="ml-6 space-y-1 flex flex-wrap gap-2">
+                                            @foreach($assignedPhongs as $phong)
+                                                <span class="inline-block font-semibold text-blue-600 bg-blue-50 px-3 py-1 rounded-md text-sm border border-blue-200">
+                                                    {{ $phong->so_phong }}
+                                                    @if($phong->tang)
+                                                        <span class="text-gray-500">(Tầng {{ $phong->tang }})</span>
+                                                    @endif
+                                                </span>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @elseif($datPhong->phong)
+                                    {{-- Legacy support: Hiển thị phòng từ phong_id --}}
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-gray-600 flex items-center">
+                                            <i class="fas fa-key text-gray-400 mr-2 text-sm"></i>
+                                            Số phòng:
+                                        </span>
+                                        <span class="font-semibold text-blue-600">
+                                            {{ $datPhong->phong->so_phong }}
+                                            @if($datPhong->phong->tang)
+                                                <span class="text-gray-500 text-sm">(Tầng {{ $datPhong->phong->tang }})</span>
+                                            @endif
+                                        </span>
+                                    </div>
+                                @endif
+
+                                @php
+                                    $remainingCount = $totalRooms - $assignedCount;
+                                @endphp
+
+                                @if($remainingCount > 0 && isset($availableRooms) && $availableRooms->count() > 0 && $datPhong->trang_thai === 'cho_xac_nhan')
+                                    <div class="mt-4 pt-4 border-t border-gray-200">
+                                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3">
+                                            <p class="text-sm text-yellow-800 mb-2">
+                                                <i class="fas fa-info-circle mr-1"></i>
+                                                <strong>Còn thiếu {{ $remainingCount }} phòng.</strong> Vui lòng liên hệ admin để được gán phòng cụ thể.
+                                            </p>
+                                        </div>
+                                        <details class="text-sm">
+                                            <summary class="cursor-pointer text-blue-600 hover:text-blue-800 font-medium">
+                                                <i class="fas fa-eye mr-1"></i> Xem danh sách phòng trống
+                                            </summary>
+                                            <div class="mt-2 space-y-1 max-h-48 overflow-y-auto">
+                                                @foreach($availableRooms as $room)
+                                                    <div class="text-xs text-gray-600 bg-gray-50 px-2 py-1 rounded">
+                                                        {{ $room->so_phong }}
+                                                        @if($room->tang) (Tầng {{ $room->tang }}) @endif
+                                                        - {{ \App\Models\LoaiPhong::find($room->loai_phong_id)->ten_loai ?? 'N/A' }}
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </details>
+                                    </div>
+                                @elseif($remainingCount > 0 && $datPhong->trang_thai === 'cho_xac_nhan')
+                                    <div class="mt-4 pt-4 border-t border-gray-200">
+                                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                            <p class="text-sm text-yellow-800">
+                                                <i class="fas fa-info-circle mr-1"></i>
+                                                <strong>Còn thiếu {{ $remainingCount }} phòng.</strong> Vui lòng liên hệ admin để được gán phòng cụ thể.
+                                            </p>
+                                        </div>
+                                    </div>
+                                @endif
+
+                                @if($datPhong->so_luong_da_dat && $datPhong->so_luong_da_dat > 1)
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-gray-600 flex items-center">
+                                            <i class="fas fa-bed text-gray-400 mr-2 text-sm"></i>
+                                            Số lượng phòng:
+                                        </span>
+                                        <span class="font-medium text-gray-900">{{ $datPhong->so_luong_da_dat }} phòng</span>
+                                    </div>
+                                @endif
                                 <div class="flex justify-between items-center">
                                     <span class="text-gray-600 flex items-center">
                                         <i class="fas fa-calendar-check text-gray-400 mr-2 text-sm"></i>
@@ -176,24 +295,53 @@
                             </h3>
                             <div class="space-y-4">
                                 @php
-                                    $soLuongPhong = $datPhong->so_luong_da_dat ?? 1;
-                                    $pricePerNight = $datPhong->loaiPhong->gia_khuyen_mai ?? $datPhong->loaiPhong->gia_co_ban ?? 0;
-                                    $roomPriceForNights = $pricePerNight * $nights * $soLuongPhong;
-                                    // Use originalPrice from controller if available, otherwise calculate
-                                    $displayPrice = $originalPrice ?? $roomPriceForNights;
+                                    $roomTypes = $datPhong->getRoomTypes();
                                 @endphp
-                                <div class="flex justify-between items-center bg-white/60 rounded-lg px-4 py-3">
-                                    <span class="text-gray-700 font-medium">
-                                        <i class="fas fa-bed text-blue-500 mr-2"></i>
-                                        Giá phòng 
-                                        @if($soLuongPhong > 1)
-                                            ({{ $nights }} đêm × {{ $soLuongPhong }} phòng)
-                                        @else
-                                            ({{ $nights }} đêm)
-                                        @endif
-                                    </span>
-                                    <span class="font-semibold text-gray-900 text-base">{{ number_format($displayPrice, 0, ',', '.') }} VNĐ</span>
-                                </div>
+
+                                @if(count($roomTypes) > 1)
+                                    {{-- Hiển thị chi tiết từng loại phòng --}}
+                                    <div class="space-y-2">
+                                        @foreach($roomTypes as $roomType)
+                                            @php
+                                                $loaiPhong = \App\Models\LoaiPhong::find($roomType['loai_phong_id']);
+                                                $soLuong = $roomType['so_luong'] ?? 1;
+                                                $giaRieng = $roomType['gia_rieng'] ?? 0;
+                                            @endphp
+                                            @if($loaiPhong)
+                                                <div class="flex justify-between items-center bg-white/60 rounded-lg px-4 py-3">
+                                                    <span class="text-gray-700 font-medium">
+                                                        <i class="fas fa-bed text-blue-500 mr-2"></i>
+                                                        {{ $loaiPhong->ten_loai }}
+                                                        @if($soLuong > 1)
+                                                            ({{ $nights }} đêm × {{ $soLuong }} phòng)
+                                                        @else
+                                                            ({{ $nights }} đêm)
+                                                        @endif
+                                                    </span>
+                                                    <span class="font-semibold text-gray-900 text-base">{{ number_format($giaRieng, 0, ',', '.') }} VNĐ</span>
+                                                </div>
+                                            @endif
+                                        @endforeach
+                                    </div>
+                                @else
+                                    {{-- Hiển thị 1 loại phòng (legacy) --}}
+                                    @php
+                                        $soLuongPhong = $datPhong->so_luong_da_dat ?? 1;
+                                        $displayPrice = $originalPrice ?? 0;
+                                    @endphp
+                                    <div class="flex justify-between items-center bg-white/60 rounded-lg px-4 py-3">
+                                        <span class="text-gray-700 font-medium">
+                                            <i class="fas fa-bed text-blue-500 mr-2"></i>
+                                            Giá phòng
+                                            @if($soLuongPhong > 1)
+                                                ({{ $nights }} đêm × {{ $soLuongPhong }} phòng)
+                                            @else
+                                                ({{ $nights }} đêm)
+                                            @endif
+                                        </span>
+                                        <span class="font-semibold text-gray-900 text-base">{{ number_format($displayPrice, 0, ',', '.') }} VNĐ</span>
+                                    </div>
+                                @endif
 
                                 @if ($datPhong->voucher && $discountAmount > 0)
                                     <div class="flex justify-between items-center bg-green-50 rounded-lg px-4 py-3 border border-green-200">
@@ -222,7 +370,7 @@
                         <form action="{{ route('client.thanh-toan.store', ['datPhong' => $datPhong->id]) }}" method="POST">
                             @csrf
                             <input type="hidden" name="phuong_thuc" value="vnpay">
-                            
+
                             <!-- VNPay Payment Info -->
                             <div class="border-2 border-blue-200 bg-blue-50 rounded-lg p-5 mb-6">
                                 <div class="flex items-center justify-between">
