@@ -320,22 +320,33 @@ class DatPhong extends Model
                     }
                 }
                 
-                // Update Phong status via pivot table
-                foreach ($booking->phongs as $dp) {
-                    if ($dp->phong) {
-                        // Khi booking được confirm -> phòng chuyển sang "đang thuê"
-                        if ($newStatus === 'da_xac_nhan' && $oldStatus !== 'da_xac_nhan') {
-                            $dp->phong->update(['trang_thai' => 'dang_thue']);
+                // Update Phong status via phong_ids JSON
+                $assignedPhongs = $booking->getAssignedPhongs();
+                foreach ($assignedPhongs as $phong) {
+                    // Khi booking được confirm -> phòng chuyển sang "đang thuê"
+                    if ($newStatus === 'da_xac_nhan' && $oldStatus !== 'da_xac_nhan') {
+                        $phong->update(['trang_thai' => 'dang_thue']);
+                    }
+                    // Khi booking bị hủy/từ chối -> phòng chuyển về "trống"
+                    elseif (in_array($newStatus, ['da_huy', 'tu_choi', 'thanh_toan_that_bai'])
+                        && in_array($oldStatus, ['cho_xac_nhan', 'da_xac_nhan'])) {
+                        // Kiểm tra xem phòng có đang được đặt cho booking khác không
+                        $hasOtherBooking = \App\Models\DatPhong::where('id', '!=', $booking->id)
+                            ->whereJsonContains('phong_ids', $phong->id)
+                            ->where(function($q) use ($booking) {
+                                $q->where('ngay_tra', '>', $booking->ngay_nhan)
+                                  ->where('ngay_nhan', '<', $booking->ngay_tra);
+                            })
+                            ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
+                            ->exists();
+                        
+                        if (!$hasOtherBooking) {
+                            $phong->update(['trang_thai' => 'trong']);
                         }
-                        // Khi booking bị hủy/từ chối -> phòng chuyển về "trống"
-                        elseif (in_array($newStatus, ['da_huy', 'tu_choi', 'thanh_toan_that_bai'])
-                            && in_array($oldStatus, ['cho_xac_nhan', 'da_xac_nhan'])) {
-                            $dp->phong->update(['trang_thai' => 'trong']);
-                        }
-                        // Khi booking hoàn thành (check-out) -> phòng chuyển sang "đang dọn"
-                        elseif ($newStatus === 'da_tra' && $oldStatus !== 'da_tra') {
-                            $dp->phong->update(['trang_thai' => 'dang_don']);
-                        }
+                    }
+                    // Khi booking hoàn thành (check-out) -> phòng chuyển sang "đang dọn"
+                    elseif ($newStatus === 'da_tra' && $oldStatus !== 'da_tra') {
+                        $phong->update(['trang_thai' => 'dang_don']);
                     }
                 }
                 

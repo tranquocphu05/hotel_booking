@@ -103,7 +103,22 @@ class DatPhongController extends Controller
 
             // Free up room via phong_id (legacy)
             if ($booking->phong_id && $booking->phong) {
-                $booking->phong->update(['trang_thai' => 'trong']);
+                // Kiểm tra xem phòng có đang được đặt cho booking khác không
+                $hasOtherBooking = DatPhong::where('id', '!=', $booking->id)
+                    ->where(function($q) use ($booking) {
+                        $q->where('phong_id', $booking->phong_id)
+                          ->orWhereJsonContains('phong_ids', $booking->phong_id);
+                    })
+                    ->where(function($q) use ($booking) {
+                        $q->where('ngay_tra', '>', $booking->ngay_nhan)
+                          ->where('ngay_nhan', '<', $booking->ngay_tra);
+                    })
+                    ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
+                    ->exists();
+                
+                if (!$hasOtherBooking) {
+                    $booking->phong->update(['trang_thai' => 'trong']);
+                }
             }
 
             // Free up rooms via phong_ids JSON
@@ -111,7 +126,22 @@ class DatPhongController extends Controller
             foreach ($phongIds as $phongId) {
                 $phong = Phong::find($phongId);
                 if ($phong) {
-                    $phong->update(['trang_thai' => 'trong']);
+                    // Kiểm tra xem phòng có đang được đặt cho booking khác không
+                    $hasOtherBooking = DatPhong::where('id', '!=', $booking->id)
+                        ->where(function($q) use ($phongId) {
+                            $q->where('phong_id', $phongId)
+                              ->orWhereJsonContains('phong_ids', $phongId);
+                        })
+                        ->where(function($q) use ($booking) {
+                            $q->where('ngay_tra', '>', $booking->ngay_nhan)
+                              ->where('ngay_nhan', '<', $booking->ngay_tra);
+                        })
+                        ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
+                        ->exists();
+                    
+                    if (!$hasOtherBooking) {
+                        $phong->update(['trang_thai' => 'trong']);
+                    }
                 }
             }
             
@@ -247,22 +277,34 @@ class DatPhongController extends Controller
         }
 
         // Validate each room type availability
+        // Lấy danh sách phòng đã gán để loại trừ khi kiểm tra availability
+        $oldPhongIds = $booking->getPhongIds();
+        
         foreach ($roomTypes as $roomType) {
             $loaiPhong = \App\Models\LoaiPhong::find($roomType['loai_phong_id']);
             if (!$loaiPhong || $loaiPhong->trang_thai !== 'hoat_dong') {
                 return back()->withErrors(['room_types' => 'Loại phòng ' . ($loaiPhong->ten_loai ?? 'N/A') . ' không khả dụng.'])->withInput();
             }
 
-            // Check availability for the date range
+            // Check availability for the date range (exclude current booking's rooms)
             $availableCount = Phong::countAvailableRooms(
                 $roomType['loai_phong_id'],
                 $request->ngay_nhan,
                 $request->ngay_tra
             );
-
-            if ($availableCount < $roomType['so_luong']) {
+            
+            // Đếm số phòng cũ thuộc loại này và trong danh sách phòng đã gán
+            $oldPhongsOfThisType = Phong::whereIn('id', $oldPhongIds)
+                ->where('loai_phong_id', $roomType['loai_phong_id'])
+                ->count();
+            
+            // Số phòng cần thiết sau khi trừ đi phòng cũ cùng loại (nếu có)
+            $soLuongCanThem = max(0, $roomType['so_luong'] - $oldPhongsOfThisType);
+            
+            // Nếu cần thêm phòng, kiểm tra availability
+            if ($soLuongCanThem > 0 && $availableCount < $soLuongCanThem) {
                 return back()->withErrors([
-                    'room_types' => 'Loại phòng ' . $loaiPhong->ten_loai . ' chỉ còn ' . $availableCount . ' phòng trống trong khoảng thời gian từ ' . date('d/m/Y', strtotime($request->ngay_nhan)) . ' đến ' . date('d/m/Y', strtotime($request->ngay_tra)) . '.'
+                    'room_types' => 'Loại phòng ' . $loaiPhong->ten_loai . ' chỉ còn ' . $availableCount . ' phòng trống trong khoảng thời gian từ ' . date('d/m/Y', strtotime($request->ngay_nhan)) . ' đến ' . date('d/m/Y', strtotime($request->ngay_tra)) . '. Bạn cần thêm ' . $soLuongCanThem . ' phòng.'
                 ])->withInput();
             }
         }
@@ -277,20 +319,90 @@ class DatPhongController extends Controller
         // Get first room type for legacy support
         $firstLoaiPhongId = $roomTypes[0]['loai_phong_id'];
 
-        // Update booking
-        $booking->update([
-            'loai_phong_id' => $firstLoaiPhongId, // Legacy support
-            'room_types' => $roomTypes, // Store all room types in JSON
-            'so_luong_da_dat' => $totalSoLuong,
-            'trang_thai' => $request->trang_thai ?? $booking->trang_thai,
-            'ngay_nhan' => $request->ngay_nhan,
-            'ngay_tra' => $request->ngay_tra,
-            'so_nguoi' => $request->so_nguoi,
-            'username' => $request->username,
-            'email' => $request->email,
-            'sdt' => $request->sdt,
-            'cccd' => $request->cccd
-        ]);
+        // Update booking và gán lại phòng trong transaction
+        DB::transaction(function () use ($booking, $request, $roomTypes, $totalSoLuong, $firstLoaiPhongId, $oldPhongIds) {
+            // 1. Giải phóng tất cả phòng cũ (set về 'trong' nếu không có booking khác)
+            foreach ($oldPhongIds as $phongId) {
+                $phong = Phong::find($phongId);
+                if ($phong) {
+                    // Kiểm tra xem phòng có đang được đặt cho booking khác không
+                    $hasOtherBooking = DatPhong::where('id', '!=', $booking->id)
+                        ->whereJsonContains('phong_ids', $phongId)
+                        ->where(function($q) use ($request) {
+                            $q->where('ngay_tra', '>', $request->ngay_nhan)
+                              ->where('ngay_nhan', '<', $request->ngay_tra);
+                        })
+                        ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
+                        ->exists();
+                    
+                    if (!$hasOtherBooking) {
+                        $phong->update(['trang_thai' => 'trong']);
+                    }
+                }
+            }
+            
+            // 2. Gán lại phòng mới dựa trên room_types mới
+            $newPhongIds = [];
+            foreach ($roomTypes as $roomType) {
+                $soLuongCan = $roomType['so_luong'];
+                
+                // Ưu tiên giữ lại phòng cũ nếu cùng loại và còn available
+                $oldPhongsOfThisType = Phong::whereIn('id', $oldPhongIds)
+                    ->where('loai_phong_id', $roomType['loai_phong_id'])
+                    ->get()
+                    ->filter(function($phong) use ($request, $booking) {
+                        return $phong->isAvailableInPeriod($request->ngay_nhan, $request->ngay_tra, $booking->id);
+                    })
+                    ->take($soLuongCan);
+                
+                $keptCount = $oldPhongsOfThisType->count();
+                foreach ($oldPhongsOfThisType as $phong) {
+                    $newPhongIds[] = $phong->id;
+                }
+                
+                // Nếu cần thêm phòng, tìm phòng mới
+                if ($keptCount < $soLuongCan) {
+                    $soLuongCanThem = $soLuongCan - $keptCount;
+                    $availableRooms = Phong::findAvailableRooms(
+                        $roomType['loai_phong_id'],
+                        $request->ngay_nhan,
+                        $request->ngay_tra,
+                        $soLuongCanThem,
+                        $booking->id
+                    )->reject(function($phong) use ($newPhongIds) {
+                        return in_array($phong->id, $newPhongIds);
+                    });
+                    
+                    foreach ($availableRooms as $phong) {
+                        $newPhongIds[] = $phong->id;
+                        $phong->update(['trang_thai' => 'dang_thue']);
+                    }
+                }
+            }
+            
+            // 3. Update booking với thông tin mới
+            $booking->update([
+                'loai_phong_id' => $firstLoaiPhongId, // Legacy support
+                'room_types' => $roomTypes, // Store all room types in JSON
+                'so_luong_da_dat' => $totalSoLuong,
+                'trang_thai' => $request->trang_thai ?? $booking->trang_thai,
+                'ngay_nhan' => $request->ngay_nhan,
+                'ngay_tra' => $request->ngay_tra,
+                'so_nguoi' => $request->so_nguoi,
+                'username' => $request->username,
+                'email' => $request->email,
+                'sdt' => $request->sdt,
+                'cccd' => $request->cccd,
+                'phong_ids' => $newPhongIds, // Cập nhật danh sách phòng mới
+            ]);
+            
+            // 4. Cập nhật phong_id (legacy support) nếu chỉ có 1 phòng
+            if (count($newPhongIds) == 1) {
+                $booking->update(['phong_id' => $newPhongIds[0]]);
+            } else {
+                $booking->update(['phong_id' => null]);
+            }
+        });
 
         return redirect()->route('admin.dat_phong.show', $booking->id)
             ->with('success', 'Cập nhật thông tin đặt phòng thành công');
@@ -788,16 +900,72 @@ class DatPhongController extends Controller
         }
 
         // Nếu chưa có phòng được gán, tự động gán phòng
-        if (!$booking->phong_id) {
-            $availableRooms = Phong::findAvailableRooms(
-                $booking->loai_phong_id,
-                $booking->ngay_nhan,
-                $booking->ngay_tra,
-                1
-            );
+        $assignedPhongIds = $booking->getPhongIds();
+        if (empty($assignedPhongIds)) {
+            $allPhongIds = [];
+            $roomTypes = $booking->getRoomTypes();
             
-            if ($availableRooms->count() > 0) {
-                $booking->phong_id = $availableRooms->first()->id;
+            // Nếu booking có nhiều loại phòng (room_types)
+            if (count($roomTypes) > 0) {
+                foreach ($roomTypes as $roomType) {
+                    $soLuongCan = $roomType['so_luong'] ?? 1;
+                    $loaiPhongId = $roomType['loai_phong_id'];
+                    
+                    $availableRooms = Phong::findAvailableRooms(
+                        $loaiPhongId,
+                        $booking->ngay_nhan,
+                        $booking->ngay_tra,
+                        $soLuongCan,
+                        $booking->id
+                    )->reject(function($phong) use ($allPhongIds) {
+                        return in_array($phong->id, $allPhongIds);
+                    });
+                    
+                    $count = 0;
+                    foreach ($availableRooms as $phong) {
+                        if ($count >= $soLuongCan) break;
+                        $allPhongIds[] = $phong->id;
+                        $phong->update(['trang_thai' => 'dang_thue']);
+                        $count++;
+                    }
+                    
+                    // Nếu không đủ phòng, báo lỗi
+                    if ($count < $soLuongCan) {
+                        $loaiPhong = LoaiPhong::find($loaiPhongId);
+                        return redirect()->route('admin.dat_phong.index')
+                            ->with('error', "Không đủ phòng cho loại phòng '{$loaiPhong->ten_loai}'. Cần {$soLuongCan} phòng nhưng chỉ có {$count} phòng trống.");
+                    }
+                }
+            } else {
+                // Fallback: Booking chỉ có 1 loại phòng (legacy)
+                $soLuongCan = $booking->so_luong_da_dat ?? 1;
+                $availableRooms = Phong::findAvailableRooms(
+                    $booking->loai_phong_id,
+                    $booking->ngay_nhan,
+                    $booking->ngay_tra,
+                    $soLuongCan,
+                    $booking->id
+                );
+                
+                if ($availableRooms->count() < $soLuongCan) {
+                    return redirect()->route('admin.dat_phong.index')
+                        ->with('error', "Không đủ phòng. Cần {$soLuongCan} phòng nhưng chỉ có {$availableRooms->count()} phòng trống.");
+                }
+                
+                foreach ($availableRooms as $phong) {
+                    $allPhongIds[] = $phong->id;
+                    $phong->update(['trang_thai' => 'dang_thue']);
+                }
+            }
+            
+            // Cập nhật phong_ids JSON
+            $booking->phong_ids = $allPhongIds;
+            
+            // Cập nhật phong_id (legacy support) nếu chỉ có 1 phòng
+            if (count($allPhongIds) == 1) {
+                $booking->phong_id = $allPhongIds[0];
+            } else {
+                $booking->phong_id = null;
             }
         }
 

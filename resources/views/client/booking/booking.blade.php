@@ -19,6 +19,7 @@
             $ngay_tra_carbon = now()->addDay();
         }
 
+        
         // Tính số đêm (chỉ tính > 0, mặc định là 1 nếu ngày trả <= ngày nhận)
         $so_dem = $ngay_tra_carbon->greaterThan($ngay_nhan_carbon)
             ? $ngay_nhan_carbon->diffInDays($ngay_tra_carbon)

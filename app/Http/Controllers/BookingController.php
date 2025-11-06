@@ -177,7 +177,7 @@ class BookingController extends Controller
             ])->withInput();
         }
 
-        // Validate each room type and check availability
+        // Validate each room type (basic validation only - real availability check in transaction)
         $totalPrice = 0;
         $roomDetails = [];
 
@@ -188,15 +188,6 @@ class BookingController extends Controller
             if ($loaiPhong->trang_thai !== 'hoat_dong') {
                 return back()->withErrors([
                     'error' => "Loại phòng '{$loaiPhong->ten_loai}' hiện không khả dụng."
-                ])->withInput();
-            }
-
-            // Check availability trong khoảng thời gian cụ thể (KHÔNG dùng so_luong_trong)
-            // so_luong_trong chỉ đếm phòng 'trong', không phải phòng available trong khoảng thời gian
-            $availableCount = Phong::countAvailableRooms($loaiPhong->id, $data['ngay_nhan'], $data['ngay_tra']);
-            if ($availableCount < $room['so_luong']) {
-                return back()->withErrors([
-                    'error' => "Loại phòng '{$loaiPhong->ten_loai}' chỉ có {$availableCount} phòng trống trong khoảng thời gian từ " . date('d/m/Y', strtotime($data['ngay_nhan'])) . " đến " . date('d/m/Y', strtotime($data['ngay_tra'])) . ". Bạn đã chọn {$room['so_luong']} phòng."
                 ])->withInput();
             }
 
@@ -219,6 +210,8 @@ class BookingController extends Controller
                 'price' => $roomTotal,
             ];
         }
+        
+        // NOTE: Availability check moved inside transaction to prevent race conditions
 
         // Apply voucher and create bookings within transaction
         // Use lockForUpdate to prevent race conditions when checking availability
@@ -365,26 +358,27 @@ class BookingController extends Controller
                         continue;
                     }
 
-                    try {
-                        // Double-check availability before assigning
-                        if ($phong->isAvailableInPeriod($data['ngay_nhan'], $data['ngay_tra'], $booking->id)) {
-                            $phongIds[] = $phong->id;
-                            $allPhongIds[] = $phong->id;
-                            $count++;
+                    // Lock Phong trước khi kiểm tra và update để tránh race condition
+                    $phongLocked = Phong::lockForUpdate()->find($phong->id);
+                    if (!$phongLocked) {
+                        continue; // Phòng không tồn tại, skip
+                    }
 
-                            // Cập nhật trạng thái phòng thành "đang thuê"
-                            $phong->update(['trang_thai' => 'dang_thue']);
-                        }
-                    } catch (\Exception $e) {
-                        // Log lỗi nhưng không throw để không rollback transaction
-                        Log::warning("Failed to assign room {$phong->id} to booking {$booking->id}: " . $e->getMessage());
+                    // Double-check availability before assigning (sau khi lock)
+                    if ($phongLocked->isAvailableInPeriod($data['ngay_nhan'], $data['ngay_tra'], $booking->id)) {
+                        $phongIds[] = $phongLocked->id;
+                        $allPhongIds[] = $phongLocked->id;
+                        $count++;
+
+                        // KHÔNG set 'dang_thue' ở đây vì booking chỉ ở trạng thái 'cho_xac_nhan'
+                        // Trạng thái phòng sẽ được cập nhật khi booking được xác nhận (trong DatPhong::boot())
+                        // Chỉ đánh dấu phòng đã được gán qua phong_ids JSON
                     }
                 }
 
                 // Kiểm tra lại xem đã gán đủ phòng cho loại phòng này chưa
                 if (count($phongIds) < $roomDetail['so_luong']) {
-                    // Nếu không đủ, có thể do conflict hoặc duplicate
-                    // Throw error để rollback transaction
+                    // Nếu không đủ, throw error để rollback transaction
                     throw \Illuminate\Validation\ValidationException::withMessages([
                         'error' => "Không thể gán đủ {$roomDetail['so_luong']} phòng cho loại phòng '{$loaiPhong->ten_loai}'. Chỉ gán được " . count($phongIds) . " phòng. Vui lòng thử lại."
                     ]);
