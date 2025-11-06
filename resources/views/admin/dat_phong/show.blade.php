@@ -6,7 +6,17 @@
     <div class="py-6">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="mb-6 flex justify-between items-center">
-                <h2 class="text-2xl font-semibold text-gray-800">Chi tiết đặt phòng <b>{{ $booking->loaiPhong->ten_loai ?? 'N/A' }}</b></h2>
+                @php
+                    $roomTypes = $booking->getRoomTypes();
+                @endphp
+                <h2 class="text-2xl font-semibold text-gray-800">
+                    Chi tiết đặt phòng 
+                    @if(count($roomTypes) > 1)
+                        <b>{{ count($roomTypes) }} loại phòng</b>
+                    @else
+                        <b>{{ $booking->loaiPhong->ten_loai ?? 'N/A' }}</b>
+                    @endif
+                </h2>
                 <span class="px-3 py-1 rounded-full text-sm font-medium
                     @if ($booking->trang_thai === 'da_xac_nhan') bg-green-100 text-green-800
                     @elseif($booking->trang_thai === 'cho_xac_nhan') bg-yellow-100 text-yellow-800
@@ -32,17 +42,152 @@
                     </div>
                     <div class="p-4">
                         <div class="space-y-3">
-                            <img src="{{ asset($booking->loaiPhong->anh ?? 'img/room/room-1.jpg') }}" 
-                                alt="{{ $booking->loaiPhong->ten_loai ?? 'N/A' }}"
-                                class="w-full h-48 object-cover rounded-lg">
-                            <p class="text-sm text-gray-600">Loại phòng: <span class="font-medium">{{ $booking->loaiPhong->ten_loai ?? 'N/A' }}</span></p>
-                            <p class="text-sm text-gray-600">Số lượng phòng: <span class="font-medium">{{ $booking->so_luong_da_dat ?? 1 }} phòng</span></p>
-                            <p class="text-sm text-gray-600">Giá phòng: <span class="font-medium">{{ number_format($booking->loaiPhong->gia_co_ban ?? 0, 0, ',', '.') }} VNĐ/đêm</span></p>
-                            <p class="text-sm px-3 py-1 rounded-full text-sm font-medium
-                                @if ($booking->loaiPhong->trang_thai === 'hoat_dong') bg-green-100 text-green-800
-                                @else bg-yellow-100 text-yellow-800 @endif">
-                                {{ $booking->loaiPhong->trang_thai === 'hoat_dong' ? 'Hoạt động' : 'Ngừng' }}
-                            </p>
+                            @php
+                                $roomTypes = $booking->getRoomTypes();
+                            @endphp
+                            
+                            @if(count($roomTypes) > 1)
+                                {{-- Hiển thị nhiều loại phòng --}}
+                                <div class="space-y-3">
+                                    <p class="text-sm font-semibold text-gray-700">Các loại phòng:</p>
+                                    @foreach($roomTypes as $roomType)
+                                        @php
+                                            $loaiPhong = \App\Models\LoaiPhong::find($roomType['loai_phong_id']);
+                                        @endphp
+                                        @if($loaiPhong)
+                                            <div class="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                                                <img src="{{ asset($loaiPhong->anh ?? 'img/room/room-1.jpg') }}" 
+                                                    alt="{{ $loaiPhong->ten_loai }}"
+                                                    class="w-full h-32 object-cover rounded-lg mb-2">
+                                                <p class="text-sm font-medium text-gray-900">{{ $loaiPhong->ten_loai }}</p>
+                                                <p class="text-xs text-gray-600">Số lượng: {{ $roomType['so_luong'] }} phòng</p>
+                                                <p class="text-xs text-gray-600">Giá: {{ number_format($roomType['gia_rieng'] ?? 0, 0, ',', '.') }} VNĐ</p>
+                                            </div>
+                                        @endif
+                                    @endforeach
+                                </div>
+                                <p class="text-sm text-gray-600">Tổng số phòng: <span class="font-medium">{{ $booking->so_luong_da_dat ?? 1 }} phòng</span></p>
+                            @else
+                                {{-- Hiển thị 1 loại phòng (legacy) --}}
+                                <img src="{{ asset($booking->loaiPhong->anh ?? 'img/room/room-1.jpg') }}" 
+                                    alt="{{ $booking->loaiPhong->ten_loai ?? 'N/A' }}"
+                                    class="w-full h-48 object-cover rounded-lg">
+                                <p class="text-sm text-gray-600">Loại phòng: <span class="font-medium">{{ $booking->loaiPhong->ten_loai ?? 'N/A' }}</span></p>
+                                <p class="text-sm text-gray-600">Số lượng phòng: <span class="font-medium">{{ $booking->so_luong_da_dat ?? 1 }} phòng</span></p>
+                            @endif
+                            
+                            @php
+                                $assignedPhongs = $booking->getAssignedPhongs();
+                                $assignedCount = $assignedPhongs->count();
+                                $remainingCount = $booking->so_luong_da_dat - $assignedCount;
+                            @endphp
+
+                            @if($assignedCount > 0)
+                                <div class="mt-2">
+                                    <p class="text-sm font-medium text-gray-700 mb-2">
+                                        Phòng đã gán ({{ $assignedCount }}/{{ $booking->so_luong_da_dat }}):
+                                    </p>
+                                    <div class="space-y-2">
+                                        @foreach($assignedPhongs as $phong)
+                                            <div class="p-2 bg-blue-50 border border-blue-200 rounded-md">
+                                                <p class="text-sm font-medium text-blue-900">
+                                                    Phòng: {{ $phong->so_phong }}
+                                                    @if($phong->ten_phong)
+                                                        ({{ $phong->ten_phong }})
+                                                    @endif
+                                                </p>
+                                                <p class="text-xs text-blue-700 mt-1">
+                                                    Tầng: {{ $phong->tang ?? 'N/A' }} | 
+                                                    Trạng thái: 
+                                                    <span class="
+                                                        @if($phong->trang_thai === 'trong') text-green-600
+                                                        @elseif($phong->trang_thai === 'dang_thue') text-blue-600
+                                                        @elseif($phong->trang_thai === 'dang_don') text-yellow-600
+                                                        @else text-red-600 @endif
+                                                    ">
+                                                        {{ $phong->trang_thai === 'trong' ? 'Trống' : 
+                                                           ($phong->trang_thai === 'dang_thue' ? 'Đang thuê' : 
+                                                           ($phong->trang_thai === 'dang_don' ? 'Đang dọn' : 'Bảo trì')) }}
+                                                    </span>
+                                                </p>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @elseif($booking->phong)
+                                {{-- Legacy support: Hiển thị phòng từ phong_id --}}
+                                <div class="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
+                                    <p class="text-sm font-medium text-blue-900">
+                                        Phòng: {{ $booking->phong->so_phong }}
+                                        @if($booking->phong->ten_phong)
+                                            ({{ $booking->phong->ten_phong }})
+                                        @endif
+                                    </p>
+                                    <p class="text-xs text-blue-700 mt-1">
+                                        Tầng: {{ $booking->phong->tang ?? 'N/A' }} | 
+                                        Trạng thái: 
+                                        <span class="
+                                            @if($booking->phong->trang_thai === 'trong') text-green-600
+                                            @elseif($booking->phong->trang_thai === 'dang_thue') text-blue-600
+                                            @elseif($booking->phong->trang_thai === 'dang_don') text-yellow-600
+                                            @else text-red-600 @endif
+                                        ">
+                                            {{ $booking->phong->trang_thai === 'trong' ? 'Trống' : 
+                                               ($booking->phong->trang_thai === 'dang_thue' ? 'Đang thuê' : 
+                                               ($booking->phong->trang_thai === 'dang_don' ? 'Đang dọn' : 'Bảo trì')) }}
+                                        </span>
+                                    </p>
+                                </div>
+                            @else
+                                <p class="text-sm text-yellow-600 mt-2">
+                                    <i class="fas fa-exclamation-triangle text-xs mr-1"></i>
+                                    Chưa gán phòng cụ thể
+                                </p>
+                            @endif
+
+                            @if($remainingCount > 0 && isset($availableRooms) && $availableRooms->count() > 0)
+                                <div class="mt-3 pt-3 border-t border-gray-200">
+                                    <p class="text-xs text-gray-600 mb-2">
+                                        <i class="fas fa-info-circle mr-1"></i>
+                                        Còn thiếu {{ $remainingCount }} phòng. Chọn phòng để gán:
+                                    </p>
+                                    <form action="{{ route('admin.dat_phong.assign_room', $booking->id) }}" method="POST">
+                                        @csrf
+                                        @method('PUT')
+                                        <select name="phong_id" class="mt-1 w-full text-xs border-gray-300 rounded-md">
+                                            <option value="">-- Chọn phòng --</option>
+                                            @foreach($availableRooms as $room)
+                                                <option value="{{ $room->id }}">
+                                                    {{ $room->so_phong }} 
+                                                    @if($room->tang) (Tầng {{ $room->tang }}) @endif
+                                                    @if($room->co_view_dep) - View đẹp @endif
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        <button type="submit" 
+                                            class="mt-2 px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">
+                                            Gán phòng
+                                        </button>
+                                    </form>
+                                </div>
+                            @elseif($remainingCount > 0)
+                                <p class="text-xs text-gray-500 mt-2">
+                                    <i class="fas fa-info-circle mr-1"></i>
+                                    Còn thiếu {{ $remainingCount }} phòng. Không có phòng trống trong khoảng thời gian này.
+                                </p>
+                            @endif
+                            @if(count($roomTypes) > 1)
+                                <div class="mt-3 pt-3 border-t border-gray-200">
+                                    <p class="text-xs text-gray-600 mb-2">Tổng giá: <span class="font-medium">{{ number_format($booking->tong_tien, 0, ',', '.') }} VNĐ</span></p>
+                                </div>
+                            @else
+                                <p class="text-sm text-gray-600">Giá phòng: <span class="font-medium">{{ number_format($booking->loaiPhong->gia_co_ban ?? 0, 0, ',', '.') }} VNĐ/đêm</span></p>
+                                <p class="text-sm px-3 py-1 rounded-full text-sm font-medium
+                                    @if ($booking->loaiPhong->trang_thai === 'hoat_dong') bg-green-100 text-green-800
+                                    @else bg-yellow-100 text-yellow-800 @endif">
+                                    {{ $booking->loaiPhong->trang_thai === 'hoat_dong' ? 'Hoạt động' : 'Ngừng' }}
+                                </p>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -164,3 +309,4 @@
         </div>
     </div>
 @endsection
+

@@ -86,7 +86,7 @@
         </div>
 
         {{-- Hàng 3: Hình ảnh --}}
-        <div>
+            <div>
             <label class="block text-gray-700 font-medium mb-2 text-sm">Hình ảnh loại phòng</label>
             <div class="space-y-4">
                 {{-- Ảnh hiện tại --}}
@@ -94,8 +94,8 @@
                     <div>
                         <label class="block text-gray-700 font-medium mb-2 text-sm">Ảnh hiện tại:</label>
                         <div class="relative inline-block">
-                            <img src="{{ asset($loaiPhong->anh) }}"
-                                 alt="{{ $loaiPhong->ten_loai }}"
+                    <img src="{{ asset($loaiPhong->anh) }}"
+                         alt="{{ $loaiPhong->ten_loai }}"
                                  id="currentImage"
                                  class="max-w-full h-64 object-cover rounded-lg shadow border border-gray-200">
                         </div>
@@ -113,10 +113,10 @@
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
-                </div>
-                
+            </div>
+
                 {{-- Upload area --}}
-                <div>
+            <div>
                     <label for="anh" class="block text-gray-700 font-medium mb-2 text-sm">Chọn ảnh mới (để trống nếu giữ nguyên ảnh cũ)</label>
                     <div class="border-2 border-dashed border-gray-300 rounded-xl p-6 hover:border-amber-500 transition-colors">
                         <label for="anh" class="cursor-pointer flex flex-col items-center">
@@ -129,9 +129,9 @@
                                onchange="previewImage(this)">
                     </div>
                     <div id="fileName" class="text-sm text-gray-600 mt-2 hidden"></div>
-                    @error('anh')
-                        <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
-                    @enderror
+                @error('anh')
+                    <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                @enderror
                 </div>
             </div>
         </div>

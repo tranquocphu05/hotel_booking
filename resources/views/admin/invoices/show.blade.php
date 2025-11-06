@@ -60,7 +60,21 @@
                             <dl class="mt-4 space-y-2">
                                 <div class="flex justify-between">
                                     <dt class="text-sm font-medium text-gray-500">Loại phòng</dt>
-                                    <dd class="text-sm text-gray-900">{{ $invoice->datPhong && $invoice->datPhong->loaiPhong ? $invoice->datPhong->loaiPhong->ten_loai : 'N/A' }}</dd>
+                                    <dd class="text-sm text-gray-900">
+                                        @php
+                                            $booking = $invoice->datPhong;
+                                            if($booking) {
+                                                $roomTypes = $booking->getRoomTypes();
+                                                if(count($roomTypes) > 1) {
+                                                    echo count($roomTypes) . ' loại phòng';
+                                                } else {
+                                                    echo $booking->loaiPhong ? $booking->loaiPhong->ten_loai : 'N/A';
+                                                }
+                                            } else {
+                                                echo 'N/A';
+                                            }
+                                        @endphp
+                                    </dd>
                                 </div>
                                 <div class="flex justify-between">
                                     <dt class="text-sm font-medium text-gray-500">Số lượng phòng</dt>

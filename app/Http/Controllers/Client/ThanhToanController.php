@@ -22,15 +22,56 @@ class ThanhToanController extends Controller
         }
 
         // Eager load relationships for efficiency
-        $datPhong->load('voucher', 'loaiPhong', 'user');
+        $datPhong->load('voucher', 'loaiPhong', 'user', 'phong');
+        
+        // Get available rooms for assignment if needed
+        $availableRooms = null;
+        if ($datPhong->ngay_nhan && $datPhong->ngay_tra) {
+            $roomTypes = $datPhong->getRoomTypes();
+            $assignedPhongIds = $datPhong->getPhongIds();
+            $totalRooms = array_sum(array_column($roomTypes, 'so_luong')) ?: ($datPhong->so_luong_da_dat ?? 1);
+            $assignedCount = count($assignedPhongIds);
+            $remainingCount = $totalRooms - $assignedCount;
+            
+            // If rooms are missing, get available rooms for all room types
+            if ($remainingCount > 0) {
+                $availableRooms = collect();
+                foreach ($roomTypes as $roomType) {
+                    $rooms = \App\Models\Phong::findAvailableRooms(
+                        $roomType['loai_phong_id'],
+                        $datPhong->ngay_nhan->format('Y-m-d'),
+                        $datPhong->ngay_tra->format('Y-m-d'),
+                        20
+                    );
+                    // Filter out already assigned rooms
+                    $rooms = $rooms->reject(function($room) use ($assignedPhongIds) {
+                        return in_array($room->id, $assignedPhongIds);
+                    });
+                    $availableRooms = $availableRooms->merge($rooms);
+                }
+                $availableRooms = $availableRooms->unique('id')->values();
+            }
+        }
 
         // Calculate number of nights
         $nights = $this->calculateNights($datPhong->ngay_nhan, $datPhong->ngay_tra);
 
-        // Calculate original price using loaiPhong (considering promotional price and quantity)
-        $soLuongPhong = $datPhong->so_luong_da_dat ?? 1;
-        $pricePerNight = $datPhong->loaiPhong->gia_khuyen_mai ?? $datPhong->loaiPhong->gia_co_ban ?? 0;
-        $originalPrice = $pricePerNight * $nights * $soLuongPhong;
+        // Get room types from JSON or fallback to single room type
+        $roomTypes = $datPhong->getRoomTypes();
+        
+        // Calculate original price from room_types or single loaiPhong
+        $originalPrice = 0;
+        if (!empty($roomTypes)) {
+            // Sum all room prices from room_types
+            foreach ($roomTypes as $roomType) {
+                $originalPrice += $roomType['gia_rieng'] ?? 0;
+            }
+        } else {
+            // Fallback: Calculate using loaiPhong (legacy support)
+            $soLuongPhong = $datPhong->so_luong_da_dat ?? 1;
+            $pricePerNight = $datPhong->loaiPhong->gia_khuyen_mai ?? $datPhong->loaiPhong->gia_co_ban ?? 0;
+            $originalPrice = $pricePerNight * $nights * $soLuongPhong;
+        }
 
         // Calculate discount amount (if voucher was applied)
         $discountAmount = max(0, $originalPrice - $datPhong->tong_tien);
@@ -44,7 +85,7 @@ class ThanhToanController extends Controller
             ]
         );
 
-        return view('client.thanh-toan.show', compact('datPhong', 'invoice', 'originalPrice', 'discountAmount', 'nights'));
+        return view('client.thanh-toan.show', compact('datPhong', 'invoice', 'originalPrice', 'discountAmount', 'nights', 'roomTypes', 'availableRooms'));
     }
 
     /**
@@ -215,7 +256,7 @@ class ThanhToanController extends Controller
         $amount = $request->input('vnp_Amount', 0) / 100;
 
         try {
-            $datPhong = DatPhong::with('invoice')->findOrFail($bookingId);
+            $datPhong = DatPhong::with(['invoice', 'phong', 'loaiPhong'])->findOrFail($bookingId);
             $invoice = $datPhong->invoice;
 
             // Bug #3 Fix: Check if invoice is already paid

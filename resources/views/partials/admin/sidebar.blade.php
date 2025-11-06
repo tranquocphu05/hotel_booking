@@ -76,6 +76,11 @@
                     <i class="fas fa-layer-group sidebar-icon mr-4 text-gray-400 group-hover:text-gray-500 text-lg"></i>
                     <span class="sidebar-text transition-all duration-300">Loại phòng</span>
                 </a>
+                <a href="{{ route('admin.phong.index') }}" 
+                   class="group flex items-center px-4 py-3 text-base font-medium rounded-md {{ request()->routeIs('admin.phong.*') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
+                    <i class="fas fa-door-open sidebar-icon mr-4 text-gray-400 group-hover:text-gray-500 text-lg"></i>
+                    <span class="sidebar-text">Quản lý phòng</span>
+                </a>
             </div>
 
             <div class="space-y-1">
