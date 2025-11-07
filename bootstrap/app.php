@@ -11,7 +11,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Tự động hủy booking quá hạn mỗi khi có request (check mỗi 1 phút)
+        $middleware->web(append: [
+            \App\Http\Middleware\AutoCancelExpiredBookings::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

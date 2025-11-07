@@ -15,17 +15,18 @@ class AutoCancelExpiredBookings
 {
     /**
      * Handle an incoming request.
-     * Tự động hủy booking quá hạn (chỉ check mỗi 1 phút để tránh chậm)
+     * Tự động hủy booking quá hạn (check mỗi 30 giây để đảm bảo hủy đúng thời gian)
      */
     public function handle(Request $request, Closure $next)
     {
-        // Chỉ check mỗi 1 phút để tránh làm chậm website
+        // Check mỗi 30 giây để đảm bảo hủy đúng thời gian (giảm từ 1 phút xuống 30 giây)
         $cacheKey = 'last_booking_cancel_check';
         $lastCheck = Cache::get($cacheKey);
 
-        if (!$lastCheck || Carbon::now()->diffInMinutes($lastCheck) >= 1) {
+        // Chỉ check nếu chưa check trong 30 giây gần đây
+        if (!$lastCheck || Carbon::now()->diffInSeconds($lastCheck) >= 30) {
             $this->cancelExpiredBookings();
-            Cache::put($cacheKey, Carbon::now(), 60); // Cache 1 phút
+            Cache::put($cacheKey, Carbon::now(), 30); // Cache 30 giây
         }
 
         return $next($request);
@@ -37,7 +38,8 @@ class AutoCancelExpiredBookings
     private function cancelExpiredBookings()
     {
         try {
-            $expiredDate = Carbon::now()->subMinutes(5);
+            // Tính chính xác: booking quá 5 phút (300 giây) sẽ bị hủy
+            $expiredDate = Carbon::now()->subSeconds(300); // 5 phút = 300 giây
 
             $expiredBookings = DatPhong::where('trang_thai', 'cho_xac_nhan')
                 ->where('ngay_dat', '<=', $expiredDate)
@@ -47,16 +49,25 @@ class AutoCancelExpiredBookings
                 ->with(['invoice', 'loaiPhong', 'voucher'])
                 ->get();
 
+            if ($expiredBookings->count() > 0) {
+                Log::info("AutoCancelExpiredBookings: Tìm thấy {$expiredBookings->count()} booking quá hạn cần hủy");
+            }
+
             foreach ($expiredBookings as $booking) {
                 try {
                     DB::transaction(function () use ($booking) {
                         $booking->load(['phong', 'loaiPhong']);
+
+                        // Tính thời gian chính xác từ lúc đặt đến lúc hủy
+                        $bookingAge = Carbon::now()->diffInSeconds($booking->ngay_dat);
 
                         // Cập nhật trạng thái
                         $booking->trang_thai = 'da_huy';
                         $booking->ly_do_huy = 'Tự động hủy do không thanh toán sau 5 phút';
                         $booking->ngay_huy = now();
                         $booking->save();
+
+                        Log::info("Đã tự động hủy booking #{$booking->id} - Đặt lúc: {$booking->ngay_dat}, Hủy lúc: " . now() . ", Thời gian: {$bookingAge} giây");
 
                         // Giải phóng phòng qua phong_id (legacy)
                         if ($booking->phong_id && $booking->phong) {

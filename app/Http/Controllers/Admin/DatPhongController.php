@@ -375,8 +375,13 @@ class DatPhongController extends Controller
                     });
 
                     foreach ($availableRooms as $phong) {
-                        $newPhongIds[] = $phong->id;
-                        $phong->update(['trang_thai' => 'dang_thue']);
+                        // Lock phòng trước khi gán
+                        $phongLocked = Phong::lockForUpdate()->find($phong->id);
+                        if ($phongLocked && $phongLocked->isAvailableInPeriod($request->ngay_nhan, $request->ngay_tra, $booking->id)) {
+                            $newPhongIds[] = $phongLocked->id;
+                            // KHÔNG set 'dang_thue' vì booking chỉ ở 'cho_xac_nhan'
+                            // Trạng thái sẽ được cập nhật khi booking được xác nhận
+                        }
                     }
                 }
             }
@@ -498,9 +503,10 @@ class DatPhongController extends Controller
                 $booking->save();
             }
 
-            // Cập nhật trạng thái phòng thành "đang thuê"
+            // Chỉ set 'dang_thue' nếu booking đã được xác nhận
+            // Nếu booking ở 'cho_xac_nhan', để model tự động xử lý khi booking được xác nhận
             $phong->refresh();
-            if ($phong->trang_thai === 'trong') {
+            if ($booking->trang_thai === 'da_xac_nhan' && $phong->trang_thai === 'trong') {
                 $phong->update(['trang_thai' => 'dang_thue']);
             }
 
@@ -805,21 +811,42 @@ class DatPhongController extends Controller
             $allPhongIds = [];
             foreach ($roomDetails as $roomDetail) {
                 $loaiPhong = LoaiPhong::find($roomDetail['loai_phong_id']);
+                $phongIdsForThisType = []; // Đếm riêng cho từng loại phòng
 
                 // Tìm và gán phòng tự động
+                // Exclude booking hiện tại để tránh conflict
                 $availableRooms = Phong::findAvailableRooms(
                     $loaiPhong->id,
                     $request->ngay_nhan,
                     $request->ngay_tra,
-                    $roomDetail['so_luong'] // Tìm đủ số lượng phòng cần thiết
+                    $roomDetail['so_luong'], // Tìm đủ số lượng phòng cần thiết
+                    $booking->id // Exclude booking hiện tại
                 )->values();
 
                 // Lưu các phòng vào phong_ids JSON
                 foreach ($availableRooms as $phong) {
-                    $allPhongIds[] = $phong->id;
+                    // Lock phòng trước khi gán để tránh race condition
+                    $phongLocked = Phong::lockForUpdate()->find($phong->id);
+                    if (!$phongLocked) {
+                        continue;
+                    }
 
-                    // Cập nhật trạng thái phòng thành "đang thuê"
-                    $phong->update(['trang_thai' => 'dang_thue']);
+                    // Double-check availability sau khi lock
+                    if ($phongLocked->isAvailableInPeriod($request->ngay_nhan, $request->ngay_tra, $booking->id)) {
+                        $allPhongIds[] = $phongLocked->id;
+                        $phongIdsForThisType[] = $phongLocked->id;
+
+                        // KHÔNG set 'dang_thue' ở đây vì booking chỉ ở trạng thái 'cho_xac_nhan'
+                        // Trạng thái phòng sẽ được cập nhật khi booking được xác nhận (trong DatPhong::boot())
+                        // Chỉ đánh dấu phòng đã được gán qua phong_ids JSON
+                    }
+                }
+
+                // Kiểm tra xem đã gán đủ phòng cho loại phòng này chưa
+                if (count($phongIdsForThisType) < $roomDetail['so_luong']) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'error' => "Không thể gán đủ {$roomDetail['so_luong']} phòng cho loại phòng '{$loaiPhong->ten_loai}'. Chỉ gán được " . count($phongIdsForThisType) . " phòng. Vui lòng thử lại."
+                    ]);
                 }
             }
 
@@ -930,7 +957,7 @@ class DatPhongController extends Controller
                     foreach ($availableRooms as $phong) {
                         if ($count >= $soLuongCan) break;
                         $allPhongIds[] = $phong->id;
-                        $phong->update(['trang_thai' => 'dang_thue']);
+                        // KHÔNG set 'dang_thue' ở đây - model sẽ tự động xử lý khi booking status thay đổi
                         $count++;
                     }
 
@@ -959,7 +986,7 @@ class DatPhongController extends Controller
 
                 foreach ($availableRooms as $phong) {
                     $allPhongIds[] = $phong->id;
-                    $phong->update(['trang_thai' => 'dang_thue']);
+                    // KHÔNG set 'dang_thue' ở đây - model sẽ tự động xử lý khi booking status thay đổi
                 }
             }
 
