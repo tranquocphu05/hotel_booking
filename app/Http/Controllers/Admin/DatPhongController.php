@@ -837,6 +837,9 @@ class DatPhongController extends Controller
                 'trang_thai' => 'cho_thanh_toan',
                 'phuong_thuc' => null,
             ]);
+
+            // Booking sẽ được tự động hủy bởi AutoCancelExpiredBookings middleware
+            // Không cần queue worker - tích hợp trực tiếp vào code
             
             return $booking;
         });

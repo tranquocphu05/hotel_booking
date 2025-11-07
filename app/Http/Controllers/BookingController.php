@@ -402,6 +402,9 @@ class BookingController extends Controller
                 'phuong_thuc' => null, // Will be set when user chooses payment method
             ]);
 
+            // Booking sẽ được tự động hủy bởi AutoCancelExpiredBookings middleware
+            // Không cần queue worker - tích hợp trực tiếp vào code
+
             return [$booking];
         });
 
