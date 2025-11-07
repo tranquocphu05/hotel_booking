@@ -1,4 +1,4 @@
-<div x-data="{ currentSlide: 1, totalSlides: 3 }" x-init="setInterval(() => { currentSlide = (currentSlide % totalSlides) + 1 }, 3000)" class="relative min-h-[780px] lg:min-h-[580px]">
+<div x-data="{ currentSlide: 1, totalSlides: 3 }" x-init="setInterval(() => { currentSlide = (currentSlide % totalSlides) + 1 }, 3000)" class="relative min-h-[780px] lg:min-h-[600px]">
 
     <div class="absolute inset-0">
         @php
@@ -13,7 +13,38 @@
             </div>
         @endforeach
     </div>
-    <div class="absolute inset-0 bg-black/40 z-10"></div>
+    <div class="absolute inset-0 bg-black/60 z-10"></div>
+
+    <div class="w-full max-w-screen-xl mx-auto flex flex-col items-center justify-center relative z-10 pt-24 md:pt-32">
+
+        {{-- Khối Nội dung Chính --}}
+        <div class="text-white z-10 text-center max-w-4xl drop-shadow-[0_4px_20px_rgba(0,0,0,0.55)]">
+            <p class="text-sm uppercase tracking-[0.35em] mb-3 font-medium text-[#D4AF37]">
+                CHÀO MỪNG ĐẾN VỚI OZIA</p>
+
+            <h1
+                class="text-5xl md:text-7xl font-serif font-extrabold mb-6 leading-tight
+                   whitespace-nowrap [text-shadow:0_8px_25px_rgba(0,0,0,0.8)]">
+                OZIA Khách Sạn Sang Trọng
+            </h1>
+
+            <p class="text-lg md:text-xl mb-10 mx-auto font-light text-gray-100 max-w-3xl">
+                Trải nghiệm sự xa hoa tột đỉnh. Chúng tôi cam kết mang đến dịch vụ 5 sao cá nhân hóa,
+                nơi mọi chi tiết đều được chạm khắc bằng vàng.
+            </p>
+
+            <a href="#"
+                class="inline-block px-10 py-4 text-white font-bold uppercase tracking-widest transition duration-300
+                   shadow-[0_0_20px_rgba(212,175,55,0.7)]
+                   border-2 border-[#D4AF37] hover:bg-[#D4AF37] hover:text-black rounded-full">
+                Khám Phá Ngay
+            </a>
+        </div>
+
+    </div>
+
+
+
 
     <div
         class="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-[55%] z-30 w-full flex justify-center px-4 h-[140px]">

@@ -362,31 +362,32 @@
 
 <section id="rooms-gallery" class="py-20 bg-gray-50">
     <style>
-        /* CSS tùy chỉnh để làm cho hiệu ứng hover ưng mắt hơn */
         .room-card:hover .room-content-hover {
             opacity: 1;
-            /* Giữ nguyên vị trí ban đầu để fade-in mượt mà */
             transform: translateY(0);
         }
 
         .room-card .room-content-hover {
-            /* Tăng tốc độ mượt mà hơn */
             transition: opacity 0.6s ease-out, transform 0.6s ease-out;
-            /* Đảm bảo nội dung luôn hiển thị nhưng mờ đi, không bị dịch chuyển */
             transform: translateY(0);
         }
 
-        /* Lớp phủ sáng rực khi hover */
         .room-card:hover .overlay-hover {
-            /* Tăng độ mờ mạnh mẽ */
             background-color: rgba(0, 0, 0, 0.85);
-            /* Tạo hiệu ứng mờ nhẹ nhàng */
             backdrop-filter: blur(2px);
         }
 
-        /* Ẩn các chi tiết danh giá, chỉ giữ lại mô tả/tiện nghi */
         .room-details-unhover {
             transition: opacity 0.5s ease-in;
+        }
+
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
     </style>
 
@@ -399,171 +400,261 @@
         </h2>
     </div>
 
-    <ul class="flex flex-wrap gap-4 justify-center px-4 sm:px-6">
-        @forelse ($loaiPhongs as $phong)
-            <li class="relative group overflow-hidden bg-white shadow-md hover:shadow-xl transition-all duration-500 rounded-xl room-card"
-                style="width: 350px; height: 460px;">
+    <div class="relative max-w-full">
+        <ul id="roomSlider"
+            class="flex gap-6 px-4 sm:px-6 overflow-x-auto scrollbar-hide snap-x snap-mandatory cursor-grab"
+            style="scroll-behavior:smooth; white-space:nowrap;">
+            @forelse ($loaiPhongs as $phong)
+                <li class="relative group overflow-hidden bg-white shadow-md hover:shadow-xl transition-all duration-500 rounded-xl room-card snap-center flex-shrink-0"
+                    style="width: 350px; height: 460px;">
 
-                {{-- Ảnh phòng --}}
-                <img src="{{ asset($phong->anh ?: 'img/room/room-1.jpg') }}" alt="{{ $phong->ten_loai }}"
-                    class="w-full h-full object-cover transform transition-transform duration-700 ease-in-out group-hover:scale-110">
-                
-                {{-- Badge và giá ở góc trên phải --}}
-                <div class="absolute top-4 right-4 flex flex-col items-end gap-1 z-10">
-                    @if($phong->gia_khuyen_mai)
-                        @php
-                            $discountPercent = round((($phong->gia_co_ban - $phong->gia_khuyen_mai) / $phong->gia_co_ban) * 100);
-                        @endphp
-                        {{-- Badge khuyến mãi --}}
-                        <div class="inline-flex items-center gap-1.5 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg">
-                            <i class="fas fa-tag text-white text-xs"></i>
-                            <span>GIẢM {{ $discountPercent }}%</span>
-                        </div>
-                    @endif
-                    {{-- Box giá --}}
-                    <div class="bg-black/90 text-white px-4 py-2.5 rounded-lg shadow-xl">
-                        <div class="text-xl font-bold">
-                            {{ number_format($phong->gia_khuyen_mai ?? $phong->gia_co_ban, 0, ',', '.') }}
-                        </div>
-                        @if($phong->gia_khuyen_mai)
-                            <div class="text-sm text-gray-300 line-through mt-0.5">
-                                {{ number_format($phong->gia_co_ban, 0, ',', '.') }}
+                    {{-- Ảnh --}}
+                    <img src="{{ asset($phong->anh ?: 'img/room/room-1.jpg') }}"
+                        class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+
+                    {{-- Badge + Giá --}}
+                    <div class="absolute top-4 right-4 z-10 flex flex-col items-end gap-1">
+                        @if ($phong->gia_khuyen_mai)
+                            @php
+                                $discountPercent = round(
+                                    (($phong->gia_co_ban - $phong->gia_khuyen_mai) / $phong->gia_co_ban) * 100,
+                                );
+                            @endphp
+                            <div
+                                class="inline-flex gap-1.5 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg">
+                                <i class="fas fa-tag"></i> GIẢM {{ $discountPercent }}%
                             </div>
                         @endif
-                        <div class="text-xs text-gray-300 mt-0.5">VNĐ / đêm</div>
+                        <div class="bg-black/90 text-white px-4 py-2.5 rounded-lg shadow-xl">
+                            <div class="text-xl font-bold">
+                                {{ number_format($phong->gia_khuyen_mai ?? $phong->gia_co_ban, 0, ',', '.') }}</div>
+                            @if ($phong->gia_khuyen_mai)
+                                <div class="text-sm text-gray-300 line-through">
+                                    {{ number_format($phong->gia_co_ban, 0, ',', '.') }}</div>
+                            @endif
+                            <div class="text-xs text-gray-300">VNĐ / đêm</div>
+                        </div>
                     </div>
-                </div>
 
-                {{-- Overlay --}}
-                <div
-                    class="absolute inset-0 bg-black bg-opacity-40 transition-all duration-500 group-hover:bg-opacity-85 overlay-hover">
-                </div>
+                    {{-- Lớp phủ --}}
+                    <div
+                        class="absolute inset-0 bg-black/40 transition-all duration-500 group-hover:bg-opacity-85 overlay-hover">
+                    </div>
 
-                {{-- Nội dung khi chưa hover (Giá ở dưới) --}}
-                <div
-                    class="absolute inset-0 flex items-end p-6 text-white transition-all duration-500 group-hover:opacity-0 room-details-unhover">
-                    <div class="w-full">
-                        <h4 class="text-2xl font-bold mb-1 font-serif">{{ $phong->ten_loai }}</h4>
-                        @if($phong->gia_khuyen_mai)
-                            @php
-                                $discountPercent = round((($phong->gia_co_ban - $phong->gia_khuyen_mai) / $phong->gia_co_ban) * 100);
-                            @endphp
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="inline-flex items-center gap-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg animate-pulse">
-                                    <i class="fas fa-tag"></i>
-                                    <span>GIẢM {{ $discountPercent }}%</span>
-                                </span>
-                            </div>
-                            <div class="flex items-center gap-2">
+                    {{-- Chưa hover --}}
+                    <div
+                        class="absolute inset-0 flex items-end p-6 text-white group-hover:opacity-0 room-details-unhover">
+                        <div class="w-full">
+                            <h4 class="text-2xl font-bold mb-1 font-serif">{{ $phong->ten_loai }}</h4>
+                            @if ($phong->gia_khuyen_mai)
                                 <span class="text-xl text-red-400 font-semibold">
                                     {{ number_format($phong->gia_khuyen_mai, 0, ',', '.') }}đ
                                 </span>
                                 <span class="text-sm text-gray-400 line-through">
                                     {{ number_format($phong->gia_co_ban, 0, ',', '.') }}đ
                                 </span>
-                            </div>
-                        @else
-                            <span class="text-xl text-[#D4AF37] font-semibold">
-                                {{ number_format($phong->gia_co_ban, 0, ',', '.') }}đ
-                            </span>
-                        @endif
-                        <span class="text-sm text-gray-300">/ Đêm</span>
-                    </div>
-                </div>
-
-                {{-- Nội dung khi hover (Tên, Giá, UL/LI tiện nghi, Đánh giá sao) --}}
-                <div class="absolute inset-0 flex flex-col justify-start p-6 text-white opacity-0 room-content-hover">
-
-                    {{-- Tên + Giá --}}
-                    <div class="mb-4">
-                        <h4 class="text-3xl font-serif font-bold mb-1">{{ $phong->ten_loai }}</h4>
-                        @if($phong->gia_khuyen_mai)
-                            @php
-                                $discountPercent = round((($phong->gia_co_ban - $phong->gia_khuyen_mai) / $phong->gia_co_ban) * 100);
-                            @endphp
-                            <div class="flex items-center gap-2 mb-2">
-                                <span class="inline-flex items-center gap-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
-                                    <i class="fas fa-tag"></i>
-                                    <span>GIẢM {{ $discountPercent }}%</span>
-                                </span>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <span class="text-2xl text-red-400 font-bold">
-                                    {{ number_format($phong->gia_khuyen_mai, 0, ',', '.') }}đ
-                                </span>
-                                <span class="text-base text-gray-400 line-through">
+                            @else
+                                <span class="text-xl text-[#D4AF37] font-semibold">
                                     {{ number_format($phong->gia_co_ban, 0, ',', '.') }}đ
                                 </span>
-                                <span class="text-base text-gray-300">/ Đêm</span>
-                            </div>
-                        @else
-                            <span class="text-2xl text-[#FFD700] font-bold">
-                                {{ number_format($phong->gia_co_ban, 0, ',', '.') }}đ
-                            </span>
-                            <span class="text-base text-gray-300">/ Đêm</span>
-                        @endif
-                    </div>
-
-                    <div class="mt-2 mb-4">
-                        <p class="uppercase text-sm tracking-wider text-[#D4AF37] mb-3">Tiện Nghi Chính</p>
-                        <ul class="space-y-2 text-sm text-gray-100">
-
-                            @php
-                                // Lấy nội dung mô tả
-                                $moTaRaw = $phong->mo_ta ?? '';
-                                // Tách chuỗi bằng dấu phẩy (,)
-                                $tienNghiList = array_filter(array_map('trim', explode(',', $moTaRaw)));
-                            @endphp
-
-                            {{-- LẶP QUA CÁC MỤC ĐÃ TÁCH (ĐÃ CHỈNH SỬA: Lấy tối đa 8 mục) --}}
-                            @forelse (collect($tienNghiList)->take(8) as $tienNghiItem)
-                                <li class="flex items-center">
-                                    {{-- Dùng icon check mặc định --}}
-                                    <i class="fas fa-check text-[#FFD700] mr-2"></i>
-                                    {{ $tienNghiItem }}
-                                </li>
-                            @empty
-                                <li class="text-gray-400 italic">Chưa có thông tin tiện nghi được cấu hình.</li>
-                            @endforelse
-                        </ul>
-                    </div>
-
-                    {{-- Khôi phục Đánh giá sao --}}
-                    <div class="mt-auto pt-4 border-t border-gray-700/50">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center space-x-2">
-                                <div class="flex items-center">
-                                    {{-- Vòng lặp hiển thị sao --}}
-                                    @for ($i = 1; $i <= 5; $i++)
-                                        @if ($i <= floor($phong->diem_danh_gia ?? 4.5))
-                                            <i class="fas fa-star text-yellow-400 text-sm"></i>
-                                        @elseif($i - 0.5 <= ($phong->diem_danh_gia ?? 4.5))
-                                            <i class="fas fa-star-half-alt text-yellow-400 text-sm"></i>
-                                        @else
-                                            <i class="far fa-star text-gray-300 text-sm"></i>
-                                        @endif
-                                    @endfor
-                                </div>
-                                <span
-                                    class="text-base font-bold text-white">{{ number_format($phong->diem_danh_gia ?? 4.5, 1) }}</span>
-                            </div>
-                            <span class="text-sm text-gray-300">{{ $phong->so_luong_danh_gia ?? rand(20, 150) }} đánh
-                                giá</span>
+                            @endif
+                            <span class="text-sm text-gray-300">/ Đêm</span>
                         </div>
                     </div>
-                </div>
-            </li>
-        @empty
-            <li class="w-full text-center py-16">
-                <div class="text-gray-500 text-lg">
-                    <i class="fas fa-bed text-4xl mb-4"></i>
-                    <p>Hiện chưa có loại phòng nào được hiển thị.</p>
-                    <p class="text-sm mt-2">Vui lòng quay lại sau hoặc liên hệ với chúng tôi.</p>
-                </div>
-            </li>
-        @endforelse
-    </ul>
+
+                    {{-- Hover Nội dung --}}
+                    <div class="absolute inset-0 flex flex-col p-6 text-white opacity-0 room-content-hover">
+                        <h4 class="text-3xl font-serif font-bold mb-2">{{ $phong->ten_loai }}</h4>
+
+                        <div class="mb-3">
+                            <span class="text-2xl font-bold text-[#FFD700]">
+                                {{ number_format($phong->gia_khuyen_mai ?? $phong->gia_co_ban, 0, ',', '.') }}đ
+                            </span>
+                            <span class="text-base text-gray-300">/ Đêm</span>
+                        </div>
+
+                        {{-- Tiện nghi --}}
+                        <p class="uppercase text-sm tracking-wider text-[#D4AF37] mb-2">Tiện Nghi Chính</p>
+                        <ul class="text-sm space-y-2">
+                            @php
+                                $tienNghiList = array_filter(array_map('trim', explode(',', $phong->mo_ta ?? '')));
+                            @endphp
+                            @forelse(collect($tienNghiList)->take(8) as $item)
+                                <li><i class="fas fa-check text-[#FFD700] mr-2"></i>{{ $item }}</li>
+                            @empty
+                                <li class="text-gray-400 italic">Chưa có thông tin.</li>
+                            @endforelse
+                        </ul>
+
+                        {{-- ⭐ Đánh giá giữ nguyên --}}
+                        <div class="mt-auto pt-4 border-t border-gray-700/50">
+                            <div class="flex justify-between items-center">
+                                <div class="flex items-center space-x-2">
+                                    <div class="flex">
+                                        @for ($i = 1; $i <= 5; $i++)
+                                            @if ($i <= floor($phong->diem_danh_gia ?? 4.5))
+                                                <i class="fas fa-star text-yellow-400"></i>
+                                            @elseif($i - 0.5 <= ($phong->diem_danh_gia ?? 4.5))
+                                                <i class="fas fa-star-half-alt text-yellow-400"></i>
+                                            @else
+                                                <i class="far fa-star text-gray-300"></i>
+                                            @endif
+                                        @endfor
+                                    </div>
+                                    <span class="font-bold">{{ number_format($phong->diem_danh_gia ?? 4.5, 1) }}</span>
+                                </div>
+                                <span class="text-sm text-gray-300">{{ $phong->so_luong_danh_gia ?? rand(20, 150) }}
+                                    đánh giá</span>
+                            </div>
+                        </div>
+                    </div>
+                </li>
+            @empty
+                <li class="text-center py-10 w-full text-gray-500">Hiện chưa có phòng.</li>
+            @endforelse
+        </ul>
+    </div>
 </section>
+<script>
+    const slider = document.getElementById('roomSlider');
+
+    // Khai báo các biến trạng thái kéo
+    let isDown = false;
+    let startX;
+    let scrollLeft;
+    let autoSlide; // Biến giữ interval tự động trượt
+    let clickPrevented = false; // Biến mới để ngăn chặn sự kiện click sau khi kéo
+
+    const cardWidth = 350 + 24; // width + gap (px)
+
+    function slideNext() {
+        const maxScrollLeft = slider.scrollWidth - slider.clientWidth;
+
+        if (slider.scrollLeft >= maxScrollLeft - 10) {
+            slider.scrollTo({
+                left: 0,
+                behavior: 'smooth'
+            });
+        } else {
+            slider.scrollLeft += cardWidth;
+        }
+    }
+
+    function startAutoSlide() {
+        clearInterval(autoSlide);
+        autoSlide = setInterval(slideNext, 3000);
+    }
+
+    // Bắt đầu chạy ngay
+    startAutoSlide();
+
+    // Dừng khi rê chuột vào, chạy lại khi rê chuột ra
+    slider.addEventListener('mouseenter', () => clearInterval(autoSlide));
+    slider.addEventListener('mouseleave', startAutoSlide);
+
+    // ----------------------------------------------------
+    // CHỨC NĂNG: KÉO BẰNG CHUỘT/CHẠM
+    // ----------------------------------------------------
+
+    // 1. Khi nhấn chuột xuống (hoặc chạm)
+    slider.addEventListener('mousedown', (e) => {
+        isDown = true;
+        clickPrevented = false; // Reset cờ ngăn click
+        slider.classList.add('cursor-grabbing');
+
+        // Dừng auto-slide khi người dùng tương tác
+        clearInterval(autoSlide);
+
+        // Lưu vị trí chuột ban đầu và vị trí cuộn hiện tại
+        startX = e.pageX - slider.offsetLeft;
+        scrollLeft = slider.scrollLeft;
+
+        // Ngăn chặn bôi đen/chọn văn bản khi bắt đầu kéo
+        e.preventDefault();
+    });
+
+    // 2. Khi thả chuột ra (hoặc kết thúc chạm)
+    // *** Thêm 'global' mouseup để bắt sự kiện thả chuột bên ngoài slider
+    document.addEventListener('mouseup', () => {
+        if (isDown) {
+            isDown = false;
+            slider.classList.remove('cursor-grabbing');
+            startAutoSlide();
+        }
+    });
+
+    // Xử lý khi chuột rời khỏi khu vực slider (nếu đang kéo thì vẫn kết thúc kéo)
+    slider.addEventListener('mouseleave', () => {
+        if (isDown) {
+            isDown = false;
+            slider.classList.remove('cursor-grabbing');
+            // KHÔNG BẮT ĐẦU lại auto-slide ở đây, vì mouseup sẽ làm điều đó
+        }
+    });
+
+    // 3. Khi di chuyển chuột
+    slider.addEventListener('mousemove', (e) => {
+        if (!isDown) return; // Dừng nếu chưa nhấn chuột
+        e.preventDefault(); // Ngăn chặn hành vi chọn văn bản mặc định
+
+        // Đánh dấu là đã kéo để ngăn chặn sự kiện 'click'
+        clickPrevented = true;
+
+        // Tính khoảng cách di chuyển
+        const x = e.pageX - slider.offsetLeft;
+        // ** SỬA ĐỔI CHÍNH: Thay đổi hệ số nhân từ 1.5 thành 1.0 (hoặc 0.8) để tốc độ kéo tự nhiên hơn
+        const walk = (x - startX) * 1.0;
+
+        // Cập nhật vị trí cuộn
+        slider.scrollLeft = scrollLeft - walk;
+
+        // Cập nhật con trỏ
+        slider.style.cursor = 'grabbing';
+    });
+
+    // ----------------------------------------------------
+    // Ngăn chặn click sau khi kéo (giải quyết vấn đề bôi đen/click vào link)
+    // ----------------------------------------------------
+    slider.addEventListener('click', (e) => {
+        // Nếu đã kéo chuột một đoạn đáng kể, ngăn chặn sự kiện click.
+        // Điều này giúp ngăn chặn việc mở link khi người dùng chỉ cố gắng kéo
+        if (clickPrevented) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+        }
+    }, true); // Sử dụng phase 'capturing' (true) để chặn sớm hơn
+
+    // ----------------------------------------------------
+    // Tương thích với thiết bị di động (touch events - Giữ nguyên logic)
+    // ----------------------------------------------------
+    slider.addEventListener('touchstart', (e) => {
+        // Kích hoạt mousedown
+        slider.dispatchEvent(new MouseEvent('mousedown', {
+            bubbles: true,
+            cancelable: true,
+            view: window,
+            pageX: e.touches[0].pageX,
+            pageY: e.touches[0].pageY
+        }));
+    });
+
+    slider.addEventListener('touchend', () => {
+        // Kích hoạt mouseup (hoặc end drag logic)
+        document.dispatchEvent(new MouseEvent('mouseup'));
+    });
+
+    slider.addEventListener('touchmove', (e) => {
+        // Kích hoạt mousemove
+        slider.dispatchEvent(new MouseEvent('mousemove', {
+            bubbles: true,
+            cancelable: true,
+            view: window,
+            pageX: e.touches[0].pageX,
+            pageY: e.touches[0].pageY
+        }));
+    });
+</script>
+
 
 <section id="testimonials" class="py-16 bg-gray-50 my-16 rounded-3xl overflow-hidden">
     <div class="text-center container mx-auto px-4">
@@ -649,27 +740,33 @@
 </section>
 
 <style>
-.play-button-glow {
-    /* MẶC ĐỊNH: Viền thứ 2 màu trắng mờ */
-    box-shadow:
-        0 0 0 8px rgba(255, 255, 255, 0.2); /* Viền trắng mờ thứ hai */
+    .play-button-glow {
+        /* MẶC ĐỊNH: Viền thứ 2 màu trắng mờ */
+        box-shadow:
+            0 0 0 8px rgba(255, 255, 255, 0.2);
+        /* Viền trắng mờ thứ hai */
 
-    /* Icon đã được Tailwind đặt là text-white, nên không cần đặt lại ở đây */
-}
+        /* Icon đã được Tailwind đặt là text-white, nên không cần đặt lại ở đây */
+    }
 
-.play-button-glow:hover {
-    /* HOVER: Hiệu ứng phát sáng vàng mạnh mẽ (Neon Glow) */
-    /* Nền sẽ đậm hơn một chút hoặc giữ nguyên tùy theo bg-[#D4AF37]/30 */
-    box-shadow:
-        /* Giữ lại viền trắng mờ 0 0 0 8px rgba(255, 255, 255, 0.2), */ /* Tùy chọn: bỏ dòng này nếu muốn viền trắng biến mất khi hover */
-        0 0 0 3px #D4AF37, /* Viền vàng rõ nét */
-        0 0 0 10px rgba(212, 175, 55, 0.6), /* Viền vàng mờ rộng hơn */
-        0 0 30px #D4AF37, /* Sáng vàng chính */
-        0 0 60px rgba(212, 175, 55, 0.6); /* Sáng vàng lan rộng */
+    .play-button-glow:hover {
+        /* HOVER: Hiệu ứng phát sáng vàng mạnh mẽ (Neon Glow) */
+        /* Nền sẽ đậm hơn một chút hoặc giữ nguyên tùy theo bg-[#D4AF37]/30 */
+        box-shadow:
+            /* Giữ lại viền trắng mờ 0 0 0 8px rgba(255, 255, 255, 0.2), */
+            /* Tùy chọn: bỏ dòng này nếu muốn viền trắng biến mất khi hover */
+            0 0 0 3px #D4AF37,
+            /* Viền vàng rõ nét */
+            0 0 0 10px rgba(212, 175, 55, 0.6),
+            /* Viền vàng mờ rộng hơn */
+            0 0 30px #D4AF37,
+            /* Sáng vàng chính */
+            0 0 60px rgba(212, 175, 55, 0.6);
+        /* Sáng vàng lan rộng */
 
-    /* Icon vẫn là màu trắng (đã được Tailwind đặt text-white) */
-    /* Nếu muốn chắc chắn, có thể thêm: color: white !important; */
-}
+        /* Icon vẫn là màu trắng (đã được Tailwind đặt text-white) */
+        /* Nếu muốn chắc chắn, có thể thêm: color: white !important; */
+    }
 </style>
 <!-- Popup Video -->
 <div id="videoPopup"
@@ -754,10 +851,12 @@
                                 @endif
                             </div>
                             <div class="p-4">
-                                <h3 class="text-lg font-bold text-gray-800 mb-1 leading-tight">{{ $phong->ten_loai ?? 'Loại phòng' }}
+                                <h3 class="text-lg font-bold text-gray-800 mb-1 leading-tight">
+                                    {{ $phong->ten_loai ?? 'Loại phòng' }}
                                 </h3>
                                 <p class="text-sm text-gray-500 mb-2">
-                                    Còn {{ $phong->so_luong_trong ?? 0 }}/{{ $phong->so_luong_phong ?? 0 }} phòng trống</p>
+                                    Còn {{ $phong->so_luong_trong ?? 0 }}/{{ $phong->so_luong_phong ?? 0 }} phòng
+                                    trống</p>
 
                                 <div class="flex items-center mb-3">
                                     @php($stars = data_get($phong, 'loaiPhong.stars'))

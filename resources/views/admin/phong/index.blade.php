@@ -48,109 +48,113 @@
         <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">Lọc</button>
     </form>
 
-    <div class="overflow-x-auto w-full">
-        <table class="w-full text-sm text-gray-700 border border-gray-200 rounded-lg shadow-sm">
-            <thead class="bg-gray-100 text-gray-800 text-xs uppercase font-semibold">
-                <tr>
-                    <th class="px-6 py-3 text-center border-b">STT</th>
-                    <th class="px-6 py-3 text-center border-b">Số phòng</th>
-                    <th class="px-6 py-3 text-center border-b">Tên phòng</th>
-                    <th class="px-6 py-3 text-center border-b">Loại phòng</th>
-                    <th class="px-6 py-3 text-center border-b">Tầng</th>
-                    <th class="px-6 py-3 text-center border-b">Hướng cửa sổ</th>
-                    <th class="px-6 py-3 text-center border-b">Tiện ích</th>
-                    <th class="px-6 py-3 text-center border-b">Giá riêng</th>
-                    <th class="px-6 py-3 text-center border-b">Trạng thái</th>
-                    <th class="px-6 py-3 text-center border-b">Thao tác</th>
+ <div class="overflow-x-auto w-full">
+    <table class="w-full text-sm text-gray-700 border border-gray-200 rounded-lg shadow-sm">
+        <thead class="bg-gray-100 text-gray-800 text-xs uppercase font-semibold">
+            <tr>
+                <th class="px-6 py-3 text-center border-b whitespace-nowrap">STT</th>
+                <th class="px-6 py-3 text-center border-b whitespace-nowrap">Số phòng</th>
+                <th class="px-6 py-3 text-center border-b whitespace-nowrap">Tên phòng</th>
+                <th class="px-6 py-3 text-center border-b whitespace-nowrap">Loại phòng</th>
+                <th class="px-6 py-3 text-center border-b whitespace-nowrap">Tầng</th>
+                <th class="px-6 py-3 text-center border-b whitespace-nowrap">Hướng cửa sổ</th>
+                <th class="px-6 py-3 text-center border-b">Tiện ích</th> {{-- Cột này giữ nguyên để có thể xuống dòng/cuộn nếu có nhiều badge --}}
+                <th class="px-6 py-3 text-center border-b whitespace-nowrap">Giá riêng</th>
+                <th class="px-6 py-3 text-center border-b whitespace-nowrap">Trạng thái</th>
+                <th class="px-6 py-3 text-center border-b whitespace-nowrap">Thao tác</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+            @forelse ($phongs as $phong)
+                <tr class="hover:bg-gray-50 transition">
+                    <td class="px-6 py-3 text-center whitespace-nowrap">{{ $loop->iteration }}</td>
+                    <td class="px-6 py-3 text-center font-semibold text-blue-600 whitespace-nowrap">{{ $phong->so_phong }}</td>
+                    <td class="px-6 py-3 text-center whitespace-nowrap">{{ $phong->ten_phong ?? '-' }}</td>
+                    <td class="px-6 py-3 text-center whitespace-nowrap">{{ $phong->loaiPhong->ten_loai ?? '-' }}</td>
+                    <td class="px-6 py-3 text-center whitespace-nowrap">{{ $phong->tang ?? '-' }}</td>
+                    <td class="px-6 py-3 text-center whitespace-nowrap">
+                        @if($phong->huong_cua_so)
+                            @php
+                                $huongMap = ['bien' => 'Biển', 'nui' => 'Núi', 'thanh_pho' => 'Thành phố', 'san_vuon' => 'Sân vườn'];
+                            @endphp
+                            <span class="text-xs text-gray-600 whitespace-nowrap">{{ $huongMap[$phong->huong_cua_so] ?? $phong->huong_cua_so }}</span>
+                        @else
+                            <span class="text-gray-400 text-xs whitespace-nowrap">-</span>
+                        @endif
+                    </td>
+                    {{-- Cột Tiện ích: giữ nguyên flex-wrap để tránh quá rộng nếu có nhiều tiện ích --}}
+                    <td class="px-6 py-3 text-center">
+                        <div class="flex flex-wrap justify-center gap-1">
+                            @if($phong->co_ban_cong)
+                                <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded whitespace-nowrap">Ban công</span>
+                            @endif
+                            @if($phong->co_view_dep)
+                                <span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded whitespace-nowrap">View đẹp</span>
+                            @endif
+                            @if(!$phong->co_ban_cong && !$phong->co_view_dep)
+                                <span class="text-gray-400 text-xs whitespace-nowrap">-</span>
+                            @endif
+                        </div>
+                    </td>
+                    
+                    <td class="px-6 py-3 text-center whitespace-nowrap">
+                        @if($phong->gia_rieng)
+                            <span class="text-blue-600 font-semibold whitespace-nowrap">{{ number_format($phong->gia_rieng, 0, ',', '.') }} VNĐ</span>
+                        @else
+                            <span class="text-gray-400 text-xs whitespace-nowrap">-</span>
+                        @endif
+                    </td>
+                    
+                    <td class="px-6 py-3 text-center whitespace-nowrap">
+                        @if ($phong->trang_thai === 'trong')
+                            <span class="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full whitespace-nowrap">Trống</span>
+                        @elseif ($phong->trang_thai === 'dang_thue')
+                            <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full whitespace-nowrap">Đang thuê</span>
+                        @elseif ($phong->trang_thai === 'dang_don')
+                            <span class="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs font-medium rounded-full whitespace-nowrap">Đang dọn</span>
+                        @else
+                            <span class="px-2 py-1 bg-red-100 text-red-700 text-xs font-medium rounded-full whitespace-nowrap">Bảo trì</span>
+                        @endif
+                    </td>
+                    
+                    <td class="px-6 py-3 text-center whitespace-nowrap">
+                        <div class="flex justify-center items-center gap-2">
+                            <a href="{{ route('admin.phong.show', $phong->id) }}" 
+                               class="text-blue-600 hover:text-blue-700 flex items-center gap-1 transition text-xs" 
+                               title="Xem chi tiết">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{{ route('admin.phong.edit', $phong->id) }}" 
+                               class="text-amber-600 hover:text-amber-700 flex items-center gap-1 transition text-xs"
+                               title="Sửa">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <form action="{{ route('admin.phong.destroy', $phong->id) }}" 
+                                  method="POST" 
+                                  onsubmit="return confirm('Bạn có chắc chắn muốn xóa phòng {{ $phong->so_phong }}?')"
+                                  class="inline">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" 
+                                        class="text-red-600 hover:text-red-700 flex items-center gap-1 transition text-xs"
+                                        title="Xóa">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
                 </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100">
-                @forelse ($phongs as $phong)
-                    <tr class="hover:bg-gray-50 transition">
-                        <td class="px-6 py-3 text-center">{{ $loop->iteration }}</td>
-                        <td class="px-6 py-3 text-center font-semibold text-blue-600">{{ $phong->so_phong }}</td>
-                        <td class="px-6 py-3 text-center">{{ $phong->ten_phong ?? '-' }}</td>
-                        <td class="px-6 py-3 text-center">{{ $phong->loaiPhong->ten_loai ?? '-' }}</td>
-                        <td class="px-6 py-3 text-center">{{ $phong->tang ?? '-' }}</td>
-                        <td class="px-6 py-3 text-center">
-                            @if($phong->huong_cua_so)
-                                @php
-                                    $huongMap = ['bien' => 'Biển', 'nui' => 'Núi', 'thanh_pho' => 'Thành phố', 'san_vuon' => 'Sân vườn'];
-                                @endphp
-                                <span class="text-xs text-gray-600">{{ $huongMap[$phong->huong_cua_so] ?? $phong->huong_cua_so }}</span>
-                            @else
-                                <span class="text-gray-400 text-xs">-</span>
-                            @endif
-                        </td>
-                        <td class="px-6 py-3 text-center">
-                            <div class="flex flex-wrap justify-center gap-1">
-                                @if($phong->co_ban_cong)
-                                    <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">Ban công</span>
-                                @endif
-                                @if($phong->co_view_dep)
-                                    <span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded">View đẹp</span>
-                                @endif
-                                @if(!$phong->co_ban_cong && !$phong->co_view_dep)
-                                    <span class="text-gray-400 text-xs">-</span>
-                                @endif
-                            </div>
-                        </td>
-                        <td class="px-6 py-3 text-center">
-                            @if($phong->gia_rieng)
-                                <span class="text-blue-600 font-semibold">{{ number_format($phong->gia_rieng, 0, ',', '.') }} VNĐ</span>
-                            @else
-                                <span class="text-gray-400 text-xs">-</span>
-                            @endif
-                        </td>
-                        <td class="px-6 py-3 text-center">
-                            @if ($phong->trang_thai === 'trong')
-                                <span class="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">Trống</span>
-                            @elseif ($phong->trang_thai === 'dang_thue')
-                                <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">Đang thuê</span>
-                            @elseif ($phong->trang_thai === 'dang_don')
-                                <span class="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs font-medium rounded-full">Đang dọn</span>
-                            @else
-                                <span class="px-2 py-1 bg-red-100 text-red-700 text-xs font-medium rounded-full">Bảo trì</span>
-                            @endif
-                        </td>
-                        <td class="px-6 py-3 text-center">
-                            <div class="flex justify-center items-center gap-2">
-                                <a href="{{ route('admin.phong.show', $phong->id) }}" 
-                                   class="text-blue-600 hover:text-blue-700 flex items-center gap-1 transition text-xs" 
-                                   title="Xem chi tiết">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                <a href="{{ route('admin.phong.edit', $phong->id) }}" 
-                                   class="text-amber-600 hover:text-amber-700 flex items-center gap-1 transition text-xs"
-                                   title="Sửa">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <form action="{{ route('admin.phong.destroy', $phong->id) }}" 
-                                      method="POST" 
-                                      onsubmit="return confirm('Bạn có chắc chắn muốn xóa phòng {{ $phong->so_phong }}?')"
-                                      class="inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" 
-                                            class="text-red-600 hover:text-red-700 flex items-center gap-1 transition text-xs"
-                                            title="Xóa">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="10" class="px-6 py-6 text-center text-gray-500">
-                            Chưa có phòng nào được thêm.
-                            <a href="{{ route('admin.phong.create') }}" class="text-blue-600 hover:underline ml-2">Thêm phòng mới</a>
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
+            @empty
+                <tr>
+                    <td colspan="10" class="px-6 py-6 text-center text-gray-500">
+                        Chưa có phòng nào được thêm.
+                        <a href="{{ route('admin.phong.create') }}" class="text-blue-600 hover:underline ml-2">Thêm phòng mới</a>
+                    </td>
+                </tr>
+            @endforelse
+        </tbody>
+    </table>
+</div>
     <div class="mt-6">
         {{ $phongs->appends(request()->query())->links() }}
     </div>
