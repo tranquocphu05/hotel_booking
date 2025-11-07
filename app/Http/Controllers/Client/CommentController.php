@@ -7,6 +7,7 @@ use App\Models\Comment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Cache;
 
 class CommentController extends Controller
 {
@@ -74,6 +75,10 @@ class CommentController extends Controller
                 'ngay_danh_gia' => now(),
                 'img' => $imgPath,
             ]);
+            
+            // Clear cache
+            $this->clearCommentCache($request->loai_phong_id);
+            
             return redirect()->back()->with('success', 'Đánh giá của bạn đã được cập nhật thành công!');
         }
 
@@ -87,6 +92,9 @@ class CommentController extends Controller
             'ngay_danh_gia' => now(),
             'trang_thai' => 'hien_thi',
         ]);
+
+        // Clear cache
+        $this->clearCommentCache($request->loai_phong_id);
 
         return redirect()->back()->with('success', 'Cảm ơn bạn! Đánh giá đã được gửi thành công.');
     }
@@ -102,7 +110,11 @@ class CommentController extends Controller
             Storage::disk('public')->delete($comment->img);
         }
 
+        $loaiPhongId = $comment->loai_phong_id;
         $comment->delete();
+
+        // Clear cache
+        $this->clearCommentCache($loaiPhongId);
 
         return redirect()->back()->with('success', 'Đánh giá của bạn đã được xóa.');
     }
@@ -143,7 +155,19 @@ class CommentController extends Controller
             'ngay_danh_gia' => now(),
         ]);
 
+        // Clear cache
+        $this->clearCommentCache($comment->loai_phong_id);
+
         return redirect()->back()->with('success', 'Đánh giá của bạn đã được cập nhật thành công!');
+    }
+
+    /**
+     * Clear comment related cache
+     */
+    private function clearCommentCache($loaiPhongId)
+    {
+        Cache::forget("comments_loai_phong_{$loaiPhongId}");
+        Cache::forget('dashboard_comments_5star');
     }
 
 }

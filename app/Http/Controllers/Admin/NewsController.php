@@ -8,6 +8,7 @@ use App\Models\Admin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 class NewsController extends Controller
@@ -67,6 +68,9 @@ class NewsController extends Controller
         }
 
         News::create($data);
+
+        // Clear news cache
+        $this->clearNewsCache();
 
         return redirect()->route('admin.news.index')
             ->with('success', 'Tin tức đã được tạo thành công!');
@@ -133,7 +137,16 @@ class NewsController extends Controller
             $data['hinh_anh'] = 'uploads/' . $imageName;
         }
 
+        $oldSlug = $news->slug;
         $news->update($data);
+
+        // Clear news cache
+        $this->clearNewsCache();
+        Cache::forget("news_slug_{$oldSlug}");
+        if ($news->slug !== $oldSlug) {
+            Cache::forget("news_slug_{$news->slug}");
+        }
+        Cache::forget("related_news_{$news->id}");
 
         return redirect()->route('admin.news.index')
             ->with('success', 'Tin tức đã được cập nhật thành công!');
@@ -151,9 +164,28 @@ class NewsController extends Controller
             Storage::delete('public/' . $news->hinh_anh);
         }
 
+        $slug = $news->slug;
+        $newsId = $news->id;
         $news->delete();
+
+        // Clear news cache
+        $this->clearNewsCache();
+        Cache::forget("news_slug_{$slug}");
+        Cache::forget("related_news_{$newsId}");
 
         return redirect()->route('admin.news.index')
             ->with('success', 'Tin tức đã được xóa thành công!');
+    }
+
+    /**
+     * Clear all News related cache
+     */
+    private function clearNewsCache()
+    {
+        // Clear paginated news list (clear all pages)
+        // Note: In production, consider using cache tags with Redis
+        for ($i = 1; $i <= 10; $i++) {
+            Cache::forget("news_list_page_{$i}");
+        }
     }
 }
