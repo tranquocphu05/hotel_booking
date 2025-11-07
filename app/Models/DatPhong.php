@@ -107,13 +107,13 @@ class DatPhong extends Model
         // we need to use a subquery or get the IDs first
         // For now, return empty relationship and use getAssignedPhongs() instead
         $phongIds = $this->getPhongIds();
-        
+
         if (empty($phongIds)) {
             // Return empty relationship if no phong_ids
             return $this->hasMany(Phong::class, 'id', 'id')
                 ->whereRaw('1 = 0');
         }
-        
+
         // Return relationship that filters by IDs from phong_ids JSON
         return $this->hasMany(Phong::class, 'id', 'id')
             ->whereIn('id', $phongIds);
@@ -128,15 +128,15 @@ class DatPhong extends Model
         if ($this->phong_ids && is_array($this->phong_ids)) {
             return $this->phong_ids;
         }
-        
+
         // Fallback: If no phong_ids, try to get from phong_id (legacy support)
         if ($this->phong_id) {
             return [$this->phong_id];
         }
-        
+
         // Fallback: If no phong_ids, pivot table has been removed
         // All data should now be in phong_ids JSON column
-        
+
         return [];
     }
 
@@ -149,7 +149,7 @@ class DatPhong extends Model
         if (empty($phongIds)) {
             return collect([]);
         }
-        
+
         return Phong::whereIn('id', $phongIds)->get();
     }
 
@@ -197,7 +197,7 @@ class DatPhong extends Model
         if ($this->room_types && is_array($this->room_types)) {
             return $this->room_types;
         }
-        
+
         // Fallback: If no room_types, return single room type (legacy support)
         if ($this->loai_phong_id) {
             return [[
@@ -206,7 +206,7 @@ class DatPhong extends Model
                 'gia_rieng' => $this->tong_tien ?? 0,
             ]];
         }
-        
+
         return [];
     }
 
@@ -294,12 +294,12 @@ class DatPhong extends Model
                 $trongCount = \App\Models\Phong::where('loai_phong_id', $booking->loai_phong_id)
                     ->where('trang_thai', 'trong')
                     ->count();
-                \App\Models\LoaiPhong::where('id', $booking->loai_phong_id)
+                LoaiPhong::where('id', $booking->loai_phong_id)
                     ->update(['so_luong_trong' => $trongCount]);
 
                 // Load relationships
                 $booking->load(['phong']);
-                
+
                 // Update Phong status if phong_id is set (legacy)
                 if ($booking->phong_id) {
                     $phong = \App\Models\Phong::find($booking->phong_id);
@@ -319,32 +319,43 @@ class DatPhong extends Model
                         }
                     }
                 }
-                
-                // Update Phong status via pivot table
-                foreach ($booking->phongs as $dp) {
-                    if ($dp->phong) {
-                        // Khi booking được confirm -> phòng chuyển sang "đang thuê"
-                        if ($newStatus === 'da_xac_nhan' && $oldStatus !== 'da_xac_nhan') {
-                            $dp->phong->update(['trang_thai' => 'dang_thue']);
-                        }
-                        // Khi booking bị hủy/từ chối -> phòng chuyển về "trống"
-                        elseif (in_array($newStatus, ['da_huy', 'tu_choi', 'thanh_toan_that_bai'])
-                            && in_array($oldStatus, ['cho_xac_nhan', 'da_xac_nhan'])) {
-                            $dp->phong->update(['trang_thai' => 'trong']);
-                        }
-                        // Khi booking hoàn thành (check-out) -> phòng chuyển sang "đang dọn"
-                        elseif ($newStatus === 'da_tra' && $oldStatus !== 'da_tra') {
-                            $dp->phong->update(['trang_thai' => 'dang_don']);
+
+                // Update Phong status via phong_ids JSON
+                $assignedPhongs = $booking->getAssignedPhongs();
+                foreach ($assignedPhongs as $phong) {
+                    // Khi booking được confirm -> phòng chuyển sang "đang thuê"
+                    if ($newStatus === 'da_xac_nhan' && $oldStatus !== 'da_xac_nhan') {
+                        $phong->update(['trang_thai' => 'dang_thue']);
+                    }
+                    // Khi booking bị hủy/từ chối -> phòng chuyển về "trống"
+                    elseif (in_array($newStatus, ['da_huy', 'tu_choi', 'thanh_toan_that_bai'])
+                        && in_array($oldStatus, ['cho_xac_nhan', 'da_xac_nhan'])) {
+                        // Kiểm tra xem phòng có đang được đặt cho booking khác không
+                        $hasOtherBooking = \App\Models\DatPhong::where('id', '!=', $booking->id)
+                            ->whereJsonContains('phong_ids', $phong->id)
+                            ->where(function($q) use ($booking) {
+                                $q->where('ngay_tra', '>', $booking->ngay_nhan)
+                                  ->where('ngay_nhan', '<', $booking->ngay_tra);
+                            })
+                            ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
+                            ->exists();
+
+                        if (!$hasOtherBooking) {
+                            $phong->update(['trang_thai' => 'trong']);
                         }
                     }
+                    // Khi booking hoàn thành (check-out) -> phòng chuyển sang "đang dọn"
+                    elseif ($newStatus === 'da_tra' && $oldStatus !== 'da_tra') {
+                        $phong->update(['trang_thai' => 'dang_don']);
+                    }
                 }
-                
+
                 // Recalculate so_luong_trong based on actual room status
                 if (in_array($newStatus, ['da_huy', 'tu_choi', 'thanh_toan_that_bai', 'da_tra'])) {
                     $trongCount = \App\Models\Phong::where('loai_phong_id', $booking->loai_phong_id)
                         ->where('trang_thai', 'trong')
                         ->count();
-                    \App\Models\LoaiPhong::where('id', $booking->loai_phong_id)
+                    LoaiPhong::where('id', $booking->loai_phong_id)
                         ->update(['so_luong_trong' => $trongCount]);
                 }
             }
@@ -355,7 +366,7 @@ class DatPhong extends Model
             $trongCount = \App\Models\Phong::where('loai_phong_id', $booking->loai_phong_id)
                 ->where('trang_thai', 'trong')
                 ->count();
-            \App\Models\LoaiPhong::where('id', $booking->loai_phong_id)
+            LoaiPhong::where('id', $booking->loai_phong_id)
                 ->update(['so_luong_trong' => $trongCount]);
         });
     }

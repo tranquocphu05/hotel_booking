@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\LoaiPhong;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class LoaiPhongController extends Controller
 {
@@ -68,6 +69,9 @@ class LoaiPhongController extends Controller
         $validated['so_luong_trong'] = $validated['so_luong_phong'] ?? 0;
 
         LoaiPhong::create($validated);
+
+        // Clear cache
+        $this->clearLoaiPhongCache();
 
         return redirect()->route('admin.loai_phong.index')->with('success', 'Thêm loại phòng thành công!');
     }
@@ -138,6 +142,9 @@ class LoaiPhongController extends Controller
 
         $loaiPhong->update($validated);
 
+        // Clear cache
+        $this->clearLoaiPhongCache();
+
         return redirect()->route('admin.loai_phong.index')->with('success', 'Cập nhật thành công!');
     }
 
@@ -147,6 +154,9 @@ class LoaiPhongController extends Controller
         $loaiPhong = LoaiPhong::findOrFail($id);
         // Không xóa dữ liệu; chuyển trạng thái sang "ngung"
         $loaiPhong->update(['trang_thai' => 'ngung']);
+
+        // Clear cache
+        $this->clearLoaiPhongCache();
 
         return redirect()->route('admin.loai_phong.index')->with('success', 'Đã vô hiệu hóa loại phòng (không xóa dữ liệu).');
     }
@@ -158,6 +168,23 @@ class LoaiPhongController extends Controller
         $new = $loaiPhong->trang_thai === 'hoat_dong' ? 'ngung' : 'hoat_dong';
         $loaiPhong->update(['trang_thai' => $new]);
 
+        // Clear cache
+        $this->clearLoaiPhongCache();
+
         return redirect()->route('admin.loai_phong.index')->with('success', $new === 'ngung' ? 'Đã vô hiệu hóa loại phòng.' : 'Đã kích hoạt loại phòng.');
+    }
+
+    /**
+     * Clear all LoaiPhong related cache
+     */
+    private function clearLoaiPhongCache()
+    {
+        Cache::forget('menu_loai_phongs');
+        Cache::forget('dashboard_loai_phongs');
+        Cache::forget('all_loai_phongs_active');
+        
+        // Clear all loai_phong detail cache (pattern matching)
+        // Note: Laravel cache doesn't support pattern matching natively
+        // In production, consider using Redis with tags or cache keys with prefix
     }
 }
