@@ -241,7 +241,7 @@ class DatPhongController extends Controller
             'ngay_nhan' => 'required|date|after_or_equal:today',
             'ngay_tra' => 'required|date|after_or_equal:ngay_nhan',
             'so_nguoi' => 'required|integer|min:1',
-            'username' => 'required|string|max:255',
+            'username' => 'required|string|max:255|regex:/^[\p{L}\s]+$/u',
             'email' => 'required|email:rfc,dns|max:255',
             'sdt' => 'required|regex:/^0[0-9]{9}$/',
             'cccd' => 'required|regex:/^[0-9]{12}$/',
@@ -260,6 +260,7 @@ class DatPhongController extends Controller
             'so_nguoi.required' => 'Vui lòng nhập số người',
             'so_nguoi.min' => 'Số người phải lớn hơn 0',
             'username.required' => 'Vui lòng nhập họ tên',
+            'username.regex' => 'Vui lòng nhập tên của bạn',
             'email.required' => 'Vui lòng nhập email',
             'email.email' => 'Email không hợp lệ',
             'sdt.required' => 'Vui lòng nhập số điện thoại',
@@ -593,8 +594,8 @@ class DatPhongController extends Controller
             'ngay_nhan' => 'required|date|after_or_equal:today',
             'ngay_tra' => 'required|date|after:ngay_nhan',
             'so_nguoi' => 'required|integer|min:1',
-            'username' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
+            'username' => 'required|string|max:255|regex:/^[\p{L}\s]+$/u',
+            'email' => 'required|email:rfc,dns|max:255',
             'sdt' => 'required|regex:/^0[0-9]{9}$/',
             'cccd' => 'required|regex:/^[0-9]{12}$/',
             'voucher' => 'nullable|string|exists:voucher,ma_voucher'
@@ -609,6 +610,7 @@ class DatPhongController extends Controller
             'so_nguoi.required' => 'Vui lòng nhập số người',
             'so_nguoi.min' => 'Số người phải lớn hơn 0',
             'username.required' => 'Vui lòng nhập họ tên',
+            'username.regex' => 'Vui lòng nhập tên của bạn',
             'email.required' => 'Vui lòng nhập email',
             'email.email' => 'Email không hợp lệ',
             'sdt.required' => 'Vui lòng nhập số điện thoại',
@@ -855,7 +857,7 @@ class DatPhongController extends Controller
                 Mail::to($adminEmails)->send(new AdminBookingEvent($booking->load(['loaiPhong']), 'created'));
             }
         } catch (\Throwable $e) {
-            Log::warning('Send admin booking created mail failed: '.$e->getMessage());
+            Log::warning('Send admin booking created mail failed: ' . $e->getMessage());
         }
 
         // Lấy danh sách tên loại phòng từ room_types JSON
@@ -1038,7 +1040,7 @@ class DatPhongController extends Controller
                 Mail::to($adminEmails)->send(new AdminBookingEvent($booking->load(['loaiPhong']), 'paid'));
             }
         } catch (\Throwable $e) {
-            Log::warning('Send admin paid mail failed: '.$e->getMessage());
+            Log::warning('Send admin paid mail failed: ' . $e->getMessage());
         }
 
         return redirect()->route('admin.dat_phong.index')

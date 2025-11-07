@@ -77,3 +77,5 @@ jobs:
           echo "Upload thành công. Hãy đảm bảo tạo file .env trên host và chạy các lệnh artisan cần thiết qua SSH/Terminal nếu có."
 
 
+
+

@@ -182,52 +182,66 @@
                                         <label class="block text-sm font-medium text-gray-700 mb-3">Chọn mã giảm giá (nếu có)</label>
                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                                             @foreach($vouchers as $voucher)
+                                                @php
+                                                    $isDisabled = $voucher->status !== 'con_han';
+                                                    $overlayText = $voucher->status === 'het_han' ? 'Hết hạn' : ($voucher->status === 'huy' ? 'Đã hủy' : '');
+                                                @endphp
+
                                                 <div class="relative">
                                                     <input type="radio" name="voucher" id="voucher_{{ $voucher->id }}"
-                                                        value="{{ $voucher->ma_voucher }}" class="sr-only peer voucher-radio"
+                                                        value="{{ $voucher->ma_voucher }}"
+                                                        class="sr-only peer voucher-radio"
                                                         data-value="{{ $voucher->gia_tri }}"
                                                         data-loai-phong="{{ $voucher->loai_phong_id }}"
-                                                        disabled>
+                                                        {{ $isDisabled ? 'disabled' : '' }}>
+
                                                     <label for="voucher_{{ $voucher->id }}"
-                                                        class="block p-4 bg-white border-2 border-gray-200 rounded-xl cursor-pointer relative transition-all duration-300
-                                                            peer-checked:border-green-500 peer-checked:ring-2 peer-checked:ring-green-500 peer-checked:bg-green-50
-                                                            hover:bg-gray-50 hover:border-gray-300 hover:shadow-md
-                                                            disabled:opacity-50 disabled:cursor-not-allowed">
-                                                        <div class="absolute inset-0 bg-gray-200 bg-opacity-50 flex items-center justify-center transition-opacity rounded-xl"
-                                                             id="overlay_{{ $voucher->id }}">
-                                                            <span class="text-gray-500 text-sm font-medium">Không áp dụng</span>
-                                                        </div>
-                                                        <div class="space-y-2">
-                                                            <div class="flex items-center justify-between">
-                                                                <p class="text-sm font-bold text-green-600">{{ $voucher->ma_voucher }}</p>
-                                                                <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                                                                    @if($voucher->gia_tri <= 100)
-                                                                        {{ $voucher->gia_tri }}%
-                                                                    @else
-                                                                        {{ number_format($voucher->gia_tri, 0, ',', '.') }}₫
-                                                                    @endif
-                                                                </span>
-                                                            </div>
-                                                            <p class="text-xs text-gray-600">
-                                                                @if($voucher->gia_tri <= 100)
-                                                                    Giảm {{ $voucher->gia_tri }}%
-                                                                @else
-                                                                    Giảm {{ number_format($voucher->gia_tri, 0, ',', '.') }} VNĐ
-                                                                @endif
-                                                            </p>
-                                                            @if($voucher->dieu_kien)
-                                                                <p class="text-xs text-gray-500 bg-gray-100 p-2 rounded">{{ $voucher->dieu_kien }}</p>
-                                                            @endif
-                                                            <div class="flex justify-between text-xs text-gray-500">
-                                                                <span>Còn lại: {{ $voucher->so_luong }}</span>
-                                                                <span>HSD: {{ date('d/m/Y', strtotime($voucher->ngay_ket_thuc)) }}</span>
-                                                            </div>
-                                                        </div>
-                                                    </label>
-                                                </div>
-                                            @endforeach
-                                        </div>
-                                    </div>
+                                        class="block p-4 bg-gray-50 border-2 border-gray-200 rounded-xl cursor-pointer relative transition-all duration-300 ease-in-out
+                                            peer-checked:bg-white peer-checked:border-green-500 peer-checked:ring-2 peer-checked:ring-green-400 peer-checked:shadow-lg
+                                            hover:bg-gray-100 hover:border-gray-300 hover:shadow-md
+                                            disabled:opacity-50 disabled:cursor-not-allowed z-0 peer-checked:z-10">
+
+
+
+                    {{-- Overlay hiển thị trạng thái --}}
+                    @if($isDisabled)
+                        <div class="absolute inset-0 bg-opacity-70 flex items-center justify-center rounded-xl">
+                            <span class="text-gray-700 text-sm font-medium">{{ $overlayText }}</span>
+                        </div>
+                    @endif
+
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <p class="text-sm font-bold text-green-600">{{ $voucher->ma_voucher }}</p>
+                            <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                                @if($voucher->gia_tri <= 100)
+                                    {{ $voucher->gia_tri }}%
+                                @else
+                                    {{ number_format($voucher->gia_tri, 0, ',', '.') }}₫
+                                @endif
+                            </span>
+                        </div>
+                        <p class="text-xs text-gray-600">
+                            @if($voucher->gia_tri <= 100)
+                                Giảm {{ $voucher->gia_tri }}%
+                            @else
+                                Giảm {{ number_format($voucher->gia_tri, 0, ',', '.') }} VNĐ
+                            @endif
+                        </p>
+                        @if($voucher->dieu_kien)
+                            <p class="text-xs text-gray-500 bg-gray-100 p-2 rounded">{{ $voucher->dieu_kien }}</p>
+                        @endif
+                        <div class="flex justify-between text-xs text-gray-500">
+                            <span>Còn lại: {{ $voucher->so_luong }}</span>
+                            <span>HSD: {{ date('d/m/Y', strtotime($voucher->ngay_ket_thuc)) }}</span>
+                        </div>
+                    </div>
+                </label>
+            </div>
+        @endforeach
+    </div>
+</div>
+
 
                                     <input type="hidden" name="tong_tien" id="tong_tien_input" value="0">
                                     <!-- Hiển thị tổng tiền -->
@@ -260,8 +274,8 @@
                                         <label for="username" class="block text-sm font-medium text-gray-700 mb-2">Họ và tên</label>
                                         <input type="text" name="username" id="username"
                                             class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                            value="{{ Auth::user()->username }}"
-                                            >
+                                            value="{{ old('username') }}"
+                                            required>
                                         @error('username')
                                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                         @enderror
@@ -271,8 +285,8 @@
                                         <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
                                         <input type="text" name="email" id="email"
                                             class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                            value="{{ Auth::user()->email }}"
-                                            >
+                                            value="{{ old('email') }}"
+                                            required>
                                         @error('email')
                                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                         @enderror
@@ -282,8 +296,8 @@
                                         <label for="sdt" class="block text-sm font-medium text-gray-700 mb-2">Số điện thoại</label>
                                         <input type="text" name="sdt" id="sdt"
                                             class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                            value="{{ Auth::user()->sdt }}"
-                                            >
+                                            value="{{ old('sdt') }}"
+                                            required>
                                         @error('sdt')
                                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                         @enderror
@@ -293,8 +307,8 @@
                                         <label for="cccd" class="block text-sm font-medium text-gray-700 mb-2">CCCD/CMND</label>
                                         <input type="text" name="cccd" id="cccd"
                                             class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                            value="{{ Auth::user()->cccd }}"
-                                            >
+                                            value="{{ old('cccd') }}"
+                                            required>
                                         @error('cccd')
                                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                         @enderror

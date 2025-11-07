@@ -1,19 +1,16 @@
-{{-- Main Navigation Bar --}}
-{{-- Đã loại bỏ class 'shadow-lg' vì không cần thiết với nền đen mờ --}}
-<nav id="mainNav" class="transition-all duration-500 z-[999990]">
+<nav id="mainNav" class="fixed top-0 w-full bg-white border-b border-gray-200 z-[999990] transition-all duration-300">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {{-- Chiều cao nav container: 90px mặc định --}}
+
         <div id="navContainer" class="flex justify-between items-center transition-all duration-300">
 
             {{-- Logo --}}
-            <div class="flex items-center h-20 md:h-[90px] transition-all duration-300">
+            <div class="flex items-center h-[90px] transition-all duration-300">
                 <a href="{{ url('/') }}"
                     class="nav-logo text-4xl font-serif font-bold text-gray-800 cursor-pointer">OZIA
                     HOTEL</a>
             </div>
 
             {{-- Menu --}}
-            {{-- Đã giảm khoảng cách xuống space-x-8 (hẹp hơn) --}}
             <div class="hidden md:flex items-center space-x-8 text-base font-semibold uppercase tracking-wide">
 
                 <a href="{{ url('/') }}" class="nav-link text-gray-600 hover:text-yellow-600 py-2">Trang Chủ</a>
@@ -39,8 +36,6 @@
                 <a href="{{ route('client.gioithieu') }}" class="nav-link text-gray-600 hover:text-yellow-600 py-2">Giới
                     Thiệu</a>
 
-                {{-- Đã XÓA menu "Trang" ở đây --}}
-
                 <a href="{{ route('client.tintuc') }}" class="nav-link text-gray-600 hover:text-yellow-600 py-2">Tin
                     Tức</a>
 
@@ -50,7 +45,7 @@
             </div>
 
             {{-- Client Auth --}}
-            <div class="flex items-center h-20 md:h-[90px] transition-all duration-300">
+            <div class="flex items-center h-[90px] transition-all duration-300">
                 @auth
                     <div class="relative group">
                         <button
@@ -116,11 +111,8 @@
 </nav>
 
 <style>
-    /* 1. HIỆU ỨNG GẠCH CHÂN */
     .nav-link,
-    /* Áp dụng cho menu chính */
     .dropdown-link {
-        /* Áp dụng cho menu con */
         position: relative;
     }
 
@@ -128,8 +120,7 @@
     .dropdown-link::after {
         content: "";
         position: absolute;
-        /* Điều chỉnh vị trí cho menu con: bottom 0 thay vì 5px */
-        bottom: 0px; 
+        bottom: 0px;
         left: 0;
         width: 0%;
         height: 2px;
@@ -142,13 +133,11 @@
         width: 100%;
     }
 
-    /* Đảm bảo gạch chân của menu chính vẫn nằm ở vị trí 5px */
     .nav-link::after {
         bottom: 5px;
     }
 
 
-    /* 2. DROPDOWN (Luôn nổi lên trên) */
     .nav-dropdown-room,
     .nav-dropdown-pages,
     .nav-dropdown-user {
@@ -180,32 +169,28 @@
         transform: translateY(0);
     }
 
-    /* 3. MAIN NAV (Trong Suốt Mặc Định XÁM & Đổi Màu Khi Cuộn) */
     #mainNav {
         position: fixed;
         top: 0;
         width: 100%;
-        /* Mặc định: Màu xám mờ (Gray 700, Opacity 50%) */
-        background-color: rgba(55, 65, 81, 0.5); 
-        box-shadow: none;
         z-index: 999990;
-        transition: background-color .35s ease;
+        /* Loại bỏ border-b ban đầu để dùng box-shadow khi cuộn */
+        border-bottom: none !important;
     }
-
-    /* Khi cuộn, áp dụng màu nền xám đậm hơn (Gray 800, Opacity 85%) */
+    
+    /* HIỆU ỨNG ĐƯỜNG KẺ VÀNG MỀM MẠI KHI CUỘN */
     #mainNav.scrolled {
-        background-color: rgba(31, 41, 55, 0.85); 
+        /* box-shadow: ngang | dọc | mờ | lan tỏa | màu */
+        box-shadow: 0 1px 4px rgba(212, 175, 55, 0.4); 
     }
 
-    /* Điều chỉnh màu chữ mặc định trong Nav thành trắng */
     #mainNav .nav-link,
     #mainNav .nav-logo {
-        color: #ffffff !important;
-        font-weight: 500;
+        color: #1f2937 !important;
+        font-weight: 600;
         transition: color .2s ease;
     }
 
-    /* Điều chỉnh màu hover (vàng) */
     #mainNav .nav-link:hover,
     #mainNav .nav-link:hover .fa-chevron-down,
     #mainNav .nav-user-button:hover span,
@@ -213,27 +198,21 @@
         color: #d4af37 !important;
     }
 
-    /* Chỉnh màu chữ trong nút user auth */
     #mainNav .nav-user-button span,
     #mainNav .nav-user-button .fa-chevron-down {
-        color: #ffffff;
+        color: #1f2937;
     }
 
-
-    /* Chiều cao nav container */
     #navContainer {
         height: 90px;
-        transition: height .28s ease;
     }
 
-    /* Khi scroll thu gọn nav container */
     #navContainer.scrolled {
         height: 75px;
     }
 
-    /* Xóa padding-top khỏi body để banner/ảnh tràn lên */
     body {
-        padding-top: 0 !important;
+        padding-top: 90px;
     }
 </style>
 
@@ -242,17 +221,12 @@
     const container = document.getElementById("navContainer");
 
     window.addEventListener("scroll", () => {
-        // Nav bắt đầu chuyển đổi sau khi cuộn qua 120px
         if (window.scrollY > 120) {
-            // Đổi màu nền của #mainNav
-            nav.classList.add("scrolled");
-            // Thu gọn chiều cao của #navContainer
             container.classList.add("scrolled");
+            nav.classList.add("scrolled");
         } else {
-            // Trả về màu nền trong suốt mặc định của #mainNav
-            nav.classList.remove("scrolled");
-            // Trả về chiều cao mặc định của #navContainer
             container.classList.remove("scrolled");
+            nav.classList.remove("scrolled");
         }
     });
 </script>

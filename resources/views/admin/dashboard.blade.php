@@ -213,7 +213,7 @@
                         </div>
                     </a>
 
-                    <a href="{{ route('admin.phong.create') }}" class="flex items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors group">
+                    <a href="{{ route('admin.loai_phong.create') }}" class="flex items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors group">
                         <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center group-hover:bg-green-200 transition-colors">
                             <i class="fas fa-bed text-green-600"></i>
                         </div>
