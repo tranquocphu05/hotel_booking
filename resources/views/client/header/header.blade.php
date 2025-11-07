@@ -1,4 +1,4 @@
-<div x-data="{ currentSlide: 1, totalSlides: 3 }" x-init="setInterval(() => { currentSlide = (currentSlide % totalSlides) + 1 }, 3000)" class="relative min-h-[780px] lg:min-h-[780px]">
+<div x-data="{ currentSlide: 1, totalSlides: 3 }" x-init="setInterval(() => { currentSlide = (currentSlide % totalSlides) + 1 }, 3000)" class="relative min-h-[780px] lg:min-h-[600px]">
 
     <div class="absolute inset-0">
         @php
@@ -7,111 +7,108 @@
 
         @foreach ($slides as $index => $image)
             <div x-show="currentSlide === {{ $index + 1 }}" x-transition:enter="transition ease-out duration-1000"
-                x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
-                x-transition:leave="transition ease-in duration-1000" x-transition:leave-start="opacity-100"
-                x-transition:leave-end="opacity-0" class="absolute inset-0 bg-cover bg-center h-full w-full"
+                x-transition:leave="transition ease-in duration-1000"
+                class="absolute inset-0 bg-cover bg-center h-full w-full"
                 style="background-image: url('{{ asset($image) }}');">
             </div>
         @endforeach
     </div>
+    <div class="absolute inset-0 bg-black/60 z-10"></div>
 
-    {{-- Nội dung Banner (Lớp phủ ĐEN ĐẬM: bg-opacity-70) --}}
-    <div class="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 sm:px-8 lg:px-16">
-        <div
-            class="w-full max-w-screen-xl mx-auto flex flex-col lg:flex-row items-center lg:items-start lg:justify-between relative z-10">
+    <div class="w-full max-w-screen-xl mx-auto flex flex-col items-center justify-center relative z-10 pt-24 md:pt-32">
 
-            {{-- Khối Nội dung Chính (Căn trái) --}}
-            <div class="text-white z-10 text-center lg:text-left lg:w-1/2 max-w-xl mt-12 lg:mt-0">
-                <p class="text-sm uppercase tracking-widest mb-2 font-sans font-medium text-gold">
-                    CHÀO MỪNG ĐẾN VỚI OZIA</p>
-                <h1 class="text-6xl md:text-7xl font-serif font-extrabold mb-4 leading-tight text-shadow-lg text-white">
-                    OZIA Khách Sạn Sang Trọng</h1>
-                <p class="text-lg mb-10 mx-auto lg:mx-0 font-light text-gray-200">
-                    Trải nghiệm sự xa hoa tột đỉnh. Chúng tôi cam kết mang đến dịch vụ 5 sao cá nhân hóa, nơi mọi chi
-                    tiết đều được chạm khắc bằng vàng.
-                </p>
-                {{-- Nút KHÁM PHẢ NGAY: Hiệu ứng hover swipe/fill --}}
-                <a href="#"
-                    class="inline-block px-8 py-3 text-white font-semibold uppercase tracking-wider transition duration-300 shadow-lg border-2 border-gold relative overflow-hidden hover-swipe-btn rounded-full">
-                    KHÁM PHẢ NGAY
-                </a>
-            </div>
+        {{-- Khối Nội dung Chính --}}
+        <div class="text-white z-10 text-center max-w-4xl drop-shadow-[0_4px_20px_rgba(0,0,0,0.55)]">
+            <p class="text-sm uppercase tracking-[0.35em] mb-3 font-medium text-[#D4AF37]">
+                CHÀO MỪNG ĐẾN VỚI OZIA</p>
 
-            {{-- Khối Form Đặt Phòng (Căn phải, FORM 4 CỘT) --}}
-            <div class="w-full lg:w-1/2 max-w-xl lg:ml-auto lg:mr-0 mt-12 lg:mt-0">
-                <form action="#" method="POST"
-                    class="bg-black/70 p-6 sm:p-8 rounded-lg shadow-2xl mx-auto lg:mr-0 lg:ml-auto border border-gold/50">
-                    @csrf
-                    <p class="text-lg text-gold font-semibold mb-6 uppercase tracking-wider text-center">BOOK YOUR STAY
-                    </p>
+            <h1
+                class="text-5xl md:text-7xl font-serif font-extrabold mb-6 leading-tight
+                   whitespace-nowrap [text-shadow:0_8px_25px_rgba(0,0,0,0.8)]">
+                OZIA Khách Sạn Sang Trọng
+            </h1>
 
-                    <div class="flex flex-wrap -mx-2 mb-6">
+            <p class="text-lg md:text-xl mb-10 mx-auto font-light text-gray-100 max-w-3xl">
+                Trải nghiệm sự xa hoa tột đỉnh. Chúng tôi cam kết mang đến dịch vụ 5 sao cá nhân hóa,
+                nơi mọi chi tiết đều được chạm khắc bằng vàng.
+            </p>
 
-                        {{-- Field 1: Check In --}}
-                        <div class="w-1/2 px-2 mb-4">
-                            <label class="text-xs uppercase block mb-2 text-gold font-medium">CHECK IN</label>
-                            <div class="relative booking-field">
-                                <input type="text" placeholder="Select Date"
-                                    class="w-full text-xl font-bold text-white bg-transparent booking-box pr-10"
-                                    onfocus="(this.type='date')" onblur="(this.type='text')">
-                                {{-- Icon lịch: Màu trắng --}}
-                                <i
-                                    class="fas fa-calendar-alt absolute right-3 top-1/2 -translate-y-1/2 text-white pointer-events-none text-sm"></i>
-                            </div>
-                        </div>
-
-                        {{-- Field 2: Check Out --}}
-                        <div class="w-1/2 px-2 mb-4">
-                            <label class="text-xs uppercase block mb-2 text-gold font-medium">CHECK OUT</label>
-                            <div class="relative booking-field">
-                                <input type="text" placeholder="Select Date"
-                                    class="w-full text-xl font-bold text-white bg-transparent booking-box pr-10"
-                                    onfocus="(this.type='date')" onblur="(this.type='text')">
-                                {{-- Icon lịch: Màu trắng --}}
-                                <i
-                                    class="fas fa-calendar-alt absolute right-3 top-1/2 -translate-y-1/2 text-white pointer-events-none text-sm"></i>
-                            </div>
-                        </div>
-
-                        {{-- Field 3: Adults --}}
-                        <div class="w-1/2 px-2 mb-4">
-                            <label class="text-xs uppercase block mb-2 text-gold font-medium">ADULTS</label>
-                            <div class="relative booking-field">
-                                {{-- Thêm class 'select-custom' để ẩn icon mặc định của trình duyệt --}}
-                                <select
-                                    class="w-full text-xl font-bold text-white bg-transparent booking-box pr-10 appearance-none select-custom">
-                                    <option value="02" selected>02</option>
-                                    <option value="01">01</option>
-                                    <option value="03">03</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        {{-- Field 4: Childrens --}}
-                        <div class="w-1/2 px-2 mb-4">
-                            <label class="text-xs uppercase block mb-2 text-gold font-medium">CHILDREN</label>
-                            <div class="relative booking-field">
-
-                                <select
-                                    class=" w-full text-xl font-bold text-white bg-transparent booking-box pr-10 appearance-none select-custom">
-                                    <option value="01" selected>01</option>
-                                    <option value="02">02</option>
-                                    <option value="03">03</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <button type="submit"
-                        class="w-64 mx-auto block bg-gold text-white font-semibold uppercase tracking-wider transition duration-300 border-2 border-white rounded-full mt-2 hover:bg-yellow-600 hover:border-white hover:text-white px-8 py-3">
-                        BOOK NOW
-                    </button>
-                </form>
-            </div>
+            <a href="#"
+                class="inline-block px-10 py-4 text-white font-bold uppercase tracking-widest transition duration-300
+                   shadow-[0_0_20px_rgba(212,175,55,0.7)]
+                   border-2 border-[#D4AF37] hover:bg-[#D4AF37] hover:text-black rounded-full">
+                Khám Phá Ngay
+            </a>
         </div>
+
     </div>
 
-    {{-- SLIDER INDICATOR: Đặt giữa, dưới cùng, to hơn, gần nhau hơn (space-x-2) --}}
+
+
+
+    <div
+        class="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-[55%] z-30 w-full flex justify-center px-4 h-[140px]">
+
+        <form action="{{ route('client.phong') }}" method="GET"
+            class="w-full max-w-7xl bg-white rounded-2xl shadow-2xl p-8 border border-gray-200">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
+                {{-- Ngày nhận --}}
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 mb-2">Ngày nhận phòng</label>
+                    <input type="date" name="checkin" id="checkin_filter"
+                        value="{{ request('checkin', $checkin ?? '') }}"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-sm focus:border-yellow-500 focus:ring-yellow-500">
+                </div>
+
+                {{-- Ngày trả --}}
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 mb-2">Ngày trả phòng</label>
+                    <input type="date" name="checkout" id="checkout_filter"
+                        value="{{ request('checkout', $checkout ?? '') }}"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-sm focus:border-yellow-500 focus:ring-yellow-500">
+                </div>
+
+                {{-- Loại phòng --}}
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 mb-2">Loại phòng</label>
+                    <select name="loai_phong" id="loai_phong"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-sm focus:border-yellow-500 focus:ring-yellow-500">
+                        <option value="">Tất cả loại phòng</option>
+                        @foreach ($menuLoaiPhongs ?? [] as $loai)
+                            <option value="{{ $loai->id }}"
+                                {{ request('loai_phong') == $loai->id ? 'selected' : '' }}>
+                                {{ $loai->ten_loai }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Giá từ --}}
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 mb-2">Giá từ (VNĐ)</label>
+                    <input type="number" name="gia_min" id="gia_min" placeholder="0" value="{{ request('gia_min') }}"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-sm focus:border-yellow-500 focus:ring-yellow-500 placeholder-black font-semibold">
+                </div>
+
+                {{-- Giá đến --}}
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 mb-2">Giá đến (VNĐ)</label>
+                    <input type="number" name="gia_max" id="gia_max" placeholder="Không giới hạn"
+                        value="{{ request('gia_max') }}"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-sm focus:border-yellow-500 focus:ring-yellow-500 placeholder-black">
+                </div>
+
+                {{-- Button --}}
+                <div class="flex items-end">
+                    <button type="submit"
+                        class="w-full bg-[#D4AF37] text-white px-6 py-3 rounded-lg hover:bg-[#b68b00] transition-colors font-semibold text-sm shadow-md">
+                        <i class="fas fa-search mr-2"></i> Tìm phòng
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
     <div class="absolute bottom-5 left-1/2 -translate-x-1/2 flex space-x-2 z-20">
         <template x-for="i in totalSlides" :key="i">
             <button @click="currentSlide = i"
@@ -123,7 +120,18 @@
 </div>
 
 <style>
-    /* CSS cho bóng chữ trên banner */
+    .placeholder-dark::placeholder {
+        color: #374151 !important;
+        /* Ví dụ: một màu xám đậm hơn */
+        opacity: 1;
+        /* Đảm bảo độ mờ (opacity) là 1 để màu hiển thị đầy đủ */
+    }
+
+    /* Cho trình duyệt IE và Edge */
+    .placeholder-dark::-ms-input-placeholder {
+        color: #374151 !important;
+    }
+
     .text-shadow-lg {
         text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7);
     }

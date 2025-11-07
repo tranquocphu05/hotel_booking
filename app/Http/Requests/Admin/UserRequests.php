@@ -41,9 +41,10 @@ class UserRequests extends FormRequest
 
         return [
             'username' => [
-                $isUpdate ? 'sometimes' : 'required', // nếu update có thể không gửi
+                $isUpdate ? 'sometimes' : 'required',
                 'string',
                 'max:100',
+                'regex:/^[A-Za-zÀ-ỹ\s]+$/u', // ❗ chỉ cho phép chữ cái và khoảng trắng, không số
                 Rule::unique('nguoi_dung', 'username')->ignore($id),
             ],
 
@@ -61,11 +62,10 @@ class UserRequests extends FormRequest
                         $fail('Email không hợp lệ hoặc domain không tồn tại.');
                     }
 
-                    // Kiểm tra phần đuôi domain có hợp lệ theo danh sách IANA
+                    // Kiểm tra phần đuôi domain hợp lệ
                     $domain = substr(strrchr($value, "@"), 1);
                     $tld = strtolower(pathinfo($domain, PATHINFO_EXTENSION));
-
-                    $validTlds = ['com', 'vn', 'net', 'org', 'edu', 'gov', 'io', 'co']; // bạn có thể mở rộng thêm
+                    $validTlds = ['com', 'vn', 'net', 'org', 'edu', 'gov', 'io', 'co'];
                     if (!in_array($tld, $validTlds)) {
                         $fail("Tên miền .{$tld} không hợp lệ hoặc chưa được hỗ trợ.");
                     }
@@ -73,7 +73,6 @@ class UserRequests extends FormRequest
                 Rule::unique('nguoi_dung', 'email')->ignore($id),
             ],
 
-            // Khi thêm mới: bắt buộc password, khi cập nhật: có thể bỏ trống
             'password' => [
                 $isUpdate ? 'nullable' : 'required',
                 'string',
@@ -81,19 +80,29 @@ class UserRequests extends FormRequest
                 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/',
             ],
 
-            'ho_ten' => 'nullable|string|max:100',
+            'ho_ten' => [
+                'nullable',
+                'string',
+                'max:100',
+                'regex:/^[A-Za-zÀ-ỹ\s]+$/u', // ❗ chỉ cho phép chữ cái + khoảng trắng, không số
+            ],
 
             'sdt' => ['nullable', 'regex:/^0(3|5|7|8|9)[0-9]{8}$/'],
 
-            'cccd' => [
+            'cccd' => ['nullable', 'regex:/^[0-9]{12}$/'],
+
+            'dia_chi' => [
                 'nullable',
-                'regex:/^[0-9]{12}$/',
+                'string',
+                'max:255',
+                // ❗ yêu cầu có ít nhất 1 chữ cái và 1 số
+                'regex:/^(?!\d+$)[A-Za-zÀ-ỹ0-9\s,.-]+$/u',
             ],
 
-            'dia_chi' => 'nullable|string|max:255',
             'vai_tro' => 'required|in:admin,nhan_vien,khach_hang',
             'trang_thai' => 'required|in:hoat_dong,khoa',
         ];
+
     }
 
     public function messages(): array
@@ -101,6 +110,7 @@ class UserRequests extends FormRequest
         return [
             'username.required' => 'Vui lòng nhập tên đăng nhập.',
             'username.unique' => 'Tên đăng nhập đã tồn tại.',
+            'username.regex' => 'Tên đăng nhập chỉ được chứa chữ cái, không được có số hoặc ký tự đặc biệt.',
 
             'email.required' => 'Vui lòng nhập địa chỉ email.',
             'email.unique' => 'Email này đã được sử dụng.',
@@ -108,13 +118,20 @@ class UserRequests extends FormRequest
 
             'password.required' => 'Vui lòng nhập mật khẩu.',
             'password.min' => 'Mật khẩu phải có ít nhất 6 ký tự.',
-            'password.regex' => 'Mật khẩu phải chứa ít nhất 1 chữ hoa, chữ thường và 1 chữ số.',
+            'password.regex' => 'Mật khẩu phải chứa ít nhất 1 chữ hoa, 1 chữ thường và 1 chữ số.',
+
+            'ho_ten.regex' => 'Họ tên chỉ được chứa chữ cái và khoảng trắng, không được có số hoặc ký tự đặc biệt.',
 
             'sdt.regex' => 'Số điện thoại không hợp lệ. Phải là số di động Việt Nam gồm 10 chữ số.',
             'cccd.regex' => 'Số CCCD không hợp lệ. Phải gồm đúng 12 chữ số.',
 
+            'dia_chi.max' => 'Địa chỉ không được vượt quá 255 ký tự.',
+            'dia_chi.regex' => 'Địa chỉ không được chỉ toàn số.',
+
             'vai_tro.in' => 'Vai trò không hợp lệ.',
+            
             'trang_thai.in' => 'Trạng thái không hợp lệ.',
         ];
     }
+
 }
