@@ -10,7 +10,7 @@ use App\Models\Voucher;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Carbon\Carbon;
-
+use Illuminate\Support\Facades\Log;
 class AutoCancelExpiredBookings
 {
     /**
@@ -22,7 +22,7 @@ class AutoCancelExpiredBookings
         // Chỉ check mỗi 1 phút để tránh làm chậm website
         $cacheKey = 'last_booking_cancel_check';
         $lastCheck = Cache::get($cacheKey);
-        
+
         if (!$lastCheck || Carbon::now()->diffInMinutes($lastCheck) >= 1) {
             $this->cancelExpiredBookings();
             Cache::put($cacheKey, Carbon::now(), 60); // Cache 1 phút
@@ -71,7 +71,7 @@ class AutoCancelExpiredBookings
                                 })
                                 ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
                                 ->exists();
-                            
+
                             if (!$hasOtherBooking) {
                                 $booking->phong->update(['trang_thai' => 'trong']);
                             }
@@ -93,7 +93,7 @@ class AutoCancelExpiredBookings
                                     })
                                     ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
                                     ->exists();
-                                
+
                                 if (!$hasOtherBooking) {
                                     $phong->update(['trang_thai' => 'trong']);
                                 }
@@ -115,7 +115,7 @@ class AutoCancelExpiredBookings
                         // Cập nhật so_luong_trong cho tất cả loại phòng
                         $roomTypes = $booking->getRoomTypes();
                         $loaiPhongIdsToUpdate = [];
-                        
+
                         if (!empty($roomTypes)) {
                             foreach ($roomTypes as $roomType) {
                                 if (isset($roomType['loai_phong_id'])) {
@@ -123,11 +123,11 @@ class AutoCancelExpiredBookings
                                 }
                             }
                         }
-                        
+
                         if ($booking->loai_phong_id && !in_array($booking->loai_phong_id, $loaiPhongIdsToUpdate)) {
                             $loaiPhongIdsToUpdate[] = $booking->loai_phong_id;
                         }
-                        
+
                         foreach (array_unique($loaiPhongIdsToUpdate) as $loaiPhongId) {
                             $trongCount = Phong::where('loai_phong_id', $loaiPhongId)
                                 ->where('trang_thai', 'trong')
@@ -138,12 +138,12 @@ class AutoCancelExpiredBookings
                     });
                 } catch (\Exception $e) {
                     // Log lỗi nhưng không dừng request
-                    \Log::error("Lỗi khi tự động hủy booking #{$booking->id}: " . $e->getMessage());
+                    Log::error("Lỗi khi tự động hủy booking #{$booking->id}: " . $e->getMessage());
                 }
             }
         } catch (\Exception $e) {
             // Log lỗi nhưng không dừng request
-            \Log::error("Lỗi trong AutoCancelExpiredBookings middleware: " . $e->getMessage());
+            Log::error("Lỗi trong AutoCancelExpiredBookings middleware: " . $e->getMessage());
         }
     }
 }
