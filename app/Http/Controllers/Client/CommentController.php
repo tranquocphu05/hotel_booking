@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
 use App\Models\Comment;
+use App\Models\LoaiPhong;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -11,17 +12,52 @@ use Illuminate\Support\Facades\Cache;
 
 class CommentController extends Controller
 {
-    // Hiển thị danh sách đánh giá (nếu có trang riêng)
-    public function index()
+    /**
+     * Hiển thị chi tiết loại phòng + danh sách đánh giá có lọc sao
+     */
+    public function showRoomComments(Request $request, $roomId)
     {
-        $comments = Comment::where('trang_thai', 'hien_thi')
-            ->latest('ngay_danh_gia')
-            ->paginate(10);
+        $room = LoaiPhong::findOrFail($roomId);
 
-        return view('client.content.comment', compact('comments'));
+        $filterStar = $request->query('star'); // Lọc ?star=1..5
+        $query = Comment::where('loai_phong_id', $roomId)
+            ->where('trang_thai', 'hien_thi');
+
+        if ($filterStar && in_array($filterStar, [1,2,3,4,5])) {
+            $query->where('so_sao', $filterStar);
+        }
+
+        $comments = $query->latest('ngay_danh_gia')->paginate(10);
+
+        $averageRating = Comment::where('loai_phong_id', $roomId)
+            ->where('trang_thai', 'hien_thi')
+            ->avg('so_sao');
+
+        $totalReviews = Comment::where('loai_phong_id', $roomId)
+            ->where('trang_thai', 'hien_thi')
+            ->count();
+
+        $countByStars = Comment::selectRaw('so_sao, COUNT(*) as total')
+            ->where('loai_phong_id', $roomId)
+            ->where('trang_thai', 'hien_thi')
+            ->groupBy('so_sao')
+            ->pluck('total', 'so_sao');
+
+        $existing = null;
+        if (auth()->check()) {
+            $existing = Comment::where('loai_phong_id', $roomId)
+                ->where('nguoi_dung_id', auth()->id())
+                ->first();
+        }
+
+        return view('client.content.comment', compact(
+            'room', 'comments', 'averageRating', 'totalReviews', 'countByStars', 'filterStar', 'existing'
+        ));
     }
 
-    // Gửi hoặc cập nhật đánh giá
+    /**
+     * Gửi hoặc cập nhật đánh giá
+     */
     public function store(Request $request)
     {
         $request->validate([
@@ -29,10 +65,6 @@ class CommentController extends Controller
             'noi_dung' => 'required|string|max:2000',
             'loai_phong_id' => 'required|integer|exists:loai_phong,id',
             'img' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
-        ], [
-            'img.image' => 'Tệp tải lên phải là hình ảnh.',
-            'img.mimes' => 'Chỉ chấp nhận các định dạng: jpg, jpeg, png, webp.',
-            'img.max' => 'Ảnh không được vượt quá 4MB.',
         ]);
 
         if (!Auth::check()) {
@@ -40,17 +72,6 @@ class CommentController extends Controller
         }
 
         $userId = Auth::id();
-        
-        // Business rule: User must have booked and checked out this room type
-        $hasValidBooking = \App\Models\DatPhong::where('nguoi_dung_id', $userId)
-            ->where('loai_phong_id', $request->loai_phong_id)
-            ->where('trang_thai', 'da_xac_nhan')
-            ->where('ngay_tra', '<=', now()->toDateString())
-            ->exists();
-        
-        if (!$hasValidBooking) {
-            return redirect()->back()->with('error', 'Bạn chỉ có thể đánh giá sau khi đã đặt phòng và đã check-out.');
-        }
 
         $existing = Comment::where('loai_phong_id', $request->loai_phong_id)
             ->where('nguoi_dung_id', $userId)
@@ -60,29 +81,22 @@ class CommentController extends Controller
 
         if ($request->hasFile('img')) {
             $imgPath = $request->file('img')->store('uploads/comments/images', 'public');
-
-            // Nếu có ảnh cũ thì xóa
             if ($existing && $existing->img) {
                 Storage::disk('public')->delete($existing->img);
             }
         }
 
         if ($existing) {
-            // Cập nhật đánh giá cũ
             $existing->update([
                 'so_sao' => $request->so_sao,
                 'noi_dung' => $request->noi_dung,
                 'ngay_danh_gia' => now(),
                 'img' => $imgPath,
             ]);
-            
-            // Clear cache
             $this->clearCommentCache($request->loai_phong_id);
-            
             return redirect()->back()->with('success', 'Đánh giá của bạn đã được cập nhật thành công!');
         }
 
-        // Tạo mới
         Comment::create([
             'nguoi_dung_id' => $userId,
             'loai_phong_id' => $request->loai_phong_id,
@@ -93,13 +107,48 @@ class CommentController extends Controller
             'trang_thai' => 'hien_thi',
         ]);
 
-        // Clear cache
         $this->clearCommentCache($request->loai_phong_id);
-
         return redirect()->back()->with('success', 'Cảm ơn bạn! Đánh giá đã được gửi thành công.');
     }
 
-    // Xóa đánh giá
+    /**
+     * Cập nhật đánh giá inline
+     */
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'so_sao' => 'required|integer|min:1|max:5',
+            'noi_dung' => 'required|string|max:2000',
+            'img' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
+        ]);
+
+        $comment = Comment::where('id', $id)
+            ->where('nguoi_dung_id', Auth::id())
+            ->firstOrFail();
+
+        $imgPath = $comment->img;
+
+        if ($request->hasFile('img')) {
+            if ($comment->img && Storage::disk('public')->exists($comment->img)) {
+                Storage::disk('public')->delete($comment->img);
+            }
+            $imgPath = $request->file('img')->store('uploads/comments/images', 'public');
+        }
+
+        $comment->update([
+            'so_sao' => $request->so_sao,
+            'noi_dung' => $request->noi_dung,
+            'img' => $imgPath,
+            'ngay_danh_gia' => now(),
+        ]);
+
+        $this->clearCommentCache($comment->loai_phong_id);
+        return redirect()->back()->with('success', 'Đánh giá của bạn đã được cập nhật thành công!');
+    }
+
+    /**
+     * Xóa đánh giá
+     */
     public function destroy($id)
     {
         $comment = Comment::where('id', $id)
@@ -112,62 +161,14 @@ class CommentController extends Controller
 
         $loaiPhongId = $comment->loai_phong_id;
         $comment->delete();
-
-        // Clear cache
         $this->clearCommentCache($loaiPhongId);
 
         return redirect()->back()->with('success', 'Đánh giá của bạn đã được xóa.');
     }
-    // Cập nhật đánh giá (cho phần chỉnh sửa inline)
-    public function update(Request $request, $id)
-    {
-        $request->validate([
-            'so_sao' => 'required|integer|min:1|max:5',
-            'noi_dung' => 'required|string|max:2000',
-            'img' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
-        ], [
-            'img.image' => 'Tệp tải lên phải là hình ảnh.',
-            'img.mimes' => 'Chỉ chấp nhận: jpg, jpeg, png, webp.',
-            'img.max' => 'Ảnh không được vượt quá 4MB.',
-        ]);
 
-        $comment = Comment::where('id', $id)
-            ->where('nguoi_dung_id', Auth::id())
-            ->firstOrFail();
-
-        $imgPath = $comment->img; // Giữ ảnh cũ nếu không upload mới
-
-        if ($request->hasFile('img')) {
-            // Xóa ảnh cũ nếu có
-            if ($comment->img && Storage::disk('public')->exists($comment->img)) {
-                Storage::disk('public')->delete($comment->img);
-            }
-
-            // Upload ảnh mới
-            $imgPath = $request->file('img')->store('uploads/comments/images', 'public');
-        }
-
-        // Cập nhật dữ liệu
-        $comment->update([
-            'so_sao' => $request->so_sao,
-            'noi_dung' => $request->noi_dung,
-            'img' => $imgPath,
-            'ngay_danh_gia' => now(),
-        ]);
-
-        // Clear cache
-        $this->clearCommentCache($comment->loai_phong_id);
-
-        return redirect()->back()->with('success', 'Đánh giá của bạn đã được cập nhật thành công!');
-    }
-
-    /**
-     * Clear comment related cache
-     */
     private function clearCommentCache($loaiPhongId)
     {
         Cache::forget("comments_loai_phong_{$loaiPhongId}");
         Cache::forget('dashboard_comments_5star');
     }
-
 }
