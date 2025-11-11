@@ -1454,3 +1454,59 @@ window.showHotelDetails = function() {
 document.addEventListener('DOMContentLoaded', function() {
     window.bookingManager = new BookingManager();
 });
+
+document.addEventListener('DOMContentLoaded', function() {
+    const modalOverlay = document.getElementById('roomDetailsModal');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    // Đảm bảo DOM element chứa tất cả các nút phòng nghỉ là đúng
+    const roomSelectionGrid = document.getElementById('roomSelectionGrid'); 
+
+    // DOM elements in modal
+    const modalRoomName = document.getElementById('modalRoomName');
+    const modalRoomSize = document.getElementById('modalRoomSize');
+    const modalRoomImage = document.getElementById('modalRoomImage');
+    const modalRoomDescription = document.getElementById('modalRoomDescription');
+    // KHÔNG cần modalRoomAmenities vì bạn dùng dữ liệu mẫu tĩnh trong HTML
+
+    // Mở modal
+    // Dùng Event Delegation trên container chung để bắt sự kiện click nút chi tiết
+    roomSelectionGrid.addEventListener('click', function(e) {
+        // Tìm element gần nhất có class 'view-room-details'
+        const detailButton = e.target.closest('.view-room-details'); 
+        
+        if (detailButton) {
+            e.preventDefault(); // Ngăn chặn hành vi mặc định (nếu là thẻ <a>)
+            const roomData = detailButton.dataset;
+            
+            // 1. Điền dữ liệu cơ bản
+            modalRoomName.textContent = roomData.roomName;
+            // Dùng ternary operator để xử lý nếu data-room-size không tồn tại
+            modalRoomSize.textContent = roomData.roomSize || ''; 
+            modalRoomImage.src = roomData.roomImage;
+            modalRoomDescription.textContent = roomData.roomDescription;
+            
+            // 2. BỎ QUA LOGIC ĐIỀN TIỆN ÍCH ĐỘNG (vì đã dùng HTML tĩnh)
+            
+            // 3. Hiển thị modal
+            modalOverlay.classList.add('visible');
+        }
+    });
+
+    // Đóng modal
+    closeModalBtn.addEventListener('click', closeRoomDetailsModal);
+    modalOverlay.addEventListener('click', function(e) {
+        if (e.target === modalOverlay) {
+            closeRoomDetailsModal();
+        }
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modalOverlay.classList.contains('visible')) {
+            closeRoomDetailsModal();
+        }
+    });
+
+    function closeRoomDetailsModal() {
+        modalOverlay.classList.remove('visible');
+    }
+});

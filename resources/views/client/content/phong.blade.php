@@ -23,7 +23,6 @@
         </div>
     </div>
 
-    {{-- Phần Bộ lọc - Tăng độ rộng ra gần sát màn hình --}}
     <section class="bg-gray-50 py-16 w-full">
         <div class="px-4 sm:px-6 lg:px-8">
             {{-- Giữ max-w-7xl để bộ lọc không quá dài và khó thao tác --}}
@@ -95,7 +94,6 @@
         </div>
     </section>
 
-    {{-- Phần Danh sách phòng - Chỉ 1 cột, nhưng có độ rộng cực lớn (max-w-screen-2xl) --}}
     <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 space-y-8">
         @forelse($phongs as $phong)
             <div class="group cursor-pointer"
