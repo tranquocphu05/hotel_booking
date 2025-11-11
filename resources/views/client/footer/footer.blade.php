@@ -40,8 +40,17 @@
         <div>
             <h6 class="text-white font-semibold mb-4">Đăng ký nhận tin</h6>
             <p class="text-sm mb-4">Nhận ngay các ưu đãi và khuyến mãi khách sạn mới nhất từ Ozia Hotel.</p>
-            <form action="#" method="POST" class="flex bg-gray-800 rounded-lg overflow-hidden">
+            
+            @if ($errors->has('email'))
+                <div class="mb-4 p-3 bg-red-500 text-white rounded-lg text-sm">
+                    {{ $errors->first('email') }}
+                </div>
+            @endif
+
+            <form action="{{ route('client.newsletter.subscribe') }}" method="POST" class="flex bg-gray-800 rounded-lg overflow-hidden">
+                @csrf
                 <input type="email" name="email" placeholder="Nhập email của bạn..." required
+                    value="{{ old('email') }}"
                     class="w-full px-4 py-2 text-gray-100 bg-transparent focus:outline-none">
                 <button type="submit" class="bg-[#D4AF37] hover:bg-[#b68b00] px-4 py-2 text-white transition duration-300">
                     Gửi
