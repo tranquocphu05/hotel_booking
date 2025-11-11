@@ -106,7 +106,7 @@ class BookingController extends Controller
             'rooms.*.so_luong' => 'required|integer|min:1|max:100',
             'first_name' => 'required|string|max:255|min:2',
             'email' => 'required|email:rfc,dns|max:255',
-            'phone' => 'nullable|string|regex:/^0[0-9]{9}$/|max:20',
+            'phone' => 'required|nullable|string|regex:/^0[0-9]{9}$/|max:20',
             'cccd' => 'required|string|regex:/^[0-9]{12}$/|size:12',
             'ngay_nhan' => 'required|date|after_or_equal:today',
             'ngay_tra' => 'required|date|after:ngay_nhan',
@@ -139,6 +139,7 @@ class BookingController extends Controller
             'phone.string' => 'Số điện thoại phải là chuỗi ký tự.',
             'phone.regex' => 'Số điện thoại không đúng định dạng (phải bắt đầu bằng 0 và có 10 chữ số).',
             'phone.max' => 'Số điện thoại không được vượt quá 20 ký tự.',
+            'phone.required'=> 'số điện thoại không thể để trống',
 
             'cccd.required' => 'Vui lòng nhập số CCCD/CMND.',
             'cccd.string' => 'CCCD/CMND phải là chuỗi ký tự.',
@@ -210,7 +211,7 @@ class BookingController extends Controller
                 'price' => $roomTotal,
             ];
         }
-        
+
         // NOTE: Availability check moved inside transaction to prevent race conditions
 
         // Apply voucher and create bookings within transaction
