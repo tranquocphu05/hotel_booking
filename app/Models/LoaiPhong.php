@@ -122,4 +122,94 @@ class LoaiPhong extends Model
     {
         return !is_null($this->gia_khuyen_mai) && $this->gia_khuyen_mai < $this->gia_co_ban;
     }
+
+    /**
+     * Tính tỷ lệ đặt phòng (booking rate) trong khoảng thời gian
+     * Dựa trên số lượng booking thành công so với tổng số phòng
+     * 
+     * @param int $days Số ngày để tính (mặc định 30 ngày gần đây)
+     * @return float Tỷ lệ đặt phòng (0-100)
+     */
+    public function getBookingRate($days = 30)
+    {
+        if ($this->so_luong_phong == 0) {
+            return 0;
+        }
+
+        $startDate = now()->subDays($days)->startOfDay();
+        
+        // Tính tỷ lệ dựa trên số đêm đã được đặt
+        $bookings = $this->datPhongs()
+            ->where('ngay_dat', '>=', $startDate)
+            ->whereIn('trang_thai', ['da_xac_nhan', 'da_tra'])
+            ->whereHas('invoice', function($query) {
+                $query->where('trang_thai', 'da_thanh_toan');
+            })
+            ->whereNotNull('ngay_nhan')
+            ->whereNotNull('ngay_tra')
+            ->get();
+
+        $totalNightsBooked = $bookings->sum(function($booking) {
+            try {
+                if (!$booking->ngay_nhan || !$booking->ngay_tra) {
+                    return 0;
+                }
+                // ngay_nhan và ngay_tra đã được cast thành Carbon trong model DatPhong
+                $nights = $booking->ngay_nhan->diffInDays($booking->ngay_tra);
+                return max(1, $nights); // Tối thiểu 1 đêm
+            } catch (\Exception $e) {
+                return 0;
+            }
+        });
+
+        // Tính tỷ lệ dựa trên số đêm được đặt so với tổng số đêm có thể (số phòng * số ngày)
+        // Nếu có nhiều phòng cùng loại, mỗi phòng có thể được đặt trong $days ngày
+        $totalPossibleNights = $this->so_luong_phong * $days;
+        
+        if ($totalPossibleNights == 0) {
+            return 0;
+        }
+
+        $bookingRate = ($totalNightsBooked / $totalPossibleNights) * 100;
+        
+        return round(min(100, max(0, $bookingRate)), 2);
+    }
+
+    /**
+     * Scope để lấy các loại phòng có tỷ lệ đặt thấp
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeLowBookingRate($query)
+    {
+        // Lấy tất cả phòng hoạt động và còn trống
+        return $query->where('trang_thai', 'hoat_dong')
+            ->where('so_luong_trong', '>', 0);
+    }
+
+    /**
+     * Lấy danh sách phòng có tỷ lệ đặt thấp
+     * 
+     * @param int $days Số ngày để tính (mặc định 30 ngày)
+     * @param float $maxRate Tỷ lệ đặt tối đa để được coi là "thấp" (mặc định 30%)
+     * @param int $limit Số lượng phòng tối đa cần lấy
+     * @return \Illuminate\Support\Collection
+     */
+    public static function getRoomsWithLowBookingRate($days = 30, $maxRate = 30.0, $limit = 6)
+    {
+        return static::where('trang_thai', 'hoat_dong')
+            ->where('so_luong_trong', '>', 0)
+            ->get()
+            ->map(function($room) use ($days) {
+                $room->booking_rate = $room->getBookingRate($days);
+                return $room;
+            })
+            ->filter(function($room) use ($maxRate) {
+                return $room->booking_rate <= $maxRate;
+            })
+            ->sortBy('booking_rate')
+            ->take($limit)
+            ->values();
+    }
 }
