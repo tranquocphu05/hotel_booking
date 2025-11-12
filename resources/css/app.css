@@ -148,11 +148,21 @@
 .nav-dropdown-room,
 .nav-dropdown-user {
     background: #fff;
-    border-radius: 22px;
-    padding: 14px;
-    box-shadow: 0 25px 60px rgba(15, 23, 42, 0.18);
-    border: 1px solid #eef2ff;
-    min-width: 230px;
+    border-radius: 16px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    border: 1px solid #e5e7eb;
+    min-width: 200px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.2s ease;
+}
+
+.group:hover .nav-dropdown-room,
+.group:hover .nav-dropdown-user {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
 }
 
 .nav-dropdown-room .dropdown-link,
