@@ -64,40 +64,103 @@
                             <i class="fas fa-chevron-down text-xs"></i>
                         </button>
                         <div
-                            class="nav-dropdown-user absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-[999999]">
-                            <div class="px-4 py-2 border-b border-gray-100">
-                                <p class="text-sm font-medium text-gray-900">
-                                    {{ auth()->user()->ten ?? (auth()->user()->ho_ten ?? 'User') }}</p>
-                                <p class="text-xs text-gray-500">Khách hàng</p>
+                            class="nav-dropdown-user absolute right-0 mt-2 bg-white rounded-2xl shadow-2xl py-1 z-[999999]">
+                            <div class="nav-dropdown-user__header">
+                                <div class="nav-dropdown-user__identity">
+                                    <div class="nav-dropdown-user__avatar">
+                                        @if (auth()->user()->img)
+                                            <img src="{{ asset(auth()->user()->img) }}" alt="{{ auth()->user()->ho_ten }}"
+                                                class="w-10 h-10 rounded-full object-cover">
+                                        @else
+                                            <span>{{ strtoupper(substr(auth()->user()->ho_ten ?? 'U', 0, 1)) }}</span>
+                                        @endif
+                                    </div>
+                                    <div>
+                                        <p class="nav-dropdown-user__name">
+                                            {{ auth()->user()->ten ?? (auth()->user()->ho_ten ?? 'User') }}</p>
+                                        <p class="nav-dropdown-user__role">Khách hàng thân thiết</p>
+                                    </div>
+                                </div>
                             </div>
-                            <a href="{{ route('profile.edit') }}"
-                                class="dropdown-link block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i
-                                    class="fas fa-user mr-2"></i>Thông tin cá nhân</a>
-                            <a href="{{ route('client.dashboard') }}"
-                                class="dropdown-link block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i
-                                    class="fas fa-tachometer-alt mr-2"></i>Dashboard</a>
-                            <a href="{{ route('client.phong') }}"
-                                class="dropdown-link block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i
-                                    class="fas fa-bed mr-2"></i>Đặt phòng</a>
-                            <a href="{{ route('profile.edit') }}#lich-su"
-                                class="dropdown-link block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i
-                                    class="fas fa-calendar-check mr-2"></i>Lịch sử đặt phòng</a>
-                            <a href="#"
-                                class="dropdown-link block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i
-                                    class="fas fa-star mr-2"></i>Đánh giá</a>
-                            @if (auth()->user()->vai_tro === 'admin')
-                                <hr class="my-1">
-                                <a href="{{ route('admin.dashboard') }}"
-                                    class="dropdown-link block px-4 py-2 text-sm text-indigo-600 hover:bg-indigo-50"><i
-                                        class="fas fa-cog mr-2"></i>Admin Panel</a>
-                            @endif
-                            <hr class="my-1">
-                            <form method="POST" action="{{ route('logout') }}" class="block">
-                                @csrf
-                                <button type="submit"
-                                    class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"><i
-                                        class="fas fa-sign-out-alt mr-2"></i>Đăng xuất</button>
-                            </form>
+
+                            <div class="nav-dropdown-user__sections">
+                                <div class="nav-dropdown-user__section">
+                                    <p class="nav-dropdown-user__section-title">Quản lý tài khoản</p>
+                                    <div class="nav-dropdown-user__list">
+                                        <a href="{{ route('profile.edit') }}"
+                                            class="nav-dropdown-user__item {{ request()->routeIs('profile.edit') ? 'is-active' : '' }}">
+                                            <span class="nav-dropdown-user__icon"><i class="fas fa-user"></i></span>
+                                            <div>
+                                                <span class="nav-dropdown-user__item-label">Thông tin cá nhân</span>
+                                                <span class="nav-dropdown-user__item-desc">Cập nhật hồ sơ và bảo mật</span>
+                                            </div>
+                                            <i class="fas fa-chevron-right nav-dropdown-user__chevron"></i>
+                                        </a>
+                                        <a href="{{ route('client.dashboard') }}"
+                                            class="nav-dropdown-user__item {{ request()->routeIs('client.dashboard') ? 'is-active' : '' }}">
+                                            <span class="nav-dropdown-user__icon"><i class="fas fa-tachometer-alt"></i></span>
+                                            <div>
+                                                <span class="nav-dropdown-user__item-label">Dashboard</span>
+                                                <span class="nav-dropdown-user__item-desc">Theo dõi đặt phòng & ưu đãi</span>
+                                            </div>
+                                            <i class="fas fa-chevron-right nav-dropdown-user__chevron"></i>
+                                        </a>
+                                        <a href="{{ route('client.phong') }}"
+                                            class="nav-dropdown-user__item {{ request()->routeIs('client.phong') ? 'is-active' : '' }}">
+                                            <span class="nav-dropdown-user__icon"><i class="fas fa-bed"></i></span>
+                                            <div>
+                                                <span class="nav-dropdown-user__item-label">Đặt phòng</span>
+                                                <span class="nav-dropdown-user__item-desc">Khám phá phòng còn trống</span>
+                                            </div>
+                                            <i class="fas fa-chevron-right nav-dropdown-user__chevron"></i>
+                                        </a>
+                                        <a href="{{ route('profile.edit') }}#lich-su"
+                                            class="nav-dropdown-user__item {{ request()->routeIs('profile.edit') ? 'is-active' : '' }}">
+                                            <span class="nav-dropdown-user__icon"><i class="fas fa-calendar-check"></i></span>
+                                            <div>
+                                                <span class="nav-dropdown-user__item-label">Lịch sử đặt phòng</span>
+                                                <span class="nav-dropdown-user__item-desc">Xem & quản lý đơn gần đây</span>
+                                            </div>
+                                            <i class="fas fa-chevron-right nav-dropdown-user__chevron"></i>
+                                        </a>
+                                        <a href="#"
+                                            class="nav-dropdown-user__item">
+                                            <span class="nav-dropdown-user__icon"><i class="fas fa-star"></i></span>
+                                            <div>
+                                                <span class="nav-dropdown-user__item-label">Đánh giá</span>
+                                                <span class="nav-dropdown-user__item-desc">Gửi cảm nhận của bạn</span>
+                                            </div>
+                                            <i class="fas fa-chevron-right nav-dropdown-user__chevron"></i>
+                                        </a>
+                                    </div>
+                                </div>
+
+                                @if (auth()->user()->vai_tro === 'admin')
+                                    <div class="nav-dropdown-user__section">
+                                        <p class="nav-dropdown-user__section-title">Quản trị</p>
+                                        <div class="nav-dropdown-user__list">
+                                            <a href="{{ route('admin.dashboard') }}"
+                                                class="nav-dropdown-user__item nav-dropdown-user__item--admin {{ request()->routeIs('admin.*') ? 'is-active' : '' }}">
+                                                <span class="nav-dropdown-user__icon"><i class="fas fa-cog"></i></span>
+                                                <div>
+                                                    <span class="nav-dropdown-user__item-label">Admin Panel</span>
+                                                    <span class="nav-dropdown-user__item-desc">Điều phối phòng & báo cáo</span>
+                                                </div>
+                                                <i class="fas fa-chevron-right nav-dropdown-user__chevron"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                @endif
+                            </div>
+
+                            <div class="nav-dropdown-user__footer">
+                                <form method="POST" action="{{ route('logout') }}" class="block">
+                                    @csrf
+                                    <button type="submit"
+                                        class="w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"><i
+                                            class="fas fa-sign-out-alt mr-2"></i>Đăng xuất</button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 @else
@@ -137,6 +200,179 @@
         bottom: 5px;
     }
 
+    .nav-user-button {
+        border-radius: 999px;
+        padding: 6px 14px;
+        border: 1px solid transparent;
+        transition: border-color .2s ease, color .2s ease;
+    }
+
+    .nav-user-button:hover,
+    .nav-user-button:focus-visible {
+        border-color: rgba(249, 115, 22, 0.35);
+    }
+
+    .nav-dropdown-user {
+        width: min(18rem, calc(100vw - 2rem));
+        border-radius: 20px;
+        padding: 16px;
+        box-shadow: 0 25px 60px rgba(15, 23, 42, 0.2);
+        border: 1px solid #eef2ff;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    }
+
+    .nav-dropdown-user__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        border-bottom: 1px solid #eef2ff;
+        padding-bottom: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .nav-dropdown-user__identity {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .nav-dropdown-user__avatar {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: #fef3c7;
+        color: #b45309;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-transform: uppercase;
+    }
+
+    .nav-dropdown-user__name {
+        font-weight: 600;
+        color: #111827;
+    }
+
+    .nav-dropdown-user__role {
+        font-size: 0.8rem;
+        color: #94a3b8;
+    }
+
+    .nav-dropdown-user__sections {
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+        max-height: 230px;
+        overflow-y: auto;
+        padding-right: 4px;
+    }
+
+    .nav-dropdown-user__section-title {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: #94a3b8;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.4rem;
+    }
+
+    .nav-dropdown-user__list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+
+    .nav-dropdown-user__item {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        border-radius: 12px;
+        padding: 0.55rem 0.65rem;
+        border: 1px solid #f1f5f9;
+        background: #fff;
+        text-decoration: none;
+        color: #1f2937;
+        transition: transform .2s ease, border-color .2s ease, background .2s ease, color .2s ease;
+    }
+
+    .nav-dropdown-user__item:hover {
+        border-color: #fde68a;
+        background: #fff7e6;
+        color: #b45309;
+    }
+
+    .nav-dropdown-user__item.is-active {
+        border-color: #f59e0b;
+        background: #fff3d4;
+        color: #92400e;
+        box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.25);
+    }
+
+    .nav-dropdown-user__item--admin {
+        border-style: dashed;
+        border-color: #c7d2fe;
+        background: #eef2ff;
+        color: #4338ca;
+    }
+
+    .nav-dropdown-user__icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        background: #f1f5f9;
+        color: inherit;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.85rem;
+    }
+
+    .nav-dropdown-user__item-label {
+        font-weight: 600;
+        display: block;
+        font-size: 0.92rem;
+    }
+
+    .nav-dropdown-user__item-desc {
+        font-size: 0.72rem;
+        color: #94a3b8;
+        display: block;
+        margin-top: 2px;
+    }
+
+    .nav-dropdown-user__item.is-active .nav-dropdown-user__item-desc {
+        color: inherit;
+        opacity: 0.9;
+    }
+
+    .nav-dropdown-user__chevron {
+        margin-left: auto;
+        font-size: 0.75rem;
+        color: currentColor;
+        opacity: 0.4;
+    }
+
+    .nav-dropdown-user__footer {
+        border-top: 1px solid #eef2ff;
+        margin-top: 1rem;
+        padding-top: 0.75rem;
+    }
+
+    .nav-dropdown-user__footer button {
+        border-radius: 16px;
+        border: 1px solid transparent;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.5rem;
+        transition: border-color .2s ease;
+    }
+
+    .nav-dropdown-user__footer button:hover {
+        border-color: #fecaca;
+    }
 
     .nav-dropdown-room,
     .nav-dropdown-pages,
@@ -167,6 +403,23 @@
         visibility: visible;
         pointer-events: auto;
         transform: translateY(0);
+    }
+
+    .group:hover .nav-dropdown-user {
+        max-height: 360px;
+    }
+
+    .nav-dropdown-user__sections::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .nav-dropdown-user__sections::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .nav-dropdown-user__sections::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.12);
+        border-radius: 999px;
     }
 
     #mainNav {
