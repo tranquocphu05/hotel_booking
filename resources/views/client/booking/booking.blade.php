@@ -1,6 +1,11 @@
-﻿@extends('layouts.client')
+@extends('layouts.client')
 
 @section('title', $loaiPhong->ten_loai ?? 'Đặt phòng')
+
+@push('styles')
+    @vite(['resources/css/booking.css'])
+    @vite(['resources/css/contact-form.css'])
+@endpush
 
 @section('client_content')
     <div class="relative w-full bg-cover bg-center bg-no-repeat -mt-2"
@@ -73,6 +78,9 @@
                     </div>
                 @endif
                 <input type="hidden" name="tong_tien_dat_phong" id="finalBookingPrice" value="{{ $tong_tien_initial }}">
+                
+                <!-- Hidden inputs for room card selections -->
+                <div id="roomCardHiddenInputs"></div>
 
                 <section class="block booking-filter">
                     <div class="filter-form">
@@ -140,7 +148,7 @@
                         $hotelRating = 4.8;
                         $hotelReviewCount = 1250;
                         $hotelRatingLabel = 'Xuất sắc';
-                        $hotelImage = asset('img/hero/hero-1.jpg'); // Main hotel image
+                        $hotelImage = asset('img/blog/blog-11.jpg'); // Main hotel image
                         $hotelFeatures = [
                             ['icon' => 'fas fa-wifi', 'text' => 'Wi-Fi tốc độ cao'],
                             ['icon' => 'fas fa-utensils', 'text' => 'Nhà hàng sang trọng'],
@@ -170,13 +178,6 @@
                                 <div>
                                     <p class="featured-hotel-eyebrow">{{ $hotelName }}</p>
                                     <h2>{{ $hotelTagline }}</h2>
-                                </div>
-                                <div class="featured-hotel-rating">
-                                    <span class="featured-hotel-rating__badge">{{ number_format($hotelRating, 1) }}</span>
-                                    <div>
-                                        <p>{{ $hotelRatingLabel }}</p>
-                                        <small>{{ number_format($hotelReviewCount) }} đánh giá</small>
-                                    </div>
                                 </div>
                             </div>
 
@@ -320,170 +321,48 @@
                                                                 {{ number_format($optionPrice, 0, ',', '.') }} <span>VNĐ /
                                                                     đêm</span></p>
                                                         </div>
-                                                        <button type="button" class="choose-room-btn"
-                                                            data-room-id="{{ $option->id }}"
-                                                            data-room-name="{{ $option->ten_loai }}"
-                                                            data-room-image="{{ $optionImage }}"
-                                                            data-room-price="{{ $optionPrice }}">
-                                                            Chọn phòng
-                                                        </button>
+                                                        <div class="room-card__actions">
+                                                            <div class="room-quantity-control">
+                                                                <button type="button" class="quantity-btn quantity-btn--decrease" 
+                                                                    onclick="decreaseRoomCardQuantity('{{ $option->id }}')">
+                                                                    <i class="fas fa-minus"></i>
+                                                                </button>
+                                                                <input type="number" 
+                                                                    id="room_card_quantity_{{ $option->id }}"
+                                                                    class="room-card-quantity" 
+                                                                    value="0" 
+                                                                    min="0" 
+                                                                    max="{{ $option->so_luong_phong }}"
+                                                                    data-room-id="{{ $option->id }}"
+                                                                    data-room-name="{{ $option->ten_loai }}"
+                                                                    data-room-price="{{ $optionPrice }}"
+                                                                    data-max-quantity="{{ $option->so_luong_phong }}"
+                                                                    onchange="updateRoomCardQuantity('{{ $option->id }}')">
+                                                                <button type="button" class="quantity-btn quantity-btn--increase" 
+                                                                    onclick="increaseRoomCardQuantity('{{ $option->id }}')">
+                                                                    <i class="fas fa-plus"></i>
+                                                                </button>
+                                                            </div>
+                                                            <div class="room-availability-info" id="availability_info_{{ $option->id }}">
+                                                                <div class="availability-status">
+                                                                    <i class="fas fa-bed text-green-500"></i>
+                                                                    <span class="availability-text" id="availability_{{ $option->id }}">
+                                                                        Còn {{ $option->so_luong_phong }} phòng
+                                                                    </span>
+                                                                </div>
+                                                                <div class="date-range-info" id="date_range_{{ $option->id }}">
+                                                                    <small class="text-gray-500">
+                                                                        <i class="fas fa-calendar-alt"></i>
+                                                                        Vui lòng chọn ngày để xem phòng trống
+                                                                    </small>
+                                                                </div>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </article>
                                         @endforeach
                                     </div>
-
-                                    <div class="selected-room-wrapper">
-                                        <div class="selected-room-header">
-                                            <div>
-                                                <h3>Phòng bạn đã chọn</h3>
-                                                <p class="text-sm text-gray-500">Điều chỉnh số lượng hoặc thêm loại phòng
-                                                    khác</p>
-                                            </div>
-                                        </div>
-                                        <div id="roomsContainer" class="selected-room-list">
-                                            {{-- First room (default selected) --}}
-                                            @php
-                                                $displayPrice = $loaiPhong->gia_khuyen_mai ?? $loaiPhong->gia_co_ban;
-                                                $basePrice = $loaiPhong->gia_co_ban;
-                                            @endphp
-                                            <div class="room-item selected-room-card selected-room-card--filled"
-                                                data-room-index="0" id="room_item_0">
-                                                <div class="selected-room-card__inner">
-                                                    <div class="selected-room-card__header">
-                                                        <h4>Loại phòng 1</h4>
-                                                        <button type="button" class="selected-room-card__remove"
-                                                            onclick="removeRoom(0)" data-room-index="0">
-                                                            <i class="fas fa-times"></i> Xóa
-                                                        </button>
-                                                    </div>
-                                                    <div class="selected-room-card__body">
-                                                        <div class="selected-room-card__details selected-room-details"
-                                                            id="room_details_0">
-                                                            <div class="selected-room-card__media">
-                                                                @if ($loaiPhong->anh)
-                                                                    <img src="{{ asset($loaiPhong->anh) }}"
-                                                                        alt="{{ $loaiPhong->ten_loai }}">
-                                                                @else
-                                                                    <div
-                                                                        class="w-full h-full bg-gray-200 flex items-center justify-center">
-                                                                        <i class="fas fa-image text-gray-400 text-4xl"></i>
-                                                                    </div>
-                                                                @endif
-                                                            </div>
-                                                            <div class="selected-room-card__info">
-                                                                <h5>{{ $loaiPhong->ten_loai }}</h5>
-                                                                <div class="selected-room-card__price">
-                                                                    @if ($loaiPhong->gia_khuyen_mai)
-                                                                        <span
-                                                                            class="price-highlight">{{ number_format($loaiPhong->gia_khuyen_mai, 0, ',', '.') }}
-                                                                            VNĐ</span>
-                                                                        <span
-                                                                            class="line-through">{{ number_format($loaiPhong->gia_co_ban, 0, ',', '.') }}
-                                                                            VNĐ</span>
-                                                                    @else
-                                                                        <span
-                                                                            class="price-highlight">{{ number_format($loaiPhong->gia_co_ban, 0, ',', '.') }}
-                                                                            VNĐ</span>
-                                                                    @endif
-                                                                    <small>/ đêm</small>
-                                                                </div>
-                                                                <p class="text-sm text-gray-600" id="room_availability_0">
-                                                                    <i class="fas fa-bed text-blue-500"></i>
-                                                                    @if (isset($availableCount))
-                                                                        Còn {{ max(0, $availableCount) }} phòng trống
-                                                                        <span class="text-blue-500 text-xs">(từ
-                                                                            {{ isset($checkinToUse) ? date('d/m/Y', strtotime($checkinToUse)) : '...' }}
-                                                                            đến
-                                                                            {{ isset($checkoutToUse) ? date('d/m/Y', strtotime($checkoutToUse)) : '...' }})</span>
-                                                                    @else
-                                                                        Còn {{ max(0, $loaiPhong->so_luong_phong) }} phòng
-                                                                        (vui lòng chọn ngày để xem số phòng trống)
-                                                                    @endif
-                                                                </p>
-                                                            </div>
-                                                        </div>
-
-                                                        <div class="quantity-section mt-4">
-                                                            <label class="block text-sm font-medium mb-2">Số lượng phòng
-                                                                *</label>
-                                                            <div class="flex items-center gap-3">
-                                                                <button type="button"
-                                                                    class="w-10 h-10 flex items-center justify-center bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md transition-colors font-bold text-lg"
-                                                                    onclick="decreaseRoomQuantity(0)" tabindex="-1">
-                                                                    −
-                                                                </button>
-                                                                <input type="text" name="rooms[0][so_luong]"
-                                                                    id="room_quantity_0"
-                                                                    value="{{ old('rooms.0.so_luong', 1) }}"
-                                                                    data-max="{{ isset($availableCount) ? max(0, $availableCount) : max(0, $loaiPhong->so_luong_phong) }}"
-                                                                    class="room-quantity w-20 text-center border-2 border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-semibold @error('rooms.0.so_luong') border-red-500 @enderror"
-                                                                    onchange="updateRoomQuantity(0)">
-                                                                <button type="button"
-                                                                    class="w-10 h-10 flex items-center justify-center bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md transition-colors font-bold text-lg"
-                                                                    onclick="increaseRoomQuantity(0)" tabindex="-1">
-                                                                    +
-                                                                </button>
-                                                                <span class="text-sm text-gray-600 ml-2">
-                                                                    / <span
-                                                                        id="max_quantity_0">{{ isset($availableCount) ? max(0, $availableCount) : max(0, $loaiPhong->so_luong_phong) }}</span>
-                                                                    phòng
-                                                                </span>
-                                                            </div>
-                                                            @error('rooms.0.so_luong')
-                                                                <div class="text-red-600 text-xs mt-1">{{ $message }}
-                                                                </div>
-                                                            @enderror
-                                                            <p class="text-xs text-red-600 mt-1 hidden"
-                                                                id="quantity_error_0">
-                                                                Số lượng không được vượt quá
-                                                                {{ isset($availableCount) ? max(0, $availableCount) : max(0, $loaiPhong->so_luong_phong) }}
-                                                                phòng
-                                                            </p>
-                                                        </div>
-
-                                                        <div class="mt-3 text-sm text-gray-700">
-                                                            <span class="room-subtotal font-medium">Giá: <span
-                                                                    id="room_subtotal_0">0</span></span>
-                                                        </div>
-
-                                                        <input type="hidden" id="room_0_summary_name"
-                                                            value="{{ $loaiPhong->ten_loai }}">
-
-                                                        {{-- Hidden input for room type ID --}}
-                                                        <input type="hidden" name="rooms[0][loai_phong_id]"
-                                                            value="{{ $loaiPhong->id }}"
-                                                            data-price="{{ $displayPrice }}"
-                                                            data-base-price="{{ $basePrice }}"
-                                                            data-room-type-name="{{ $loaiPhong->ten_loai }}"
-                                                            data-room-image="{{ $loaiPhong->anh ?? '' }}"
-                                                            class="room-type-select">
-                                                        @error('rooms.0.loai_phong_id')
-                                                            <div class="form-field-error mt-2">{{ $message }}</div>
-                                                        @enderror
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <template id="roomTypeOptionsTemplate">
-                                        <option value="">-- Chọn loại phòng --</option>
-                                        @foreach ($allLoaiPhongs as $lp)
-                                            @php
-                                                $lpDisplayPrice = $lp->gia_khuyen_mai ?? ($lp->gia_co_ban ?? 0);
-                                            @endphp
-                                            <option value="{{ $lp->id }}" data-price="{{ $lpDisplayPrice }}"
-                                                data-base-price="{{ $lp->gia_co_ban ?? 0 }}"
-                                                data-ten-loai="{{ $lp->ten_loai }}" data-anh="{{ $lp->anh ?? '' }}"
-                                                data-so-luong-trong="{{ $lp->so_luong_phong }}"
-                                                data-gia-khuyen-mai="{{ $lp->gia_khuyen_mai ?? 0 }}"
-                                                data-gia-co-ban="{{ $lp->gia_co_ban ?? 0 }}">
-                                                {{ $lp->ten_loai }} - {{ number_format($lpDisplayPrice, 0, ',', '.') }}
-                                                VND/đêm
-                                            </option>
-                                        @endforeach
-                                    </template>
 
                                     @if ($errors->has('rooms.*.loai_phong_id'))
                                         <div class="form-field-error mt-4">
@@ -516,6 +395,143 @@
                     </div>
 
                     <div class="right-column-wrapper">
+                        {{-- FORM THÔNG TIN LIÊN HỆ - ĐÃ DI CHUYỂN LÊN TRÊN --}}
+                        <section class="block block-contact-info">
+                            <div class="contact-info-header">
+                                <div class="contact-header-icon">
+                                    <i class="fas fa-user-edit"></i>
+                                </div>
+                                <div class="contact-header-content">
+                                    <h3 class="contact-section-title">Thông tin liên hệ</h3>
+                                    <p class="contact-section-subtitle">Vui lòng điền đầy đủ thông tin để hoàn tất đặt phòng</p>
+                                </div>
+                            </div>
+                            
+                            <div class="contact-form-container">
+                                <div class="contact-form-group @error('first_name') contact-form-group--error @enderror">
+                                    <div class="contact-form-label">
+                                        <div class="contact-label-wrapper">
+                                            <div class="contact-label-icon">
+                                                <i class="fas fa-user"></i>
+                                            </div>
+                                            <div class="contact-label-content">
+                                                <label for="contact_first_name" class="contact-label-title">Họ và tên <span class="required-star">*</span></label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="contact-input-wrapper">
+                                        <input type="text" 
+                                               id="contact_first_name" 
+                                               name="first_name"
+                                               value="{{ old('first_name', auth()->check() ? auth()->user()->ho_ten : '') }}"
+                                               class="contact-form-input @error('first_name') contact-form-input--error @enderror"
+                                               placeholder="Nhập giống giấy tờ tùy thân"
+                                               autocomplete="name">
+                                        <div class="contact-input-border"></div>
+                                    </div>
+                                    @error('first_name')
+                                        <div class="contact-form-error">
+                                            <i class="fas fa-exclamation-circle"></i>
+                                            <span>{{ $message }}</span>
+                                        </div>
+                                    @enderror
+                                </div>
+
+                                <div class="contact-form-group @error('email') contact-form-group--error @enderror">
+                                    <div class="contact-form-label">
+                                        <div class="contact-label-wrapper">
+                                            <div class="contact-label-icon">
+                                                <i class="fas fa-envelope"></i>
+                                            </div>
+                                            <div class="contact-label-content">
+                                                <label for="contact_email" class="contact-label-title">Địa chỉ email <span class="required-star">*</span></label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="contact-input-wrapper">
+                                        <input type="text" 
+                                               id="contact_email" 
+                                               name="email"
+                                               value="{{ old('email', auth()->user()->email ?? '') }}"
+                                               class="contact-form-input @error('email') contact-form-input--error @enderror"
+                                               placeholder="Nhận xác nhận đặt phòng"
+                                               autocomplete="email">
+                                        <div class="contact-input-border"></div>
+                                    </div>
+                                    @error('email')
+                                        <div class="contact-form-error">
+                                            <i class="fas fa-exclamation-circle"></i>
+                                            <span>{{ $message }}</span>
+                                        </div>
+                                    @enderror
+                                </div>
+
+                                <div class="contact-form-group @error('phone') contact-form-group--error @enderror">
+                                    <div class="contact-form-label">
+                                        <div class="contact-label-wrapper">
+                                            <div class="contact-label-icon">
+                                                <i class="fas fa-phone-alt"></i>
+                                            </div>
+                                            <div class="contact-label-content">
+                                                <label for="contact_phone" class="contact-label-title">Số điện thoại <span class="required-star">*</span></label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="contact-input-wrapper">
+                                        <input type="text" 
+                                               id="contact_phone" 
+                                               name="phone"
+                                               value="{{ old('phone', auth()->user()->sdt ?? '') }}"
+                                               class="contact-form-input @error('phone') contact-form-input--error @enderror"
+                                               placeholder="Chúng tôi sẽ liên hệ khi cần"
+                                               autocomplete="tel">
+                                        <div class="contact-input-border"></div>
+                                    </div>
+                                    @error('phone')
+                                        <div class="contact-form-error">
+                                            <i class="fas fa-exclamation-circle"></i>
+                                            <span>{{ $message }}</span>
+                                        </div>
+                                    @enderror
+                                </div>
+
+                                <div class="contact-form-group @error('cccd') contact-form-group--error @enderror">
+                                    <div class="contact-form-label">
+                                        <div class="contact-label-wrapper">
+                                            <div class="contact-label-icon">
+                                                <i class="fas fa-id-card"></i>
+                                            </div>
+                                            <div class="contact-label-content">
+                                                <label for="contact_cccd" class="contact-label-title">CCCD/CMND <span class="required-star">*</span></label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="contact-input-wrapper">
+                                        <input type="text" 
+                                               id="contact_cccd" 
+                                               name="cccd"
+                                               value="{{ old('cccd', auth()->user()->cccd ?? '') }}"
+                                               class="contact-form-input @error('cccd') contact-form-input--error @enderror"
+                                               placeholder="Thông tin phục vụ thủ tục nhận phòng">
+                                        <div class="contact-input-border"></div>
+                                    </div>
+                                    @error('cccd')
+                                        <div class="contact-form-error">
+                                            <i class="fas fa-exclamation-circle"></i>
+                                            <span>{{ $message }}</span>
+                                        </div>
+                                    @enderror
+                                </div>
+                            </div>
+
+                            <div class="contact-form-footer">
+                                <div class="contact-security-note">
+                                    <i class="fas fa-shield-alt"></i>
+                                    <span>Thông tin của bạn được bảo mật tuyệt đối</span>
+                                </div>
+                            </div>
+                        </section>
+
                         <aside class="block-info-book">
                             <div class="summary-box summary-stay">
                                 <div>
@@ -557,77 +573,6 @@
                                 </button>
                                 <a href="{{ url()->previous() }}" class="back-link">Quay lại</a>
                         </aside>
-
-                        {{-- VỊ TRÍ MỚI: BÊN TRONG block-list-room và DƯỚI block-info-book --}}
-                        <section class="block block-contact-info">
-                            <h3 class="section-title">Thông tin liên hệ</h3>
-                            <div class="contact-grid">
-                                <div class="contact-field @error('first_name') contact-field--error @enderror">
-                                    <div class="contact-label-card">
-                                        <span class="contact-label-icon"><i class="fas fa-user"></i></span>
-                                        <div>
-                                            <p class="contact-label-title">Họ và tên*</p>
-                                            <p class="contact-label-desc">Nhập giống giấy tờ tùy thân</p>
-                                        </div>
-                                    </div>
-                                    <input type="text" id="contact_first_name" name="first_name"
-                                        value="{{ old('first_name', auth()->check() ? auth()->user()->ho_ten : '') }}"
-                                        class="contact-input @error('first_name') border-red-500 @enderror"
-                                        placeholder="Nhập họ tên đầy đủ">
-                                    @error('first_name')
-                                        <div class="form-field-error">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                                <div class="contact-field @error('email') contact-field--error @enderror">
-                                    <div class="contact-label-card">
-                                        <span class="contact-label-icon"><i class="fas fa-envelope"></i></span>
-                                        <div>
-                                            <p class="contact-label-title">Địa chỉ email *</p>
-                                            <p class="contact-label-desc">Nhận xác nhận đặt phòng</p>
-                                        </div>
-                                    </div>
-                                    <input type="text" id="contact_email" name="email"
-                                        value="{{ old('email', auth()->user()->email ?? '') }}"
-                                        class="contact-input @error('email') border-red-500 @enderror"
-                                        placeholder="example@mail.com">
-                                    @error('email')
-                                        <div class="form-field-error">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                                <div class="contact-field @error('phone') contact-field--error @enderror">
-                                    <div class="contact-label-card">
-                                        <span class="contact-label-icon"><i class="fas fa-phone-alt"></i></span>
-                                        <div>
-                                            <p class="contact-label-title">Số điện thoại</p>
-                                            <p class="contact-label-desc">Chúng tôi sẽ liên hệ khi cần</p>
-                                        </div>
-                                    </div>
-                                    <input type="text" id="contact_phone" name="phone"
-                                        value="{{ old('phone', auth()->user()->sdt ?? '') }}"
-                                        class="contact-input @error('phone') border-red-500 @enderror"
-                                        placeholder="Nhập số liên hệ">
-                                    @error('phone')
-                                        <div class="form-field-error">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                                <div class="contact-field @error('cccd') contact-field--error @enderror">
-                                    <div class="contact-label-card">
-                                        <span class="contact-label-icon"><i class="fas fa-id-card"></i></span>
-                                        <div>
-                                            <p class="contact-label-title">CCCD/CMND *</p>
-                                            <p class="contact-label-desc">Thông tin phục vụ thủ tục nhận phòng</p>
-                                        </div>
-                                    </div>
-                                    <input type="text" id="contact_cccd" name="cccd"
-                                        value="{{ old('cccd', auth()->user()->cccd ?? '') }}"
-                                        class="contact-input @error('cccd') border-red-500 @enderror"
-                                        placeholder="Nhập số CCCD/CMND">
-                                    @error('cccd')
-                                        <div class="form-field-error">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                            </div>
-                        </section>
                     </div>
                 </div> <input type="hidden" name="voucherCode" id="voucherCode" value="">
                 <input type="hidden" name="discountValue" id="discountValue" value="0">
