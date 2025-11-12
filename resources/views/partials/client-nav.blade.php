@@ -1,4 +1,4 @@
-<nav id="mainNav" class="fixed top-0 w-full bg-white border-b border-gray-200 z-[999990] transition-all duration-300">
+<nav id="mainNav" class="fixed top-0 w-full bg-white border-b border-gray-200 z-[9999999] transition-all duration-300">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         <div id="navContainer" class="flex justify-between items-center transition-all duration-300">
@@ -21,7 +21,7 @@
                         ▾</a>
 
                     <div
-                        class="nav-dropdown-room absolute left-0 top-full min-w-[14rem] bg-white border border-gray-100 shadow-xl rounded-lg overflow-hidden z-[999999]">
+                        class="nav-dropdown-room absolute left-0 top-full min-w-[14rem] bg-white border border-gray-100 shadow-xl rounded-lg overflow-hidden z-[9999999]">
                         <div class="py-2 max-h-80 overflow-auto">
                             @forelse(($menuLoaiPhongs ?? []) as $lp)
                                 <a href="{{ route('client.phong', ['loai_phong' => $lp->id]) }}"
@@ -174,6 +174,7 @@
 </nav>
 
 <style>
+    /* HIỆU ỨNG GẠCH CHÂN VÀ DROPDOWN (CẦN CSS TÙY CHỈNH) */
     .nav-link,
     .dropdown-link {
         position: relative;
@@ -387,7 +388,7 @@
         position: absolute;
         top: 100% !important;
         margin-top: 0 !important;
-        z-index: 999999;
+        z-index: 9999999; /* Sửa: Đồng bộ z-index cao cho các dropdown */
         background: #ffffff;
     }
 
@@ -398,7 +399,7 @@
     .group:hover .nav-dropdown-room,
     .group:hover .nav-dropdown-pages,
     .group:hover .nav-dropdown-user {
-        max-height: 350px;
+        max-height: 500px; /* Sửa: Tăng giá trị này để đảm bảo nút Đăng xuất hiển thị */
         opacity: 1;
         visibility: visible;
         pointer-events: auto;
@@ -423,63 +424,53 @@
     }
 
     #mainNav {
-        position: fixed;
-        top: 0;
-        width: 100%;
-        z-index: 999990;
-        /* Loại bỏ border-b ban đầu để dùng box-shadow khi cuộn */
+        /* Bỏ border-b của Tailwind để dùng box-shadow */
         border-bottom: none !important;
     }
-    
-    /* HIỆU ỨNG ĐƯỜNG KẺ VÀNG MỀM MẠI KHI CUỘN */
+
     #mainNav.scrolled {
-        /* box-shadow: ngang | dọc | mờ | lan tỏa | màu */
-        box-shadow: 0 1px 4px rgba(212, 175, 55, 0.4); 
-    }
-
-    #mainNav .nav-link,
-    #mainNav .nav-logo {
-        color: #1f2937 !important;
-        font-weight: 600;
-        transition: color .2s ease;
-    }
-
-    #mainNav .nav-link:hover,
-    #mainNav .nav-link:hover .fa-chevron-down,
-    #mainNav .nav-user-button:hover span,
-    #mainNav .nav-user-button:hover .fa-chevron-down {
-        color: #d4af37 !important;
-    }
-
-    #mainNav .nav-user-button span,
-    #mainNav .nav-user-button .fa-chevron-down {
-        color: #1f2937;
+        /* Thêm shadow khi cuộn */
+        box-shadow: 0 1px 4px rgba(212, 175, 55, 0.4);
     }
 
     #navContainer {
         height: 90px;
+        transition: height 0.3s ease; /* Thêm transition cho chiều cao */
     }
 
     #navContainer.scrolled {
         height: 75px;
     }
 
+    /* Padding ban đầu cho body, bằng chiều cao ban đầu của nav */
     body {
         padding-top: 90px;
+        transition: padding-top 0.3s ease; /* Thêm transition để chuyển đổi mượt */
+    }
+
+    /* Thêm padding-top mới khi nav đã cuộn */
+    body.scrolled-nav {
+        padding-top: 75px !important;
     }
 </style>
 
 <script>
     const nav = document.getElementById("mainNav");
     const container = document.getElementById("navContainer");
+    const body = document.body; // Lấy thẻ body
 
-    window.addEventListener("scroll", () => {
-        if (window.scrollY > 120) {
+    function handleScroll() {
+        const scrollPosition = window.scrollY;
+
+        if (scrollPosition > 120) {
             container.classList.add("scrolled");
             nav.classList.add("scrolled");
+            body.classList.add("scrolled-nav"); // THÊM class vào body
         } else {
             container.classList.remove("scrolled");
             nav.classList.remove("scrolled");
+            body.classList.remove("scrolled-nav"); // XÓA class khỏi body
         }
     });
+
 </script>
