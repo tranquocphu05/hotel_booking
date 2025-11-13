@@ -7,6 +7,7 @@ export default defineConfig({
             input: [
                 'resources/css/app.css',
                 'resources/css/booking.css',
+                'resources/css/contact-form.css',
                 'resources/js/app.js',
                 'resources/js/booking.js',
             ],

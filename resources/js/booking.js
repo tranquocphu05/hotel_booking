@@ -62,10 +62,14 @@ class BookingManager {
         // Initialize calculations
         this.tinhTongTien();
 
+        // Initialize room card quantities
+        this.initializeRoomCardQuantities();
+
         // Update room availability and prices after a short delay
         setTimeout(() => {
             if (this.checkinInput && this.checkoutInput && this.checkinInput.value && this.checkoutInput.value) {
                 this.updateAvailableCount();
+                this.updateRoomCardAvailabilities();
             }
 
             // Update prices for all rooms
@@ -84,7 +88,154 @@ class BookingManager {
         }, 100);
     }
 
-    // === UTILITY FUNCTIONS ===
+    // === ROOM CARD QUANTITY MANAGEMENT ===
+    initializeRoomCardQuantities() {
+        // Set all room card quantities to 0 initially
+        document.querySelectorAll('.room-card-quantity').forEach(input => {
+            input.value = 0;
+            this.updateQuantityButtons(input);
+        });
+        
+        // Initialize hidden inputs
+        this.updateRoomCardHiddenInputs();
+    }
+
+    updateQuantityButtons(quantityInput) {
+        const roomId = quantityInput.dataset.roomId;
+        const currentValue = parseInt(quantityInput.value) || 0;
+        const maxQuantity = parseInt(quantityInput.dataset.maxQuantity) || 0;
+        
+        const decreaseBtn = document.querySelector(`button[onclick="decreaseRoomCardQuantity('${roomId}')"]`);
+        const increaseBtn = document.querySelector(`button[onclick="increaseRoomCardQuantity('${roomId}')"]`);
+        
+        if (decreaseBtn) {
+            decreaseBtn.disabled = currentValue <= 0;
+        }
+        
+        if (increaseBtn) {
+            increaseBtn.disabled = currentValue >= maxQuantity;
+        }
+    }
+
+    updateRoomCardAvailabilities() {
+        const checkin = this.checkinInput?.value;
+        const checkout = this.checkoutInput?.value;
+
+        if (!checkin || !checkout) {
+            // Show default availability
+            document.querySelectorAll('.room-card-quantity').forEach(input => {
+                const roomId = input.dataset.roomId;
+                const maxQuantity = parseInt(input.dataset.maxQuantity) || 0;
+                const availabilityEl = document.getElementById(`availability_${roomId}`);
+                if (availabilityEl) {
+                    availabilityEl.textContent = `Còn ${maxQuantity} phòng`;
+                    availabilityEl.classList.remove('unavailable');
+                }
+            });
+            return;
+        }
+
+        // Check availability for each room type
+        document.querySelectorAll('.room-card-quantity').forEach(input => {
+            const roomId = input.dataset.roomId;
+            this.checkRoomCardAvailability(roomId, checkin, checkout);
+        });
+    }
+
+    checkRoomCardAvailability(roomId, checkin, checkout) {
+        if (!this.routes.availableCount) return;
+
+        // Format dates for display
+        const formatDate = (dateStr) => {
+            const date = new Date(dateStr);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}/${month}/${year}`;
+        };
+
+        fetch(this.routes.availableCount, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': this.csrfToken
+            },
+            body: JSON.stringify({
+                loai_phong_id: roomId,
+                checkin: checkin,
+                checkout: checkout
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const availableCount = Math.max(0, data.availableCount);
+                const quantityInput = document.getElementById(`room_card_quantity_${roomId}`);
+                const availabilityInfo = document.getElementById(`availability_info_${roomId}`);
+                const availabilityText = document.getElementById(`availability_${roomId}`);
+                const dateRangeInfo = document.getElementById(`date_range_${roomId}`);
+                
+                if (quantityInput) {
+                    quantityInput.setAttribute('max', availableCount);
+                    quantityInput.dataset.maxQuantity = availableCount;
+                    
+                    // Reset quantity if it exceeds available count
+                    const currentQuantity = parseInt(quantityInput.value) || 0;
+                    if (currentQuantity > availableCount) {
+                        quantityInput.value = availableCount;
+                        this.updateRoomCardQuantity(roomId);
+                    }
+                    
+                    this.updateQuantityButtons(quantityInput);
+                }
+                
+                if (availabilityText && dateRangeInfo) {
+                    const statusDiv = availabilityText.closest('.availability-status');
+                    
+                    if (availableCount > 0) {
+                        availabilityText.textContent = `Còn ${availableCount} phòng`;
+                        statusDiv.classList.remove('unavailable');
+                        statusDiv.classList.add('available');
+                        
+                        // Update icon
+                        const icon = statusDiv.querySelector('i');
+                        if (icon) {
+                            icon.className = 'fas fa-bed text-green-500';
+                        }
+                        
+                        // Update date range info
+                        dateRangeInfo.innerHTML = `
+                            <small class="text-green-600">
+                                <i class="fas fa-calendar-check"></i>
+                                Từ ${formatDate(checkin)} đến ${formatDate(checkout)}
+                            </small>
+                        `;
+                    } else {
+                        availabilityText.textContent = 'Hết phòng';
+                        statusDiv.classList.remove('available');
+                        statusDiv.classList.add('unavailable');
+                        
+                        // Update icon
+                        const icon = statusDiv.querySelector('i');
+                        if (icon) {
+                            icon.className = 'fas fa-times-circle text-red-500';
+                        }
+                        
+                        // Update date range info
+                        dateRangeInfo.innerHTML = `
+                            <small class="text-red-600">
+                                <i class="fas fa-calendar-times"></i>
+                                Không có phòng trống trong khoảng thời gian này
+                            </small>
+                        `;
+                    }
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error checking room availability:', error);
+        });
+    }
     formatCurrency(number) {
         return Math.round(number).toLocaleString('vi-VN', {
             minimumFractionDigits: 0,
@@ -236,42 +387,15 @@ class BookingManager {
 
     // === PRICE CALCULATIONS ===
     tinhTongTien() {
-        // Tính tổng giá từ tất cả các loại phòng được chọn
+        // Tính tổng giá từ room cards (selected rooms section đã bị xóa)
         const { soDem } = this.getDatesAndDays();
         let totalBeforeDiscountAmount = 0;
 
-        // Tìm tất cả hidden input với class room-type-select
-        document.querySelectorAll('.room-type-select').forEach(selectElement => {
-            let price = 0;
-            let quantity = 1;
-
-            // Nếu là hidden input
-            if (selectElement.type === 'hidden') {
-                price = parseFloat(selectElement.getAttribute('data-price')) || 0;
-                // Tìm quantity input tương ứng
-                const roomId = selectElement.name.match(/rooms\[(\d+)\]/);
-                if (roomId) {
-                    const quantityInput = document.querySelector(`input[name="rooms[${roomId[1]}][so_luong]"]`);
-                    if (quantityInput) {
-                        quantity = parseInt(quantityInput.value) || 1;
-                    }
-                }
-            }
-            // Nếu là select element
-            else if (selectElement.tagName === 'SELECT' && selectElement.value) {
-                const selectedOption = selectElement.options[selectElement.selectedIndex];
-                price = parseFloat(selectedOption.getAttribute('data-price')) || 0;
-                // Tìm quantity trong cùng container
-                const roomItem = selectElement.closest('.room-item');
-                if (roomItem) {
-                    const quantityInput = roomItem.querySelector('.room-quantity');
-                    if (quantityInput) {
-                        quantity = parseInt(quantityInput.value) || 1;
-                    }
-                }
-            }
-
-            if (price > 0) {
+        // Tính từ room cards
+        document.querySelectorAll('.room-card-quantity').forEach(quantityInput => {
+            const quantity = parseInt(quantityInput.value) || 0;
+            if (quantity > 0) {
+                const price = parseFloat(quantityInput.dataset.roomPrice) || 0;
                 totalBeforeDiscountAmount += price * quantity * soDem;
             }
         });
@@ -372,10 +496,76 @@ class BookingManager {
         this.finalBookingPriceInput.value = Math.round(totalAfterDiscount);
         this.discountValueInput.value = this.currentDiscountPercent;
 
+        // Cập nhật summary
+        this.updateRoomsSummary();
+
         return totalBeforeDiscountAmount;
     }
 
-    // === ROOM MANAGEMENT ===
+    updateRoomsSummary() {
+        const { soDem } = this.getDatesAndDays();
+        const roomsSummary = [];
+        let totalRoomsSelected = 0;
+
+        // Collect only from room cards (selected rooms section removed)
+        document.querySelectorAll('.room-card-quantity').forEach(quantityInput => {
+            const quantity = parseInt(quantityInput.value) || 0;
+            if (quantity > 0) {
+                const roomName = quantityInput.dataset.roomName || '';
+                const price = parseFloat(quantityInput.dataset.roomPrice) || 0;
+                const roomId = quantityInput.dataset.roomId;
+                totalRoomsSelected += quantity;
+
+                roomsSummary.push({
+                    name: roomName,
+                    quantity: quantity,
+                    price: price,
+                    roomId: roomId,
+                    source: 'card'
+                });
+            }
+        });
+
+        // Update room summary list
+        const roomsSummaryList = document.getElementById('roomsSummaryList');
+        if (roomsSummaryList) {
+            if (roomsSummary.length > 0) {
+                roomsSummaryList.classList.remove('summary-room-list--empty');
+                roomsSummaryList.innerHTML = roomsSummary.map(room => {
+                    const removeAction = `onclick="window.bookingManager.clearRoomCardQuantity('${room.roomId}')"`;
+                    
+                    return `<div class="summary-room-line">
+                        <div>
+                            <p class="font-medium">${room.name}</p>
+                            <small>${this.formatCurrency(room.price)} / đêm</small>
+                        </div>
+                        <div class="summary-room-actions">
+                            <span>x${room.quantity}</span>
+                            <button type="button" class="summary-room-remove" aria-label="Xóa ${room.name}" ${removeAction}>
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>`;
+                }).join('');
+
+                if (this.selectedRoomsSummaryChip) {
+                    this.selectedRoomsSummaryChip.classList.remove('hidden');
+                }
+                if (this.summaryRoomCount) {
+                    this.summaryRoomCount.textContent = totalRoomsSelected;
+                }
+            } else {
+                roomsSummaryList.classList.add('summary-room-list--empty');
+                roomsSummaryList.innerHTML = '<p class="summary-room-empty">Chưa có phòng nào</p>';
+                if (this.selectedRoomsSummaryChip) {
+                    this.selectedRoomsSummaryChip.classList.add('hidden');
+                }
+                if (this.summaryRoomCount) {
+                    this.summaryRoomCount.textContent = 0;
+                }
+            }
+        }
+    }
     updateRoomAvailability(roomIndex, loaiPhongId, checkin, checkout) {
         if (!checkin || !checkout) {
             return;
@@ -558,6 +748,7 @@ class BookingManager {
                 this.clearVoucher();
                 this.tinhTongTien();
                 this.updateAvailableCount();
+                this.updateRoomCardAvailabilities();
                 this.updateSummaryDate();
                 // Update prices for all rooms
                 document.querySelectorAll('.room-type-select').forEach(select => {
@@ -573,6 +764,7 @@ class BookingManager {
                 this.clearVoucher();
                 this.tinhTongTien();
                 this.updateAvailableCount();
+                this.updateRoomCardAvailabilities();
                 this.updateSummaryDate();
                 // Update prices for all rooms
                 document.querySelectorAll('.room-type-select').forEach(select => {
@@ -585,8 +777,21 @@ class BookingManager {
 
         // Form submit event
         if (this.finalBookingForm) {
-            this.finalBookingForm.addEventListener('submit', () => {
+            this.finalBookingForm.addEventListener('submit', (e) => {
+                // Check if any rooms are selected
+                const hasSelectedRooms = Array.from(document.querySelectorAll('.room-card-quantity')).some(input => {
+                    return parseInt(input.value) > 0;
+                });
+                
+                if (!hasSelectedRooms) {
+                    e.preventDefault();
+                    alert('Vui lòng chọn ít nhất một loại phòng trước khi đặt phòng.');
+                    return false;
+                }
+                
                 this.isCompletingBooking = true;
+                // Update hidden inputs one more time before submit
+                this.updateRoomCardHiddenInputs();
             });
         }
 
@@ -1395,11 +1600,114 @@ class BookingManager {
         this.finalBookingPriceInput.value = Math.round(totalAfterDiscount);
     }
 
+    updateRoomCardQuantity(roomId) {
+        const quantityInput = document.getElementById(`room_card_quantity_${roomId}`);
+        if (!quantityInput) return;
+
+        const currentQuantity = parseInt(quantityInput.value) || 0;
+        const maxQuantity = parseInt(quantityInput.dataset.maxQuantity) || 0;
+
+        // Validate quantity
+        if (currentQuantity < 0) {
+            quantityInput.value = 0;
+        } else if (currentQuantity > maxQuantity) {
+            quantityInput.value = maxQuantity;
+        }
+
+        // Update button states
+        this.updateQuantityButtons(quantityInput);
+
+        // Update hidden inputs for form submission
+        this.updateRoomCardHiddenInputs();
+
+        // Recalculate totals
+        this.tinhTongTien();
+    }
+
+    updateRoomCardHiddenInputs() {
+        const container = document.getElementById('roomCardHiddenInputs');
+        if (!container) return;
+
+        // Clear existing hidden inputs
+        container.innerHTML = '';
+
+        let roomIndex = 0;
+        // Create hidden inputs for each room card with quantity > 0
+        document.querySelectorAll('.room-card-quantity').forEach(quantityInput => {
+            const quantity = parseInt(quantityInput.value) || 0;
+            if (quantity > 0) {
+                const roomId = quantityInput.dataset.roomId;
+                const roomName = quantityInput.dataset.roomName;
+                const roomPrice = quantityInput.dataset.roomPrice;
+
+                // Create hidden inputs in the format the controller expects: rooms[index][field]
+                const roomIdInput = document.createElement('input');
+                roomIdInput.type = 'hidden';
+                roomIdInput.name = `rooms[${roomIndex}][loai_phong_id]`;
+                roomIdInput.value = roomId;
+
+                const quantityHiddenInput = document.createElement('input');
+                quantityHiddenInput.type = 'hidden';
+                quantityHiddenInput.name = `rooms[${roomIndex}][so_luong]`;
+                quantityHiddenInput.value = quantity;
+
+                container.appendChild(roomIdInput);
+                container.appendChild(quantityHiddenInput);
+                
+                roomIndex++;
+            }
+        });
+    }
+
+    clearRoomCardQuantity(roomId) {
+        const quantityInput = document.getElementById(`room_card_quantity_${roomId}`);
+        if (quantityInput) {
+            quantityInput.value = 0;
+            this.updateRoomCardQuantity(roomId);
+        }
+    }
+
     // Utility function for hotel details
     showHotelDetails() {
         alert('Tính năng chi tiết khách sạn sẽ được phát triển trong tương lai!');
     }
 }
+
+// Global functions for room card quantity management
+window.increaseRoomCardQuantity = function(roomId) {
+    if (window.bookingManager) {
+        const quantityInput = document.getElementById(`room_card_quantity_${roomId}`);
+        if (quantityInput) {
+            const currentValue = parseInt(quantityInput.value) || 0;
+            const maxQuantity = parseInt(quantityInput.dataset.maxQuantity) || 0;
+            
+            if (currentValue < maxQuantity) {
+                quantityInput.value = currentValue + 1;
+                window.bookingManager.updateRoomCardQuantity(roomId);
+            }
+        }
+    }
+};
+
+window.decreaseRoomCardQuantity = function(roomId) {
+    if (window.bookingManager) {
+        const quantityInput = document.getElementById(`room_card_quantity_${roomId}`);
+        if (quantityInput) {
+            const currentValue = parseInt(quantityInput.value) || 0;
+            
+            if (currentValue > 0) {
+                quantityInput.value = currentValue - 1;
+                window.bookingManager.updateRoomCardQuantity(roomId);
+            }
+        }
+    }
+};
+
+window.updateRoomCardQuantity = function(roomId) {
+    if (window.bookingManager) {
+        window.bookingManager.updateRoomCardQuantity(roomId);
+    }
+};
 
 // Global functions for backward compatibility
 window.updateRoomPrice = function(selectElement) {
@@ -1453,4 +1761,60 @@ window.showHotelDetails = function() {
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
     window.bookingManager = new BookingManager();
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const modalOverlay = document.getElementById('roomDetailsModal');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    // Đảm bảo DOM element chứa tất cả các nút phòng nghỉ là đúng
+    const roomSelectionGrid = document.getElementById('roomSelectionGrid'); 
+
+    // DOM elements in modal
+    const modalRoomName = document.getElementById('modalRoomName');
+    const modalRoomSize = document.getElementById('modalRoomSize');
+    const modalRoomImage = document.getElementById('modalRoomImage');
+    const modalRoomDescription = document.getElementById('modalRoomDescription');
+    // KHÔNG cần modalRoomAmenities vì bạn dùng dữ liệu mẫu tĩnh trong HTML
+
+    // Mở modal
+    // Dùng Event Delegation trên container chung để bắt sự kiện click nút chi tiết
+    roomSelectionGrid.addEventListener('click', function(e) {
+        // Tìm element gần nhất có class 'view-room-details'
+        const detailButton = e.target.closest('.view-room-details'); 
+        
+        if (detailButton) {
+            e.preventDefault(); // Ngăn chặn hành vi mặc định (nếu là thẻ <a>)
+            const roomData = detailButton.dataset;
+            
+            // 1. Điền dữ liệu cơ bản
+            modalRoomName.textContent = roomData.roomName;
+            // Dùng ternary operator để xử lý nếu data-room-size không tồn tại
+            modalRoomSize.textContent = roomData.roomSize || ''; 
+            modalRoomImage.src = roomData.roomImage;
+            modalRoomDescription.textContent = roomData.roomDescription;
+            
+            // 2. BỎ QUA LOGIC ĐIỀN TIỆN ÍCH ĐỘNG (vì đã dùng HTML tĩnh)
+            
+            // 3. Hiển thị modal
+            modalOverlay.classList.add('visible');
+        }
+    });
+
+    // Đóng modal
+    closeModalBtn.addEventListener('click', closeRoomDetailsModal);
+    modalOverlay.addEventListener('click', function(e) {
+        if (e.target === modalOverlay) {
+            closeRoomDetailsModal();
+        }
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modalOverlay.classList.contains('visible')) {
+            closeRoomDetailsModal();
+        }
+    });
+
+    function closeRoomDetailsModal() {
+        modalOverlay.classList.remove('visible');
+    }
 });

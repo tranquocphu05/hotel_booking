@@ -541,11 +541,76 @@
     }
 }
 
+/* --- PHẦN CSS ĐÃ ĐƯỢC CHỈNH SỬA ĐỂ GIẢM KHOẢNG CÁCH GIỮA CÁC KHỐI --- */
 .block-list-room {
     display: grid;
+    /* Định nghĩa 2 cột (phòng nghỉ và chi tiết đặt phòng) */
     grid-template-columns: minmax(0, 2.1fr) minmax(280px, 1fr);
+    /* Chỉ cần 2 khu vực: Cột trái (rooms) và Cột phải (right-col) */
+    grid-template-areas: "rooms right-col";
+    /* Khoảng cách giữa cột trái và cột phải */
     gap: 24px;
     align-items: flex-start;
+}
+
+/* Đặt list-rooms vào khu vực 'rooms' (cột trái) */
+.block-list-room .list-rooms {
+    grid-area: rooms;
+}
+
+/* Định nghĩa container mới cho cột phải */
+.block-list-room .right-column-wrapper {
+    grid-area: right-col; /* Gán toàn bộ wrapper vào cột phải */
+    display: flex; /* Bật Flexbox */
+    flex-direction: column;
+    /* CHÌA KHÓA: Đặt gap nhỏ (hoặc 0px) để kiểm soát khoảng cách giữa block-info-book và block-contact-info */
+    gap: 12px;
+    position: sticky; /* Giữ cột phải dính khi cuộn */
+    top: 20px;
+    
+    /* Đảm bảo khối không bị tràn ra ngoài nếu nội dung quá dài */
+    min-width: 0;
+}
+
+/* Khối Chi tiết đặt phòng */
+.block-info-book {
+    /* Đảm bảo không còn sticky cũ và các margin không cần thiết */
+    position: static;
+    margin-bottom: 0;
+    margin-top: 0;
+    /* Giữ nguyên các style hiện tại của khối này */
+    border-radius: 16px;
+    border: 1px solid #f3f4f6;
+    padding: 20px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+    background: #fff;
+}
+
+/* Khối Thông tin liên hệ */
+.block-contact-info {
+    /* Đảm bảo margin-top mặc định bị loại bỏ và được kiểm soát bởi 'gap' của right-column-wrapper */
+    margin-top: 0;
+    /* Giữ nguyên style .block mặc định */
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 32px; 
+    box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
+}
+
+/* Đảm bảo ở chế độ di động (mobile) */
+@media (max-width: 1024px) {
+
+    .block-list-room {
+        grid-template-columns: 1fr;
+        grid-template-areas: "rooms" "right-col"; 
+        gap: 24px;
+    }
+
+    .block-list-room .right-column-wrapper {
+        position: static; /* Hủy bỏ sticky trên mobile */
+        gap: 24px; /* Tăng gap cho chế độ xếp chồng dọc nếu cần */
+    }
 }
 
 .alert {
@@ -666,6 +731,7 @@
     line-height: 1.45;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
@@ -689,6 +755,109 @@
     justify-content: space-between;
     margin-top: auto;
     gap: 12px;
+}
+
+.room-card__actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+.room-quantity-control {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.quantity-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: #f9fafb;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.8rem;
+}
+
+.quantity-btn:hover {
+    background: #f2a900;
+    color: white;
+}
+
+.quantity-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.room-card-quantity {
+    width: 50px;
+    height: 32px;
+    border: none;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.9rem;
+    background: white;
+    outline: none;
+}
+
+.room-availability-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-end;
+}
+
+.availability-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.availability-status i {
+    font-size: 0.8rem;
+}
+
+.availability-status.available {
+    color: #10b981;
+}
+
+.availability-status.unavailable {
+    color: #ef4444;
+}
+
+.availability-status.unavailable i {
+    color: #ef4444;
+}
+
+.date-range-info {
+    text-align: right;
+    font-size: 0.75rem;
+    color: #6b7280;
+    line-height: 1.2;
+}
+
+.date-range-info i {
+    margin-right: 4px;
+}
+
+.room-availability {
+    font-size: 0.8rem;
+    color: #10b981;
+    font-weight: 500;
+}
+
+.room-availability.unavailable {
+    color: #ef4444;
 }
 
 .room-card__note {
@@ -851,8 +1020,13 @@
 }
 
 @keyframes pulseBorder {
-    0% { box-shadow: 0 0 0 0 rgba(242, 169, 0, 0.4); }
-    100% { box-shadow: 0 0 0 16px rgba(242, 169, 0, 0); }
+    0% {
+        box-shadow: 0 0 0 0 rgba(242, 169, 0, 0.4);
+    }
+
+    100% {
+        box-shadow: 0 0 0 16px rgba(242, 169, 0, 0);
+    }
 }
 
 .booking-tab-input {
@@ -874,8 +1048,8 @@
     border-bottom: 3px solid transparent;
 }
 
-#tabRooms:checked ~ .tab-labels label[for="tabRooms"],
-#tabVoucher:checked ~ .tab-labels label[for="tabVoucher"] {
+#tabRooms:checked~.tab-labels label[for="tabRooms"],
+#tabVoucher:checked~.tab-labels label[for="tabVoucher"] {
     color: #f2a900;
     border-color: #f2a900;
 }
@@ -888,8 +1062,8 @@
     display: none;
 }
 
-#tabRooms:checked ~ .tab-panels [data-panel="rooms"],
-#tabVoucher:checked ~ .tab-panels [data-panel="voucher"] {
+#tabRooms:checked~.tab-panels [data-panel="rooms"],
+#tabVoucher:checked~.tab-panels [data-panel="voucher"] {
     display: block;
 }
 
@@ -990,7 +1164,6 @@
     font-size: 0.85rem;
     font-weight: 600;
     box-shadow: inset 0 0 0 1px rgba(79, 70, 229, 0.15);
-    white-space: nowrap;
 }
 
 .summary-section-title {
@@ -1051,25 +1224,39 @@
     width: 100%;
     margin-top: 20px;
     border: none;
+    background: none;
+    cursor: pointer;
     padding: 0;
-    background: transparent;
+    border-radius: 12px;
+    overflow: hidden;
 }
 
 .btn-booking-surface {
-    width: 100%;
-    border-radius: 28px;
-    padding: 20px 26px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    color: #fff;
-    background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.35), transparent 45%),
-        linear-gradient(135deg, #facc15, #f97316);
+    background: linear-gradient(135deg, #f2a900 0%, #ff6b35 100%);
+    padding: 18px 24px;
+    border-radius: 16px;
+    color: white;
+    font-weight: 600;
+    text-align: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 25px rgba(242, 169, 0, 0.3);
     position: relative;
     overflow: hidden;
-    box-shadow: 0 20px 45px rgba(249, 115, 22, 0.35);
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.btn-booking-surface::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.btn-booking-submit:hover .btn-booking-surface::before {
+    left: 100%;
 }
 
 .btn-booking-surface::after {
@@ -1137,6 +1324,7 @@
     border-radius: 16px;
     padding: 32px;
     margin-top: 8px;
+    /* Giữ lại margin-top 8px để tạo khoảng cách nhỏ giữa khối contact và khối info-book */
     box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
 }
 
@@ -1190,7 +1378,7 @@
     border-radius: 18px;
     background: #fff;
     border: 1px solid #eef2ff;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 .contact-label-icon {
@@ -1260,6 +1448,7 @@
 }
 
 @media (max-width: 1024px) {
+
     .block-book,
     .block-info-book {
         position: static;
@@ -1271,6 +1460,10 @@
 
     .block-list-room {
         grid-template-columns: 1fr;
+        /* Hủy bỏ grid areas khi ở chế độ responsive */
+        grid-template-areas: "rooms"
+            "book-info"
+            "contact-info";
     }
 }
 
@@ -1333,3 +1526,178 @@
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: #555;
 }
+/* --- Modal (Popup) Styles --- */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.modal-overlay.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.modal-container {
+    background-color: #fff;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 900px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    padding: 30px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    transform: scale(0.95);
+    transition: transform 0.3s ease;
+}
+
+.modal-overlay.visible .modal-container {
+    transform: scale(1);
+}
+
+.modal-close-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: #f1f5f9;
+    color: #4b5563;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    z-index: 10;
+    transition: background 0.2s;
+}
+
+.modal-close-btn:hover {
+    background: #e2e8f0;
+}
+
+/* Thay đổi chính về cấu trúc 2 cột */
+.modal-body-wrapper {
+    display: flex;
+    gap: 30px; /* Khoảng cách giữa 2 cột chính */
+}
+
+.modal-media-column {
+    flex: 0 0 40%; /* Cột media chiếm 40% */
+    min-width: 300px;
+}
+
+.modal-content-column {
+    flex: 1; /* Cột nội dung chiếm phần còn lại (60%) */
+    padding-top: 5px; /* Căn chỉnh với tiêu đề */
+}
+
+/* Header (Nội dung bên phải) */
+.modal-header-details {
+    margin-bottom: 15px;
+}
+
+.modal-header-details h3 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 5px 0;
+}
+
+.room-size-tag {
+    display: inline-block;
+    font-size: 1rem;
+    color: #4b5563;
+    font-weight: 500;
+    padding-right: 15px;
+    border-right: 1px solid #e5e7eb;
+}
+
+/* Media (Ảnh) */
+.modal-media img {
+    width: 100%;
+    height: auto;
+    border-radius: 16px;
+    object-fit: cover;
+    max-height: 350px;
+    margin-bottom: 25px;
+}
+
+.modal-description {
+    line-height: 1.6;
+    color: #4b5563;
+    margin-bottom: 25px;
+    font-size: 0.95rem;
+}
+
+/* Tiện ích (Phần dưới ảnh) */
+.amenities-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 8px;
+}
+
+.modal-amenities-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* 2 cột cố định */
+    gap: 15px 10px;
+}
+
+.amenity-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.95rem;
+    color: #374151;
+}
+
+.amenity-item i {
+    color: #4c51bf; /* Màu xanh/tím nổi bật cho icon */
+    font-size: 1.1rem;
+}
+
+/* Style cho nút/liên kết Xem chi tiết */
+.room-details-link {
+    background: none;
+    border: none;
+    padding: 0;
+    margin-top: 5px; 
+    color: #4c51bf;
+    text-decoration: underline; 
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: left;
+    display: block; 
+    transition: color 0.2s;
+}
+
+.room-details-link:hover {
+    color: #3f45a2;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+    .modal-body-wrapper {
+        flex-direction: column;
+        gap: 20px;
+    }
+    .modal-media-column {
+        min-width: 100%;
+    }
+}
+
+
