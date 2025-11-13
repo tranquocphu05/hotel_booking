@@ -46,7 +46,6 @@
                     {{ $errors->first('email') }}
                 </div>
             @endif
-
             <form action="{{ route('client.newsletter.subscribe') }}" method="POST" class="flex bg-gray-800 rounded-lg overflow-hidden">
                 @csrf
                 <input type="email" name="email" placeholder="Nhập email của bạn..." required
