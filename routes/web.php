@@ -22,6 +22,7 @@ use App\Http\Controllers\Client\TinTucController as ClientTinTucController;
 use App\Http\Controllers\Client\ThanhToanController as ClientThanhToanController;
 use App\Http\Controllers\Client\CommentController as ClientCommentController;
 use App\Http\Controllers\Client\VoucherController as ClientVoucherController;
+use App\Http\Controllers\Client\NewsletterController as ClientNewsletterController;
 
 //
 
@@ -93,7 +94,7 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin
     Route::put('users/{user}/toggle-status', [\App\Http\Controllers\Admin\UserController::class, 'toggleStatus'])->name('users.toggle');
     Route::resource('loai_phong', LoaiPhongController::class)->names('loai_phong');
     Route::put('loai_phong/{id}/toggle-status', [LoaiPhongController::class, 'toggleStatus'])->name('loai_phong.toggle');
-    Route::resource('service', ServiceController::class);
+    Route::resource('service', ServiceController::class); 
     Route::resource('phong', \App\Http\Controllers\Admin\PhongController::class)->names('phong');
     Route::put('phong/{id}/update-status', [\App\Http\Controllers\Admin\PhongController::class, 'updateStatus'])->name('phong.update-status');
     Route::resource('invoices', InvoiceController::class)->names('invoices');
@@ -155,6 +156,9 @@ Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\Allow
     Route::get('/tin-tuc', [ClientTinTucController::class, 'index'])->name('tintuc');
     Route::get('/tin-tuc/{slug}', [ClientTinTucController::class, 'chitiettintuc'])->name('tintuc.show');
     Route::get('/voucher', [ClientVoucherController::class, 'getVoucher'])->name('voucher');
+
+    // Newsletter subscription route
+    Route::post('/newsletter/subscribe', [ClientNewsletterController::class, 'subscribe'])->name('newsletter.subscribe');
 
     // Comment routes
     // Route::post('/comment', [ClientCommentController::class, 'store'])->name('comment.store');

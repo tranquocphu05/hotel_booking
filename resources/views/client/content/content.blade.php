@@ -820,72 +820,132 @@
 
 <section id="blog-events">
     <section class="container mx-auto px-4 py-8">
-        <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6">Ưu đãi Cuối Tuần</h2>
-        <p class="text-gray-600 mb-8">Tiết kiệm cho kỳ nghỉ từ ngày 24 tháng 10 đến ngày 26 tháng 10</p>
+        <div class="text-center mb-8">
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-3">🔥 Khuyến Mãi Deal Hot</h2>
+            <p class="text-gray-600 text-base">Cơ hội tuyệt vời để đặt phòng với giá ưu đãi đặc biệt - Ưu đãi có hạn, đặt ngay!</p>
+        </div>
 
         {{-- Swiper Container --}}
-        <div class="swiper weekendDealsSwiper relative">
-            <div class="swiper-wrapper">
-                @foreach ($phongsUuDai ?? [] as $phong)
-                    <div class="swiper-slide">
-                        <a href="{{ route('client.phong.show', $phong->id) }}"
-                            class="block bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm relative group cursor-pointer
-                   hover:shadow-xl hover:scale-[1.02] transition duration-300 ease-in-out">
-                            <div class="relative">
-                                <img src="{{ asset($phong->anh ?? 'img/gallery/gallery-1.jpg') }}"
-                                    alt="{{ $phong->ten_loai ?? 'Loại phòng' }}" class="w-full h-48 object-cover">
+        @if(isset($phongsUuDai) && $phongsUuDai->count() > 0)
+            <div class="swiper weekendDealsSwiper relative">
+                <div class="swiper-wrapper">
+                    @foreach ($phongsUuDai as $phong)
+                        <div class="swiper-slide">
+                            <a href="{{ route('client.phong.show', $phong->id) }}"
+                                class="block bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm relative group cursor-pointer
+                       hover:shadow-xl hover:scale-[1.02] transition duration-300 ease-in-out">
+                                <div class="relative">
+                                    <img src="{{ asset($phong->anh ?? 'img/room/room-1.jpg') }}"
+                                        alt="{{ $phong->ten_loai ?? 'Loại phòng' }}" class="w-full h-48 object-cover">
 
-                                <button
-                                    class="absolute top-4 right-4 bg-white p-2 rounded-full shadow-md text-gray-700 hover:text-red-500 transition duration-300 z-10"
-                                    onclick="event.preventDefault(); event.stopPropagation();">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
-                                        viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                                    </svg>
-                                </button>
+                                    {{-- Badge Deal Hot --}}
+                                    @if($phong->gia_khuyen_mai && $phong->gia_khuyen_mai < $phong->gia_co_ban)
+                                        @php
+                                            $discountPercent = round((($phong->gia_co_ban - $phong->gia_khuyen_mai) / $phong->gia_co_ban) * 100);
+                                        @endphp
+                                        <span class="absolute top-4 left-4 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg z-10 animate-pulse">
+                                            <i class="fas fa-fire mr-1"></i> 🔥 DEAL HOT
+                                        </span>
+                                        <span class="absolute top-4 right-4 bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg z-10">
+                                            <i class="fas fa-tag mr-1"></i> GIẢM {{ $discountPercent }}%
+                                        </span>
+                                    @else
+                                        {{-- Nếu không có khuyến mãi nhưng có đánh giá cao --}}
+                                        @if($phong->diem_danh_gia >= 4.5)
+                                            <span class="absolute top-4 left-4 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg z-10">
+                                                <i class="fas fa-fire mr-1"></i> 🔥 DEAL HOT
+                                            </span>
+                                        @endif
+                                    @endif
 
-                                @if (data_get($phong, 'loaiPhong.diem_danh_gia', 0) >= 4.8)
-                                    <span
-                                        class="absolute bottom-0 left-0 bg-yellow-500 text-white text-xs font-semibold px-2 py-1 rounded-tr-lg">Genius</span>
-                                @endif
-                            </div>
-                            <div class="p-4">
-                                <h3 class="text-lg font-bold text-gray-800 mb-1 leading-tight">
-                                    {{ $phong->ten_loai ?? 'Loại phòng' }}
-                                </h3>
-                                <p class="text-sm text-gray-500 mb-2">
-                                    Còn {{ $phong->so_luong_trong ?? 0 }}/{{ $phong->so_luong_phong ?? 0 }} phòng
-                                    trống</p>
-
-                                <div class="flex items-center mb-3">
-                                    @php($stars = data_get($phong, 'loaiPhong.stars'))
-                                    @if ($stars)
-                                        <span
-                                            class="bg-blue-700 text-white text-sm font-semibold px-2 py-0.5 rounded mr-2">{{ $stars }}</span>
-                                        <div>
-                                            <span
-                                                class="text-sm font-semibold text-gray-800">{{ data_get($phong, 'loaiPhong.rating_text', '') }}</span>
-                                            <span
-                                                class="text-xs text-gray-500 block">{{ data_get($phong, 'loaiPhong.so_luong_danh_gia', 0) }}
-                                                đánh giá</span>
-                                        </div>
+                                    {{-- Badge đánh giá cao (chỉ hiển thị nếu không có deal hot ở trên) --}}
+                                    @if($phong->diem_danh_gia >= 4.8 && !($phong->gia_khuyen_mai && $phong->gia_khuyen_mai < $phong->gia_co_ban))
+                                        <span class="absolute bottom-4 left-4 bg-yellow-500 text-white text-xs font-semibold px-2 py-1 rounded-lg z-10">
+                                            <i class="fas fa-star mr-1"></i> Xuất sắc
+                                        </span>
                                     @endif
                                 </div>
-
-                                <div class="flex items-baseline justify-between mt-auto pt-2 border-t border-gray-100">
-                                    <div>
-                                        <p class="text-lg font-bold text-yellow-600">
-                                            {{ number_format($phong->gia_co_ban, 0, ',', '.') }}₫</p>
+                                <div class="p-4">
+                                    <h3 class="text-lg font-bold text-gray-800 mb-2 leading-tight">
+                                        {{ $phong->ten_loai ?? 'Loại phòng' }}
+                                    </h3>
+                                    
+                                    {{-- Thông tin phòng trống --}}
+                                    <div class="mb-3">
+                                        <p class="text-sm text-gray-600">
+                                            <i class="fas fa-bed text-gray-400 mr-1"></i>
+                                            Còn <span class="font-semibold text-green-600">{{ $phong->so_luong_trong ?? 0 }}</span>/<span class="text-gray-500">{{ $phong->so_luong_phong ?? 0 }}</span> phòng trống
+                                        </p>
+                                        @if($phong->gia_khuyen_mai && $phong->gia_khuyen_mai < $phong->gia_co_ban)
+                                            @php
+                                                $discountAmount = $phong->gia_co_ban - $phong->gia_khuyen_mai;
+                                            @endphp
+                                            <p class="text-xs text-red-600 font-semibold mt-1">
+                                                <i class="fas fa-gift mr-1"></i>
+                                                Tiết kiệm <span>{{ number_format($discountAmount, 0, ',', '.') }}₫</span> mỗi đêm
+                                            </p>
+                                        @endif
                                     </div>
-                                    <span class="text-sm text-gray-500">1 đêm</span>
+
+                                    {{-- Đánh giá --}}
+                                    @if($phong->diem_danh_gia > 0)
+                                        <div class="flex items-center mb-3">
+                                            <span class="bg-blue-700 text-white text-sm font-semibold px-2 py-0.5 rounded mr-2">
+                                                {{ number_format($phong->diem_danh_gia, 1) }}
+                                            </span>
+                                            <div class="flex items-center">
+                                                @for($i = 1; $i <= 5; $i++)
+                                                    @if($i <= floor($phong->diem_danh_gia))
+                                                        <i class="fas fa-star text-yellow-400 text-xs"></i>
+                                                    @elseif($i - 0.5 <= $phong->diem_danh_gia)
+                                                        <i class="fas fa-star-half-alt text-yellow-400 text-xs"></i>
+                                                    @else
+                                                        <i class="far fa-star text-gray-300 text-xs"></i>
+                                                    @endif
+                                                @endfor
+                                            </div>
+                                            <span class="text-xs text-gray-500 ml-2">
+                                                ({{ $phong->so_luong_danh_gia ?? 0 }} đánh giá)
+                                            </span>
+                                        </div>
+                                    @endif
+
+                                    {{-- Giá --}}
+                                    <div class="flex items-baseline justify-between mt-auto pt-3 border-t border-gray-100">
+                                        <div>
+                                            @if($phong->gia_khuyen_mai && $phong->gia_khuyen_mai < $phong->gia_co_ban)
+                                                <p class="text-lg font-bold text-red-600">
+                                                    {{ number_format($phong->gia_khuyen_mai, 0, ',', '.') }}₫
+                                                </p>
+                                                <p class="text-sm text-gray-400 line-through">
+                                                    {{ number_format($phong->gia_co_ban, 0, ',', '.') }}₫
+                                                </p>
+                                            @else
+                                                <p class="text-lg font-bold text-[#D4AF37]">
+                                                    {{ number_format($phong->gia_co_ban, 0, ',', '.') }}₫
+                                                </p>
+                                            @endif
+                                        </div>
+                                        <span class="text-sm text-gray-500">/ đêm</span>
+                                    </div>
                                 </div>
-                            </div>
-                        </a>
-                    </div>
-                @endforeach
+                            </a>
+                        </div>
+                    @endforeach
+                </div>
+                <!-- Add Pagination -->
+                <div class="swiper-pagination weekendDealsPagination"></div>
+                <!-- Add Navigation -->
+                <div class="swiper-button-next weekendDealsNext"></div>
+                <div class="swiper-button-prev weekendDealsPrev"></div>
             </div>
-        </div>
+        @else
+            <div class="text-center py-12 bg-gray-50 rounded-lg">
+                <i class="fas fa-info-circle text-gray-400 text-4xl mb-4"></i>
+                <p class="text-gray-500 text-lg">Hiện tại chưa có khuyến mãi nào</p>
+                <p class="text-gray-400 text-sm mt-2">Vui lòng quay lại sau để xem các deal hot mới</p>
+            </div>
+        @endif
     </section>
 </section>
 
@@ -1093,8 +1153,10 @@
 @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize Weekend Deals Swiper
-            const weekendDealsSwiper = new Swiper('.weekendDealsSwiper', {
+            // Initialize Weekend Deals Swiper (chỉ khi có slides)
+            const weekendDealsSwiperEl = document.querySelector('.weekendDealsSwiper');
+            if (weekendDealsSwiperEl) {
+                const weekendDealsSwiper = new Swiper('.weekendDealsSwiper', {
                 // Hiển thị 3 phòng cùng lúc
                 slidesPerView: 3,
                 spaceBetween: 20,
@@ -1124,21 +1186,23 @@
                     },
                 },
 
-                // Bỏ navigation buttons
+                // Navigation buttons
                 navigation: {
-                    nextEl: null,
-                    prevEl: null,
+                    nextEl: '.weekendDealsNext',
+                    prevEl: '.weekendDealsPrev',
                 },
 
-                // Bỏ pagination
+                // Pagination
                 pagination: {
-                    el: null,
+                    el: '.weekendDealsPagination',
+                    clickable: true,
                 },
 
                 // Hiệu ứng chuyển slide
                 effect: 'slide',
                 speed: 500,
-            });
+                });
+            }
         });
     </script>
 @endpush

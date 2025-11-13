@@ -36,6 +36,23 @@ class ServiceController extends Controller
     }
 
     /**
+     * 🔹 Hiển thị form tạo dịch vụ (full page)
+     */
+    public function create()
+    {
+        return view('admin.Service.create');
+    }
+
+    /**
+     * 🔹 Hiển thị form sửa dịch vụ (full page)
+     */
+    public function edit($id)
+    {
+        $service = Service::findOrFail($id);
+        return view('admin.Service.edit', compact('service'));
+    }
+
+    /**
      * 🔹 Thêm dịch vụ mới
      */
     public function store(Request $request)
@@ -66,22 +83,30 @@ class ServiceController extends Controller
 
                 'status.in' => 'Trạng thái không hợp lệ.',
             ]
-        );
+        ); 
 
         if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors(),
-            ], 422);
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            return redirect()->back()->withErrors($validator)->withInput();
         }
 
         $service = Service::create($validator->validated());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Thêm dịch vụ thành công!',
-            'data' => $service
-        ]);
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Thêm dịch vụ thành công!',
+                'data' => $service
+            ]);
+        }
+
+        return redirect()->route('admin.service.index')->with('success', 'Thêm dịch vụ thành công!');
     }
 
     /**
@@ -95,13 +120,19 @@ class ServiceController extends Controller
             $service->status = $service->status === 'hoat_dong' ? 'ngung' : 'hoat_dong';
             $service->save();
 
-            return response()->json([
-                'success' => true,
-                'message' => $service->status === 'hoat_dong'
-                    ? 'Dịch vụ đã được kích hoạt lại.'
-                    : 'Dịch vụ đã được ngừng hoạt động.',
-                'new_status' => $service->status
-            ]);
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $service->status === 'hoat_dong'
+                        ? 'Dịch vụ đã được kích hoạt lại.'
+                        : 'Dịch vụ đã được ngừng hoạt động.',
+                    'new_status' => $service->status
+                ]);
+            }
+
+            return redirect()->back()->with('success', $service->status === 'hoat_dong'
+                ? 'Dịch vụ đã được kích hoạt lại.'
+                : 'Dịch vụ đã được ngừng hoạt động.');
         }
 
         $validator = Validator::make(
@@ -133,19 +164,27 @@ class ServiceController extends Controller
         );
 
         if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors(),
-            ], 422);
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            return redirect()->back()->withErrors($validator)->withInput();
         }
 
         $service->update($validator->validated());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Cập nhật dịch vụ thành công!',
-            'data' => $service
-        ]);
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Cập nhật dịch vụ thành công!',
+                'data' => $service
+            ]);
+        }
+
+        return redirect()->route('admin.service.index')->with('success', 'Cập nhật dịch vụ thành công!');
     }
 
 }

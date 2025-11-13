@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\DB;
 use App\Mail\BookingConfirmed;
 use App\Mail\InvoicePaid;
 use App\Mail\AdminBookingEvent;
+use App\Models\Service;
 
 class DatPhongController extends Controller
 {
@@ -30,8 +31,8 @@ class DatPhongController extends Controller
             $query->whereHas('loaiPhong', function ($q) use ($request) {
                 $q->where('ten_loai', 'like', '%' . $request->search . '%');
             })
-            ->orWhere('username', 'like', '%' . $request->search . '%')
-            ->orWhere('email', 'like', '%' . $request->search . '%');
+                ->orWhere('username', 'like', '%' . $request->search . '%')
+                ->orWhere('email', 'like', '%' . $request->search . '%');
         }
 
         if ($request->status) {
@@ -50,9 +51,9 @@ class DatPhongController extends Controller
 
         $bookingCounts = [
             'cho_xac_nhan' => DatPhong::where('trang_thai', 'cho_xac_nhan')->whereDate('ngay_dat', $today)->count(),
-            'da_xac_nhan'  => DatPhong::where('trang_thai', 'da_xac_nhan')->whereDate('ngay_dat', $today)->count(),
-            'da_huy'       => DatPhong::where('trang_thai', 'da_huy')->whereDate('ngay_dat', $today)->count(),
-            'da_tra'       => DatPhong::where('trang_thai', 'da_tra')->whereDate('ngay_dat', $today)->count(),
+            'da_xac_nhan' => DatPhong::where('trang_thai', 'da_xac_nhan')->whereDate('ngay_dat', $today)->count(),
+            'da_huy' => DatPhong::where('trang_thai', 'da_huy')->whereDate('ngay_dat', $today)->count(),
+            'da_tra' => DatPhong::where('trang_thai', 'da_tra')->whereDate('ngay_dat', $today)->count(),
         ];
 
         // Phân trang, mỗi trang 5 đơn
@@ -105,13 +106,13 @@ class DatPhongController extends Controller
             if ($booking->phong_id && $booking->phong) {
                 // Kiểm tra xem phòng có đang được đặt cho booking khác không
                 $hasOtherBooking = DatPhong::where('id', '!=', $booking->id)
-                    ->where(function($q) use ($booking) {
+                    ->where(function ($q) use ($booking) {
                         $q->where('phong_id', $booking->phong_id)
-                          ->orWhereJsonContains('phong_ids', $booking->phong_id);
+                            ->orWhereJsonContains('phong_ids', $booking->phong_id);
                     })
-                    ->where(function($q) use ($booking) {
+                    ->where(function ($q) use ($booking) {
                         $q->where('ngay_tra', '>', $booking->ngay_nhan)
-                          ->where('ngay_nhan', '<', $booking->ngay_tra);
+                            ->where('ngay_nhan', '<', $booking->ngay_tra);
                     })
                     ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
                     ->exists();
@@ -128,13 +129,13 @@ class DatPhongController extends Controller
                 if ($phong) {
                     // Kiểm tra xem phòng có đang được đặt cho booking khác không
                     $hasOtherBooking = DatPhong::where('id', '!=', $booking->id)
-                        ->where(function($q) use ($phongId) {
+                        ->where(function ($q) use ($phongId) {
                             $q->where('phong_id', $phongId)
-                              ->orWhereJsonContains('phong_ids', $phongId);
+                                ->orWhereJsonContains('phong_ids', $phongId);
                         })
-                        ->where(function($q) use ($booking) {
+                        ->where(function ($q) use ($booking) {
                             $q->where('ngay_tra', '>', $booking->ngay_nhan)
-                              ->where('ngay_nhan', '<', $booking->ngay_tra);
+                                ->where('ngay_nhan', '<', $booking->ngay_tra);
                         })
                         ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
                         ->exists();
@@ -176,7 +177,7 @@ class DatPhongController extends Controller
                 $booking->ngay_nhan,
                 $booking->ngay_tra,
                 20 // Lấy tối đa 20 phòng để hiển thị
-            )->reject(function($phong) use ($assignedPhongIds) {
+            )->reject(function ($phong) use ($assignedPhongIds) {
                 return in_array($phong->id, $assignedPhongIds);
             })->values();
         }
@@ -215,7 +216,7 @@ class DatPhongController extends Controller
 
             // Loại trừ các phòng đã được gán cho booking này
             $assignedPhongIds = $booking->getPhongIds();
-            $availableRooms = $availableRooms->reject(function($phong) use ($assignedPhongIds) {
+            $availableRooms = $availableRooms->reject(function ($phong) use ($assignedPhongIds) {
                 return in_array($phong->id, $assignedPhongIds);
             })->values();
         }
@@ -329,9 +330,9 @@ class DatPhongController extends Controller
                     // Kiểm tra xem phòng có đang được đặt cho booking khác không
                     $hasOtherBooking = DatPhong::where('id', '!=', $booking->id)
                         ->whereJsonContains('phong_ids', $phongId)
-                        ->where(function($q) use ($request) {
+                        ->where(function ($q) use ($request) {
                             $q->where('ngay_tra', '>', $request->ngay_nhan)
-                              ->where('ngay_nhan', '<', $request->ngay_tra);
+                                ->where('ngay_nhan', '<', $request->ngay_tra);
                         })
                         ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
                         ->exists();
@@ -351,7 +352,7 @@ class DatPhongController extends Controller
                 $oldPhongsOfThisType = Phong::whereIn('id', $oldPhongIds)
                     ->where('loai_phong_id', $roomType['loai_phong_id'])
                     ->get()
-                    ->filter(function($phong) use ($request, $booking) {
+                    ->filter(function ($phong) use ($request, $booking) {
                         return $phong->isAvailableInPeriod($request->ngay_nhan, $request->ngay_tra, $booking->id);
                     })
                     ->take($soLuongCan);
@@ -370,7 +371,7 @@ class DatPhongController extends Controller
                         $request->ngay_tra,
                         $soLuongCanThem,
                         $booking->id
-                    )->reject(function($phong) use ($newPhongIds) {
+                    )->reject(function ($phong) use ($newPhongIds) {
                         return in_array($phong->id, $newPhongIds);
                     });
 
@@ -491,14 +492,14 @@ class DatPhongController extends Controller
         }
 
         // Thêm phòng vào phong_ids JSON
-        DB::transaction(function() use ($booking, $phongId, $phong) {
+        DB::transaction(function () use ($booking, $phongId, $phong) {
             // Reload booking để đảm bảo có dữ liệu mới nhất
             $booking->refresh();
 
             // Thêm vào phong_ids JSON bằng cách thủ công để đảm bảo dữ liệu được lưu đúng
             $phongIds = $booking->getPhongIds();
             if (!in_array($phongId, $phongIds)) {
-                $phongIds[] = (int)$phongId;
+                $phongIds[] = (int) $phongId;
                 $booking->phong_ids = $phongIds;
                 $booking->save();
             }
@@ -550,7 +551,15 @@ class DatPhongController extends Controller
     public function create()
     {
         // Lấy danh sách loại phòng thay vì phòng cụ thể
-        $loaiPhongs = LoaiPhong::where('trang_thai', 'hoat_dong')->get();
+        $loaiPhongs = LoaiPhong::where('trang_thai', 'hoat_dong')
+            ->with([
+                'phongs' => function ($q) {
+                    $q->where('trang_thai', 'trong'); // chỉ lấy phòng sẵn sàng
+                }
+            ])
+            ->get();
+        ;
+        $services = Service::where('status', 'hoat_dong')->get();
 
         // Lấy danh sách voucher còn hiệu lực
         $vouchers = Voucher::where('trang_thai', 'con_han')
@@ -558,7 +567,7 @@ class DatPhongController extends Controller
             ->whereDate('ngay_ket_thuc', '>=', now())
             ->get();
 
-        return view('admin.dat_phong.create', compact('loaiPhongs', 'vouchers'));
+        return view('admin.dat_phong.create', compact('loaiPhongs', 'vouchers', 'services'));
     }
 
     /**
@@ -949,13 +958,14 @@ class DatPhongController extends Controller
                         $booking->ngay_tra,
                         $soLuongCan,
                         $booking->id
-                    )->reject(function($phong) use ($allPhongIds) {
+                    )->reject(function ($phong) use ($allPhongIds) {
                         return in_array($phong->id, $allPhongIds);
                     });
 
                     $count = 0;
                     foreach ($availableRooms as $phong) {
-                        if ($count >= $soLuongCan) break;
+                        if ($count >= $soLuongCan)
+                            break;
                         $allPhongIds[] = $phong->id;
                         // KHÔNG set 'dang_thue' ở đây - model sẽ tự động xử lý khi booking status thay đổi
                         $count++;
