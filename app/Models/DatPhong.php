@@ -78,7 +78,7 @@ class DatPhong extends Model
     {
         return $this->belongsTo(LoaiPhong::class, 'loai_phong_id');
     }
-
+ 
     /**
      * Get the voucher associated with the booking.
      */
