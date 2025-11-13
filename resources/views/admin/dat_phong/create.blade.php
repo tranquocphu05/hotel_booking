@@ -82,7 +82,7 @@
                                                                     {{ number_format($loaiPhong->gia_co_ban, 0, ',', '.') }}
                                                                     VNĐ
                                                                 </p>
-                                                            </div>
+                                                            </div> 
                                                         @else
                                                             <p class="text-sm font-medium text-blue-600">
                                                                 {{ number_format($loaiPhong->gia_co_ban, 0, ',', '.') }}

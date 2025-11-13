@@ -129,36 +129,33 @@ class Phong extends Model
         // Nếu không có conflict, phòng khả dụng (trừ khi đang bảo trì)
 
         // Kiểm tra bookings qua phong_id trực tiếp (legacy)
+        // Chỉ tính conflict với các booking chưa kết thúc (ngay_tra > hôm nay)
+        $today = Carbon::today();
         $conflictFromDirect = $this->datPhongs()
             ->when($excludeBookingId, function($query) use ($excludeBookingId) {
                 $query->where('id', '!=', $excludeBookingId);
             })
-            ->where(function($query) use ($ngayNhan, $ngayTra) {
+            ->where(function($query) use ($ngayNhan, $ngayTra, $today) {
                 $query->where(function($q) use ($ngayNhan, $ngayTra) {
                     // Logic đúng: Hai khoảng thời gian overlap nếu:
                     // existing.ngay_nhan < new.ngay_tra AND existing.ngay_tra > new.ngay_nhan
-                    // Tương đương với: Không overlap nếu:
-                    // existing.ngay_tra <= new.ngay_nhan OR existing.ngay_nhan >= new.ngay_tra
-                    // Vậy conflict nếu: existing.ngay_tra > new.ngay_nhan AND existing.ngay_nhan < new.ngay_tra
-                    $q->where('ngay_tra', '>', $ngayNhan)
-                      ->where('ngay_nhan', '<', $ngayTra);
-                })
-                ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan']);
-            })
-            ->exists();
-
-        // Kiểm tra bookings qua phong_ids JSON
-        $conflictFromPhongIds = \App\Models\DatPhong::where(function($query) use ($ngayNhan, $ngayTra, $excludeBookingId) {
-                $query->where(function($q) use ($ngayNhan, $ngayTra) {
-                    // Logic đúng: Hai khoảng thời gian overlap nếu:
-                    // existing.ngay_nhan < new.ngay_tra AND existing.ngay_tra > new.ngay_nhan
-                    // Tương đương với: Không overlap nếu:
-                    // existing.ngay_tra <= new.ngay_nhan OR existing.ngay_nhan >= new.ngay_tra
-                    // Vậy conflict nếu: existing.ngay_tra > new.ngay_nhan AND existing.ngay_nhan < new.ngay_tra
                     $q->where('ngay_tra', '>', $ngayNhan)
                       ->where('ngay_nhan', '<', $ngayTra);
                 })
                 ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
+                ->where('ngay_tra', '>', $today);
+            })
+            ->exists();
+
+        // Kiểm tra bookings qua phong_ids JSON
+        // Kiểm tra bookings qua phong_ids JSON (các booking chứa id của phòng này)
+        $conflictFromPhongIds = \App\Models\DatPhong::where(function($query) use ($ngayNhan, $ngayTra, $excludeBookingId, $today) {
+                $query->where(function($q) use ($ngayNhan, $ngayTra) {
+                    $q->where('ngay_tra', '>', $ngayNhan)
+                      ->where('ngay_nhan', '<', $ngayTra);
+                })
+                ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
+                ->where('ngay_tra', '>', $today)
                 ->when($excludeBookingId, function($q) use ($excludeBookingId) {
                     $q->where('id', '!=', $excludeBookingId);
                 });

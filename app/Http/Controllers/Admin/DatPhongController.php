@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\DB;
 use App\Mail\BookingConfirmed;
 use App\Mail\InvoicePaid;
 use App\Mail\AdminBookingEvent;
+use App\Models\BookingService;
 use App\Models\Service;
 
 class DatPhongController extends Controller
@@ -575,22 +576,38 @@ class DatPhongController extends Controller
      */
     public function getAvailableCount(Request $request)
     {
-        $request->validate([
-            'loai_phong_id' => 'required|exists:loai_phong,id',
-            'checkin' => 'required|date',
-            'checkout' => 'required|date|after:checkin',
-        ]);
+        // Accept either 'checkin'/'checkout' or legacy 'ngay_nhan'/'ngay_tra'
+        $loaiPhongId = $request->input('loai_phong_id');
+        $checkin = $request->input('checkin') ?? $request->input('ngay_nhan');
+        $checkout = $request->input('checkout') ?? $request->input('ngay_tra');
+
+        if (!$loaiPhongId || !$checkin || !$checkout) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Thiếu tham số: loai_phong_id, checkin/ngay_nhan và checkout/ngay_tra là bắt buộc',
+            ], 422);
+        }
 
         try {
+            // Basic date validation
+            $checkinDate = \Carbon\Carbon::parse($checkin);
+            $checkoutDate = \Carbon\Carbon::parse($checkout);
+            if ($checkoutDate <= $checkinDate) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ngày trả phải sau ngày nhận',
+                ], 422);
+            }
+
             $availableCount = Phong::countAvailableRooms(
-                $request->loai_phong_id,
-                $request->checkin,
-                $request->checkout
+                $loaiPhongId,
+                $checkinDate->toDateString(),
+                $checkoutDate->toDateString()
             );
 
             return response()->json([
                 'success' => true,
-                'available_count' => $availableCount,
+                'available_count' => max(0, (int) $availableCount),
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -771,8 +788,25 @@ class DatPhongController extends Controller
             ];
         }
 
-        // Create single booking within transaction to ensure atomicity
-        $booking = DB::transaction(function () use ($roomDetails, $priceRatio, $request, $voucherId, $finalPrice, $totalSoLuong, $firstLoaiPhongId, $roomTypesArray) {
+        // Tính tổng tiền dịch vụ (nếu có) từ input services_data
+        $servicesData = $request->input('services_data', []);
+        $totalServicePrice = 0;
+        if (is_array($servicesData) && !empty($servicesData)) {
+            foreach ($servicesData as $svcId => $svcRow) {
+                $qty = isset($svcRow['so_luong']) ? intval($svcRow['so_luong']) : 0;
+                if ($qty <= 0) continue;
+                $service = Service::find($svcId);
+                if (!$service) continue;
+                $line = (float) $service->price * $qty;
+                $totalServicePrice += $line;
+            }
+        }
+
+        // Cộng tổng tiền dịch vụ vào tổng thanh toán cuối cùng
+        $finalPrice = $finalPrice + $totalServicePrice;
+
+    // Create single booking within transaction to ensure atomicity
+    $booking = DB::transaction(function () use ($roomDetails, $priceRatio, $request, $voucherId, $finalPrice, $totalSoLuong, $firstLoaiPhongId, $roomTypesArray, $servicesData) {
             // Validate availability for all room types first
             foreach ($roomDetails as $roomDetail) {
                 // Lock and re-check availability inside transaction to prevent race conditions
@@ -866,6 +900,26 @@ class DatPhongController extends Controller
             // Cập nhật phong_id (legacy support) nếu chỉ có 1 phòng
             if (count($allPhongIds) == 1) {
                 $booking->update(['phong_id' => $allPhongIds[0]]);
+            }
+
+            // Lưu các dịch vụ (nếu có) làm booking services
+            if (is_array($servicesData) && !empty($servicesData)) {
+                foreach ($servicesData as $svcId => $svcRow) {
+                    $qty = isset($svcRow['so_luong']) ? intval($svcRow['so_luong']) : 0;
+                    if ($qty <= 0) {
+                        continue;
+                    }
+                    $service = Service::find($svcId);
+                    if (!$service) continue;
+
+                    \App\Models\BookingService::create([
+                        'dat_phong_id' => $booking->id,
+                        'service_id' => $service->id,
+                        'quantity' => $qty,
+                        'unit_price' => $service->price,
+                        'used_at' => $booking->ngay_nhan,
+                    ]);
+                }
             }
 
             // Automatically create invoice with status "cho_thanh_toan" (waiting for payment)
@@ -962,7 +1016,7 @@ class DatPhongController extends Controller
                         return in_array($phong->id, $allPhongIds);
                     });
 
-                    $count = 0;
+                    $count = 0; 
                     foreach ($availableRooms as $phong) {
                         if ($count >= $soLuongCan)
                             break;

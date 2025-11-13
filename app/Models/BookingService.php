@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class BookingService extends Model
 {
-    use HasFactory;
+    use HasFactory; 
     protected $table = 'booking_services';
     protected $fillable = [
         'dat_phong_id',

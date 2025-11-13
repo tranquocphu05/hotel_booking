@@ -65,7 +65,7 @@ class BookingServiceController extends Controller
 
         return response()->json([
             'message' => 'Cập nhật dịch vụ thành công',
-            'data' => $bookingService->fresh('service'),
+            'data' => $bookingService->fresh('service'), 
         ]);
     }
 
