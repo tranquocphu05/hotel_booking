@@ -330,7 +330,7 @@
                                                                 <input type="number" 
                                                                     id="room_card_quantity_{{ $option->id }}"
                                                                     class="room-card-quantity" 
-                                                                    value="0" 
+                                                                    value="{{ $option->id === ($loaiPhong->id ?? null) ? '1' : '0' }}" 
                                                                     min="0" 
                                                                     max="{{ $option->so_luong_phong }}"
                                                                     data-room-id="{{ $option->id }}"

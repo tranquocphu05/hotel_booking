@@ -90,14 +90,33 @@ class BookingManager {
 
     // === ROOM CARD QUANTITY MANAGEMENT ===
     initializeRoomCardQuantities() {
-        // Set all room card quantities to 0 initially
+        // Initialize quantity buttons based on current values (don't reset to 0)
+        let hasPreselectedRoom = false;
+        
         document.querySelectorAll('.room-card-quantity').forEach(input => {
-            input.value = 0;
+            // Keep the value from HTML (may be 1 if pre-selected from room list)
+            const currentValue = parseInt(input.value) || 0;
+            
+            // Update button states
             this.updateQuantityButtons(input);
+            
+            // If quantity > 0, update the card to show selected state
+            if (currentValue > 0) {
+                hasPreselectedRoom = true;
+                const roomCard = input.closest('.room-card');
+                if (roomCard) {
+                    roomCard.classList.add('room-card--active');
+                }
+            }
         });
         
         // Initialize hidden inputs
         this.updateRoomCardHiddenInputs();
+        
+        // If there's a preselected room, recalculate totals
+        if (hasPreselectedRoom) {
+            this.tinhTongTien();
+        }
     }
 
     updateQuantityButtons(quantityInput) {
