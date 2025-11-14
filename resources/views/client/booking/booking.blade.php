@@ -78,7 +78,7 @@
                     </div>
                 @endif
                 <input type="hidden" name="tong_tien_dat_phong" id="finalBookingPrice" value="{{ $tong_tien_initial }}">
-                
+
                 <!-- Hidden inputs for room card selections -->
                 <div id="roomCardHiddenInputs"></div>
 
@@ -321,33 +321,35 @@
                                                                 {{ number_format($optionPrice, 0, ',', '.') }} <span>VNĐ /
                                                                     đêm</span></p>
                                                         </div>
-                                                        <div class="room-card__actions">
-                                                            <div class="room-quantity-control">
-                                                                <button type="button" class="quantity-btn quantity-btn--decrease" 
-                                                                    onclick="decreaseRoomCardQuantity('{{ $option->id }}')">
-                                                                    <i class="fas fa-minus"></i>
-                                                                </button>
-                                                                <input type="number" 
+                                                        <div class="room-card__actions flex flex-wrap items-center gap-4">
+                                                            <div class="md:ml-0">
+                                                                <label class="sr-only" for="room_card_quantity_{{ $option->id }}">Số phòng</label>
+                                                                @php
+                                                                    $initialAvailable = isset($roomAvailabilityMap) && isset($roomAvailabilityMap[$option->id])
+                                                                        ? max(0, (int)$roomAvailabilityMap[$option->id])
+                                                                        : (int)($option->so_luong_phong ?? 0);
+                                                                @endphp
+                                                                <select 
                                                                     id="room_card_quantity_{{ $option->id }}"
-                                                                    class="room-card-quantity" 
-                                                                    value="0" 
-                                                                    min="0" 
-                                                                    max="{{ $option->so_luong_phong }}"
+                                                                    class="room-card-quantity appearance-none border border-gray-300 rounded-md px-3 h-10 text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[110px]"
                                                                     data-room-id="{{ $option->id }}"
                                                                     data-room-name="{{ $option->ten_loai }}"
                                                                     data-room-price="{{ $optionPrice }}"
-                                                                    data-max-quantity="{{ $option->so_luong_phong }}"
+                                                                    data-max-quantity="{{ $initialAvailable }}"
                                                                     onchange="updateRoomCardQuantity('{{ $option->id }}')">
-                                                                <button type="button" class="quantity-btn quantity-btn--increase" 
-                                                                    onclick="increaseRoomCardQuantity('{{ $option->id }}')">
-                                                                    <i class="fas fa-plus"></i>
-                                                                </button>
+                                                                    @for ($q = 0; $q <= $initialAvailable; $q++)
+                                                                        <option value="{{ $q }}">{{ $q }} Phòng</option>
+                                                                    @endfor
+                                                                </select>
                                                             </div>
-                                                            <div class="room-availability-info" id="availability_info_{{ $option->id }}">
+                                                            <div id="room_card_guest_rows_{{ $option->id }}" class="w-full md:ml-0 md:pl-2 mt-2 hidden">
+                                                                <!-- JS will render per-room guest selectors here when quantity > 0 -->
+                                                            </div>
+                                                            <div class="room-availability-info ml-auto mt-3 md:mt-0" id="availability_info_{{ $option->id }}">
                                                                 <div class="availability-status">
                                                                     <i class="fas fa-bed text-green-500"></i>
                                                                     <span class="availability-text" id="availability_{{ $option->id }}">
-                                                                        Còn {{ $option->so_luong_phong }} phòng
+                                                                        Còn {{ $initialAvailable }} phòng
                                                                     </span>
                                                                 </div>
                                                                 <div class="date-range-info" id="date_range_{{ $option->id }}">
@@ -406,7 +408,7 @@
                                     <p class="contact-section-subtitle">Vui lòng điền đầy đủ thông tin để hoàn tất đặt phòng</p>
                                 </div>
                             </div>
-                            
+
                             <div class="contact-form-container">
                                 <div class="contact-form-group @error('first_name') contact-form-group--error @enderror">
                                     <div class="contact-form-label">
@@ -420,8 +422,8 @@
                                         </div>
                                     </div>
                                     <div class="contact-input-wrapper">
-                                        <input type="text" 
-                                               id="contact_first_name" 
+                                        <input type="text"
+                                               id="contact_first_name"
                                                name="first_name"
                                                value="{{ old('first_name', auth()->check() ? auth()->user()->ho_ten : '') }}"
                                                class="contact-form-input @error('first_name') contact-form-input--error @enderror"
@@ -449,8 +451,8 @@
                                         </div>
                                     </div>
                                     <div class="contact-input-wrapper">
-                                        <input type="text" 
-                                               id="contact_email" 
+                                        <input type="text"
+                                               id="contact_email"
                                                name="email"
                                                value="{{ old('email', auth()->user()->email ?? '') }}"
                                                class="contact-form-input @error('email') contact-form-input--error @enderror"
@@ -478,8 +480,8 @@
                                         </div>
                                     </div>
                                     <div class="contact-input-wrapper">
-                                        <input type="text" 
-                                               id="contact_phone" 
+                                        <input type="text"
+                                               id="contact_phone"
                                                name="phone"
                                                value="{{ old('phone', auth()->user()->sdt ?? '') }}"
                                                class="contact-form-input @error('phone') contact-form-input--error @enderror"
@@ -507,8 +509,8 @@
                                         </div>
                                     </div>
                                     <div class="contact-input-wrapper">
-                                        <input type="text" 
-                                               id="contact_cccd" 
+                                        <input type="text"
+                                               id="contact_cccd"
                                                name="cccd"
                                                value="{{ old('cccd', auth()->user()->cccd ?? '') }}"
                                                class="contact-form-input @error('cccd') contact-form-input--error @enderror"
@@ -554,6 +556,7 @@
 
                             <div class="summary-box">
                                 <div id="totalBeforeDiscount" class="text-sm text-gray-600 mb-1 hidden"></div>
+                                <div id="extraGuestFeeDisplay" class="text-sm text-gray-700 mb-1 hidden"></div>
                                 <div id="discountAmountDisplay" class="text-sm text-green-600 mb-1 hidden"></div>
                                 <div class="total-line">
                                     <span>Tổng cộng</span>
@@ -563,7 +566,6 @@
                             </div>
 
                             <button type="submit" class="btn-booking-submit">
-                                <button type="submit" class="btn-booking-submit">
                                     <div class="btn-booking-surface">
                                         <div class="btn-booking-text">
                                             <span class="btn-booking-eyebrow">Sẵn sàng hoàn tất</span>
