@@ -2,7 +2,7 @@
 
 @section('title', 'Chi tiết đặt phòng')
 
-@section('admin_content')
+@section('admin_content') 
     <div class="py-6">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="mb-6 flex justify-between items-center">

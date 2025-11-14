@@ -10,17 +10,17 @@ return new class extends Migration {
         Schema::create('booking_services', function (Blueprint $table) {
             $table->id();
 
-            // 🔹 Khóa ngoại tới bảng đặt phòng
-            $table->foreignId('booking_id')
-                ->constrained('bookings') // hoặc 'dat_phong' nếu bạn giữ nguyên tiếng Việt
+            // 🔹 Khóa ngoại tới bảng ĐẶT PHÒNG
+            $table->foreignId('dat_phong_id')
+                ->constrained('dat_phong')
                 ->cascadeOnDelete();
 
-            // 🔹 Khóa ngoại tới bảng dịch vụ
+            // 🔹 Khóa ngoại tới bảng DỊCH VỤ
             $table->foreignId('service_id')
                 ->constrained('services')
                 ->cascadeOnDelete();
 
-            // 🔹 Thông tin dịch vụ
+            // 🔹 Thông tin chi tiết dịch vụ
             $table->unsignedInteger('quantity')->default(1);
             $table->decimal('unit_price', 10, 2);
             $table->date('used_at');
@@ -28,8 +28,8 @@ return new class extends Migration {
 
             $table->timestamps();
 
-            // 🔸 Một dịch vụ không thể được ghi trùng cho cùng một booking cùng ngày
-            $table->unique(['booking_id', 'service_id', 'used_at']);
+            // 🔸 Đảm bảo không ghi trùng cùng dịch vụ trong cùng booking, cùng ngày
+            $table->unique(['dat_phong_id', 'service_id', 'used_at']);
         });
     }
 
