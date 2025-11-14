@@ -37,26 +37,50 @@ $countByStars = Comment::selectRaw('so_sao, COUNT(*) as total')
 $filterStar = request()->query('star');
 @endphp
 
-{{-- THÔNG BÁO --}}
-@if (session('success'))
-    <div class="bg-green-100 text-green-800 p-3 mb-4 rounded-lg text-center shadow">
-        {{ session('success') }}
-    </div>
-@endif
-@if (session('error'))
-    <div class="bg-red-100 text-red-800 p-3 mb-4 rounded-lg text-center shadow">
-        {{ session('error') }}
-    </div>
-@endif
+{{-- Thông báo sẽ được hiển thị trong form --}}
 
+
+{{-- 🔴 THÔNG BÁO KHI CHƯA ĐẶT PHÒNG --}}
+@if(auth()->check() && !$hasBooking)
+<div class="bg-yellow-50 border border-yellow-200 p-6 rounded-xl shadow-md mb-8">
+    <div class="flex items-center">
+        <div class="flex-shrink-0">
+            <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+            </svg>
+        </div>
+        <div class="ml-3">
+            <h3 class="text-sm font-medium text-yellow-800">
+                Bạn cần đặt phòng trước khi đánh giá
+            </h3>
+            <div class="mt-2 text-sm text-yellow-700">
+                <p>Để đảm bảo tính chính xác của đánh giá, chỉ những khách hàng đã đặt phòng thành công mới có thể gửi đánh giá.</p>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
 
 {{-- 🟢 FORM GỬI ĐÁNH GIÁ (chỉ hiển thị khi đã đặt phòng và chưa đánh giá) --}}
-@if (auth()->check() && $hasBooking && !$existing)
-<form action="{{ route('client.comment.store') }}" method="POST" enctype="multipart/form-data"
-      class="bg-white p-6 rounded-xl shadow-md mb-8">
+<form id="newReviewForm" action="{{ route('client.comment.store') }}" method="POST" enctype="multipart/form-data"
+      class="bg-white p-6 rounded-xl shadow-md mb-8" style="display: {{ (auth()->check() && $hasBooking && (!$existing || session('success') || session('error'))) ? 'block' : 'none' }}">
     @csrf
-    <input type="hidden" name="loai_phong_id" value="{{ $room->id }}">
+    <input type="hidden" name="loai_phong_id" value="{{ $room->id }}" id="reviewFormRoomId">
 
+    {{-- THÔNG BÁO TRONG FORM --}}
+    @if (session('success'))
+        <div class="bg-green-100 text-green-800 p-3 mb-4 rounded-lg text-center shadow">
+            {{ session('success') }}
+        </div>
+    @endif
+    @if (session('error'))
+        <div class="bg-red-100 text-red-800 p-3 mb-4 rounded-lg text-center shadow">
+            {{ session('error') }}
+        </div>
+    @endif
+
+    {{-- Chỉ hiển thị form input khi chưa có thông báo thành công --}}
+    @if (!session('success'))
     {{-- Đánh giá sao --}}
     <div class="mb-6" x-data="{ rating: 0, hover: 0 }">
         <label class="block text-gray-700 font-semibold mb-2">Đánh giá (1–5 sao)</label>
@@ -104,18 +128,17 @@ $filterStar = request()->query('star');
             class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg shadow transition">
         Gửi đánh giá
     </button>
+    @endif
 </form>
-@endif
 
 
 {{-- ⭐ PHÒNG + ĐIỂM TRUNG BÌNH + LỌC SAO --}}
-@if ($totalReviews > 0)
-<div class="bg-white rounded-xl shadow-md p-6 mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+<div id="existingReviewsSection" class="bg-white rounded-xl shadow-md p-6 mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4" style="display: {{ $totalReviews > 0 ? 'flex' : 'none' }}">
     {{-- Trái: Tên + sao trung bình --}}
     <div class="flex items-center gap-4">
         <div>
-            <h3 class="text-2xl font-bold text-gray-800">{{ $room->ten_loai ?? 'Loại phòng' }}</h3>
-            <p class="text-gray-600">
+            <h3 class="text-2xl font-bold text-gray-800" id="reviewFormRoomName">{{ $room->ten_loai ?? 'Loại phòng' }}</h3>
+            <p class="text-gray-600" id="reviewSummaryText">
                 ⭐ {{ number_format($averageRating, 1) }} / 5 ({{ $totalReviews }} đánh giá)
             </p>
         </div>
@@ -157,12 +180,12 @@ $filterStar = request()->query('star');
         @endforeach
     </div>
 </div>
-@endif
 
 
 {{-- 🔹 DANH SÁCH ĐÁNH GIÁ --}}
 <h3 class="text-2xl font-bold text-gray-800 mb-4">Đánh giá gần đây</h3>
 
+<div id="reviewListContainer">
 @php
 $commentsQuery = Comment::where('loai_phong_id', $room->id)
     ->where('trang_thai', 'hien_thi');
@@ -290,6 +313,7 @@ $comments = $commentsQuery->latest('ngay_danh_gia')->get();
 @empty
 <p class="text-gray-500 italic">Chưa có đánh giá nào.</p>
 @endforelse
+</div>
 
 {{-- ALPINE.JS --}}
 <script src="//unpkg.com/alpinejs" defer></script>
