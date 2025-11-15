@@ -104,6 +104,7 @@ class BookingController extends Controller
             'rooms' => 'required|array|min:1',
             'rooms.*.loai_phong_id' => 'required|integer|exists:loai_phong,id',
             'rooms.*.so_luong' => 'required|integer|min:1|max:100',
+            'rooms.*.so_nguoi' => 'nullable|integer|min:0|max:400',
             'first_name' => 'required|string|max:255|min:2',
             'email' => 'required|email:rfc,dns|max:255',
             'phone' => 'required|nullable|string|regex:/^0[0-9]{9}$/|max:20',
@@ -178,9 +179,11 @@ class BookingController extends Controller
             ])->withInput();
         }
 
-        // Validate each room type (basic validation only - real availability check in transaction)
         $totalPrice = 0;
         $roomDetails = [];
+        $totalGuests = 0;
+        $maxAdultsPerRoom = 2;
+        $extraFeePercent = 0.1;
 
         foreach ($data['rooms'] as $room) {
             $loaiPhong = LoaiPhong::findOrFail($room['loai_phong_id']);
@@ -200,15 +203,24 @@ class BookingController extends Controller
                 ])->withInput();
             }
 
-            // Use promotional price if available, otherwise use base price
-            $roomTotal = $pricePerNight * $nights * $room['so_luong'];
-            $totalPrice += $roomTotal;
+            $roomBaseTotal = $pricePerNight * $nights * $room['so_luong'];
+            $sumAdults = isset($room['so_nguoi']) ? (int)$room['so_nguoi'] : ($maxAdultsPerRoom * (int)$room['so_luong']);
+            $capacity = (int)$room['so_luong'] * $maxAdultsPerRoom;
+            $extraGuests = max(0, $sumAdults - $capacity);
+            $extraFee = 0;
+            if ($extraGuests > 0) {
+                $extraFee = $extraGuests * $pricePerNight * $extraFeePercent * $nights;
+            }
+
+            $roomTotalWithSurcharge = $roomBaseTotal + $extraFee;
+            $totalPrice += $roomTotalWithSurcharge;
+            $totalGuests += max(0, $sumAdults);
 
             $roomDetails[] = [
                 'loai_phong_id' => $loaiPhong->id,
                 'loai_phong' => $loaiPhong,
                 'so_luong' => $room['so_luong'],
-                'price' => $roomTotal,
+                'price' => $roomTotalWithSurcharge,
             ];
         }
 
@@ -216,7 +228,7 @@ class BookingController extends Controller
 
         // Apply voucher and create bookings within transaction
         // Use lockForUpdate to prevent race conditions when checking availability
-        $bookings = DB::transaction(function () use ($request, $data, $user, $totalPrice, $roomDetails, $nights) {
+        $bookings = DB::transaction(function () use ($request, $data, $user, $totalPrice, $roomDetails, $nights, $totalGuests) {
             $voucherId = null;
             $finalPrice = $totalPrice;
 
@@ -274,7 +286,7 @@ class BookingController extends Controller
             $username = trim($data['first_name']) ?: ($user->ho_ten ?? null);
 
             // Calculate price per room type (distribute voucher discount proportionally)
-            $priceRatio = $finalPrice / $totalPrice;
+            $priceRatio = $totalPrice > 0 ? ($finalPrice / $totalPrice) : 1;
 
             // Tính tổng số lượng phòng
             $totalSoLuong = array_sum(array_column($roomDetails, 'so_luong'));
@@ -285,10 +297,12 @@ class BookingController extends Controller
             // Chuẩn bị mảng room_types để lưu vào JSON
             $roomTypesArray = [];
             foreach ($roomDetails as $roomDetail) {
-                $roomPrice = $roomDetail['price'] * $priceRatio;
+                $preDiscountPrice = $roomDetail['price']; // đã gồm phụ phí, trước voucher
+                $roomPrice = $preDiscountPrice * $priceRatio; // sau voucher (phân bổ tỉ lệ)
                 $roomTypesArray[] = [
                     'loai_phong_id' => $roomDetail['loai_phong_id'],
                     'so_luong' => $roomDetail['so_luong'],
+                    'gia_truoc_giam' => $preDiscountPrice,
                     'gia_rieng' => $roomPrice,
                 ];
             }
@@ -303,7 +317,7 @@ class BookingController extends Controller
                 'ngay_dat' => now(),
                 'ngay_nhan' => $data['ngay_nhan'],
                 'ngay_tra' => $data['ngay_tra'],
-                'so_nguoi' => $data['so_nguoi'] ?? 1,
+                'so_nguoi' => $totalGuests > 0 ? $totalGuests : ($data['so_nguoi'] ?? 1),
                 'trang_thai' => 'cho_xac_nhan',
                 'tong_tien' => $finalPrice, // Tổng tiền của tất cả loại phòng
                 'voucher_id' => $voucherId,
