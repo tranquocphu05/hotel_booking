@@ -59,22 +59,35 @@ class ThanhToanController extends Controller
         // Get room types from JSON or fallback to single room type
         $roomTypes = $datPhong->getRoomTypes();
         
-        // Calculate original price from room_types or single loaiPhong
+        // Tính giá gốc và phụ phí
         $originalPrice = 0;
+        $basePrice = 0;
+        $surchargeMap = [];
         if (!empty($roomTypes)) {
-            // Sum all room prices from room_types
             foreach ($roomTypes as $roomType) {
-                $originalPrice += $roomType['gia_rieng'] ?? 0;
+                $pre = $roomType['gia_truoc_giam'] ?? ($roomType['gia_rieng'] ?? 0);
+                $originalPrice += $pre;
+
+                $lp = \App\Models\LoaiPhong::find($roomType['loai_phong_id']);
+                if ($lp) {
+                    $pricePerNight = $lp->gia_khuyen_mai ?? $lp->gia_co_ban ?? 0;
+                    $soLuong = $roomType['so_luong'] ?? 1;
+                    $baseForType = $pricePerNight * $nights * $soLuong;
+                    $basePrice += $baseForType;
+                    $surchargeMap[$roomType['loai_phong_id']] = max(0, $pre - $baseForType);
+                }
             }
         } else {
             // Fallback: Calculate using loaiPhong (legacy support)
             $soLuongPhong = $datPhong->so_luong_da_dat ?? 1;
             $pricePerNight = $datPhong->loaiPhong->gia_khuyen_mai ?? $datPhong->loaiPhong->gia_co_ban ?? 0;
             $originalPrice = $pricePerNight * $nights * $soLuongPhong;
+            $basePrice = $originalPrice;
         }
 
         // Calculate discount amount (if voucher was applied)
         $discountAmount = max(0, $originalPrice - $datPhong->tong_tien);
+        $surchargeAmount = max(0, $originalPrice - $basePrice);
 
         // Find or create the invoice
         $invoice = Invoice::firstOrCreate(
@@ -85,7 +98,7 @@ class ThanhToanController extends Controller
             ]
         );
 
-        return view('client.thanh-toan.show', compact('datPhong', 'invoice', 'originalPrice', 'discountAmount', 'nights', 'roomTypes', 'availableRooms'));
+        return view('client.thanh-toan.show', compact('datPhong', 'invoice', 'originalPrice', 'discountAmount', 'surchargeAmount', 'nights', 'roomTypes', 'availableRooms', 'surchargeMap'));
     }
 
     /**

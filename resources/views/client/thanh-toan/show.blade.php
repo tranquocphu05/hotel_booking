@@ -320,9 +320,19 @@
                                                     </span>
                                                     <span class="font-semibold text-gray-900 text-base">{{ number_format($giaRieng, 0, ',', '.') }} VNĐ</span>
                                                 </div>
+                                                @if(isset($surchargeMap[$roomType['loai_phong_id']]) && $surchargeMap[$roomType['loai_phong_id']] > 0)
+                                                    <div class="flex justify-between items-center bg-amber-50 rounded-md px-3 py-2 border border-amber-200 mt-1">
+                                                        <span class="text-amber-800 font-medium text-xs flex items-center">
+                                                            <i class="fas fa-user-plus text-amber-600 mr-2 text-sm"></i>
+                                                            Phụ phí thêm khách ({{ $loaiPhong->ten_loai }})
+                                                        </span>
+                                                        <span class="font-semibold text-amber-700 text-sm">+{{ number_format($surchargeMap[$roomType['loai_phong_id']], 0, ',', '.') }} VNĐ</span>
+                                                    </div>
+                                                @endif
                                             @endif
                                         @endforeach
                                     </div>
+                                    <p class="text-[11px] text-gray-600 mt-1 ml-1">Giá phòng đã bao gồm phụ phí.</p>
                                 @else
                                     {{-- Hiển thị 1 loại phòng (legacy) --}}
                                     @php
@@ -341,6 +351,7 @@
                                         </span>
                                         <span class="font-semibold text-gray-900 text-base">{{ number_format($displayPrice, 0, ',', '.') }} VNĐ</span>
                                     </div>
+                                    <p class="text-[11px] text-gray-600 mt-1 ml-1">Giá phòng đã bao gồm phụ phí.</p>
                                 @endif
 
                                 @if ($datPhong->voucher && $discountAmount > 0)
