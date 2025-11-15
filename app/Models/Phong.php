@@ -116,6 +116,11 @@ class Phong extends Model
             return false;
         }
 
+        // 🔥 BỔ SUNG: Chỉ phòng 'trong' mới cho phép sử dụng (KHÔNG xoá code dưới)
+        if ($this->trang_thai !== 'trong') {
+            return false;
+        }
+
         // Chuyển đổi sang Carbon nếu cần
         if (!$ngayNhan instanceof Carbon) {
             $ngayNhan = Carbon::parse($ngayNhan);
@@ -148,7 +153,6 @@ class Phong extends Model
             ->exists();
 
         // Kiểm tra bookings qua phong_ids JSON
-        // Kiểm tra bookings qua phong_ids JSON (các booking chứa id của phòng này)
         $conflictFromPhongIds = \App\Models\DatPhong::where(function($query) use ($ngayNhan, $ngayTra, $excludeBookingId, $today) {
                 $query->where(function($q) use ($ngayNhan, $ngayTra) {
                     $q->where('ngay_tra', '>', $ngayNhan)
@@ -166,10 +170,6 @@ class Phong extends Model
         // Phòng khả dụng nếu:
         // 1. Không có conflict với bookings trong khoảng thời gian này
         // 2. Phòng không đang bảo trì (đã check ở đầu method)
-        // 
-        // Lưu ý: Không check trạng thái 'dang_thue' hay 'trong' ở đây vì:
-        // - Phòng có thể 'dang_thue' cho booking khác (không overlap)
-        // - Phòng có thể 'trong' nhưng đã được đặt cho khoảng thời gian này (sẽ bị phát hiện bởi conflict check)
         return !$conflictFromDirect && !$conflictFromPhongIds;
     }
 
@@ -238,10 +238,6 @@ class Phong extends Model
         }
 
         // Tìm các phòng của loại phòng này
-        // KHÔNG filter theo trang_thai ở đây vì:
-        // - Phòng có thể 'dang_thue' cho booking khác (không overlap) → vẫn available
-        // - Phòng có thể 'trong' nhưng đã được đặt cho khoảng thời gian này → conflict
-        // Logic isAvailableInPeriod sẽ quyết định dựa trên conflict check
         $availableRooms = static::where('loai_phong_id', $loaiPhongId)
             ->get()
             ->filter(function($phong) use ($ngayNhan, $ngayTra, $excludeBookingId) {
@@ -255,10 +251,6 @@ class Phong extends Model
 
     /**
      * Đếm số phòng trống trong loại phòng cho khoảng thời gian cụ thể
-     * 
-     * Ví dụ: Nếu tất cả phòng đã được đặt từ 01/11 - 07/11,
-     * nhưng khách muốn đặt từ 08/11 - 14/11, method này sẽ trả về
-     * số phòng trống cho khoảng thời gian 08/11 - 14/11 (không conflict với booking 01/11 - 07/11)
      * 
      * @param int $loaiPhongId
      * @param Carbon|string $ngayNhan
