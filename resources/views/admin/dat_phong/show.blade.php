@@ -498,6 +498,51 @@
                                 </dd>
                             </div>
                         </dl>
+
+                        {{-- THÔNG TIN HOÀN TIỀN --}}
+                        @if($booking->invoice && $booking->invoice->trang_thai === 'hoan_tien')
+                            @php
+                                // Lấy payment record hoàn tiền (số tiền âm)
+                                $refundPayment = $booking->invoice->thanhToans()
+                                    ->where('so_tien', '<=', 0)
+                                    ->orderBy('ngay_thanh_toan', 'desc')
+                                    ->first();
+                            @endphp
+                            
+                            @if($refundPayment)
+                                <div class="mt-4 pt-4 border-t border-red-300">
+                                    <h4 class="text-base font-semibold text-red-900 mb-3 flex items-center">
+                                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                                        </svg>
+                                        Thông tin hoàn tiền
+                                    </h4>
+                                    
+                                    <div class="bg-white rounded-lg p-4 border border-red-200">
+                                        <div class="flex justify-between items-center mb-2">
+                                            <span class="text-sm font-medium text-gray-700">Số tiền hoàn:</span>
+                                            <span class="text-xl font-bold {{ abs($refundPayment->so_tien) > 0 ? 'text-green-600' : 'text-red-600' }}">
+                                                {{ abs($refundPayment->so_tien) > 0 ? number_format(abs($refundPayment->so_tien), 0, ',', '.') . ' VNĐ' : 'Không hoàn tiền' }}
+                                            </span>
+                                        </div>
+                                        
+                                        @if($refundPayment->ghi_chu)
+                                            <div class="mt-3 pt-3 border-t border-gray-200">
+                                                <p class="text-xs text-gray-600 font-medium mb-1">Chi tiết:</p>
+                                                <p class="text-sm text-gray-700">{{ $refundPayment->ghi_chu }}</p>
+                                            </div>
+                                        @endif
+                                        
+                                        <div class="mt-3 pt-3 border-t border-gray-200">
+                                            <div class="flex justify-between text-xs text-gray-600">
+                                                <span>Ngày xử lý:</span>
+                                                <span>{{ $refundPayment->ngay_thanh_toan ? date('d/m/Y H:i', strtotime($refundPayment->ngay_thanh_toan)) : 'N/A' }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+                        @endif
                     </div>
                 @endif
             </div>

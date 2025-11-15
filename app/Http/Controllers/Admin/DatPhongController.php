@@ -7,6 +7,7 @@ use App\Models\Voucher;
 use App\Models\DatPhong;
 use App\Models\Phong;
 use App\Models\LoaiPhong;
+use App\Models\ThanhToan;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
@@ -16,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 use App\Mail\BookingConfirmed;
 use App\Mail\InvoicePaid;
 use App\Mail\AdminBookingEvent;
+use App\Mail\BookingCancelled;
 
 
 class DatPhongController extends Controller
@@ -186,29 +188,73 @@ class DatPhongController extends Controller
                 $refundAmount = $cancellationPolicy['refund_amount'];
                 
                 // Cập nhật trạng thái invoice
+                $booking->invoice->update(['trang_thai' => 'hoan_tien']);
+                
+                // Tạo payment record cho việc hoàn tiền
                 if ($refundAmount > 0) {
-                    $booking->invoice->update(['trang_thai' => 'hoan_tien']);
-                    
                     // Ghi chú về việc hoàn tiền
                     $refundNote = sprintf(
-                        'Hoàn %d%% (%s VNĐ) - Hủy %d ngày trước ngày nhận phòng',
+                        'Hoàn tiền %d%% (%s VNĐ) do khách hàng hủy đơn %d ngày trước ngày nhận phòng. Lý do: %s',
                         $cancellationPolicy['refund_percentage'],
                         number_format($refundAmount, 0, ',', '.'),
-                        $cancellationPolicy['days_until_checkin']
+                        $cancellationPolicy['days_until_checkin'],
+                        $lyDoHuy
                     );
                     
-                    // Lưu ghi chú hoàn tiền vào booking
-                    $booking->update([
-                        'ghi_chu_hoan_tien' => $refundNote
+                    // Tạo record hoàn tiền (số tiền âm)
+                    \App\Models\ThanhToan::create([
+                        'hoa_don_id' => $booking->invoice->id,
+                        'so_tien' => -$refundAmount, // Negative = refund
+                        'ngay_thanh_toan' => now(),
+                        'trang_thai' => 'success',
+                        'ghi_chu' => $refundNote,
+                    ]);
+                } else {
+                    // Không hoàn tiền nhưng vẫn ghi nhận
+                    $noRefundNote = sprintf(
+                        'Không hoàn tiền (0%%) do khách hàng hủy quá gần ngày nhận phòng (%d ngày). Lý do: %s',
+                        $cancellationPolicy['days_until_checkin'],
+                        $lyDoHuy
+                    );
+                    
+                    \App\Models\ThanhToan::create([
+                        'hoa_don_id' => $booking->invoice->id,
+                        'so_tien' => 0,
+                        'ngay_thanh_toan' => now(),
+                        'trang_thai' => 'success',
+                        'ghi_chu' => $noRefundNote,
                     ]);
                 }
             }
         });
 
+        // Gửi email thông báo cho khách hàng
+        if ($booking->email) {
+            try {
+                Mail::to($booking->email)->send(new BookingCancelled($booking, $cancellationPolicy));
+            } catch (\Throwable $e) {
+                Log::warning('Send booking cancelled email failed: ' . $e->getMessage());
+            }
+        }
+
+        // Gửi email thông báo cho admin
+        try {
+            $adminEmails = \App\Models\User::where('vai_tro', 'admin')
+                ->where('trang_thai', 'hoat_dong')
+                ->pluck('email')
+                ->filter()
+                ->all();
+            if (!empty($adminEmails)) {
+                Mail::to($adminEmails)->send(new AdminBookingEvent($booking->load(['loaiPhong']), 'cancelled'));
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Send admin booking cancelled email failed: ' . $e->getMessage());
+        }
+
         $message = 'Đã hủy đặt phòng thành công';
         if ($cancellationPolicy['refund_amount'] > 0) {
             $message .= sprintf(
-                '. Đề xuất hoàn %s VNĐ (%d%%) cho khách hàng theo chính sách',
+                '. Sẽ hoàn %s VNĐ (%d%%) cho khách hàng theo chính sách',
                 number_format($cancellationPolicy['refund_amount'], 0, ',', '.'),
                 $cancellationPolicy['refund_percentage']
             );
