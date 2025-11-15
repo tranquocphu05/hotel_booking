@@ -61,7 +61,13 @@ class AutoCancelExpiredBookings
                         // Tính thời gian chính xác từ lúc đặt đến lúc hủy
                         $bookingAge = Carbon::now()->diffInSeconds($booking->ngay_dat);
 
-                        // Cập nhật trạng thái
+                        // Xóa invoice chưa thanh toán
+                        if ($booking->invoice && $booking->invoice->trang_thai === 'cho_thanh_toan') {
+                            $booking->invoice->delete();
+                            Log::info("Đã xóa invoice #{$booking->invoice->id} của booking #{$booking->id}");
+                        }
+
+                        // Cập nhật trạng thái booking
                         $booking->trang_thai = 'da_huy';
                         $booking->ly_do_huy = 'Tự động hủy do không thanh toán sau 5 phút';
                         $booking->ngay_huy = now();

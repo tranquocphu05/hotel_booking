@@ -18,6 +18,7 @@ class ThanhToan extends Model
         'so_tien',
         'ngay_thanh_toan',
         'trang_thai',
+        'ghi_chu',
     ];
 
     protected $casts = [

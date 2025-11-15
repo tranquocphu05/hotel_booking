@@ -147,20 +147,19 @@ class Phong extends Model
             })
             ->exists();
 
-        // Kiểm tra bookings qua phong_ids JSON
-        // Kiểm tra bookings qua phong_ids JSON (các booking chứa id của phòng này)
-        $conflictFromPhongIds = \App\Models\DatPhong::where(function($query) use ($ngayNhan, $ngayTra, $excludeBookingId, $today) {
-                $query->where(function($q) use ($ngayNhan, $ngayTra) {
-                    $q->where('ngay_tra', '>', $ngayNhan)
-                      ->where('ngay_nhan', '<', $ngayTra);
-                })
-                ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
-                ->where('ngay_tra', '>', $today)
-                ->when($excludeBookingId, function($q) use ($excludeBookingId) {
-                    $q->where('id', '!=', $excludeBookingId);
-                });
+        // Kiểm tra bookings qua pivot table booking_rooms
+        $conflictFromPivot = \App\Models\DatPhong::whereHas('assignedRooms', function($query) {
+                $query->where('phong.id', $this->id);
             })
-            ->whereJsonContains('phong_ids', $this->id)
+            ->when($excludeBookingId, function($q) use ($excludeBookingId) {
+                $q->where('dat_phong.id', '!=', $excludeBookingId);
+            })
+            ->where(function($query) use ($ngayNhan, $ngayTra, $today) {
+                $query->where('ngay_tra', '>', $ngayNhan)
+                      ->where('ngay_nhan', '<', $ngayTra)
+                      ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
+                      ->where('ngay_tra', '>', $today);
+            })
             ->exists();
 
         // Phòng khả dụng nếu:
@@ -170,7 +169,7 @@ class Phong extends Model
         // Lưu ý: Không check trạng thái 'dang_thue' hay 'trong' ở đây vì:
         // - Phòng có thể 'dang_thue' cho booking khác (không overlap)
         // - Phòng có thể 'trong' nhưng đã được đặt cho khoảng thời gian này (sẽ bị phát hiện bởi conflict check)
-        return !$conflictFromDirect && !$conflictFromPhongIds;
+        return !$conflictFromDirect && !$conflictFromPivot;
     }
 
     /**

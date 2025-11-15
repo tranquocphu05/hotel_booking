@@ -22,6 +22,11 @@ class Invoice extends Model
     {
         return $this->belongsTo(DatPhong::class, 'dat_phong_id');
     }
+
+    public function thanhToans()
+    {
+        return $this->hasMany(ThanhToan::class, 'hoa_don_id');
+    }
     // app/Models/Invoice.php
 public function getPhuongThucUiAttribute(): array
 {

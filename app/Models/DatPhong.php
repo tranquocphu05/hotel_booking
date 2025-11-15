@@ -30,8 +30,8 @@ class DatPhong extends Model
     protected $fillable = [
         'nguoi_dung_id',
         'loai_phong_id',  // Book by room type (primary/legacy support)
-        'room_types',  // JSON array of room types: [{"loai_phong_id": 1, "so_luong": 2, "gia_rieng": 1000000}, ...]
-        'phong_ids',  // JSON array of assigned room IDs: [1, 2, 3]
+        // 'room_types',  // DEPRECATED - now using booking_room_types pivot table
+        // 'phong_ids',  // DEPRECATED - now using booking_rooms pivot table
         'so_luong_da_dat',  // Number of rooms booked in this booking
         'phong_id',  // Specific room assigned (nullable, legacy support)
         'ngay_dat',
@@ -43,6 +43,7 @@ class DatPhong extends Model
         'voucher_id',
         'ly_do_huy',
         'ngay_huy',
+        'ghi_chu_hoan_tien',
         'username',
         'email',
         'sdt',
@@ -59,8 +60,9 @@ class DatPhong extends Model
         'ngay_nhan' => 'date',
         'ngay_tra' => 'date',
         'tong_tien' => 'decimal:2',
-        'room_types' => 'array', // Auto decode/encode JSON
-        'phong_ids' => 'array', // Auto decode/encode JSON
+        // JSON fields deprecated - now using pivot tables
+        // 'room_types' => 'array',
+        // 'phong_ids' => 'array',
     ];
 
     /**
@@ -96,6 +98,26 @@ class DatPhong extends Model
     }
 
     /**
+     * Get all room types for this booking via pivot table.
+     * Returns relationship with pivot data: so_luong, gia_rieng
+     */
+    public function roomTypes()
+    {
+        return $this->belongsToMany(LoaiPhong::class, 'booking_room_types', 'dat_phong_id', 'loai_phong_id')
+            ->withPivot('so_luong', 'gia_rieng')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get all assigned rooms for this booking via pivot table.
+     */
+    public function assignedRooms()
+    {
+        return $this->belongsToMany(Phong::class, 'booking_rooms', 'dat_phong_id', 'phong_id')
+            ->withTimestamps();
+    }
+
+    /**
      * Get all rooms assigned to this booking (via phong_ids JSON).
      * @deprecated Use getPhongIds() or getAssignedPhongs() instead. Pivot table has been removed.
      * This method returns a relationship that queries phong_ids JSON column.
@@ -120,94 +142,67 @@ class DatPhong extends Model
     }
 
     /**
-     * Get array of assigned room IDs from JSON column.
-     * Returns array of room IDs: [1, 2, 3]
+     * Get array of assigned room IDs.
+     * Now uses pivot table instead of JSON.
      */
     public function getPhongIds()
     {
-        if ($this->phong_ids && is_array($this->phong_ids)) {
-            return $this->phong_ids;
-        }
-
-        // Fallback: If no phong_ids, try to get from phong_id (legacy support)
-        if ($this->phong_id) {
-            return [$this->phong_id];
-        }
-
-        // Fallback: If no phong_ids, pivot table has been removed
-        // All data should now be in phong_ids JSON column
-
-        return [];
+        // Use pivot table
+        return $this->assignedRooms()->pluck('phong_id')->toArray();
     }
 
     /**
-     * Get assigned Phong models from phong_ids JSON.
+     * Get assigned Phong models.
+     * Now uses pivot table relationship.
      */
     public function getAssignedPhongs()
     {
-        $phongIds = $this->getPhongIds();
-        if (empty($phongIds)) {
-            return collect([]);
-        }
-
-        return Phong::whereIn('id', $phongIds)->get();
+        return $this->assignedRooms;
     }
 
     /**
      * Set phong_ids array.
+     * Now syncs with pivot table.
      */
     public function setPhongIds(array $phongIds)
     {
-        $this->phong_ids = $phongIds;
+        $this->assignedRooms()->sync($phongIds);
         return $this;
     }
 
     /**
-     * Add a room ID to phong_ids.
+     * Add a room ID to assigned rooms.
+     * Now uses pivot table.
      */
     public function addPhongId($phongId)
     {
-        $phongIds = $this->getPhongIds();
-        if (!in_array($phongId, $phongIds)) {
-            $phongIds[] = $phongId;
-            $this->phong_ids = $phongIds;
-        }
+        $this->assignedRooms()->syncWithoutDetaching([$phongId]);
         return $this;
     }
 
     /**
-     * Remove a room ID from phong_ids.
+     * Remove a room ID from assigned rooms.
+     * Now uses pivot table.
      */
     public function removePhongId($phongId)
     {
-        $phongIds = $this->getPhongIds();
-        $phongIds = array_values(array_filter($phongIds, function($id) use ($phongId) {
-            return $id != $phongId;
-        }));
-        $this->phong_ids = $phongIds;
+        $this->assignedRooms()->detach($phongId);
         return $this;
     }
 
     /**
-     * Get all room types in this booking (from JSON field).
-     * Returns array of room types with loai_phong_id, so_luong, gia_rieng
+     * Get all room types in this booking.
+     * Now uses pivot table instead of JSON.
      */
     public function getRoomTypes()
     {
-        if ($this->room_types && is_array($this->room_types)) {
-            return $this->room_types;
-        }
-
-        // Fallback: If no room_types, return single room type (legacy support)
-        if ($this->loai_phong_id) {
-            return [[
-                'loai_phong_id' => $this->loai_phong_id,
-                'so_luong' => $this->so_luong_da_dat ?? 1,
-                'gia_rieng' => $this->tong_tien ?? 0,
-            ]];
-        }
-
-        return [];
+        return $this->roomTypes->map(function($loaiPhong) {
+            return [
+                'loai_phong_id' => $loaiPhong->id,
+                'so_luong' => $loaiPhong->pivot->so_luong,
+                'gia_rieng' => $loaiPhong->pivot->gia_rieng,
+            ];
+        })->toArray();
     }
 
     /**

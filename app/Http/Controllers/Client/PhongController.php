@@ -15,6 +15,11 @@ class PhongController extends Controller
     {
         $query = LoaiPhong::where('trang_thai', 'hoat_dong');
 
+        // Lọc theo loại phòng
+        if ($request->has('loai_phong') && $request->loai_phong) {
+            $query->where('id', $request->loai_phong);
+        }
+
         // Lọc theo giá - xét cả giá khuyến mãi nếu có
         if ($request->has('gia_min') && $request->gia_min) {
             $query->where(function($q) use ($request) {

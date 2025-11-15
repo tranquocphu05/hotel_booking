@@ -89,12 +89,13 @@ class ThanhToanController extends Controller
         $discountAmount = max(0, $originalPrice - $datPhong->tong_tien);
         $surchargeAmount = max(0, $originalPrice - $basePrice);
 
-        // Find or create the invoice
+        // Lấy invoice đã tạo sẵn, hoặc tạo mới nếu chưa có
         $invoice = Invoice::firstOrCreate(
             ['dat_phong_id' => $datPhong->id],
             [
                 'tong_tien' => $datPhong->tong_tien,
                 'trang_thai' => 'cho_thanh_toan',
+                'phuong_thuc' => null,
             ]
         );
 
@@ -270,16 +271,24 @@ class ThanhToanController extends Controller
 
         try {
             $datPhong = DatPhong::with(['invoice', 'phong', 'loaiPhong'])->findOrFail($bookingId);
+            
+            // Lấy invoice (phải có sẵn)
             $invoice = $datPhong->invoice;
+            
+            if (!$invoice) {
+                Log::error('VNPay callback error: Invoice not found', ['booking_id' => $bookingId]);
+                return redirect()->route('client.dashboard')
+                    ->with('error', 'Không tìm thấy hóa đơn. Vui lòng liên hệ admin.');
+            }
 
-            // Bug #3 Fix: Check if invoice is already paid
+            // Check if invoice is already paid
             if ($invoice->trang_thai === 'da_thanh_toan') {
                 return redirect()
                     ->route('client.dashboard')
                     ->with('success', "Đơn hàng #{$bookingId} đã được thanh toán trước đó.");
             }
 
-            // Bug #2 Fix: Validate payment amount
+            // Validate payment amount
             if ($responseCode === '00' && (float)$amount !== (float)$invoice->tong_tien) {
                 Log::warning('VNPay amount mismatch detected', [
                     'booking_id' => $bookingId,
@@ -348,11 +357,14 @@ class ThanhToanController extends Controller
      */
     private function handleSuccessfulPayment(Invoice $invoice, float $amount): void
     {
-        // Update invoice and booking status
-        $invoice->update(['trang_thai' => 'da_thanh_toan']);
+        // Update invoice status và payment method
+        $invoice->update([
+            'trang_thai' => 'da_thanh_toan',
+            'phuong_thuc' => 'vnpay',
+        ]);
 
-        // Bug #5 Fix: Update booking status
-        $invoice->datPhong()->update(['trang_thai' => 'da_xac_nhan']);
+        // Update booking status
+        $invoice->datPhong->update(['trang_thai' => 'da_xac_nhan']);
 
         // Create payment record
         ThanhToan::create([
@@ -372,6 +384,7 @@ class ThanhToanController extends Controller
      */
     private function handleCancelledPayment(Invoice $invoice, float $amount): void
     {
+        // Tạo payment record để track
         ThanhToan::create([
             'hoa_don_id' => $invoice->id,
             'so_tien' => $amount,
@@ -390,6 +403,7 @@ class ThanhToanController extends Controller
      */
     private function handleFailedPayment(Invoice $invoice, float $amount, ?string $reason = null): void
     {
+        // Tạo payment record để track
         ThanhToan::create([
             'hoa_don_id' => $invoice->id,
             'so_tien' => $amount,
