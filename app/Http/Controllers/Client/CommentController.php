@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
 use App\Models\Comment;
+use App\Models\DatPhong;
 use App\Models\LoaiPhong;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -73,6 +74,16 @@ class CommentController extends Controller
 
         $userId = Auth::id();
 
+        // ✅ Kiểm tra xem user đã đặt phòng thành công chưa
+        $hasBooking = DatPhong::where('nguoi_dung_id', $userId)
+            ->where('loai_phong_id', $request->loai_phong_id)
+            ->whereIn('trang_thai', ['da_xac_nhan', 'da_tra'])
+            ->exists();
+
+        if (!$hasBooking) {
+            return redirect()->back()->with('error', 'Bạn chỉ có thể đánh giá sau khi đã đặt phòng thành công.');
+        }
+
         $existing = Comment::where('loai_phong_id', $request->loai_phong_id)
             ->where('nguoi_dung_id', $userId)
             ->first();
@@ -126,6 +137,16 @@ class CommentController extends Controller
             ->where('nguoi_dung_id', Auth::id())
             ->firstOrFail();
 
+        // ✅ Kiểm tra xem user đã đặt phòng thành công chưa
+        $hasBooking = DatPhong::where('nguoi_dung_id', Auth::id())
+            ->where('loai_phong_id', $comment->loai_phong_id)
+            ->whereIn('trang_thai', ['da_xac_nhan', 'da_tra'])
+            ->exists();
+
+        if (!$hasBooking) {
+            return redirect()->back()->with('error', 'Bạn chỉ có thể cập nhật đánh giá sau khi đã đặt phòng thành công.');
+        }
+
         $imgPath = $comment->img;
 
         if ($request->hasFile('img')) {
@@ -165,6 +186,7 @@ class CommentController extends Controller
 
         return redirect()->back()->with('success', 'Đánh giá của bạn đã được xóa.');
     }
+
 
     private function clearCommentCache($loaiPhongId)
     {

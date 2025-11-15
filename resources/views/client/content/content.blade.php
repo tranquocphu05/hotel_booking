@@ -770,7 +770,7 @@
 </style>
 <!-- Popup Video -->
 <div id="videoPopup"
-    class="fixed inset-0 hidden z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity duration-300">
+    class="fixed inset-0 hidden z-[99999999] flex items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity duration-300">
 
     <div
         class="relative w-[90vw] max-w-[1000px] overflow-visible shadow-[0_0_60px_rgba(255,255,255,0.1)] border border-white">
@@ -785,7 +785,7 @@
         <button onclick="closeVideoPopup()"
             class="absolute top-3 right-3 bg-white/90 text-gray-700 rounded-full w-10 h-10 flex items-center justify-center
                    shadow-xl border border-gray-200 backdrop-blur-md hover:bg-red-500 hover:text-white hover:scale-110
-                   transition-all duration-200 z-20">
+                   transition-all duration-200 z-[999999999]">
             ✕
         </button>
     </div>

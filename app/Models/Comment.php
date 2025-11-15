@@ -21,6 +21,10 @@ class Comment extends Model
         'trang_thai',
     ];
 
+    protected $casts = [
+        'ngay_danh_gia' => 'datetime',
+    ];
+
     public $timestamps = false;
 
     public function user()

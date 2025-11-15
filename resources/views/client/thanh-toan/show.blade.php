@@ -68,9 +68,9 @@
         @endif
 
             <div class="max-w-6xl mx-auto">
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="flex flex-col lg:flex-row gap-8 lg:items-stretch">
                     <!-- Booking Details - Enhanced Card -->
-                    <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+                    <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-200 h-full flex-1">
                         <h2 class="text-xl font-semibold text-gray-900 mb-6 border-b pb-3 flex items-center">
                             <i class="fas fa-receipt text-blue-600 mr-2"></i>
                             Chi tiết đặt phòng
@@ -320,9 +320,19 @@
                                                     </span>
                                                     <span class="font-semibold text-gray-900 text-base">{{ number_format($giaRieng, 0, ',', '.') }} VNĐ</span>
                                                 </div>
+                                                @if(isset($surchargeMap[$roomType['loai_phong_id']]) && $surchargeMap[$roomType['loai_phong_id']] > 0)
+                                                    <div class="flex justify-between items-center bg-amber-50 rounded-md px-3 py-2 border border-amber-200 mt-1">
+                                                        <span class="text-amber-800 font-medium text-xs flex items-center">
+                                                            <i class="fas fa-user-plus text-amber-600 mr-2 text-sm"></i>
+                                                            Phụ phí thêm khách ({{ $loaiPhong->ten_loai }})
+                                                        </span>
+                                                        <span class="font-semibold text-amber-700 text-sm">+{{ number_format($surchargeMap[$roomType['loai_phong_id']], 0, ',', '.') }} VNĐ</span>
+                                                    </div>
+                                                @endif
                                             @endif
                                         @endforeach
                                     </div>
+                                    <p class="text-[11px] text-gray-600 mt-1 ml-1">Giá phòng đã bao gồm phụ phí.</p>
                                 @else
                                     {{-- Hiển thị 1 loại phòng (legacy) --}}
                                     @php
@@ -341,6 +351,7 @@
                                         </span>
                                         <span class="font-semibold text-gray-900 text-base">{{ number_format($displayPrice, 0, ',', '.') }} VNĐ</span>
                                     </div>
+                                    <p class="text-[11px] text-gray-600 mt-1 ml-1">Giá phòng đã bao gồm phụ phí.</p>
                                 @endif
 
                                 @if ($datPhong->voucher && $discountAmount > 0)
@@ -363,68 +374,157 @@
                         </div>
                     </div>
 
-                    <!-- Payment Methods -->
-                    <div class="bg-white rounded-lg shadow-md p-6">
-                        <h2 class="text-xl font-semibold text-gray-900 mb-6 border-b pb-3">Phương thức thanh toán</h2>
+                    <!-- Booking Policy -->
+                    <div class="bg-white rounded-lg shadow-md p-6 mb-6 h-full flex-1">
+                        <h2 class="text-xl font-semibold text-gray-900 mb-6 border-b pb-3 flex items-center">
+                            <i class="fas fa-file-contract text-blue-600 mr-2"></i>
+                            Chính sách đặt phòng
+                        </h2>
 
-                        <form action="{{ route('client.thanh-toan.store', ['datPhong' => $datPhong->id]) }}" method="POST">
-                            @csrf
-                            <input type="hidden" name="phuong_thuc" value="vnpay">
+                        @php
+                            $roomTypes = $datPhong->getRoomTypes();
+                            $totalRooms = array_sum(array_column($roomTypes, 'so_luong')) ?: ($datPhong->so_luong_da_dat ?? 1);
+                        @endphp
 
-                            <!-- VNPay Payment Info -->
-                            <div class="border-2 border-blue-200 bg-blue-50 rounded-lg p-5 mb-6">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center">
-                                        <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mr-4">
-                                            <!-- VNPay Logo -->
-                                            <div class="w-10 h-10 bg-gradient-to-r from-red-500 to-red-600 rounded-lg flex items-center justify-center shadow-md">
-                                                <span class="text-white font-bold text-lg">V</span>
+                        <!-- Room Type Policies -->
+                        <div class="space-y-4 mb-6">
+                            @if(count($roomTypes) > 1)
+                                {{-- Hiển thị chính sách cho từng loại phòng --}}
+                                @foreach($roomTypes as $index => $roomType)
+                                    @php
+                                        $loaiPhong = \App\Models\LoaiPhong::find($roomType['loai_phong_id']);
+                                        $soLuong = $roomType['so_luong'] ?? 1;
+                                    @endphp
+                                    @if($loaiPhong)
+                                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                            <h3 class="font-semibold text-gray-900 mb-3 flex items-center">
+                                                <i class="fas fa-bed text-blue-600 mr-2"></i>
+                                                {{ $loaiPhong->ten_loai }} - {{ $soLuong }} phòng
+                                            </h3>
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                                <div>
+                                                    <h4 class="font-medium text-gray-800 mb-2">✓ Bao gồm:</h4>
+                                                    <ul class="text-gray-600 space-y-1">
+                                                        <li>• Wi-Fi tốc độ cao</li>
+                                                        <li>• Nhà hàng sang trọng</li>
+                                                        <li>• Spa & Wellness</li>
+                                                        <li>• Dịch vụ phòng 24/7</li>
+                                                    </ul>
+                                                </div>
+                                                <div>
+                                                    <h4 class="font-medium text-gray-800 mb-2">⚠️ Lưu ý:</h4>
+                                                    <ul class="text-gray-600 space-y-1">
+                                                        <li>• Check-in: 14:00</li>
+                                                        <li>• Check-out: 12:00</li>
+                                                        <li>• Không hút thuốc</li>
+                                                        <li>• Không mang thú cưng</li>
+                                                    </ul>
+                                                </div>
                                             </div>
                                         </div>
+                                    @endif
+                                @endforeach
+                            @else
+                                {{-- Hiển thị chính sách cho 1 loại phòng --}}
+                                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                    <h3 class="font-semibold text-gray-900 mb-3 flex items-center">
+                                        <i class="fas fa-bed text-blue-600 mr-2"></i>
+                                        {{ $datPhong->loaiPhong->ten_loai ?? 'Phòng' }} - {{ $totalRooms }} phòng
+                                    </h3>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                         <div>
-                                            <p class="font-semibold text-gray-900 text-lg">VNPay</p>
-                                            <p class="text-sm text-gray-600">Cổng thanh toán trực tuyến</p>
+                                            <h4 class="font-medium text-gray-800 mb-2">✓ Bao gồm:</h4>
+                                            <ul class="text-gray-600 space-y-1">
+                                                <li>• Wi-Fi tốc độ cao</li>
+                                                <li>• Nhà hàng sang trọng</li>
+                                                <li>• Spa & Wellness</li>
+                                                <li>• Dịch vụ phòng 24/7</li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-medium text-gray-800 mb-2">⚠️ Lưu ý:</h4>
+                                            <ul class="text-gray-600 space-y-1">
+                                                <li>• Check-in: 14:00</li>
+                                                <li>• Check-out: 12:00</li>
+                                                <li>• Không hút thuốc</li>
+                                                <li>• Không mang thú cưng</li>
+                                            </ul>
                                         </div>
                                     </div>
-                                    <div class="text-right">
-                                        <p class="text-xs text-gray-500 mb-1">Phương thức</p>
-                                        <p class="text-sm font-medium text-blue-600">Đã chọn</p>
-                                    </div>
                                 </div>
+                            @endif
+                        </div>
+      
+                            <!-- Simple Policy Text -->
+                            <div class="mt-6 space-y-2 text-sm text-gray-700">
+                                <p><strong>Hủy:</strong> Nếu hủy, thay đổi hoặc không đến, khách sẽ trả toàn bộ giá trị tiền đặt phòng.</p>
+                                <p><strong>Thanh toán:</strong> Thanh toán toàn bộ giá trị tiền đặt phòng.</p>
                             </div>
 
-                            @error('phuong_thuc')
-                                <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-6">
-                                    <div class="flex items-center">
-                                        <i class="fas fa-exclamation-circle mr-2"></i>
-                                        {{ $message }}
-                                    </div>
-                                </div>
-                            @enderror
+                            <!-- Payment Methods -->
+                            <div class="mt-8 border-t pt-6">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Phương thức thanh toán</h3>
 
-                            <!-- Payment Notice -->
-                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-                                <div class="flex items-start">
-                                    <i class="fas fa-info-circle text-yellow-600 mr-2 mt-0.5"></i>
-                                    <div class="text-sm text-yellow-800">
-                                        <p class="font-medium mb-1">Lưu ý:</p>
-                                        <p>Bạn sẽ được chuyển đến trang thanh toán VNPay để hoàn tất giao dịch. Vui lòng không đóng trình duyệt trong quá trình thanh toán.</p>
-                                    </div>
-                                </div>
-                            </div>
+                                <form action="{{ route('client.thanh-toan.store', ['datPhong' => $datPhong->id]) }}" method="POST">
+                                    @csrf
+                                    <input type="hidden" name="phuong_thuc" value="vnpay">
 
-                            <!-- Submit Button -->
-                            <div class="mt-6">
-                                <button type="submit" class="w-full bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold py-4 px-6 rounded-lg hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center">
-                                    <i class="fas fa-credit-card mr-2"></i>
-                                    Thanh toán bằng VNPay
-                                </button>
-                                <p class="text-center text-xs text-gray-500 mt-3">
-                                    <i class="fas fa-lock mr-1"></i>
-                                    Giao dịch được bảo mật bởi VNPay
-                                </p>
+                                    <!-- VNPay Payment Info -->
+                                    <div class="border-2 border-blue-200 bg-blue-50 rounded-lg p-5 mb-6">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center">
+                                                <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mr-4">
+                                                    <!-- VNPay Logo -->
+                                                    <div class="w-10 h-10 bg-gradient-to-r from-red-500 to-red-600 rounded-lg flex items-center justify-center shadow-md">
+                                                        <span class="text-white font-bold text-lg">V</span>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <p class="font-semibold text-gray-900 text-lg">VNPay</p>
+                                                    <p class="text-sm text-gray-600">Cổng thanh toán trực tuyến</p>
+                                                </div>
+                                            </div>
+                                            <div class="text-right">
+                                                <p class="text-xs text-gray-500 mb-1">Phương thức</p>
+                                                <p class="text-sm font-medium text-blue-600">Đã chọn</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    @error('phuong_thuc')
+                                        <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-6">
+                                            <div class="flex items-center">
+                                                <i class="fas fa-exclamation-circle mr-2"></i>
+                                                {{ $message }}
+                                            </div>
+                                        </div>
+                                    @enderror
+
+                                    <!-- Payment Notice -->
+                                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                                        <div class="flex items-start">
+                                            <i class="fas fa-info-circle text-yellow-600 mr-2 mt-0.5"></i>
+                                            <div class="text-sm text-yellow-800">
+                                                <p class="font-medium mb-1">Lưu ý:</p>
+                                                <p>Bạn sẽ được chuyển đến trang thanh toán VNPay để hoàn tất giao dịch. Vui lòng không đóng trình duyệt trong quá trình thanh toán.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Submit Button -->
+                                    <div class="mt-6">
+                                        <button type="submit" class="w-full bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold py-4 px-6 rounded-lg hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center">
+                                            <i class="fas fa-credit-card mr-2"></i>
+                                            Thanh toán bằng VNPay
+                                        </button>
+                                        <p class="text-center text-xs text-gray-500 mt-3">
+                                            <i class="fas fa-lock mr-1"></i>
+                                            Giao dịch được bảo mật bởi VNPay
+                                        </p>
+                                    </div>
+                                </form>
                             </div>
-                        </form>
+                        </div>
                     </div>
                 </div>
             </div>

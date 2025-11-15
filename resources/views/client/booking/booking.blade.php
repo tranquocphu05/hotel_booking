@@ -78,7 +78,7 @@
                     </div>
                 @endif
                 <input type="hidden" name="tong_tien_dat_phong" id="finalBookingPrice" value="{{ $tong_tien_initial }}">
-                
+
                 <!-- Hidden inputs for room card selections -->
                 <div id="roomCardHiddenInputs"></div>
 
@@ -286,6 +286,34 @@
                                                 $optionImage = $option->anh
                                                     ? asset($option->anh)
                                                     : '/img/room/room-1.jpg';
+                                                
+                                                // Lấy dữ liệu đánh giá cho loại phòng này
+                                                $averageRating = \App\Models\Comment::where('loai_phong_id', $option->id)
+                                                    ->where('trang_thai', 'hien_thi')
+                                                    ->avg('so_sao') ?? 0;
+                                                
+                                                $totalReviews = \App\Models\Comment::where('loai_phong_id', $option->id)
+                                                    ->where('trang_thai', 'hien_thi')
+                                                    ->count();
+                                                
+                                                // Lấy 5 đánh giá gần nhất
+                                                $recentReviews = \App\Models\Comment::where('loai_phong_id', $option->id)
+                                                    ->where('trang_thai', 'hien_thi')
+                                                    ->with('user')
+                                                    ->latest('ngay_danh_gia')
+                                                    ->limit(5)
+                                                    ->get()
+                                                    ->map(function ($comment) {
+                                                        return [
+                                                            'id' => $comment->id,
+                                                            'user_id' => $comment->nguoi_dung_id,
+                                                            'user_name' => $comment->user ? $comment->user->ho_ten : 'Anonymous',
+                                                            'rating' => $comment->so_sao,
+                                                            'comment' => $comment->noi_dung,
+                                                            'created_at' => $comment->ngay_danh_gia ? $comment->ngay_danh_gia->format('d/m/Y') : null,
+                                                            'image' => $comment->img ? asset('storage/' . $comment->img) : null
+                                                        ];
+                                                    });
                                             @endphp
                                             <article
                                                 class="room-card {{ $option->id === ($loaiPhong->id ?? null) ? 'room-card--active' : '' }}">
@@ -311,7 +339,12 @@
                                                         data-room-name="{{ $option->ten_loai }}"
                                                         data-room-description="{{ $option->mo_ta ?? 'Không gian hiện đại...' }}"
                                                         data-room-image="{{ $optionImage }}"
-                                                        data-room-amenities="{{ json_encode(explode(',', $option->tien_ich ?? '')) }}">
+                                                        data-room-price="{{ $optionPrice }}"
+                                                        data-room-size="{{ $option->dien_tich ?? '' }}m²"
+                                                        data-room-amenities="{{ json_encode(explode(',', $option->tien_ich ?? '')) }}"
+                                                        data-average-rating="{{ round($averageRating, 1) }}"
+                                                        data-total-reviews="{{ $totalReviews }}"
+                                                        data-recent-reviews="{{ $recentReviews->toJson() }}">
                                                         Xem tất cả tiện nghi
                                                     </button>
                                                     <div class="room-card__footer">
@@ -321,13 +354,15 @@
                                                                 {{ number_format($optionPrice, 0, ',', '.') }} <span>VNĐ /
                                                                     đêm</span></p>
                                                         </div>
-                                                        <div class="room-card__actions">
-                                                            <div class="room-quantity-control">
-                                                                <button type="button" class="quantity-btn quantity-btn--decrease" 
-                                                                    onclick="decreaseRoomCardQuantity('{{ $option->id }}')">
-                                                                    <i class="fas fa-minus"></i>
-                                                                </button>
-                                                                <input type="number" 
+                                                        <div class="room-card__actions flex flex-wrap items-center gap-4">
+                                                            <div class="md:ml-0">
+                                                                <label class="sr-only" for="room_card_quantity_{{ $option->id }}">Số phòng</label>
+                                                                @php
+                                                                    $initialAvailable = isset($roomAvailabilityMap) && isset($roomAvailabilityMap[$option->id])
+                                                                        ? max(0, (int)$roomAvailabilityMap[$option->id])
+                                                                        : (int)($option->so_luong_phong ?? 0);
+                                                                @endphp
+                                                                <select 
                                                                     id="room_card_quantity_{{ $option->id }}"
                                                                     class="room-card-quantity" 
                                                                     value="{{ $option->id === ($loaiPhong->id ?? null) ? '1' : '0' }}" 
@@ -336,18 +371,21 @@
                                                                     data-room-id="{{ $option->id }}"
                                                                     data-room-name="{{ $option->ten_loai }}"
                                                                     data-room-price="{{ $optionPrice }}"
-                                                                    data-max-quantity="{{ $option->so_luong_phong }}"
+                                                                    data-max-quantity="{{ $initialAvailable }}"
                                                                     onchange="updateRoomCardQuantity('{{ $option->id }}')">
-                                                                <button type="button" class="quantity-btn quantity-btn--increase" 
-                                                                    onclick="increaseRoomCardQuantity('{{ $option->id }}')">
-                                                                    <i class="fas fa-plus"></i>
-                                                                </button>
+                                                                    @for ($q = 0; $q <= $initialAvailable; $q++)
+                                                                        <option value="{{ $q }}">{{ $q }} Phòng</option>
+                                                                    @endfor
+                                                                </select>
                                                             </div>
-                                                            <div class="room-availability-info" id="availability_info_{{ $option->id }}">
+                                                            <div id="room_card_guest_rows_{{ $option->id }}" class="w-full md:ml-0 md:pl-2 mt-2 hidden">
+                                                                <!-- JS will render per-room guest selectors here when quantity > 0 -->
+                                                            </div>
+                                                            <div class="room-availability-info ml-auto mt-3 md:mt-0" id="availability_info_{{ $option->id }}">
                                                                 <div class="availability-status">
                                                                     <i class="fas fa-bed text-green-500"></i>
                                                                     <span class="availability-text" id="availability_{{ $option->id }}">
-                                                                        Còn {{ $option->so_luong_phong }} phòng
+                                                                        Còn {{ $initialAvailable }} phòng
                                                                     </span>
                                                                 </div>
                                                                 <div class="date-range-info" id="date_range_{{ $option->id }}">
@@ -406,7 +444,7 @@
                                     <p class="contact-section-subtitle">Vui lòng điền đầy đủ thông tin để hoàn tất đặt phòng</p>
                                 </div>
                             </div>
-                            
+
                             <div class="contact-form-container">
                                 <div class="contact-form-group @error('first_name') contact-form-group--error @enderror">
                                     <div class="contact-form-label">
@@ -420,8 +458,8 @@
                                         </div>
                                     </div>
                                     <div class="contact-input-wrapper">
-                                        <input type="text" 
-                                               id="contact_first_name" 
+                                        <input type="text"
+                                               id="contact_first_name"
                                                name="first_name"
                                                value="{{ old('first_name', auth()->check() ? auth()->user()->ho_ten : '') }}"
                                                class="contact-form-input @error('first_name') contact-form-input--error @enderror"
@@ -449,8 +487,8 @@
                                         </div>
                                     </div>
                                     <div class="contact-input-wrapper">
-                                        <input type="text" 
-                                               id="contact_email" 
+                                        <input type="text"
+                                               id="contact_email"
                                                name="email"
                                                value="{{ old('email', auth()->user()->email ?? '') }}"
                                                class="contact-form-input @error('email') contact-form-input--error @enderror"
@@ -478,8 +516,8 @@
                                         </div>
                                     </div>
                                     <div class="contact-input-wrapper">
-                                        <input type="text" 
-                                               id="contact_phone" 
+                                        <input type="text"
+                                               id="contact_phone"
                                                name="phone"
                                                value="{{ old('phone', auth()->user()->sdt ?? '') }}"
                                                class="contact-form-input @error('phone') contact-form-input--error @enderror"
@@ -507,8 +545,8 @@
                                         </div>
                                     </div>
                                     <div class="contact-input-wrapper">
-                                        <input type="text" 
-                                               id="contact_cccd" 
+                                        <input type="text"
+                                               id="contact_cccd"
                                                name="cccd"
                                                value="{{ old('cccd', auth()->user()->cccd ?? '') }}"
                                                class="contact-form-input @error('cccd') contact-form-input--error @enderror"
@@ -554,6 +592,7 @@
 
                             <div class="summary-box">
                                 <div id="totalBeforeDiscount" class="text-sm text-gray-600 mb-1 hidden"></div>
+                                <div id="extraGuestFeeDisplay" class="text-sm text-gray-700 mb-1 hidden"></div>
                                 <div id="discountAmountDisplay" class="text-sm text-green-600 mb-1 hidden"></div>
                                 <div class="total-line">
                                     <span>Tổng cộng</span>
@@ -563,7 +602,6 @@
                             </div>
 
                             <button type="submit" class="btn-booking-submit">
-                                <button type="submit" class="btn-booking-submit">
                                     <div class="btn-booking-surface">
                                         <div class="btn-booking-text">
                                             <span class="btn-booking-eyebrow">Sẵn sàng hoàn tất</span>
@@ -610,36 +648,64 @@
             </button>
 
             <div class="modal-body-wrapper">
-                <div class="modal-media-column">
+                {{-- Cột trái: Ảnh + Rating + Reviews gần đây --}}
+                <div class="modal-left-column">
+                    {{-- Ảnh phòng --}}
                     <div class="modal-media">
-                        {{-- Ảnh sẽ được load bằng JS --}}
                         <img id="modalRoomImage" src="" alt="Hình ảnh phòng">
+                    </div>
+                    
+                    {{-- Rating Summary ngay dưới ảnh --}}
+                    <div class="modal-rating-summary" id="modalRatingSummary">
+                        <div class="rating-display">
+                            <div class="rating-stars" id="modalRatingStars">
+                                {{-- Stars sẽ được load bằng JS --}}
+                            </div>
+                            <span class="rating-score" id="modalRatingScore">0.0/5</span>
+                            <span class="rating-count" id="modalRatingCount">(0 đánh giá)</span>
+                        </div>
+                    </div>
+
+                    {{-- Reviews gần đây --}}
+                    <div class="modal-recent-reviews">
+                        <h5 class="recent-reviews-title">Đánh giá gần đây</h5>
+                        <div id="modalRecentReviews">
+                            {{-- Recent reviews sẽ được load bằng JS --}}
+                            <div class="no-reviews">
+                                <p class="text-gray-500 text-sm">Chưa có đánh giá nào</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-
-                <div class="modal-content-column">
-                    {{-- Tiêu đề và Mô tả nằm trong cột nội dung (giống ảnh mẫu) --}}
+                {{-- Cột phải: Header + Mô tả + Tiện ích + Form --}}
+                <div class="modal-right-column">
+                    {{-- Header với tên, kích thước và giá --}}
                     <div class="modal-header-details">
-                        <h3 id="modalRoomName"></h3>
-                        {{-- Kích thước m2 có thể được hiển thị ngay bên cạnh hoặc dưới tên phòng --}}
-                        <span id="modalRoomSize" class="room-size-tag text-gray-500 font-normal"></span>
+                        <h3 id="modalRoomName">Phòng Đôi</h3>
+                        <div class="room-meta">
+                            <span id="modalRoomSize" class="room-size"></span>
+                            <span class="room-price" id="modalRoomPrice">0 VNĐ/đêm</span>
+                        </div>
                     </div>
 
-                    {{-- Dữ liệu Mô tả (sẽ bị JS ghi đè khi mở) --}}
-                    <p id="modalRoomDescription" class="modal-description text-gray-700 mb-6"></p>
+                    {{-- Mô tả ngắn gọn --}}
+                    <div class="modal-description-section">
+                        <p id="modalRoomDescription" class="modal-description">Giường cỡ King cao cấp,Bồn tắm năm & phòng tắm kính,Sofa phòng khách rộng rãi,Minibar, TV Smart 65 inch,Dịch vụ Butler theo yêu cầu...</p>
+                        <button class="description-toggle" onclick="toggleDescription()">Xem thêm</button>
+                    </div>
 
-                    {{-- --- TIỆN ÍCH TRONG PHÒNG --- --}}
+                    {{-- Tiện ích 3 cột --}}
                     <div class="modal-amenities-section">
-                        <h4 class="amenities-title font-semibold text-lg border-b pb-2 mb-3">Tiện ích trong phòng:</h4>
-                        <div id="modalRoomAmenities" class="modal-amenities-grid">
+                        <h4 class="amenities-title">Tiện ích trong phòng:</h4>
+                        <div class="modal-amenities-grid">
                             <div class="amenity-item">
                                 <i class="fas fa-door-closed"></i>
                                 <span>Tủ quần áo</span>
                             </div>
                             <div class="amenity-item">
                                 <i class="fas fa-smoking-ban"></i>
-                                <span>Phòng không hút thuốc</span>
+                                <span>Không hút thuốc</span>
                             </div>
                             <div class="amenity-item">
                                 <i class="fas fa-snowflake"></i>
@@ -651,56 +717,57 @@
                             </div>
                             <div class="amenity-item">
                                 <i class="fas fa-lock"></i>
-                                <span>Két sắt an toàn</span>
+                                <span>Két sắt</span>
                             </div>
                             <div class="amenity-item">
                                 <i class="fas fa-soap"></i>
-                                <span>Đồ phòng tắm</span>
+                                <span>Đồ tắm</span>
                             </div>
                             <div class="amenity-item">
                                 <i class="fas fa-phone-alt"></i>
                                 <span>Điện thoại</span>
                             </div>
                             <div class="amenity-item">
-                                <i class="fas fa-satellite-dish"></i>
-                                <span>Truyền hình cáp/Vệ tinh</span>
+                                <i class="fas fa-tv"></i>
+                                <span>TV cáp</span>
                             </div>
-
                             <div class="amenity-item">
                                 <i class="fas fa-bed"></i>
-                                <span>Ga trải giường, gối</span>
+                                <span>Giường đôi</span>
                             </div>
                             <div class="amenity-item">
                                 <i class="fas fa-shower"></i>
                                 <span>Vòi sen</span>
                             </div>
                             <div class="amenity-item">
-                                <i class="fas fa-tshirt"></i>
-                                <span>Dịch vụ giặt ủi</span>
-                            </div>
-                            <div class="amenity-item">
-                                <i class="fas fa-bath"></i>
-                                <span>Phòng có bồn tắm</span>
-                            </div>
-                            <div class="amenity-item">
                                 <i class="fas fa-wifi"></i>
                                 <span>Wifi</span>
                             </div>
                             <div class="amenity-item">
-                                <i class="fas fa-hand-holding-water"></i>
-                                <span>Khăn tắm</span>
-                            </div>
-                            <div class="amenity-item">
-                                <i class="fas fa-lightbulb"></i>
-                                <span>Đèn bàn</span>
-                            </div>
-                            <div class="amenity-item">
-                                <i class="fas fa-desktop"></i>
-                                <span>Bàn làm việc</span>
+                                <i class="fas fa-coffee"></i>
+                                <span>Minibar</span>
                             </div>
                         </div>
                     </div>
-                    {{-- --- KẾT THÚC TIỆN ÍCH --- --}}
+
+                    {{-- Form đánh giá có thể collapse --}}
+                    <div class="modal-review-form-section">
+                        <button class="review-form-toggle" onclick="toggleReviewForm()">
+                            <i class="fas fa-edit"></i>
+                            <span>Viết đánh giá của bạn</span>
+                            <i class="fas fa-chevron-down toggle-icon"></i>
+                        </button>
+                        <div class="review-form-container" style="display: none;">
+                            @if(isset($loaiPhong))
+                                @include('client.content.comment', ['room' => $loaiPhong])
+                            @else
+                                <div class="no-room-data">
+                                    <i class="fas fa-info-circle"></i>
+                                    <p>Không thể tải form đánh giá.</p>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -719,6 +786,7 @@
         };
         window.bookingConfig.csrfToken = '{{ csrf_token() }}';
         window.bookingConfig.defaultRoomCount = {{ $loaiPhong->so_luong_phong ?? 0 }};
+        window.bookingConfig.userId = {{ auth()->check() ? auth()->id() : 'null' }};
     </script>
     @vite('resources/js/booking.js')
 @endpush
