@@ -133,7 +133,9 @@ class DatPhongController extends Controller
                 $hasOtherBooking = DatPhong::where('id', '!=', $booking->id)
                     ->where(function ($q) use ($booking) {
                         $q->where('phong_id', $booking->phong_id)
-                            ->orWhereJsonContains('phong_ids', $booking->phong_id);
+                            ->orWhereHas('assignedRooms', function($query) use ($booking) {
+                                $query->where('phong_id', $booking->phong_id);
+                            });
                     })
                     ->where(function ($q) use ($booking) {
                         $q->where('ngay_tra', '>', $booking->ngay_nhan)
@@ -147,7 +149,7 @@ class DatPhongController extends Controller
                 }
             }
 
-            // Free up rooms via phong_ids JSON
+            // Free up rooms via pivot table
             $phongIds = $booking->getPhongIds();
             foreach ($phongIds as $phongId) {
                 $phong = Phong::find($phongId);
@@ -156,7 +158,9 @@ class DatPhongController extends Controller
                     $hasOtherBooking = DatPhong::where('id', '!=', $booking->id)
                         ->where(function ($q) use ($phongId) {
                             $q->where('phong_id', $phongId)
-                                ->orWhereJsonContains('phong_ids', $phongId);
+                                ->orWhereHas('assignedRooms', function($query) use ($phongId) {
+                                    $query->where('phong_id', $phongId);
+                                });
                         })
                         ->where(function ($q) use ($booking) {
                             $q->where('ngay_tra', '>', $booking->ngay_nhan)
@@ -171,9 +175,8 @@ class DatPhongController extends Controller
                 }
             }
 
-            // Clear phong_ids after freeing rooms
-            $booking->phong_ids = [];
-            $booking->save();
+            // Clear assigned rooms from pivot table
+            $booking->assignedRooms()->detach();
 
             // Update so_luong_trong in loai_phong
             if ($booking->loaiPhong) {
@@ -505,7 +508,9 @@ class DatPhongController extends Controller
                 if ($phong) {
                     // Kiểm tra xem phòng có đang được đặt cho booking khác không
                     $hasOtherBooking = DatPhong::where('id', '!=', $booking->id)
-                        ->whereJsonContains('phong_ids', $phongId)
+                        ->whereHas('assignedRooms', function($query) use ($phongId) {
+                            $query->where('phong_id', $phongId);
+                        })
                         ->where(function ($q) use ($request) {
                             $q->where('ngay_tra', '>', $request->ngay_nhan)
                                 ->where('ngay_nhan', '<', $request->ngay_tra);
@@ -566,7 +571,6 @@ class DatPhongController extends Controller
             // 3. Update booking với thông tin mới
             $booking->update([
                 'loai_phong_id' => $firstLoaiPhongId, // Legacy support
-                'room_types' => $roomTypes, // Store all room types in JSON
                 'so_luong_da_dat' => $totalSoLuong,
                 'trang_thai' => $request->trang_thai ?? $booking->trang_thai,
                 'ngay_nhan' => $request->ngay_nhan,
@@ -576,8 +580,20 @@ class DatPhongController extends Controller
                 'email' => $request->email,
                 'sdt' => $request->sdt,
                 'cccd' => $request->cccd,
-                'phong_ids' => $newPhongIds, // Cập nhật danh sách phòng mới
             ]);
+
+            // Sync assigned rooms with pivot table
+            $booking->assignedRooms()->sync($newPhongIds);
+            
+            // Sync room types with pivot table
+            $roomTypesForSync = [];
+            foreach ($roomTypes as $rt) {
+                $roomTypesForSync[$rt['loai_phong_id']] = [
+                    'so_luong' => $rt['so_luong'],
+                    'gia_rieng' => $rt['gia_rieng'],
+                ];
+            }
+            $booking->roomTypes()->sync($roomTypesForSync);
 
             // 4. Cập nhật phong_id (legacy support) nếu chỉ có 1 phòng
             if (count($newPhongIds) == 1) {
@@ -667,18 +683,13 @@ class DatPhongController extends Controller
                 ->withInput();
         }
 
-        // Thêm phòng vào phong_ids JSON
+        // Thêm phòng vào pivot table
         DB::transaction(function () use ($booking, $phongId, $phong) {
             // Reload booking để đảm bảo có dữ liệu mới nhất
             $booking->refresh();
 
-            // Thêm vào phong_ids JSON bằng cách thủ công để đảm bảo dữ liệu được lưu đúng
-            $phongIds = $booking->getPhongIds();
-            if (!in_array($phongId, $phongIds)) {
-                $phongIds[] = (int) $phongId;
-                $booking->phong_ids = $phongIds;
-                $booking->save();
-            }
+            // Thêm vào pivot table
+            $booking->addPhongId($phongId);
 
             // Chỉ set 'dang_thue' nếu booking đã được xác nhận
             // Nếu booking ở 'cho_xac_nhan', để model tự động xử lý khi booking được xác nhận
@@ -990,9 +1001,8 @@ class DatPhongController extends Controller
             $booking = DatPhong::create([
                 'nguoi_dung_id' => Auth::id(),
                 'loai_phong_id' => $firstLoaiPhongId, // Loại phòng chính (cho backward compatibility)
-                'room_types' => $roomTypesArray, // Lưu tất cả loại phòng vào JSON
                 'so_luong_da_dat' => $totalSoLuong, // Tổng số lượng phòng
-                'phong_id' => null, // Không gán phòng ở đây, sẽ dùng phong_ids JSON
+                'phong_id' => null, // Không gán phòng ở đây, sẽ dùng pivot table
                 'ngay_dat' => now(),
                 'ngay_nhan' => $request->ngay_nhan,
                 'ngay_tra' => $request->ngay_tra,
@@ -1049,9 +1059,18 @@ class DatPhongController extends Controller
                 }
             }
 
-            // Lưu tất cả phong_ids vào JSON column
-            $booking->phong_ids = $allPhongIds;
-            $booking->save();
+            // Sync assigned rooms to pivot table
+            $booking->assignedRooms()->sync($allPhongIds);
+            
+            // Sync room types to pivot table
+            $roomTypesForSync = [];
+            foreach ($roomTypesArray as $rt) {
+                $roomTypesForSync[$rt['loai_phong_id']] = [
+                    'so_luong' => $rt['so_luong'],
+                    'gia_rieng' => $rt['gia_rieng'],
+                ];
+            }
+            $booking->roomTypes()->sync($roomTypesForSync);
 
             // Cập nhật phong_id (legacy support) nếu chỉ có 1 phòng
             if (count($allPhongIds) == 1) {
@@ -1187,8 +1206,8 @@ class DatPhongController extends Controller
                 }
             }
 
-            // Cập nhật phong_ids JSON
-            $booking->phong_ids = $allPhongIds;
+            // Sync assigned rooms to pivot table
+            $booking->assignedRooms()->sync($allPhongIds);
 
             // Cập nhật phong_id (legacy support) nếu chỉ có 1 phòng
             if (count($allPhongIds) == 1) {

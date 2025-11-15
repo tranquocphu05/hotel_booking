@@ -400,9 +400,18 @@ class BookingController extends Controller
                 }
             }
 
-            // Lưu tất cả phong_ids vào JSON column sau khi đã gán xong tất cả loại phòng
-            $booking->phong_ids = $allPhongIds;
-            $booking->save();
+            // Sync assigned rooms to pivot table
+            $booking->assignedRooms()->sync($allPhongIds);
+            
+            // Sync room types to pivot table  
+            $roomTypesForSync = [];
+            foreach ($roomDetails as $detail) {
+                $roomTypesForSync[$detail['loai_phong_id']] = [
+                    'so_luong' => $detail['so_luong'],
+                    'gia_rieng' => $detail['price'], // Total price for this room type
+                ];
+            }
+            $booking->roomTypes()->sync($roomTypesForSync);
 
             // Cập nhật phong_id (legacy support) nếu chỉ có 1 phòng
             if (count($allPhongIds) == 1) {
