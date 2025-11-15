@@ -43,6 +43,7 @@ class DatPhong extends Model
         'voucher_id',
         'ly_do_huy',
         'ngay_huy',
+        'ghi_chu_hoan_tien',
         'username',
         'email',
         'sdt',
