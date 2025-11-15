@@ -205,21 +205,39 @@
                                 </div>
                             @endif
 
-                            <div class="flex items-center justify-between">
-                                <div class="inline-flex items-center text-[#D4AF37] font-semibold hover:text-[#b68b00] transition-colors">
-                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4">
-                                        </path>
-                                    </svg>
-                                    Xem chi tiết
-                                </div>
-                                <div class="text-gray-400 group-hover:text-[#D4AF37] transition-colors">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M9 5l7 7-7 7"></path>
-                                    </svg>
-                                </div>
+                            <div class="space-y-2">
+                                @if($checkin && $checkout && isset($availabilityMap[$phong->id]) && $availabilityMap[$phong->id] > 0)
+                                    {{-- Có ngày và còn phòng → Hiện nút Đặt ngay --}}
+                                    <button onclick="event.stopPropagation(); bookRoomQuick({{ $phong->id }}, '{{ $checkin }}', '{{ $checkout }}')"
+                                        class="w-full bg-[#D4AF37] hover:bg-[#C9A961] text-white px-4 py-2.5 rounded-lg transition-all duration-200 font-semibold text-sm flex items-center justify-center gap-2 shadow-sm hover:shadow-md">
+                                        <i class="fas fa-calendar-check"></i>
+                                        <span>Đặt ngay</span>
+                                    </button>
+                                    <button onclick="event.stopPropagation(); window.location.href='{{ route('client.phong.show', $phong->id) }}?checkin={{ $checkin }}&checkout={{ $checkout }}'"
+                                        class="w-full bg-white hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg transition-all duration-200 font-medium text-sm flex items-center justify-center gap-1.5 border border-gray-200 hover:border-gray-300">
+                                        <i class="fas fa-info-circle text-[#D4AF37] text-xs"></i>
+                                        <span>Xem chi tiết phòng</span>
+                                    </button>
+                                @elseif($checkin && $checkout)
+                                    {{-- Có ngày nhưng hết phòng → Chỉ hiện nút Chi tiết --}}
+                                    <button onclick="event.stopPropagation(); window.location.href='{{ route('client.phong.show', $phong->id) }}?checkin={{ $checkin }}&checkout={{ $checkout }}'"
+                                        class="w-full bg-white hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg transition-all duration-200 font-medium text-sm flex items-center justify-center gap-1.5 border border-gray-200 hover:border-gray-300">
+                                        <i class="fas fa-info-circle text-[#D4AF37] text-xs"></i>
+                                        <span>Xem chi tiết phòng</span>
+                                    </button>
+                                @else
+                                    {{-- Chưa có ngày → Khuyến khích chọn ngày --}}
+                                    <button onclick="event.stopPropagation(); document.getElementById('checkin_filter').focus(); document.getElementById('checkin_filter').scrollIntoView({ behavior: 'smooth', block: 'center' });"
+                                        class="w-full bg-[#3B82F6] hover:bg-[#2563EB] text-white px-4 py-2.5 rounded-lg transition-all duration-200 font-semibold text-sm flex items-center justify-center gap-2 shadow-sm hover:shadow-md">
+                                        <i class="fas fa-calendar-alt"></i>
+                                        <span>Chọn ngày để đặt</span>
+                                    </button>
+                                    <button onclick="event.stopPropagation(); window.location.href='{{ route('client.phong.show', $phong->id) }}'"
+                                        class="w-full bg-white hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg transition-all duration-200 font-medium text-sm flex items-center justify-center gap-1.5 border border-gray-200 hover:border-gray-300">
+                                        <i class="fas fa-info-circle text-[#D4AF37] text-xs"></i>
+                                        <span>Xem chi tiết phòng</span>
+                                    </button>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -258,8 +276,37 @@
             window.location.href = '{{ route('client.phong') }}?' + params.toString();
         }
 
-        function bookRoom(roomId) {
-            alert(`Chức năng đặt phòng ${roomId} sẽ được phát triển sớm!`);
+        function bookRoomQuick(roomId, checkin, checkout) {
+            // Redirect đến trang booking với params đã điền sẵn
+            const bookingUrl = '{{ route('booking.form', ':roomId') }}'.replace(':roomId', roomId);
+            const params = new URLSearchParams({
+                checkin: checkin,
+                checkout: checkout
+            });
+            window.location.href = bookingUrl + '?' + params.toString();
         }
+
+        // Set min date cho date inputs
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date().toISOString().split('T')[0];
+            const checkinInput = document.getElementById('checkin_filter');
+            const checkoutInput = document.getElementById('checkout_filter');
+            
+            if (checkinInput) {
+                checkinInput.setAttribute('min', today);
+                checkinInput.addEventListener('change', function() {
+                    if (checkoutInput) {
+                        const nextDay = new Date(this.value);
+                        nextDay.setDate(nextDay.getDate() + 1);
+                        checkoutInput.setAttribute('min', nextDay.toISOString().split('T')[0]);
+                        
+                        // Auto-set checkout nếu chưa có hoặc nhỏ hơn checkin
+                        if (!checkoutInput.value || checkoutInput.value <= this.value) {
+                            checkoutInput.value = nextDay.toISOString().split('T')[0];
+                        }
+                    }
+                });
+            }
+        });
     </script>
 @endsection

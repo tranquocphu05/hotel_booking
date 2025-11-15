@@ -364,7 +364,10 @@
                                                                 @endphp
                                                                 <select 
                                                                     id="room_card_quantity_{{ $option->id }}"
-                                                                    class="room-card-quantity appearance-none border border-gray-300 rounded-md px-3 h-10 text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[110px]"
+                                                                    class="room-card-quantity" 
+                                                                    value="{{ $option->id === ($loaiPhong->id ?? null) ? '1' : '0' }}" 
+                                                                    min="0" 
+                                                                    max="{{ $option->so_luong_phong }}"
                                                                     data-room-id="{{ $option->id }}"
                                                                     data-room-name="{{ $option->ten_loai }}"
                                                                     data-room-price="{{ $optionPrice }}"

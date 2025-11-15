@@ -122,10 +122,24 @@ class BookingManager {
 
     // === ROOM CARD QUANTITY & ADULTS MANAGEMENT ===
     initializeRoomCardQuantities() {
-        // Set all room card quantities to 0 initially
-        document.querySelectorAll(".room-card-quantity").forEach((input) => {
-            input.value = 0;
+        // Initialize quantity buttons based on current values (don't reset to 0)
+        let hasPreselectedRoom = false;
+        
+        document.querySelectorAll('.room-card-quantity').forEach(input => {
+            // Keep the value from HTML (may be 1 if pre-selected from room list)
+            const currentValue = parseInt(input.value) || 0;
+            
+            // Update button states
             this.updateQuantityButtons(input);
+            
+            // If quantity > 0, update the card to show selected state
+            if (currentValue > 0) {
+                hasPreselectedRoom = true;
+                const roomCard = input.closest('.room-card');
+                if (roomCard) {
+                    roomCard.classList.add('room-card--active');
+                }
+            }
         });
         // Initialize adults selectors to 2
         document.querySelectorAll(".room-card-adults").forEach((sel) => {
@@ -134,6 +148,11 @@ class BookingManager {
 
         // Initialize hidden inputs
         this.updateRoomCardHiddenInputs();
+        
+        // If there's a preselected room, recalculate totals
+        if (hasPreselectedRoom) {
+            this.tinhTongTien();
+        }
     }
 
     // Render per-room guest selector rows for a room type card

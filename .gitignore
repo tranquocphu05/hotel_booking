@@ -24,3 +24,17 @@ Homestead.yaml
 Thumbs.db
 *.yaml
 *.md
+
+# Kiro IDE
+/.kiro/
+
+# Test files
+test_vnpay_config.php
+tatus
+
+# Editor configs
+/.cursor/
+/.continue/
+/.github/
+/.qodo/
+/.windsurf/
