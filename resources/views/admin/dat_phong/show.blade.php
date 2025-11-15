@@ -9,6 +9,9 @@
                 @php
                     $roomTypes = $booking->getRoomTypes();
                 @endphp
+                @php
+                    $serviceTotal = isset($bookingServices) ? $bookingServices->sum(function($s){ return ($s->unit_price * $s->quantity); }) : 0;
+                @endphp
                 <h2 class="text-2xl font-semibold text-gray-800">
                     Chi tiết đặt phòng 
                     @if(count($roomTypes) > 1)
@@ -206,6 +209,30 @@
                             @if ($booking->ghi_chu)
                                 <p class="text-sm text-gray-600">Ghi chú: <span class="font-medium">{{ $booking->ghi_chu }}</span></p>
                             @endif
+
+                            <!-- Dịch vụ đã đặt (bên trong card - dạng compact) -->
+                            @if(isset($bookingServices) && $bookingServices->count() > 0)
+                                <div class="mt-4 pt-4 border-t border-gray-200">
+                                    <h4 class="text-sm font-semibold text-gray-900 mb-2">
+                                        <i class="fas fa-concierge-bell mr-2 text-teal-600"></i>Dịch vụ đã đặt
+                                    </h4>
+                                    <div class="text-xs space-y-1">
+                                        @foreach($bookingServices as $bs)
+                                            @php $line = ($bs->unit_price * $bs->quantity); @endphp
+                                            <div class="flex justify-between items-center px-2 py-1 bg-teal-50 rounded border border-teal-100">
+                                                <span class="text-teal-900 font-medium">{{ $bs->service->name ?? 'Dịch vụ' }}</span>
+                                                <span class="text-teal-700">
+                                                    @if($bs->used_at)
+                                                        <span class="text-teal-600 font-medium">{{ date('d/m', strtotime($bs->used_at)) }}</span>
+                                                    @endif
+                                                    | {{ $bs->quantity }}× 
+                                                    <span class="font-medium">{{ number_format($line,0,',','.') }} VNĐ</span>
+                                                </span>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -241,7 +268,12 @@
                     </div>
                     <div class="p-4">
                         <div class="space-y-3">
-                            <p class="text-sm text-gray-600">Tổng tiền: <span class="font-medium">{{ number_format($booking->tong_tien, 0, ',', '.') }} VNĐ</span></p>
+                            @php $roomOnly = $booking->tong_tien - ($serviceTotal ?? 0); @endphp
+                            <p class="text-sm text-gray-600">Tổng tiền phòng: <span class="font-medium">{{ number_format($roomOnly, 0, ',', '.') }} VNĐ</span></p>
+                            @if(isset($serviceTotal) && $serviceTotal > 0)
+                                <p class="text-sm text-gray-600">Tổng tiền dịch vụ: <span class="font-medium">{{ number_format($serviceTotal, 0, ',', '.') }} VNĐ</span></p>
+                            @endif
+                            <p class="text-sm text-gray-600">Tổng thanh toán: <span class="font-medium">{{ number_format($booking->tong_tien, 0, ',', '.') }} VNĐ</span></p>
                             @if($booking->voucher)
                                 <p class="text-sm text-gray-600">Mã voucher: <span class="font-medium text-indigo-600">{{ $booking->voucher->ma_voucher }}</span></p>
                                 <p class="text-sm text-gray-600">Giảm giá: <span class="font-medium">{{ $booking->voucher->giam_gia }}%</span></p>

@@ -265,8 +265,10 @@ class Phong extends Model
      * @param Carbon|string $ngayTra
      * @return int
      */
-    public static function countAvailableRooms($loaiPhongId, $ngayNhan, $ngayTra)
+    public static function countAvailableRooms($loaiPhongId, $ngayNhan, $ngayTra, $excludeBookingId = null)
     {
-        return static::findAvailableRooms($loaiPhongId, $ngayNhan, $ngayTra, 999)->count();
+        // Pass through excludeBookingId so findAvailableRooms can ignore rooms
+        // already assigned to the provided booking when calculating availability.
+        return static::findAvailableRooms($loaiPhongId, $ngayNhan, $ngayTra, 999, $excludeBookingId)->count();
     }
 }
