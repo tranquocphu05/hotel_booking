@@ -2443,11 +2443,26 @@ document.addEventListener("DOMContentLoaded", function () {
             modalRoomSize.textContent = roomData.roomSize || "";
             modalRoomImage.src = roomData.roomImage;
             modalRoomDescription.textContent = roomData.roomDescription;
-
+            
+            // 2. Cập nhật giá phòng
+            const roomPrice = roomData.roomPrice || '0';
+            const modalRoomPrice = document.getElementById('modalRoomPrice');
+            if (modalRoomPrice) {
+                modalRoomPrice.textContent = formatCurrency(parseFloat(roomPrice)) + '/đêm';
+            }
+            
+            // 3. Load rating và reviews từ data attributes
+            loadRoomRatingAndReviewsFromData(detailButton);
+            
+            // 4. Cập nhật form đánh giá với thông tin phòng hiện tại
+            updateReviewForm(roomData.roomId, roomData.roomName);
+            
             // 2. BỎ QUA LOGIC ĐIỀN TIỆN ÍCH ĐỘNG (vì đã dùng HTML tĩnh)
 
             // 3. Hiển thị modal
-            modalOverlay.classList.add("visible");
+            modalOverlay.classList.add('visible');
+            // Ẩn menu khi mở popup
+            document.body.classList.add('modal-open');
         }
     });
 
@@ -2466,6 +2481,522 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     function closeRoomDetailsModal() {
-        modalOverlay.classList.remove("visible");
+        modalOverlay.classList.remove('visible');
+        // Hiện lại menu khi đóng popup
+        document.body.classList.remove('modal-open');
     }
+
+    // === HELPER FUNCTIONS ===
+    
+    // Format currency function
+    function formatCurrency(number) {
+        return Math.round(number).toLocaleString('vi-VN', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }) + ' VNĐ';
+    }
+    
+    // Load room rating and reviews từ data attributes
+    function loadRoomRatingAndReviewsFromData(buttonElement) {
+        try {
+            // Lấy dữ liệu từ data attributes
+            const averageRating = parseFloat(buttonElement.dataset.averageRating) || 0;
+            const totalReviews = parseInt(buttonElement.dataset.totalReviews) || 0;
+            const recentReviewsJson = buttonElement.dataset.recentReviews || '[]';
+            
+            let recentReviews = [];
+            try {
+                recentReviews = JSON.parse(recentReviewsJson);
+            } catch (e) {
+                console.warn('Error parsing recent reviews:', e);
+                recentReviews = [];
+            }
+            
+            // Update rating summary
+            updateRatingSummary(averageRating, totalReviews);
+            
+            // Update recent reviews
+            updateRecentReviews(recentReviews);
+            
+        } catch (error) {
+            console.error('Error loading reviews from data:', error);
+            // Fallback to show no reviews
+            updateRatingSummary(0, 0);
+            updateRecentReviews([]);
+        }
+    }
+    
+    // Cập nhật form đánh giá với thông tin phòng hiện tại
+    function updateReviewForm(roomId, roomName) {
+        // Cập nhật tên phòng trong form
+        const reviewFormRoomName = document.getElementById('reviewFormRoomName');
+        if (reviewFormRoomName && roomName) {
+            reviewFormRoomName.textContent = roomName;
+        }
+        
+        // Cập nhật ID phòng trong form
+        const reviewFormRoomId = document.getElementById('reviewFormRoomId');
+        if (reviewFormRoomId && roomId) {
+            reviewFormRoomId.value = roomId;
+        }
+        
+        // Kiểm tra xem phòng này có đánh giá không và quyết định hiển thị gì
+        checkRoomReviewStatus(roomId);
+    }
+    
+    // Kiểm tra trạng thái đánh giá của phòng và hiển thị form phù hợp
+    function checkRoomReviewStatus(roomId) {
+        const existingReviewsSection = document.getElementById('existingReviewsSection');
+        const newReviewForm = document.getElementById('newReviewForm');
+        
+        // Lấy dữ liệu từ data attributes để kiểm tra
+        const currentButton = document.querySelector(`[data-room-id="${roomId}"]`);
+        if (currentButton) {
+            const totalReviews = parseInt(currentButton.dataset.totalReviews) || 0;
+            const averageRating = parseFloat(currentButton.dataset.averageRating) || 0;
+            
+            if (totalReviews > 0) {
+                // Có đánh giá - hiển thị section đánh giá, ẩn form
+                if (existingReviewsSection) {
+                    existingReviewsSection.style.display = 'flex';
+                    // Cập nhật thông tin đánh giá
+                    const reviewSummaryText = document.getElementById('reviewSummaryText');
+                    if (reviewSummaryText) {
+                        reviewSummaryText.textContent = `⭐ ${averageRating} / 5 (${totalReviews} đánh giá)`;
+                    }
+                }
+                if (newReviewForm) {
+                    newReviewForm.style.display = 'none';
+                }
+                
+                // Cập nhật danh sách đánh giá gần đây
+                updateReviewList(roomId);
+            } else {
+                // Chưa có đánh giá - ẩn section đánh giá, hiển thị form
+                if (existingReviewsSection) {
+                    existingReviewsSection.style.display = 'none';
+                }
+                if (newReviewForm) {
+                    newReviewForm.style.display = 'block';
+                }
+                
+                // Hiển thị "Chưa có đánh giá nào" trong danh sách
+                const reviewListContainer = document.getElementById('reviewListContainer');
+                if (reviewListContainer) {
+                    reviewListContainer.innerHTML = '<p class="text-gray-500 italic">Chưa có đánh giá nào.</p>';
+                }
+            }
+        }
+    }
+    
+    // Cập nhật danh sách đánh giá gần đây
+    function updateReviewList(roomId) {
+        const reviewListContainer = document.getElementById('reviewListContainer');
+        if (!reviewListContainer || !roomId) return;
+        
+        // Lấy dữ liệu đánh giá từ data attributes
+        const currentButton = document.querySelector(`[data-room-id="${roomId}"]`);
+        if (currentButton) {
+            const recentReviewsJson = currentButton.dataset.recentReviews || '[]';
+            
+            try {
+                const recentReviews = JSON.parse(recentReviewsJson);
+                
+                if (recentReviews && recentReviews.length > 0) {
+                    let reviewsHtml = '';
+                    recentReviews.forEach(review => {
+                        const stars = generateStars(review.rating);
+                        const imageHtml = review.image ? `
+                            <img src="${review.image}" 
+                                 alt="Ảnh đánh giá"
+                                 class="w-32 h-32 object-cover rounded-lg mt-2 border border-gray-200 shadow-sm">
+                        ` : '';
+                        
+                        // Kiểm tra xem có phải đánh giá của user hiện tại không
+                        const currentUserId = window.bookingConfig?.userId || null;
+                        const isOwner = currentUserId && review.user_id && currentUserId == review.user_id;
+                        const editButtons = isOwner ? `
+                            <div class="flex gap-3 mt-3">
+                                <button type="button"
+                                        onclick="toggleEdit(this)"
+                                        class="text-blue-600 hover:text-blue-800 font-medium text-sm">
+                                    ✏️ Chỉnh sửa
+                                </button>
+                                <form action="/client/danh-gia/${review.id || ''}" 
+                                      method="POST" 
+                                      onsubmit="return confirm('Bạn có chắc muốn xóa đánh giá này không?')"
+                                      style="display: inline;">
+                                    <input type="hidden" name="_token" value="${document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''}">
+                                    <input type="hidden" name="_method" value="DELETE">
+                                    <button type="submit"
+                                            class="text-red-600 hover:text-red-800 font-medium text-sm">
+                                        🗑️ Xóa
+                                    </button>
+                                </form>
+                            </div>
+                        ` : '';
+                        
+                        reviewsHtml += `
+                            <div x-data="{ editing: false }" class="bg-gray-50 p-4 rounded-lg shadow mb-3 flex justify-between items-start">
+                                <div class="flex-1">
+                                    <p class="font-semibold text-gray-800 text-lg">
+                                        ${review.user_name || 'Khách ẩn danh'}
+                                    </p>
+                                    <p class="text-gray-600 text-sm mt-1">${review.comment || ''}</p>
+                                    ${imageHtml}
+                                    <p class="text-gray-400 text-xs mt-1">${review.created_at || ''}</p>
+                                    ${editButtons}
+                                </div>
+                                <div class="flex items-center space-x-1">
+                                    ${stars}
+                                </div>
+                            </div>
+                        `;
+                    });
+                    reviewListContainer.innerHTML = reviewsHtml;
+                } else {
+                    reviewListContainer.innerHTML = '<p class="text-gray-500 italic">Chưa có đánh giá nào.</p>';
+                }
+            } catch (e) {
+                console.warn('Error parsing reviews:', e);
+                reviewListContainer.innerHTML = '<p class="text-gray-500 italic">Chưa có đánh giá nào.</p>';
+            }
+        }
+    }
+    
+    // Update rating summary
+    function updateRatingSummary(averageRating, totalReviews) {
+        const starsContainer = document.getElementById('modalRatingStars');
+        const scoreElement = document.getElementById('modalRatingScore');
+        const countElement = document.getElementById('modalRatingCount');
+        
+        if (starsContainer) {
+            starsContainer.innerHTML = generateStars(averageRating);
+        }
+        
+        if (scoreElement) {
+            scoreElement.textContent = `${averageRating.toFixed(1)}/5`;
+        }
+        
+        if (countElement) {
+            countElement.textContent = `(${totalReviews} đánh giá)`;
+        }
+    }
+    
+    // Generate stars HTML
+    function generateStars(rating) {
+        let starsHtml = '';
+        for (let i = 1; i <= 5; i++) {
+            if (i <= rating) {
+                starsHtml += '<i class="fas fa-star text-yellow-400"></i>';
+            } else {
+                starsHtml += '<i class="fas fa-star text-gray-300"></i>';
+            }
+        }
+        return starsHtml;
+    }
+    
+    // Update recent reviews
+    function updateRecentReviews(reviews) {
+        const container = document.getElementById('modalRecentReviews');
+        if (!container) return;
+        
+        if (reviews && reviews.length > 0) {
+            let reviewsHtml = '';
+            reviews.slice(0, 2).forEach(review => { // Chỉ hiển thị 2 review gần nhất
+                const userName = review.user_name || 'Anonymous';
+                const firstLetter = userName.charAt(0).toUpperCase();
+                const avatarUrl = `https://ui-avatars.com/api/?name=${firstLetter}&background=3b82f6&color=fff`;
+                
+                reviewsHtml += `
+                    <div class="recent-review-item">
+                        <div class="review-avatar">
+                            <img src="${avatarUrl}" alt="${userName}">
+                        </div>
+                        <div class="review-content">
+                            <div class="review-stars">
+                                ${generateStars(review.rating)}
+                            </div>
+                            <p class="review-text">${review.comment}</p>
+                            <span class="review-author">${userName}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = reviewsHtml;
+        } else {
+            container.innerHTML = '<div class="no-reviews"><p class="text-gray-500 text-sm">Chưa có đánh giá nào</p></div>';
+        }
+    }
+
+    // === JAVASCRIPT CHO TOGGLE FUNCTIONS ===
+    
+    // Toggle description function
+    window.toggleDescription = function() {
+        const description = document.getElementById('modalRoomDescription');
+        const toggleBtn = document.querySelector('.description-toggle');
+        
+        if (description.style.webkitLineClamp === 'none') {
+            description.style.webkitLineClamp = '3';
+            description.style.lineClamp = '3';
+            toggleBtn.textContent = 'Xem thêm';
+        } else {
+            description.style.webkitLineClamp = 'none';
+            description.style.lineClamp = 'none';
+            toggleBtn.textContent = 'Thu gọn';
+        }
+    };
+    
+    // Toggle review form function
+    window.toggleReviewForm = function() {
+        const container = document.querySelector('.review-form-container');
+        const toggleBtn = document.querySelector('.review-form-toggle');
+        const icon = toggleBtn.querySelector('.toggle-icon');
+        
+        if (container.style.display === 'none') {
+            container.style.display = 'block';
+            toggleBtn.classList.add('expanded');
+            toggleBtn.querySelector('span').textContent = 'Ẩn form đánh giá';
+        } else {
+            container.style.display = 'none';
+            toggleBtn.classList.remove('expanded');
+            toggleBtn.querySelector('span').textContent = 'Viết đánh giá của bạn';
+        }
+    };
+
+
+    // === JAVASCRIPT CHO PHẦN COMMENT VÀ ĐÁNH GIÁ ===
+    
+    // Toggle review form
+    const toggleReviewFormBtn = document.getElementById('toggleReviewForm');
+    const reviewFormContainer = document.getElementById('reviewFormContainer');
+    const cancelReviewBtn = document.getElementById('cancelReview');
+    const roomReviewForm = document.getElementById('roomReviewForm');
+
+    if (toggleReviewFormBtn && reviewFormContainer) {
+        toggleReviewFormBtn.addEventListener('click', function() {
+            reviewFormContainer.classList.toggle('hidden');
+            
+            if (!reviewFormContainer.classList.contains('hidden')) {
+                toggleReviewFormBtn.innerHTML = '<i class="fas fa-times"></i><span>Hủy viết đánh giá</span>';
+                // Focus vào form đầu tiên
+                const firstInput = reviewFormContainer.querySelector('input[type="radio"]');
+                if (firstInput) firstInput.focus();
+            } else {
+                toggleReviewFormBtn.innerHTML = '<i class="fas fa-edit"></i><span>Viết đánh giá của bạn</span>';
+            }
+        });
+    }
+
+    if (cancelReviewBtn && reviewFormContainer) {
+        cancelReviewBtn.addEventListener('click', function() {
+            reviewFormContainer.classList.add('hidden');
+            toggleReviewFormBtn.innerHTML = '<i class="fas fa-edit"></i><span>Viết đánh giá của bạn</span>';
+            
+            // Reset form
+            if (roomReviewForm) {
+                roomReviewForm.reset();
+                updateStarRating();
+            }
+        });
+    }
+
+    // Handle star rating
+    function updateStarRating() {
+        const starInputs = document.querySelectorAll('.star-rating input[type="radio"]');
+        const starLabels = document.querySelectorAll('.star-rating .star');
+        
+        starInputs.forEach((input, index) => {
+            input.addEventListener('change', function() {
+                const rating = parseInt(this.value);
+                
+                starLabels.forEach((star, starIndex) => {
+                    const starValue = 5 - starIndex; // Reverse order
+                    if (starValue <= rating) {
+                        star.style.color = '#f59e0b';
+                    } else {
+                        star.style.color = '#d1d5db';
+                    }
+                });
+            });
+        });
+
+        // Hover effects
+        starLabels.forEach((star, index) => {
+            star.addEventListener('mouseenter', function() {
+                const rating = 5 - index; // Reverse order
+                
+                starLabels.forEach((s, sIndex) => {
+                    const sValue = 5 - sIndex;
+                    if (sValue <= rating) {
+                        s.style.color = '#fbbf24';
+                    } else {
+                        s.style.color = '#d1d5db';
+                    }
+                });
+            });
+
+            star.addEventListener('mouseleave', function() {
+                // Reset to selected state
+                const checkedInput = document.querySelector('.star-rating input[type="radio"]:checked');
+                if (checkedInput) {
+                    const selectedRating = parseInt(checkedInput.value);
+                    starLabels.forEach((s, sIndex) => {
+                        const sValue = 5 - sIndex;
+                        if (sValue <= selectedRating) {
+                            s.style.color = '#f59e0b';
+                        } else {
+                            s.style.color = '#d1d5db';
+                        }
+                    });
+                } else {
+                    starLabels.forEach(s => s.style.color = '#d1d5db');
+                }
+            });
+        });
+    }
+
+    // Initialize star rating
+    updateStarRating();
+
+    // Function to add new review to the list
+    function addNewReviewToList(rating, title, content) {
+        const reviewsContainer = document.getElementById('reviewsContainer');
+        const noReviewsMessage = reviewsContainer.querySelector('.no-reviews-message');
+        
+        // Ẩn thông báo "chưa có đánh giá" nếu có
+        if (noReviewsMessage) {
+            noReviewsMessage.style.display = 'none';
+        }
+        
+        // Tạo HTML cho đánh giá mới
+        const newReviewHtml = `
+            <div class="review-item new-review" style="animation: slideInFromTop 0.5s ease;">
+                <div class="review-header">
+                    <div class="reviewer-info">
+                        <div class="reviewer-avatar">
+                            <img src="https://ui-avatars.com/api/?name=Bạn&background=0D8ABC&color=fff" alt="Avatar">
+                        </div>
+                        <div class="reviewer-details">
+                            <h6 class="reviewer-name">Bạn</h6>
+                            <div class="review-meta">
+                                <div class="review-rating">
+                                    ${generateStarRating(rating)}
+                                </div>
+                                <span class="review-date">Vừa xong</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="review-actions">
+                        <button type="button" class="action-btn">
+                            <i class="fas fa-thumbs-up"></i>
+                            <span>0</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="review-content">
+                    <h6 class="review-title">${title}</h6>
+                    <p class="review-text">${content}</p>
+                </div>
+            </div>
+        `;
+        
+        // Thêm đánh giá mới vào đầu danh sách
+        reviewsContainer.insertAdjacentHTML('afterbegin', newReviewHtml);
+        
+        // Cập nhật số lượng đánh giá
+        updateReviewCount();
+        
+        // Scroll đến đánh giá mới
+        const newReview = reviewsContainer.querySelector('.review-item');
+        newReview.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        
+        // Xóa highlight sau 3 giây
+        setTimeout(() => {
+            newReview.classList.remove('new-review');
+        }, 3000);
+        
+        // Thêm event listener cho nút like của đánh giá mới
+        const newActionBtn = newReview.querySelector('.action-btn');
+        if (newActionBtn) {
+            newActionBtn.addEventListener('click', function() {
+                const icon = this.querySelector('i');
+                const countSpan = this.querySelector('span');
+                let currentCount = parseInt(countSpan.textContent);
+                
+                if (icon.classList.contains('fa-thumbs-up')) {
+                    // Toggle like
+                    if (this.classList.contains('liked')) {
+                        this.classList.remove('liked');
+                        countSpan.textContent = currentCount - 1;
+                        this.style.background = '#f3f4f6';
+                        this.style.color = '#6b7280';
+                    } else {
+                        this.classList.add('liked');
+                        countSpan.textContent = currentCount + 1;
+                        this.style.background = '#dbeafe';
+                        this.style.color = '#2563eb';
+                    }
+                }
+            });
+        }
+    }
+    
+    // Function to generate star rating HTML
+    function generateStarRating(rating) {
+        let starsHtml = '';
+        for (let i = 1; i <= 5; i++) {
+            if (i <= rating) {
+                starsHtml += '<i class="fas fa-star text-yellow-400"></i>';
+            } else {
+                starsHtml += '<i class="far fa-star text-gray-300"></i>';
+            }
+        }
+        return starsHtml;
+    }
+    
+    // Function to update review count
+    function updateReviewCount() {
+        const reviewItems = document.querySelectorAll('.review-item');
+        const totalReviewsDisplay = document.getElementById('totalReviewsDisplay');
+        const averageRatingDisplay = document.getElementById('averageRatingDisplay');
+        const averageStarsDisplay = document.getElementById('averageStarsDisplay');
+        
+        if (reviewItems.length > 0) {
+            // Cập nhật số lượng đánh giá
+            if (totalReviewsDisplay) {
+                totalReviewsDisplay.textContent = `Dựa trên ${reviewItems.length} đánh giá`;
+            }
+            
+            // Tính điểm trung bình (giả lập - trong thực tế bạn sẽ tính từ database)
+            let totalRating = 0;
+            reviewItems.forEach(item => {
+                const stars = item.querySelectorAll('.review-rating .fas.fa-star');
+                totalRating += stars.length;
+            });
+            
+            const averageRating = (totalRating / reviewItems.length).toFixed(1);
+            
+            if (averageRatingDisplay) {
+                averageRatingDisplay.textContent = averageRating;
+            }
+            
+            // Cập nhật sao trung bình
+            if (averageStarsDisplay) {
+                const avgRating = Math.round(parseFloat(averageRating));
+                let starsHtml = '';
+                for (let i = 1; i <= 5; i++) {
+                    if (i <= avgRating) {
+                        starsHtml += '<i class="fas fa-star text-yellow-400"></i>';
+                    } else {
+                        starsHtml += '<i class="far fa-star text-gray-300"></i>';
+                    }
+                }
+                averageStarsDisplay.innerHTML = starsHtml;
+            }
+        }
+    }
+
+    // Comment functionality is now handled by the included comment component
+    // All form submissions, filtering, and interactions are handled by Laravel forms and Alpine.js
 });

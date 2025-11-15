@@ -43,6 +43,12 @@
     grid-column: span 2;
 }
 
+/* Chỉ trang booking: làm dropdown user gọn hơn một chút */
+.booking-room-page .nav-dropdown-user {
+    max-height: 480px !important;
+    padding-bottom: 8px !important;
+}
+
 .filter-label {
     font-weight: 600;
     color: #1f2937;
@@ -227,7 +233,7 @@
 
 .search-label {
     font-size: 0.85rem;
-    font-weight: 600;
+    font-weight: 500;
     color: #4b5563;
 }
 
@@ -639,51 +645,54 @@
 }
 
 .room-selection-eyebrow {
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #9ca3af;
-    margin-bottom: 4px;
+font-size: 0.8rem;
+text-transform: uppercase;
+letter-spacing: 0.08em;
+color: #9ca3af;
+margin-bottom: 4px;
 }
 
 .room-selection-title {
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: #111827;
+font-size: 1.4rem;
+font-weight: 700;
+color: #111827;
 }
 
 .room-selection-note {
-    font-size: 0.9rem;
-    color: #6b7280;
+font-size: 0.9rem;
+color: #6b7280;
 }
 
 .room-selection-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
-    gap: 16px;
-    margin-bottom: 24px;
+display: grid;
+grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+gap: 16px;
+margin-bottom: 24px;
 }
 
 .room-card {
-    display: flex;
-    background: #fff;
-    border-radius: 16px;
-    border: 1px solid #f1f5f9;
-    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
-    overflow: hidden;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    min-height: 170px;
-    padding: 12px;
+display: flex;
+background: #fff;
+border-radius: 16px;
+border: 1px solid #f1f5f9;
+box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+overflow: hidden;
+transition: transform 0.2s ease, box-shadow 0.2s ease;
+min-height: 170px;
+padding: 12px;
 }
 
 .room-card--active {
-    border-color: #f2a900;
-    box-shadow: 0 20px 35px rgba(242, 169, 0, 0.2);
-    transform: translateY(-4px);
+border-color: #f2a900;
+box-shadow: 0 20px 35px rgba(242, 169, 0, 0.2);
+transform: translateY(-4px);
 }
 
 .room-card__media {
-    width: 180px;
+width: 180px;
+flex-shrink: 0;
+border-radius: 12px;
+overflow: hidden;
     flex-shrink: 0;
     border-radius: 12px;
     overflow: hidden;
@@ -1421,7 +1430,7 @@
     margin-top: 24px;
 }
 
-.guarantee-item {
+ .guarantee-item {
     display: flex;
     align-items: center;
     gap: 14px;
@@ -1532,8 +1541,8 @@
     top: 0;
     left: 0;
     width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.7);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -1541,6 +1550,8 @@
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.3s ease, visibility 0.3s ease;
+    padding: 20px;
+    box-sizing: border-box;
 }
 
 .modal-overlay.visible {
@@ -1548,16 +1559,30 @@
     visibility: visible;
 }
 
+/* Ẩn menu chỉ khi popup hiển thị */
+body.modal-open nav,
+body.modal-open header,
+body.modal-open .navbar,
+body.modal-open .menu,
+body.modal-open .header {
+    display: none !important;
+}
+
+/* Ẩn scroll của body khi popup mở */
+body.modal-open {
+    overflow: hidden;
+}
+
+
 .modal-container {
-    background-color: #fff;
-    border-radius: 20px;
-    width: 90%;
-    max-width: 900px;
+    background: white;
+    border-radius: 16px;
+    width: 95%;
+    max-width: 1000px;
     max-height: 90vh;
     overflow-y: auto;
     position: relative;
-    padding: 30px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
     transform: scale(0.95);
     transition: transform 0.3s ease;
 }
@@ -1576,9 +1601,11 @@
     border-radius: 50%;
     width: 40px;
     height: 40px;
-    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-    z-index: 10;
+    font-size: 1.2rem;
     transition: background 0.2s;
 }
 
@@ -1586,87 +1613,248 @@
     background: #e2e8f0;
 }
 
-/* Thay đổi chính về cấu trúc 2 cột */
+/* Layout 2 cột mới */
 .modal-body-wrapper {
     display: flex;
-    gap: 30px; /* Khoảng cách giữa 2 cột chính */
+    gap: 24px;
+    padding: 24px;
 }
 
-.modal-media-column {
-    flex: 0 0 40%; /* Cột media chiếm 40% */
+.modal-left-column {
+    flex: 0 0 38%;
     min-width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
 }
 
-.modal-content-column {
-    flex: 1; /* Cột nội dung chiếm phần còn lại (60%) */
-    padding-top: 5px; /* Căn chỉnh với tiêu đề */
+.modal-right-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto;
+    max-height: calc(85vh - 48px);
 }
 
-/* Header (Nội dung bên phải) */
+/* Header với giá */
 .modal-header-details {
-    margin-bottom: 15px;
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid #f59e0b;
 }
 
 .modal-header-details h3 {
-    font-size: 1.8rem;
+    font-size: 1.6rem;
     font-weight: 700;
-    color: #111827;
-    margin: 0 0 5px 0;
+    color: #1f2937;
+    margin: 0 0 8px 0;
 }
 
-.room-size-tag {
-    display: inline-block;
-    font-size: 1rem;
-    color: #4b5563;
+.room-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.room-size {
+    font-size: 0.95rem;
+    color: #6b7280;
     font-weight: 500;
-    padding-right: 15px;
-    border-right: 1px solid #e5e7eb;
+    background: rgba(255, 255, 255, 0.7);
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+
+.room-price {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #dc2626;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid #fca5a5;
 }
 
 /* Media (Ảnh) */
+.modal-media {
+    flex-shrink: 0;
+}
+
 .modal-media img {
     width: 100%;
-    height: auto;
-    border-radius: 16px;
+    height: 200px;
+    border-radius: 12px;
     object-fit: cover;
-    max-height: 350px;
-    margin-bottom: 25px;
+    display: block;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Rating Summary */
+.modal-rating-summary {
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid #bae6fd;
+}
+
+.rating-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.rating-stars {
+    display: flex;
+    gap: 2px;
+}
+
+.rating-score {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #1f2937;
+}
+
+.rating-count {
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+/* Recent Reviews */
+.modal-recent-reviews {
+    background: #f9fafb;
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid #e5e7eb;
+}
+
+.recent-reviews-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.recent-review-item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.review-avatar img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.review-content {
+    flex: 1;
+}
+
+.review-content .rating-stars {
+    margin-bottom: 4px;
+}
+
+.review-text {
+    font-size: 0.85rem;
+    color: #4b5563;
+    margin: 4px 0;
+    line-height: 1.4;
+}
+
+.review-author {
+    font-size: 0.8rem;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+/* Description section */
+.modal-description-section {
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 16px;
+    border: 1px solid #e5e7eb;
 }
 
 .modal-description {
-    line-height: 1.6;
+    line-height: 1.5;
     color: #4b5563;
-    margin-bottom: 25px;
-    font-size: 0.95rem;
+    margin: 0 0 8px 0;
+    font-size: 0.9rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
-/* Tiện ích (Phần dưới ảnh) */
-.amenities-title {
-    font-size: 1.2rem;
+.description-toggle {
+    background: none;
+    border: none;
+    color: #3b82f6;
+    font-size: 0.85rem;
     font-weight: 600;
-    color: #111827;
-    margin-bottom: 15px;
-    border-bottom: 1px solid #f1f5f9;
-    padding-bottom: 8px;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+}
+
+.description-toggle:hover {
+    color: #2563eb;
+}
+
+/* Tiện ích dưới ảnh */
+.modal-amenities-section {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid #e2e8f0;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.amenities-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid #e5e7eb;
 }
 
 .modal-amenities-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr; /* 2 cột cố định */
-    gap: 15px 10px;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px 4px;
 }
 
 .amenity-item {
     display: flex;
     align-items: center;
-    gap: 10px;
-    font-size: 0.95rem;
+    gap: 6px;
+    font-size: 0.75rem;
     color: #374151;
+    padding: 3px 0;
 }
 
 .amenity-item i {
-    color: #4c51bf; /* Màu xanh/tím nổi bật cho icon */
-    font-size: 1.1rem;
+    color: #3b82f6;
+    font-size: 0.8rem;
+    width: 12px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.amenity-item span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Style cho nút/liên kết Xem chi tiết */
@@ -1689,15 +1877,663 @@
     color: #3f45a2;
 }
 
+/* Review Form Section */
+.modal-review-form-section {
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.review-form-toggle {
+    width: 100%;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.2s ease;
+}
+
+.review-form-toggle:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.review-form-toggle .toggle-icon {
+    transition: transform 0.2s ease;
+}
+
+.review-form-toggle.expanded .toggle-icon {
+    transform: rotate(180deg);
+}
+
+.review-form-container {
+    padding: 16px;
+    border-top: 1px solid #e5e7eb;
+    margin-top: 1px;
+    border-radius: 0 0 12px 12px;
+}
+
+
 /* Responsive */
 @media (max-width: 992px) {
+    .modal-overlay {
+        padding: 10px;
+    }
+    
+    .modal-container {
+        width: 95%;
+        height: 90vh;
+    }
+    
     .modal-body-wrapper {
         flex-direction: column;
-        gap: 20px;
+        gap: 16px;
+        padding: 16px;
     }
-    .modal-media-column {
+    
+    .modal-left-column {
         min-width: 100%;
+        gap: 12px;
+    }
+    
+    .modal-right-column {
+        gap: 16px;
+        max-height: none;
+    }
+    
+    .modal-media img {
+        height: 180px;
+    }
+    
+    .modal-amenities-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .room-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
     }
 }
+
+@media (max-width: 768px) {
+    .modal-overlay {
+        padding: 5px;
+    }
+    
+    .modal-container {
+        width: 98%;
+        height: 95vh;
+    }
+    
+    .modal-body-wrapper {
+        padding: 12px;
+        gap: 12px;
+    }
+    
+    .modal-amenities-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .modal-media img {
+        height: 160px;
+    }
+    
+    .modal-header-details {
+        padding: 16px;
+    }
+    
+    .modal-header-details h3 {
+        font-size: 1.4rem;
+    }
+    
+    .room-price {
+        font-size: 1.1rem;
+    }
+}
+
+/* === CSS CHO PHẦN COMMENT VÀ ĐÁNH GIÁ === */
+
+/* Modal Comments Section */
+.modal-comments-section {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid #e2e8f0;
+    margin-top: 8px;
+}
+
+.comments-title {
+    color: #111827;
+    margin-bottom: 16px;
+}
+
+/* Rating Summary */
+.rating-summary {
+    background: #f8fafc;
+}
+
+.rating-overview {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 24px;
+    align-items: center;
+}
+
+.rating-score {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.score-number {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #2563eb;
+}
+
+.score-details .stars {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 4px;
+}
+
+.review-count {
+    color: #64748b;
+    font-size: 0.875rem;
+}
+
+.rating-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rating-bar {
+    display: grid;
+    grid-template-columns: 60px 1fr 40px;
+    gap: 12px;
+    align-items: center;
+    font-size: 0.875rem;
+}
+
+.rating-label {
+    color: #64748b;
+    font-weight: 500;
+}
+
+.bar-container {
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #f59e0b, #f97316);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.rating-percent {
+    color: #64748b;
+    font-weight: 500;
+    text-align: right;
+}
+
+/* Write Review Section */
+.write-review-section {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.write-review-btn {
+    width: 100%;
+    background: #fff;
+    border: none;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 600;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.write-review-btn:hover {
+    background: #f9fafb;
+    color: #111827;
+}
+
+.write-review-btn i {
+    color: #f59e0b;
+    font-size: 1.1rem;
+}
+
+.review-form-container {
+    border-top: 1px solid #e5e7eb;
+    padding: 20px;
+    background: #f9fafb;
+}
+
+.review-form-container.hidden {
+    display: none;
+}
+
+.review-form .form-group {
+    margin-bottom: 20px;
+}
+
+.review-form .form-label {
+    display: block;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8px;
+    font-size: 0.875rem;
+}
+
+/* Star Rating */
+.star-rating {
+    display: flex;
+    flex-direction: row-reverse;
+    gap: 4px;
+    margin-bottom: 4px;
+}
+
+.star-rating input[type="radio"] {
+    display: none;
+}
+
+.star-rating .star {
+    cursor: pointer;
+    font-size: 1.5rem;
+    color: #d1d5db;
+    transition: color 0.2s ease;
+}
+
+.star-rating .star:hover,
+.star-rating .star:hover ~ .star {
+    color: #fbbf24;
+}
+
+.star-rating input[type="radio"]:checked ~ .star {
+    color: #f59e0b;
+}
+
+.form-input, .form-textarea {
+    width: 100%;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 0.875rem;
+    background: #fff;
+    transition: border-color 0.2s ease;
+}
+
+.form-input:focus, .form-textarea:focus {
+    outline: none;
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.btn-cancel, .btn-submit {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-cancel {
+    background: #fff;
+    border: 1px solid #d1d5db;
+    color: #6b7280;
+}
+
+.btn-cancel:hover {
+    background: #f9fafb;
+    border-color: #9ca3af;
+}
+
+.btn-submit {
+    background: linear-gradient(135deg, #f59e0b, #f97316);
+    border: none;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.btn-submit:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4);
+}
+
+/* Reviews List */
+.reviews-list {
+    margin-top: 24px;
+}
+
+.reviews-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.reviews-list-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+}
+
+.reviews-filter .filter-select {
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.875rem;
+    background: #fff;
+    color: #374151;
+}
+
+.reviews-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Review Item */
+.review-item {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 20px;
+    transition: all 0.2s ease;
+}
+
+.review-item:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border-color: #d1d5db;
+}
+
+.review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+    gap: 16px;
+}
+
+.reviewer-info {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.reviewer-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.reviewer-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.reviewer-details {
+    flex: 1;
+}
+
+.reviewer-name {
+    font-weight: 600;
+    color: #111827;
+    margin: 0 0 4px 0;
+    font-size: 0.95rem;
+}
+
+.review-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.review-rating {
+    display: flex;
+    gap: 2px;
+}
+
+.review-date {
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+.review-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.action-btn {
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 6px 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.875rem;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.action-btn:hover {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+.review-content {
+    margin-top: 12px;
+}
+
+.review-title {
+    font-weight: 600;
+    color: #111827;
+    margin: 0 0 8px 0;
+    font-size: 1rem;
+}
+
+.review-text {
+    color: #4b5563;
+    line-height: 1.6;
+    margin: 0;
+    font-size: 0.875rem;
+}
+
+/* Reviews Pagination */
+.reviews-pagination {
+    margin-top: 24px;
+    text-align: center;
+}
+
+.load-more-btn {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 12px 24px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.load-more-btn:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .rating-overview {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        text-align: center;
+    }
+
+    .rating-score {
+        justify-content: center;
+    }
+
+    .reviews-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .review-header {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .reviewer-info {
+        width: 100%;
+    }
+
+    .review-actions {
+        align-self: flex-start;
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+
+    .btn-cancel, .btn-submit {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .rating-bar {
+        grid-template-columns: 50px 1fr 35px;
+        gap: 8px;
+        font-size: 0.8rem;
+    }
+
+    .modal-comments-section {
+        padding: 16px 0;
+    }
+
+    .rating-summary {
+        padding: 16px;
+    }
+}
+
+/* Animation cho đánh giá mới */
+@keyframes slideInFromTop {
+    0% {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Highlight cho đánh giá mới */
+.review-item.new-review {
+    border: 2px solid #f59e0b;
+    background: linear-gradient(135deg, #fff9e6, #ffffff);
+    box-shadow: 0 8px 25px rgba(245, 158, 11, 0.15);
+}
+
+/* Override styles cho comment component trong modal */
+.modal-comments-section .bg-white {
+    background-color: transparent !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 1rem !important;
+    margin-bottom: 1rem !important;
+}
+
+.modal-comments-section .rounded-xl {
+    border-radius: 0.5rem !important;
+}
+
+.modal-comments-section .shadow-md {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+}
+
+.modal-comments-section .bg-gray-50 {
+    background-color: #f9fafb !important;
+}
+
+.modal-comments-section h3 {
+    font-size: 1.25rem !important;
+    margin-bottom: 1rem !important;
+}
+
+/* Đảm bảo form trong modal có style phù hợp */
+.modal-comments-section form {
+    background: #f8fafc;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+
+.modal-comments-section .text-2xl {
+    font-size: 1.25rem !important;
+}
+
+.modal-comments-section .text-3xl {
+    font-size: 1.5rem !important;
+}
+
+/* Responsive cho modal comment */
+@media (max-width: 768px) {
+    .modal-comments-section .flex-col {
+        flex-direction: column !important;
+    }
+    
+    .modal-comments-section .md\\:flex-row {
+        flex-direction: column !important;
+    }
+    
+    .modal-comments-section .md\\:justify-between {
+        justify-content: flex-start !important;
+    }
+}
+
 
 

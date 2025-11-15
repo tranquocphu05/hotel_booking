@@ -286,6 +286,34 @@
                                                 $optionImage = $option->anh
                                                     ? asset($option->anh)
                                                     : '/img/room/room-1.jpg';
+                                                
+                                                // Lấy dữ liệu đánh giá cho loại phòng này
+                                                $averageRating = \App\Models\Comment::where('loai_phong_id', $option->id)
+                                                    ->where('trang_thai', 'hien_thi')
+                                                    ->avg('so_sao') ?? 0;
+                                                
+                                                $totalReviews = \App\Models\Comment::where('loai_phong_id', $option->id)
+                                                    ->where('trang_thai', 'hien_thi')
+                                                    ->count();
+                                                
+                                                // Lấy 5 đánh giá gần nhất
+                                                $recentReviews = \App\Models\Comment::where('loai_phong_id', $option->id)
+                                                    ->where('trang_thai', 'hien_thi')
+                                                    ->with('user')
+                                                    ->latest('ngay_danh_gia')
+                                                    ->limit(5)
+                                                    ->get()
+                                                    ->map(function ($comment) {
+                                                        return [
+                                                            'id' => $comment->id,
+                                                            'user_id' => $comment->nguoi_dung_id,
+                                                            'user_name' => $comment->user ? $comment->user->ho_ten : 'Anonymous',
+                                                            'rating' => $comment->so_sao,
+                                                            'comment' => $comment->noi_dung,
+                                                            'created_at' => $comment->ngay_danh_gia ? $comment->ngay_danh_gia->format('d/m/Y') : null,
+                                                            'image' => $comment->img ? asset('storage/' . $comment->img) : null
+                                                        ];
+                                                    });
                                             @endphp
                                             <article
                                                 class="room-card {{ $option->id === ($loaiPhong->id ?? null) ? 'room-card--active' : '' }}">
@@ -311,7 +339,12 @@
                                                         data-room-name="{{ $option->ten_loai }}"
                                                         data-room-description="{{ $option->mo_ta ?? 'Không gian hiện đại...' }}"
                                                         data-room-image="{{ $optionImage }}"
-                                                        data-room-amenities="{{ json_encode(explode(',', $option->tien_ich ?? '')) }}">
+                                                        data-room-price="{{ $optionPrice }}"
+                                                        data-room-size="{{ $option->dien_tich ?? '' }}m²"
+                                                        data-room-amenities="{{ json_encode(explode(',', $option->tien_ich ?? '')) }}"
+                                                        data-average-rating="{{ round($averageRating, 1) }}"
+                                                        data-total-reviews="{{ $totalReviews }}"
+                                                        data-recent-reviews="{{ $recentReviews->toJson() }}">
                                                         Xem tất cả tiện nghi
                                                     </button>
                                                     <div class="room-card__footer">
@@ -612,36 +645,64 @@
             </button>
 
             <div class="modal-body-wrapper">
-                <div class="modal-media-column">
+                {{-- Cột trái: Ảnh + Rating + Reviews gần đây --}}
+                <div class="modal-left-column">
+                    {{-- Ảnh phòng --}}
                     <div class="modal-media">
-                        {{-- Ảnh sẽ được load bằng JS --}}
                         <img id="modalRoomImage" src="" alt="Hình ảnh phòng">
+                    </div>
+                    
+                    {{-- Rating Summary ngay dưới ảnh --}}
+                    <div class="modal-rating-summary" id="modalRatingSummary">
+                        <div class="rating-display">
+                            <div class="rating-stars" id="modalRatingStars">
+                                {{-- Stars sẽ được load bằng JS --}}
+                            </div>
+                            <span class="rating-score" id="modalRatingScore">0.0/5</span>
+                            <span class="rating-count" id="modalRatingCount">(0 đánh giá)</span>
+                        </div>
+                    </div>
+
+                    {{-- Reviews gần đây --}}
+                    <div class="modal-recent-reviews">
+                        <h5 class="recent-reviews-title">Đánh giá gần đây</h5>
+                        <div id="modalRecentReviews">
+                            {{-- Recent reviews sẽ được load bằng JS --}}
+                            <div class="no-reviews">
+                                <p class="text-gray-500 text-sm">Chưa có đánh giá nào</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-
-                <div class="modal-content-column">
-                    {{-- Tiêu đề và Mô tả nằm trong cột nội dung (giống ảnh mẫu) --}}
+                {{-- Cột phải: Header + Mô tả + Tiện ích + Form --}}
+                <div class="modal-right-column">
+                    {{-- Header với tên, kích thước và giá --}}
                     <div class="modal-header-details">
-                        <h3 id="modalRoomName"></h3>
-                        {{-- Kích thước m2 có thể được hiển thị ngay bên cạnh hoặc dưới tên phòng --}}
-                        <span id="modalRoomSize" class="room-size-tag text-gray-500 font-normal"></span>
+                        <h3 id="modalRoomName">Phòng Đôi</h3>
+                        <div class="room-meta">
+                            <span id="modalRoomSize" class="room-size"></span>
+                            <span class="room-price" id="modalRoomPrice">0 VNĐ/đêm</span>
+                        </div>
                     </div>
 
-                    {{-- Dữ liệu Mô tả (sẽ bị JS ghi đè khi mở) --}}
-                    <p id="modalRoomDescription" class="modal-description text-gray-700 mb-6"></p>
+                    {{-- Mô tả ngắn gọn --}}
+                    <div class="modal-description-section">
+                        <p id="modalRoomDescription" class="modal-description">Giường cỡ King cao cấp,Bồn tắm năm & phòng tắm kính,Sofa phòng khách rộng rãi,Minibar, TV Smart 65 inch,Dịch vụ Butler theo yêu cầu...</p>
+                        <button class="description-toggle" onclick="toggleDescription()">Xem thêm</button>
+                    </div>
 
-                    {{-- --- TIỆN ÍCH TRONG PHÒNG --- --}}
+                    {{-- Tiện ích 3 cột --}}
                     <div class="modal-amenities-section">
-                        <h4 class="amenities-title font-semibold text-lg border-b pb-2 mb-3">Tiện ích trong phòng:</h4>
-                        <div id="modalRoomAmenities" class="modal-amenities-grid">
+                        <h4 class="amenities-title">Tiện ích trong phòng:</h4>
+                        <div class="modal-amenities-grid">
                             <div class="amenity-item">
                                 <i class="fas fa-door-closed"></i>
                                 <span>Tủ quần áo</span>
                             </div>
                             <div class="amenity-item">
                                 <i class="fas fa-smoking-ban"></i>
-                                <span>Phòng không hút thuốc</span>
+                                <span>Không hút thuốc</span>
                             </div>
                             <div class="amenity-item">
                                 <i class="fas fa-snowflake"></i>
@@ -653,56 +714,57 @@
                             </div>
                             <div class="amenity-item">
                                 <i class="fas fa-lock"></i>
-                                <span>Két sắt an toàn</span>
+                                <span>Két sắt</span>
                             </div>
                             <div class="amenity-item">
                                 <i class="fas fa-soap"></i>
-                                <span>Đồ phòng tắm</span>
+                                <span>Đồ tắm</span>
                             </div>
                             <div class="amenity-item">
                                 <i class="fas fa-phone-alt"></i>
                                 <span>Điện thoại</span>
                             </div>
                             <div class="amenity-item">
-                                <i class="fas fa-satellite-dish"></i>
-                                <span>Truyền hình cáp/Vệ tinh</span>
+                                <i class="fas fa-tv"></i>
+                                <span>TV cáp</span>
                             </div>
-
                             <div class="amenity-item">
                                 <i class="fas fa-bed"></i>
-                                <span>Ga trải giường, gối</span>
+                                <span>Giường đôi</span>
                             </div>
                             <div class="amenity-item">
                                 <i class="fas fa-shower"></i>
                                 <span>Vòi sen</span>
                             </div>
                             <div class="amenity-item">
-                                <i class="fas fa-tshirt"></i>
-                                <span>Dịch vụ giặt ủi</span>
-                            </div>
-                            <div class="amenity-item">
-                                <i class="fas fa-bath"></i>
-                                <span>Phòng có bồn tắm</span>
-                            </div>
-                            <div class="amenity-item">
                                 <i class="fas fa-wifi"></i>
                                 <span>Wifi</span>
                             </div>
                             <div class="amenity-item">
-                                <i class="fas fa-hand-holding-water"></i>
-                                <span>Khăn tắm</span>
-                            </div>
-                            <div class="amenity-item">
-                                <i class="fas fa-lightbulb"></i>
-                                <span>Đèn bàn</span>
-                            </div>
-                            <div class="amenity-item">
-                                <i class="fas fa-desktop"></i>
-                                <span>Bàn làm việc</span>
+                                <i class="fas fa-coffee"></i>
+                                <span>Minibar</span>
                             </div>
                         </div>
                     </div>
-                    {{-- --- KẾT THÚC TIỆN ÍCH --- --}}
+
+                    {{-- Form đánh giá có thể collapse --}}
+                    <div class="modal-review-form-section">
+                        <button class="review-form-toggle" onclick="toggleReviewForm()">
+                            <i class="fas fa-edit"></i>
+                            <span>Viết đánh giá của bạn</span>
+                            <i class="fas fa-chevron-down toggle-icon"></i>
+                        </button>
+                        <div class="review-form-container" style="display: none;">
+                            @if(isset($loaiPhong))
+                                @include('client.content.comment', ['room' => $loaiPhong])
+                            @else
+                                <div class="no-room-data">
+                                    <i class="fas fa-info-circle"></i>
+                                    <p>Không thể tải form đánh giá.</p>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -721,6 +783,7 @@
         };
         window.bookingConfig.csrfToken = '{{ csrf_token() }}';
         window.bookingConfig.defaultRoomCount = {{ $loaiPhong->so_luong_phong ?? 0 }};
+        window.bookingConfig.userId = {{ auth()->check() ? auth()->id() : 'null' }};
     </script>
     @vite('resources/js/booking.js')
 @endpush
