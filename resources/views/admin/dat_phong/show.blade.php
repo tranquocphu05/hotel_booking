@@ -248,18 +248,17 @@
                                             <div class="flex gap-4">
                                                 <img src="{{ asset($loaiPhong->anh ?? 'img/room/room-1.jpg') }}" 
                                                     alt="{{ $loaiPhong->ten_loai }}"
-                                                    class="w-24 h-24 object-cover rounded-lg flex-shrink-0">
-                                                <div class="flex-1">
-                                                    <h3 class="font-semibold text-gray-900">{{ $loaiPhong->ten_loai }}</h3>
-                                                    <div class="mt-2 grid grid-cols-2 gap-2 text-sm">
-                                                        <div class="text-gray-600">
-                                                            <span class="font-medium">Số lượng:</span> {{ $roomType['so_luong'] }} phòng
-                                                        </div>
-                                                        <div class="text-gray-600">
-                                                            <span class="font-medium">Giá:</span> {{ number_format($roomType['gia_rieng'] ?? 0, 0, ',', '.') }} VNĐ
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                                    class="w-full h-32 object-cover rounded-lg mb-2">
+                                                <p class="text-sm font-medium text-gray-900">{{ $loaiPhong->ten_loai }}</p>
+                                                <p class="text-xs text-gray-600">Số lượng: {{ $roomType['so_luong'] }} phòng</p>
+                                                @php
+                                                    $lpUnit = $loaiPhong ? ($loaiPhong->gia_khuyen_mai ?? $loaiPhong->gia_co_ban ?? 0) : 0;
+                                                    $soLuong = $roomType['so_luong'] ?? 1;
+                                                    $nights = ($booking && $booking->ngay_nhan && $booking->ngay_tra) ? \Carbon\Carbon::parse($booking->ngay_nhan)->diffInDays(\Carbon\Carbon::parse($booking->ngay_tra)) : 1;
+                                                    $nights = max(1, $nights);
+                                                    $subtotal = $lpUnit * $nights * $soLuong;
+                                                @endphp
+                                                <p class="text-xs text-gray-600">Giá: {{ number_format($subtotal, 0, ',', '.') }} VNĐ</p>
                                             </div>
                                         </div>
                                     @endif
@@ -368,8 +367,25 @@
                                         </button>
                                     </form>
                                 </div>
-                            </div>
-                        @endif
+                            @elseif($remainingCount > 0)
+                                <p class="text-xs text-gray-500 mt-2">
+                                    <i class="fas fa-info-circle mr-1"></i>
+                                    Còn thiếu {{ $remainingCount }} phòng. Không có phòng trống trong khoảng thời gian này.
+                                </p>
+                            @endif
+                            @if(count($roomTypes) > 1)
+                                <div class="mt-3 pt-3 border-t border-gray-200">
+                                    <p class="text-xs text-gray-600 mb-2">Tổng giá: <span class="font-medium">{{ number_format($booking->tong_tien, 0, ',', '.') }} VNĐ</span></p>
+                                </div>
+                            @else
+                                <p class="text-sm text-gray-600">Giá phòng: <span class="font-medium">{{ number_format($booking->loaiPhong->gia_khuyen_mai ?? $booking->loaiPhong->gia_co_ban ?? 0, 0, ',', '.') }} VNĐ/đêm</span></p>
+                                <p class="text-sm px-3 py-1 rounded-full text-sm font-medium
+                                    @if ($booking->loaiPhong->trang_thai === 'hoat_dong') bg-green-100 text-green-800
+                                    @else bg-yellow-100 text-yellow-800 @endif">
+                                    {{ $booking->loaiPhong->trang_thai === 'hoat_dong' ? 'Hoạt động' : 'Ngừng' }}
+                                </p>
+                            @endif
+                        </div>
                     </div>
                 </div>
 
