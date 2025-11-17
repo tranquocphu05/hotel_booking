@@ -50,13 +50,15 @@ class Phong extends Model
     }
 
     /**
-     * Get bookings that have this room assigned (via phong_ids JSON)
+     * Get bookings that have this room assigned (via pivot table)
      * @return \Illuminate\Database\Eloquent\Collection
      */
     public function bookings()
     {
-        // Query bookings that have this room ID in phong_ids JSON
-        return DatPhong::whereJsonContains('phong_ids', $this->id)->get();
+        // Query bookings via pivot table
+        return DatPhong::whereHas('assignedRooms', function($query) {
+            $query->where('phong_id', $this->id);
+        })->get();
     }
 
     /**
