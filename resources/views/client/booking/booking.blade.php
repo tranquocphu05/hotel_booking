@@ -286,16 +286,16 @@
                                                 $optionImage = $option->anh
                                                     ? asset($option->anh)
                                                     : '/img/room/room-1.jpg';
-                                                
+
                                                 // Lấy dữ liệu đánh giá cho loại phòng này
                                                 $averageRating = \App\Models\Comment::where('loai_phong_id', $option->id)
                                                     ->where('trang_thai', 'hien_thi')
                                                     ->avg('so_sao') ?? 0;
-                                                
+
                                                 $totalReviews = \App\Models\Comment::where('loai_phong_id', $option->id)
                                                     ->where('trang_thai', 'hien_thi')
                                                     ->count();
-                                                
+
                                                 // Lấy 5 đánh giá gần nhất
                                                 $recentReviews = \App\Models\Comment::where('loai_phong_id', $option->id)
                                                     ->where('trang_thai', 'hien_thi')
@@ -362,11 +362,17 @@
                                                                         ? max(0, (int)$roomAvailabilityMap[$option->id])
                                                                         : (int)($option->so_luong_phong ?? 0);
                                                                 @endphp
-                                                                <select 
+                                                                <select
                                                                     id="room_card_quantity_{{ $option->id }}"
-                                                                    class="room-card-quantity" 
-                                                                    value="{{ $option->id === ($loaiPhong->id ?? null) ? '1' : '0' }}" 
-                                                                    min="0" 
+                                                                    class="room-card-quantity rounded-md border border-gray-300
+                                                                            bg-white
+                                                                            py-1.5 pl-3 pr-8
+                                                                            text-sm text-gray-800
+                                                                            shadow-sm
+                                                                            focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                                                                            cursor-pointer"
+                                                                    value="{{ $option->id === ($loaiPhong->id ?? null) ? '1' : '0' }}"
+                                                                    min="0"
                                                                     max="{{ $option->so_luong_phong }}"
                                                                     data-room-id="{{ $option->id }}"
                                                                     data-room-name="{{ $option->ten_loai }}"
@@ -654,7 +660,7 @@
                     <div class="modal-media">
                         <img id="modalRoomImage" src="" alt="Hình ảnh phòng">
                     </div>
-                    
+
                     {{-- Rating Summary ngay dưới ảnh --}}
                     <div class="modal-rating-summary" id="modalRatingSummary">
                         <div class="rating-display">
