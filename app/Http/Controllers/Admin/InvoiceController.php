@@ -26,14 +26,11 @@ class InvoiceController extends Controller
             });
         }
 
-        // Mặc định chỉ hiển thị hóa đơn đã thanh toán nếu không truyền filter
+        // Filter theo trạng thái nếu có
         if ($request->filled('status')) {
             $query->where('trang_thai', $request->status);
-        } else {
-            $query->where('trang_thai', 'da_thanh_toan');
-            // Gắn vào request để filter UI (nếu có) hiển thị đúng trạng thái
-            $request->merge(['status' => 'da_thanh_toan']);
         }
+        // Nếu không có filter, hiển thị tất cả
 
         $invoices = $query->latest()->paginate(5);
         $users = User::where('vai_tro', 'khach_hang')->get();
@@ -178,6 +175,14 @@ class InvoiceController extends Controller
     }
     public function create(){
 
+    }
+
+    public function print(Invoice $invoice)
+    {
+        $invoice->load(['datPhong' => function($q) {
+            $q->with('user', 'loaiPhong', 'voucher');
+        }]);
+        return view('admin.invoices.print', compact('invoice'));
     }
 
 }

@@ -116,11 +116,6 @@ class Phong extends Model
             return false;
         }
 
-        // 🔥 BỔ SUNG: Chỉ phòng 'trong' mới cho phép sử dụng (KHÔNG xoá code dưới)
-        if ($this->trang_thai !== 'trong') {
-            return false;
-        }
-
         // Chuyển đổi sang Carbon nếu cần
         if (!$ngayNhan instanceof Carbon) {
             $ngayNhan = Carbon::parse($ngayNhan);
@@ -152,25 +147,29 @@ class Phong extends Model
             })
             ->exists();
 
-        // Kiểm tra bookings qua phong_ids JSON
-        $conflictFromPhongIds = \App\Models\DatPhong::where(function($query) use ($ngayNhan, $ngayTra, $excludeBookingId, $today) {
-                $query->where(function($q) use ($ngayNhan, $ngayTra) {
-                    $q->where('ngay_tra', '>', $ngayNhan)
-                      ->where('ngay_nhan', '<', $ngayTra);
-                })
-                ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
-                ->where('ngay_tra', '>', $today)
-                ->when($excludeBookingId, function($q) use ($excludeBookingId) {
-                    $q->where('id', '!=', $excludeBookingId);
-                });
+        // Kiểm tra bookings qua pivot table booking_rooms
+        $conflictFromPivot = \App\Models\DatPhong::whereHas('assignedRooms', function($query) {
+                $query->where('phong.id', $this->id);
             })
-            ->whereJsonContains('phong_ids', $this->id)
+            ->when($excludeBookingId, function($q) use ($excludeBookingId) {
+                $q->where('dat_phong.id', '!=', $excludeBookingId);
+            })
+            ->where(function($query) use ($ngayNhan, $ngayTra, $today) {
+                $query->where('ngay_tra', '>', $ngayNhan)
+                      ->where('ngay_nhan', '<', $ngayTra)
+                      ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
+                      ->where('ngay_tra', '>', $today);
+            })
             ->exists();
 
         // Phòng khả dụng nếu:
         // 1. Không có conflict với bookings trong khoảng thời gian này
         // 2. Phòng không đang bảo trì (đã check ở đầu method)
-        return !$conflictFromDirect && !$conflictFromPhongIds;
+        // 
+        // Lưu ý: Không check trạng thái 'dang_thue' hay 'trong' ở đây vì:
+        // - Phòng có thể 'dang_thue' cho booking khác (không overlap)
+        // - Phòng có thể 'trong' nhưng đã được đặt cho khoảng thời gian này (sẽ bị phát hiện bởi conflict check)
+        return !$conflictFromDirect && !$conflictFromPivot;
     }
 
     /**
@@ -238,6 +237,10 @@ class Phong extends Model
         }
 
         // Tìm các phòng của loại phòng này
+        // KHÔNG filter theo trang_thai ở đây vì:
+        // - Phòng có thể 'dang_thue' cho booking khác (không overlap) → vẫn available
+        // - Phòng có thể 'trong' nhưng đã được đặt cho khoảng thời gian này → conflict
+        // Logic isAvailableInPeriod sẽ quyết định dựa trên conflict check
         $availableRooms = static::where('loai_phong_id', $loaiPhongId)
             ->get()
             ->filter(function($phong) use ($ngayNhan, $ngayTra, $excludeBookingId) {
@@ -252,15 +255,17 @@ class Phong extends Model
     /**
      * Đếm số phòng trống trong loại phòng cho khoảng thời gian cụ thể
      * 
+     * Ví dụ: Nếu tất cả phòng đã được đặt từ 01/11 - 07/11,
+     * nhưng khách muốn đặt từ 08/11 - 14/11, method này sẽ trả về
+     * số phòng trống cho khoảng thời gian 08/11 - 14/11 (không conflict với booking 01/11 - 07/11)
+     * 
      * @param int $loaiPhongId
      * @param Carbon|string $ngayNhan
      * @param Carbon|string $ngayTra
      * @return int
      */
-    public static function countAvailableRooms($loaiPhongId, $ngayNhan, $ngayTra, $excludeBookingId = null)
+    public static function countAvailableRooms($loaiPhongId, $ngayNhan, $ngayTra)
     {
-        // Pass through excludeBookingId so findAvailableRooms can ignore rooms
-        // already assigned to the provided booking when calculating availability.
-        return static::findAvailableRooms($loaiPhongId, $ngayNhan, $ngayTra, 999, $excludeBookingId)->count();
+        return static::findAvailableRooms($loaiPhongId, $ngayNhan, $ngayTra, 999)->count();
     }
 }
