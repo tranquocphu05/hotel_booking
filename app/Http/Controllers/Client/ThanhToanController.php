@@ -65,16 +65,17 @@ class ThanhToanController extends Controller
         $surchargeMap = [];
         if (!empty($roomTypes)) {
             foreach ($roomTypes as $roomType) {
-                $pre = $roomType['gia_truoc_giam'] ?? ($roomType['gia_rieng'] ?? 0);
-                $originalPrice += $pre;
-
+                $soLuong = $roomType['so_luong'] ?? 1;
                 $lp = \App\Models\LoaiPhong::find($roomType['loai_phong_id']);
                 if ($lp) {
+                    // Use promotional price of the room type for all calculations
                     $pricePerNight = $lp->gia_khuyen_mai ?? $lp->gia_co_ban ?? 0;
-                    $soLuong = $roomType['so_luong'] ?? 1;
+                    $pre = $pricePerNight * $nights * $soLuong;
+                    $originalPrice += $pre;
+
                     $baseForType = $pricePerNight * $nights * $soLuong;
                     $basePrice += $baseForType;
-                    $surchargeMap[$roomType['loai_phong_id']] = max(0, $pre - $baseForType);
+                    $surchargeMap[$roomType['loai_phong_id']] = 0; // canonical pricing from LoaiPhong, no surcharge
                 }
             }
         } else {

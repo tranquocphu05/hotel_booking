@@ -26,16 +26,25 @@ class InvoiceController extends Controller
             });
         }
 
-        // Mặc định chỉ hiển thị hóa đơn đã thanh toán nếu không truyền filter
+        // Filter by status if provided, otherwise show all invoices
         if ($request->filled('status')) {
             $query->where('trang_thai', $request->status);
-        } else {
-            $query->where('trang_thai', 'da_thanh_toan');
-            // Gắn vào request để filter UI (nếu có) hiển thị đúng trạng thái
-            $request->merge(['status' => 'da_thanh_toan']);
         }
+        // Note: Removed default filter to show all invoices unless explicitly filtered
 
+        // Get paginated results
         $invoices = $query->latest()->paginate(5);
+        
+        // Force reload each invoice from database to get latest tong_tien and clear any cached accessors
+        $invoices->getCollection()->transform(function($inv) {
+            $fresh = $inv->fresh();
+            // Load relationships fresh to ensure accessors work correctly
+            $fresh->load(['datPhong' => function($q) {
+                $q->with('user', 'loaiPhong');
+            }]);
+            return $fresh;
+        });
+        
         $users = User::where('vai_tro', 'khach_hang')->get();
 
         return view('admin.invoices.index', compact('invoices', 'users'));
@@ -73,9 +82,15 @@ class InvoiceController extends Controller
         $bookingServices = BookingService::with('service')
             ->where('dat_phong_id', $booking->id)
             ->get();
-    // use the same status value as other controllers ('hoat_dong')
-    $services = Service::where('status', 'hoat_dong')->get();
-        return view('admin.invoices.edit', compact('invoice', 'bookingServices', 'services', 'booking'));
+        
+        // Pre-load all LoaiPhong objects used in room_types for efficient calculation in view
+        $roomTypes = $booking->getRoomTypes();
+        $loaiPhongIds = array_column($roomTypes, 'loai_phong_id');
+        $loaiPhongs = \App\Models\LoaiPhong::whereIn('id', $loaiPhongIds)->get()->keyBy('id');
+        
+        // use the same status value as other controllers ('hoat_dong')
+        $services = Service::where('status', 'hoat_dong')->get();
+        return view('admin.invoices.edit', compact('invoice', 'bookingServices', 'services', 'booking', 'loaiPhongs'));
     }
 
     public function update(Request $request, $id)
@@ -95,11 +110,10 @@ class InvoiceController extends Controller
         if ($request->filled('services_data')) {
             $servicesData = $request->input('services_data', []);
             
-            // Delete old services for this booking
+            // Delete old services for this booking BEFORE creating new ones
             BookingService::where('dat_phong_id', $booking->id)->delete();
             
             // Create new service entries
-            $totalServicePrice = 0;
             foreach ($servicesData as $svcId => $data) {
                 $service = Service::find($svcId);
                 if (!$service) continue;
@@ -117,50 +131,27 @@ class InvoiceController extends Controller
                         'unit_price' => $service->price,
                         'used_at' => $ngay,
                     ]);
-                    $totalServicePrice += $service->price * $qty;
                 }
             }
-            
-            // Recalculate and update totals
-            $nights = \Carbon\Carbon::parse($booking->ngay_nhan)
-                ->diffInDays(\Carbon\Carbon::parse($booking->ngay_tra));
-            $roomTypes = $booking->getRoomTypes();
-            $roomTotal = 0;
-            foreach ($roomTypes as $rt) {
-                // Historical data: many places store 'gia_rieng' as the subtotal for that room-type
-                // (unit_price * nights * so_luong). To avoid double-multiplying here, prefer the
-                // stored 'gia_rieng' when present. If missing, fallback to computing from LoaiPhong.
-                if (isset($rt['gia_rieng']) && $rt['gia_rieng'] !== null) {
-                    // treat as subtotal already
-                    $roomTotal += (float) $rt['gia_rieng'];
-                } else {
-                    // fallback: compute from LoaiPhong unit price
-                    $loaiPhongId = $rt['loai_phong_id'] ?? null;
-                    $soLuong = $rt['so_luong'] ?? 1;
-                    $unit = 0;
-                    if ($loaiPhongId) {
-                        $lp = \App\Models\LoaiPhong::find($loaiPhongId);
-                        if ($lp) $unit = $lp->gia_khuyen_mai ?? $lp->gia_co_ban ?? 0;
-                    }
-                    $roomTotal += $unit * $nights * $soLuong;
-                }
-            }
-            
-            $newTotal = $roomTotal + $totalServicePrice;
-            $booking->tong_tien = $newTotal;
-            $booking->save();
-            
-            // Sync invoice total
-            $invoice->tong_tien = $newTotal;
-            $invoice->save();
+        } else {
+            // If no services_data provided but there are existing services,
+            // they should remain intact (don't delete)
         }
 
         // Recalculate booking totals using central service (will include services we just saved)
+        $booking = $booking->fresh();
         try {
             BookingPriceCalculator::recalcTotal($booking);
-            // Ensure invoice reflects booking's canonical total
-            $invoice->tong_tien = $booking->tong_tien;
-            $invoice->save();
+            // Reload both $booking and $invoice from DB to get the updated values
+            $booking = $booking->fresh();
+            $invoice = $invoice->fresh();
+            // Get the latest tong_tien from booking (which was updated by recalcTotal)
+            if ($booking->tong_tien !== $invoice->tong_tien) {
+                $invoice->tong_tien = $booking->tong_tien;
+                $invoice->save();
+                // Debug: Log the values for verification
+                \Log::info('Invoice ' . $invoice->id . ' updated: tong_tien=' . $invoice->tong_tien . ', booking tong_tien=' . $booking->tong_tien);
+            }
         } catch (\Throwable $e) {
             // Log and continue — do not block status update because of calc error
             \Log::warning('Recalc booking total failed in InvoiceController:update: ' . $e->getMessage());

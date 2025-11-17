@@ -157,25 +157,25 @@
                         {{-- Show dynamic total so admin sees live changes --}}
                         @php
                             // Calculate room total properly from booking data
-                            $nights = 0;
+                            $nights = 1;
                             $roomTotalCalculated = 0;
                             if($booking && $booking->ngay_nhan && $booking->ngay_tra) {
                                 $checkin = \Carbon\Carbon::parse($booking->ngay_nhan);
                                 $checkout = \Carbon\Carbon::parse($booking->ngay_tra);
-                                $nights = $checkin->diffInDays($checkout);
+                                $nights = max(1, $checkin->diffInDays($checkout));
                                 
-                                // Get room types and calculate room total
+                                // Get room types and calculate room total using LoaiPhong promotional price
                                 $roomTypes = $booking->getRoomTypes();
                                 foreach ($roomTypes as $rt) {
-                                    // If 'gia_rieng' is stored as subtotal (common in this codebase), use it directly.
-                                    if (isset($rt['gia_rieng']) && $rt['gia_rieng'] !== null) {
-                                        $roomTotalCalculated += (float) $rt['gia_rieng'];
-                                    } else {
-                                        // Fallback: compute from LoaiPhong unit price
-                                        $loaiPhong = \App\Models\LoaiPhong::find($rt['loai_phong_id'] ?? null);
-                                        $unit = $loaiPhong ? ($loaiPhong->gia_khuyen_mai ?? $loaiPhong->gia_co_ban ?? 0) : 0;
-                                        $roomTotalCalculated += $unit * $nights * ($rt['so_luong'] ?? 1);
+                                    $soLuong = $rt['so_luong'] ?? 1;
+                                    $loaiPhongId = $rt['loai_phong_id'] ?? null;
+                                    $unit = 0;
+                                    // Use pre-loaded loaiPhongs from controller to avoid N+1 queries
+                                    if ($loaiPhongId && isset($loaiPhongs[$loaiPhongId])) {
+                                        $lp = $loaiPhongs[$loaiPhongId];
+                                        $unit = $lp->gia_khuyen_mai ?? $lp->gia_co_ban ?? 0;
                                     }
+                                    $roomTotalCalculated += $unit * $nights * $soLuong;
                                 }
                             }
                             

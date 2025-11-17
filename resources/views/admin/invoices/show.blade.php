@@ -178,7 +178,23 @@
                             $servicesTotal = $services->reduce(function($carry, $item){
                                 return $carry + (($item->quantity ?? 0) * ($item->unit_price ?? 0));
                             }, 0);
-                            $roomTotal = max(0, ($invoice->tong_tien ?? 0) - $servicesTotal);
+                            
+                            // Calculate room total from booking using promotional prices (same as BookingPriceCalculator)
+                            $roomTotal = 0;
+                            if ($booking) {
+                                $nights = max(1, \Carbon\Carbon::parse($booking->ngay_nhan)->diffInDays(\Carbon\Carbon::parse($booking->ngay_tra)));
+                                $roomTypes = $booking->getRoomTypes();
+                                foreach ($roomTypes as $rt) {
+                                    $qty = (int) ($rt['so_luong'] ?? 1);
+                                    $loaiPhongId = (int) ($rt['loai_phong_id'] ?? 0);
+                                    $loaiPhong = \App\Models\LoaiPhong::find($loaiPhongId);
+                                    $unit = 0;
+                                    if ($loaiPhong) {
+                                        $unit = $loaiPhong->gia_khuyen_mai ?? $loaiPhong->gia_co_ban ?? 0;
+                                    }
+                                    $roomTotal += $qty * $unit * $nights;
+                                }
+                            }
                         @endphp
 
                         @if($services->isEmpty())

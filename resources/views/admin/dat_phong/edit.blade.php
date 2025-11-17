@@ -113,14 +113,25 @@
                                                             <button type="button" onclick="increaseQuantity({{ $index }})" 
                                                                 class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50">+</button>
                                                         </div>
+                                                        @php
+                                                            $soLuongVal = $roomType['so_luong'] ?? 1;
+                                                            $nightsForCalc = 1;
+                                                            if($booking && $booking->ngay_nhan && $booking->ngay_tra) {
+                                                                $nightsForCalc = \Carbon\Carbon::parse($booking->ngay_nhan)->diffInDays(\Carbon\Carbon::parse($booking->ngay_tra));
+                                                                $nightsForCalc = max(1, $nightsForCalc);
+                                                            }
+                                                            $unitPerNight = $loaiPhong ? ($loaiPhong->gia_khuyen_mai ?? $loaiPhong->gia_co_ban ?? 0) : 0;
+                                                            $subtotal = $unitPerNight * $nightsForCalc * $soLuongVal;
+                                                        @endphp
                                                         <div class="mt-1 text-xs text-gray-600">
-                                                            Giá: <span id="room_price_{{ $index }}" class="font-medium">{{ number_format($roomType['gia_rieng'] ?? 0, 0, ',', '.') }} VNĐ</span>
+                                                            Giá: <span id="room_price_{{ $index }}" class="font-medium">{{ number_format($subtotal, 0, ',', '.') }} VNĐ</span>
                                                         </div>
                                                     </div>
                                                 </div>
                                                 <input type="hidden" name="room_types[{{ $index }}][gia_rieng]" 
                                                     id="room_gia_rieng_{{ $index }}" 
-                                                    value="{{ $roomType['gia_rieng'] ?? 0 }}">
+                                                    data-unit-per-night="{{ $unitPerNight }}"
+                                                    value="{{ $subtotal }}">
                                             </div>
                                         @endforeach
                                     @else
@@ -137,8 +148,8 @@
                                                         @foreach($loaiPhongs as $lp)
                                                             <option value="{{ $lp->id }}" 
                                                                 {{ $booking->loai_phong_id == $lp->id ? 'selected' : '' }}
-                                                                data-price="{{ $lp->gia_co_ban }}">
-                                                                {{ $lp->ten_loai }} - {{ number_format($lp->gia_co_ban, 0, ',', '.') }} VNĐ/đêm
+                                                                data-price="{{ $lp->gia_khuyen_mai }}">
+                                                                {{ $lp->ten_loai }} - {{ number_format($lp->gia_khuyen_mai, 0, ',', '.') }} VNĐ/đêm
                                                             </option>
                                                         @endforeach
                                                     </select>
@@ -166,9 +177,19 @@
                                                     </div>
                                                 </div>
                                             </div>
+                                            @php
+                                                $fallbackUnit = $booking->loaiPhong ? ($booking->loaiPhong->gia_khuyen_mai ?? $booking->loaiPhong->gia_co_ban ?? 0) : 0;
+                                                $fallbackQty = $booking->so_luong_da_dat ?? 1;
+                                                $fallbackNights = 1;
+                                                if($booking && $booking->ngay_nhan && $booking->ngay_tra) {
+                                                    $fallbackNights = \Carbon\Carbon::parse($booking->ngay_nhan)->diffInDays(\Carbon\Carbon::parse($booking->ngay_tra));
+                                                    $fallbackNights = max(1, $fallbackNights);
+                                                }
+                                                $fallbackSubtotal = $fallbackUnit * $fallbackNights * $fallbackQty;
+                                            @endphp
                                             <input type="hidden" name="room_types[0][gia_rieng]" 
-                                                id="room_gia_rieng_0" 
-                                                value="{{ $booking->loaiPhong->gia_co_ban ?? 0 }}">
+                                                id="room_gia_rieng_0" data-unit-per-night="{{ $fallbackUnit }}"
+                                                value="{{ $fallbackSubtotal }}">
                                         </div>
                                     @endif
                                 </div>
@@ -572,8 +593,8 @@
                                 required>
                                 <option value="">-- Chọn loại phòng --</option>
                                 @foreach($loaiPhongs as $lp)
-                                    <option value="{{ $lp->id }}" data-price="{{ $lp->gia_co_ban }}">
-                                        {{ $lp->ten_loai }} - {{ number_format($lp->gia_co_ban, 0, ',', '.') }} VNĐ/đêm
+                                    <option value="{{ $lp->id }}" data-price="{{ $lp->gia_khuyen_mai }}">
+                                        {{ $lp->ten_loai }} - {{ number_format($lp->gia_khuyen_mai, 0, ',', '.') }} VNĐ/đêm
                                     </option>
                                 @endforeach
                             </select>
@@ -756,11 +777,19 @@
                 const priceDisplay = document.getElementById(`room_price_${idx}`);
                 const qty = qtyInput ? parseInt(qtyInput.value) || 1 : 1;
                 if (priceInput) {
-                    const storedTotal = parseFloat(priceInput.value) || 0;
-                    // derive per-night unit price = storedTotal / (qty * nights)
-                    const unitPerNight = (qty > 0 && nights > 0) ? (storedTotal / (qty * nights)) : 0;
+                    // Prefer explicit unit set on dataset or selected loai_phong option price (promotional price)
+                    let unitPerNight = parseFloat(priceInput.dataset.unitPerNight) || 0;
+                    const selectEl = item.querySelector('.room-type-select');
+                    if (selectEl) {
+                        const opt = selectEl.options[selectEl.selectedIndex];
+                        const optPrice = opt ? parseFloat(opt.dataset.price || 0) : 0;
+                        if (optPrice && optPrice > 0) unitPerNight = optPrice;
+                    }
+                    if (!unitPerNight || unitPerNight <= 0) {
+                        const storedTotal = parseFloat(priceInput.value) || 0;
+                        unitPerNight = (qty > 0 && nights > 0) ? (storedTotal / (qty * nights)) : 0;
+                    }
                     priceInput.dataset.unitPerNight = unitPerNight;
-                    // ensure displayed subtotal equals storedTotal
                     const subtotal = unitPerNight * nights * qty;
                     if (priceDisplay) priceDisplay.textContent = formatCurrency(subtotal);
                     priceInput.value = subtotal;

@@ -305,7 +305,8 @@
                                             @php
                                                 $loaiPhong = \App\Models\LoaiPhong::find($roomType['loai_phong_id']);
                                                 $soLuong = $roomType['so_luong'] ?? 1;
-                                                $giaRieng = $roomType['gia_rieng'] ?? 0;
+                                                $unitPrice = $loaiPhong ? ($loaiPhong->gia_khuyen_mai ?? $loaiPhong->gia_co_ban ?? 0) : 0;
+                                                $giaRieng = $unitPrice * ($nights ?? 1) * $soLuong; // subtotal computed from promotional price
                                             @endphp
                                             @if($loaiPhong)
                                                 <div class="flex justify-between items-center bg-white/60 rounded-lg px-4 py-3">
@@ -337,7 +338,10 @@
                                     {{-- Hiển thị 1 loại phòng (legacy) --}}
                                     @php
                                         $soLuongPhong = $datPhong->so_luong_da_dat ?? 1;
-                                        $displayPrice = $originalPrice ?? 0;
+                                        // Compute display price using promotional price from LoaiPhong
+                                        $lp = $datPhong->loaiPhong;
+                                        $unit = $lp ? ($lp->gia_khuyen_mai ?? $lp->gia_co_ban ?? 0) : 0;
+                                        $displayPrice = $unit * ($nights ?? 1) * ($soLuongPhong ?? 1);
                                     @endphp
                                     <div class="flex justify-between items-center bg-white/60 rounded-lg px-4 py-3">
                                         <span class="text-gray-700 font-medium">
