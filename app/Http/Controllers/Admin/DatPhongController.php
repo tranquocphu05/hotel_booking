@@ -127,34 +127,13 @@ class DatPhongController extends Controller
                 'ly_do_huy' => $lyDoHuy
             ]);
 
-            // Free up room via phong_id (legacy)
-            if ($booking->phong_id && $booking->phong) {
-                // Kiểm tra xem phòng có đang được đặt cho booking khác không
-                $hasOtherBooking = DatPhong::where('id', '!=', $booking->id)
-                    ->where(function ($q) use ($booking) {
-                        $q->where('phong_id', $booking->phong_id)
-                            ->orWhereHas('assignedRooms', function($query) use ($booking) {
-                                $query->where('phong_id', $booking->phong_id);
-                            });
-                    })
-                    ->where(function ($q) use ($booking) {
-                        $q->where('ngay_tra', '>', $booking->ngay_nhan)
-                            ->where('ngay_nhan', '<', $booking->ngay_tra);
-                    })
-                    ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
-                    ->exists();
-
-                if (!$hasOtherBooking) {
-                    $booking->phong->update(['trang_thai' => 'trong']);
-                }
-            }
-
             // Free up rooms via pivot table
             $phongIds = $booking->getPhongIds();
             foreach ($phongIds as $phongId) {
                 $phong = Phong::find($phongId);
                 if ($phong) {
                     // Kiểm tra xem phòng có đang được đặt cho booking khác không
+                    // Check both phong_id (legacy) and pivot table
                     $hasOtherBooking = DatPhong::where('id', '!=', $booking->id)
                         ->where(function ($q) use ($phongId) {
                             $q->where('phong_id', $phongId)
@@ -174,6 +153,10 @@ class DatPhongController extends Controller
                     }
                 }
             }
+
+            // Clear phong_id (legacy)
+            $booking->phong_id = null;
+            $booking->save();
 
             // Clear assigned rooms from pivot table
             $booking->assignedRooms()->detach();
@@ -507,9 +490,13 @@ class DatPhongController extends Controller
                 $phong = Phong::find($phongId);
                 if ($phong) {
                     // Kiểm tra xem phòng có đang được đặt cho booking khác không
+                    // Check both phong_id (legacy) and pivot table
                     $hasOtherBooking = DatPhong::where('id', '!=', $booking->id)
-                        ->whereHas('assignedRooms', function($query) use ($phongId) {
-                            $query->where('phong_id', $phongId);
+                        ->where(function ($q) use ($phongId) {
+                            $q->where('phong_id', $phongId)
+                                ->orWhereHas('assignedRooms', function($query) use ($phongId) {
+                                    $query->where('phong_id', $phongId);
+                                });
                         })
                         ->where(function ($q) use ($request) {
                             $q->where('ngay_tra', '>', $request->ngay_nhan)
@@ -580,6 +567,7 @@ class DatPhongController extends Controller
                 'email' => $request->email,
                 'sdt' => $request->sdt,
                 'cccd' => $request->cccd,
+                'phong_id' => count($newPhongIds) == 1 ? $newPhongIds[0] : null, // Legacy support
             ]);
 
             // Sync assigned rooms with pivot table
@@ -594,13 +582,6 @@ class DatPhongController extends Controller
                 ];
             }
             $booking->roomTypes()->sync($roomTypesForSync);
-
-            // 4. Cập nhật phong_id (legacy support) nếu chỉ có 1 phòng
-            if (count($newPhongIds) == 1) {
-                $booking->update(['phong_id' => $newPhongIds[0]]);
-            } else {
-                $booking->update(['phong_id' => null]);
-            }
         });
 
         return redirect()->route('admin.dat_phong.show', $booking->id)
@@ -676,29 +657,33 @@ class DatPhongController extends Controller
         }
 
         // Kiểm tra phòng có trống trong khoảng thời gian không
-        // Method isAvailableInPeriod sẽ tự động kiểm tra cả bookings qua phong_id và qua bảng trung gian
         if (!$phong->isAvailableInPeriod($booking->ngay_nhan, $booking->ngay_tra, $booking->id)) {
             return redirect()->back()
-                ->withErrors(['phong_id' => 'Phòng này đã được đặt trong khoảng thời gian từ ' . date('d/m/Y', strtotime($booking->ngay_nhan)) . ' đến ' . date('d/m/Y', strtotime($booking->ngay_tra)) . '.'])
+                ->withErrors(['phong_id' => 'Phòng này không trống trong khoảng thời gian đặt phòng.'])
                 ->withInput();
         }
 
-        // Thêm phòng vào pivot table
+        // Gán phòng cho booking trong transaction
         DB::transaction(function () use ($booking, $phongId, $phong) {
-            // Reload booking để đảm bảo có dữ liệu mới nhất
-            $booking->refresh();
+            // Lock phòng trước khi gán
+            $phongLocked = Phong::lockForUpdate()->find($phongId);
+            
+            // Double-check availability sau khi lock
+            if (!$phongLocked || !$phongLocked->isAvailableInPeriod($booking->ngay_nhan, $booking->ngay_tra, $booking->id)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'phong_id' => 'Phòng này không còn trống. Vui lòng chọn phòng khác.'
+                ]);
+            }
 
-            // Thêm vào pivot table
+            // Thêm phòng vào pivot table
             $booking->addPhongId($phongId);
 
             // Chỉ set 'dang_thue' nếu booking đã được xác nhận
-            // Nếu booking ở 'cho_xac_nhan', để model tự động xử lý khi booking được xác nhận
-            $phong->refresh();
-            if ($booking->trang_thai === 'da_xac_nhan' && $phong->trang_thai === 'trong') {
-                $phong->update(['trang_thai' => 'dang_thue']);
+            if ($booking->trang_thai === 'da_xac_nhan' && $phongLocked->trang_thai === 'trong') {
+                $phongLocked->update(['trang_thai' => 'dang_thue']);
             }
 
-            // Nếu đây là phòng đầu tiên được gán và booking chưa có phong_id, cập nhật phong_id (legacy support)
+            // Nếu đây là phòng đầu tiên được gán, cập nhật phong_id (legacy support)
             $booking->refresh();
             $phongIds = $booking->getPhongIds();
             if (!$booking->phong_id && count($phongIds) == 1) {

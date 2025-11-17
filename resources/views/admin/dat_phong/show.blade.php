@@ -367,25 +367,15 @@
                                         </button>
                                     </form>
                                 </div>
-                            @elseif($remainingCount > 0)
-                                <p class="text-xs text-gray-500 mt-2">
+                            </div>
+                        @elseif($remainingCount > 0)
+                            <div class="mt-6 pt-6 border-t border-gray-200">
+                                <p class="text-xs text-gray-500">
                                     <i class="fas fa-info-circle mr-1"></i>
                                     Còn thiếu {{ $remainingCount }} phòng. Không có phòng trống trong khoảng thời gian này.
                                 </p>
-                            @endif
-                            @if(count($roomTypes) > 1)
-                                <div class="mt-3 pt-3 border-t border-gray-200">
-                                    <p class="text-xs text-gray-600 mb-2">Tổng giá: <span class="font-medium">{{ number_format($booking->tong_tien, 0, ',', '.') }} VNĐ</span></p>
-                                </div>
-                            @else
-                                <p class="text-sm text-gray-600">Giá phòng: <span class="font-medium">{{ number_format($booking->loaiPhong->gia_khuyen_mai ?? $booking->loaiPhong->gia_co_ban ?? 0, 0, ',', '.') }} VNĐ/đêm</span></p>
-                                <p class="text-sm px-3 py-1 rounded-full text-sm font-medium
-                                    @if ($booking->loaiPhong->trang_thai === 'hoat_dong') bg-green-100 text-green-800
-                                    @else bg-yellow-100 text-yellow-800 @endif">
-                                    {{ $booking->loaiPhong->trang_thai === 'hoat_dong' ? 'Hoạt động' : 'Ngừng' }}
-                                </p>
-                            @endif
-                        </div>
+                            </div>
+                        @endif
                     </div>
                 </div>
 

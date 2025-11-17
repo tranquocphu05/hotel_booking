@@ -337,7 +337,9 @@ class DatPhong extends Model
                         && in_array($oldStatus, ['cho_xac_nhan', 'da_xac_nhan'])) {
                         // Kiểm tra xem phòng có đang được đặt cho booking khác không
                         $hasOtherBooking = \App\Models\DatPhong::where('id', '!=', $booking->id)
-                            ->whereJsonContains('phong_ids', $phong->id)
+                            ->whereHas('assignedRooms', function($query) use ($phong) {
+                                $query->where('phong_id', $phong->id);
+                            })
                             ->where(function($q) use ($booking) {
                                 $q->where('ngay_tra', '>', $booking->ngay_nhan)
                                   ->where('ngay_nhan', '<', $booking->ngay_tra);
