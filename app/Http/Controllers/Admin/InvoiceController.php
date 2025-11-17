@@ -171,5 +171,13 @@ class InvoiceController extends Controller
 
     }
 
+    public function print(Invoice $invoice)
+    {
+        $invoice->load(['datPhong' => function($q) {
+            $q->with('user', 'loaiPhong', 'voucher');
+        }]);
+        return view('admin.invoices.print', compact('invoice'));
+    }
+
 }
 

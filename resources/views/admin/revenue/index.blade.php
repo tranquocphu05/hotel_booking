@@ -8,19 +8,51 @@
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
             <h1 class="text-2xl font-bold text-gray-900">Chi tiết doanh thu</h1>
-            <p class="text-gray-600">Phân tích chi tiết doanh thu theo tháng</p>
+            <p class="text-gray-600">
+                @if($viewType === 'week')
+                    Phân tích chi tiết doanh thu tuần {{ $weekNumber ?? \Carbon\Carbon::now()->week }} - Năm {{ $year }}
+                @else
+                    Phân tích chi tiết doanh thu tháng {{ $month }} - Năm {{ $year }}
+                @endif
+            </p>
         </div>
         
-        <!-- Month/Year Selector -->
+        <!-- View Type & Date Selector -->
         <div class="flex items-center gap-4">
+            <!-- View Type Toggle -->
+            <div class="inline-flex rounded-lg border border-gray-300 bg-white">
+                <a href="{{ route('admin.revenue', ['view' => 'month', 'month' => $month, 'year' => $year]) }}" 
+                   class="px-4 py-2 text-sm font-medium {{ $viewType === 'month' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50' }} rounded-l-lg transition">
+                    <i class="fas fa-calendar-alt mr-1"></i> Tháng
+                </a>
+                <a href="{{ route('admin.revenue', ['view' => 'week', 'week' => \Carbon\Carbon::now()->week, 'year' => $year]) }}" 
+                   class="px-4 py-2 text-sm font-medium {{ $viewType === 'week' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50' }} rounded-r-lg transition">
+                    <i class="fas fa-calendar-week mr-1"></i> Tuần
+                </a>
+            </div>
+
+            <!-- Date Selector -->
             <form method="GET" class="flex items-center gap-2">
-                <select name="month" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
-                    @for($i = 1; $i <= 12; $i++)
-                        <option value="{{ $i }}" {{ $month == $i ? 'selected' : '' }}>
-                            Tháng {{ $i }}
-                        </option>
-                    @endfor
-                </select>
+                <input type="hidden" name="view" value="{{ $viewType }}">
+                
+                @if($viewType === 'week')
+                    <select name="week" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                        @for($i = 1; $i <= 53; $i++)
+                            <option value="{{ $i }}" {{ request('week', \Carbon\Carbon::now()->week) == $i ? 'selected' : '' }}>
+                                Tuần {{ $i }}
+                            </option>
+                        @endfor
+                    </select>
+                @else
+                    <select name="month" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                        @for($i = 1; $i <= 12; $i++)
+                            <option value="{{ $i }}" {{ $month == $i ? 'selected' : '' }}>
+                                Tháng {{ $i }}
+                            </option>
+                        @endfor
+                    </select>
+                @endif
+                
                 <select name="year" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
                     @for($i = 2020; $i <= date('Y') + 1; $i++)
                         <option value="{{ $i }}" {{ $year == $i ? 'selected' : '' }}>
@@ -41,7 +73,9 @@
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-medium text-gray-600">Doanh thu tháng này</p>
+                    <p class="text-sm font-medium text-gray-600">
+                        Doanh thu {{ $viewType === 'week' ? 'tuần này' : 'tháng này' }}
+                    </p>
                     <p class="text-2xl font-bold text-gray-900" data-target="{{ $revenueData['current_month'] }}">
                         {{ number_format($revenueData['current_month'], 0, ',', '.') }} VNĐ
                     </p>
@@ -59,7 +93,9 @@
                         <i class="fas fa-arrow-down text-red-500 mr-1"></i>
                         <span class="text-red-600 font-medium text-sm">{{ $revenueData['growth_rate'] }}%</span>
                     @endif
-                    <span class="text-gray-500 text-sm ml-1">so với tháng trước</span>
+                    <span class="text-gray-500 text-sm ml-1">
+                        so với {{ $viewType === 'week' ? 'tuần trước' : 'tháng trước' }}
+                    </span>
                 </div>
             @endif
         </div>
@@ -94,11 +130,13 @@
             </div>
         </div>
 
-        <!-- Previous Month Revenue -->
+        <!-- Previous Period Revenue -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-medium text-gray-600">Tháng trước</p>
+                    <p class="text-sm font-medium text-gray-600">
+                        {{ $viewType === 'week' ? 'Tuần trước' : 'Tháng trước' }}
+                    </p>
                     <p class="text-2xl font-bold text-gray-900" data-target="{{ $revenueData['previous_month'] }}">
                         {{ number_format($revenueData['previous_month'], 0, ',', '.') }} VNĐ
                     </p>
@@ -110,11 +148,49 @@
         </div>
     </div>
 
+    <!-- Weekly Summary (Only show in month view) -->
+    @if($viewType === 'month' && isset($weeklyStats))
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-6">
+                <i class="fas fa-calendar-week text-blue-600 mr-2"></i>
+                Doanh thu theo tuần trong tháng
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                @foreach($weeklyStats as $week)
+                    <a href="{{ route('admin.revenue', ['view' => 'week', 'week' => $week['week_number'], 'year' => $year]) }}" 
+                       class="block p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-medium text-gray-600">Tuần {{ $week['week_number'] }}</span>
+                            <i class="fas fa-arrow-right text-gray-400 text-xs"></i>
+                        </div>
+                        <p class="text-xs text-gray-500 mb-3">{{ $week['start_date'] }} - {{ $week['end_date'] }}</p>
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs text-gray-600">Doanh thu:</span>
+                                <span class="text-sm font-bold text-gray-900">
+                                    {{ number_format($week['revenue'], 0, ',', '.') }}đ
+                                </span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs text-gray-600">Đặt phòng:</span>
+                                <span class="text-sm font-semibold text-blue-600">
+                                    {{ $week['bookings_count'] }}
+                                </span>
+                            </div>
+                        </div>
+                    </a>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
     <!-- Charts Section -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Daily Revenue Chart -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-6">Doanh thu theo ngày</h3>
+            <h3 class="text-lg font-semibold text-gray-900 mb-6">
+                Doanh thu theo {{ $viewType === 'week' ? 'ngày trong tuần' : 'ngày' }}
+            </h3>
             <div class="h-64">
                 <canvas id="dailyRevenueChart"></canvas>
             </div>
@@ -168,7 +244,9 @@
 
     <!-- Recent Paid Bookings -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-6">Đặt phòng đã thanh toán gần đây</h3>
+        <h3 class="text-lg font-semibold text-gray-900 mb-6">
+            Đặt phòng đã thanh toán {{ $viewType === 'week' ? 'trong tuần' : 'gần đây' }}
+        </h3>
         <div class="space-y-4">
             @forelse($paidBookings as $booking)
                 <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
@@ -193,7 +271,7 @@
                 </div>
             @empty
                 <div class="text-center py-8 text-gray-500">
-                    Không có đặt phòng nào đã thanh toán trong tháng này
+                    Không có đặt phòng nào đã thanh toán {{ $viewType === 'week' ? 'trong tuần này' : 'trong tháng này' }}
                 </div>
             @endforelse
         </div>
@@ -212,15 +290,29 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Daily Revenue Chart
     const dailyCtx = document.getElementById('dailyRevenueChart').getContext('2d');
-    const dailyData = @json($revenueData['daily_revenue']);
+    const viewType = '{{ $viewType }}';
+    
+    let chartData, chartLabels;
+    
+    if (viewType === 'week') {
+        // Weekly view - show days of week
+        const weeklyData = @json($dailyStats);
+        chartLabels = weeklyData.map(item => item.day_name || item.date);
+        chartData = weeklyData.map(item => item.revenue);
+    } else {
+        // Monthly view - show days of month
+        const dailyData = @json($revenueData['daily_revenue']);
+        chartLabels = dailyData.map(item => item.day);
+        chartData = dailyData.map(item => item.revenue);
+    }
     
     new Chart(dailyCtx, {
         type: 'bar',
         data: {
-            labels: dailyData.map(item => item.day),
+            labels: chartLabels,
             datasets: [{
                 label: 'Doanh thu (VNĐ)',
-                data: dailyData.map(item => item.revenue),
+                data: chartData,
                 backgroundColor: 'rgba(99, 102, 241, 0.1)',
                 borderColor: 'rgb(99, 102, 241)',
                 borderWidth: 2,
@@ -234,6 +326,13 @@ document.addEventListener('DOMContentLoaded', function() {
             plugins: {
                 legend: {
                     display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return 'Doanh thu: ' + context.parsed.y.toLocaleString('vi-VN') + ' VNĐ';
+                        }
+                    }
                 }
             },
             scales: {
