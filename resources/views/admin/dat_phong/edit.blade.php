@@ -80,7 +80,7 @@
                                                 </div>
                                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                     <div>
-                                                        <label class="block text-sm font-medium text-gray-700 mb-2">Loại phòng</label>
+                                                        
                                                         <select name="room_types[{{ $index }}][loai_phong_id]" 
                                                             class="room-type-select mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                                             onchange="handleRoomTypeChange({{ $index }}, this.value)"
@@ -89,8 +89,8 @@
                                                             @foreach($loaiPhongs as $lp)
                                                                 <option value="{{ $lp->id }}" 
                                                                     {{ $roomType['loai_phong_id'] == $lp->id ? 'selected' : '' }}
-                                                                    data-price="{{ $lp->gia_co_ban }}">
-                                                                    {{ $lp->ten_loai }} - {{ number_format($lp->gia_co_ban, 0, ',', '.') }} VNĐ/đêm
+                                                                    data-price="{{ $lp->gia_khuyen_mai }}">
+                                                                    {{ $lp->ten_loai }} - {{ number_format($lp->gia_khuyen_mai, 0, ',', '.') }} VNĐ/đêm
                                                                 </option>
                                                             @endforeach
                                                         </select>
@@ -375,6 +375,53 @@
                                 </div>
                             </div>
 
+                            <!-- Chọn dịch vụ (giống trang tạo) -->
+                            <!-- Tom Select based multi-select for services -->
+                            <link href="https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/css/tom-select.css" rel="stylesheet">
+                            <style>
+                                .service-card-custom{border-radius:12px;background:linear-gradient(135deg, #f0fdfc 0%, #ccfbf1 100%);border:2px solid #99f6e4;padding:1.25rem;box-shadow:0 10px 25px rgba(16, 185, 129, 0.08);}
+                                .service-card-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1.25rem}
+                                .service-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;padding-bottom:.5rem;border-bottom:2px solid #d1fae5}
+                                .service-card-header .service-title{color:#0d9488;font-weight:700;font-size:1.1rem}
+                                .service-card-header .service-price{color:#0f766e;font-weight:600;font-size:0.95rem}
+                                .service-date-row{display:flex;gap:.75rem;align-items:center;margin-top:.75rem;padding:.5rem;background:#ffffff;border-radius:8px;border:1px solid #d1fae5}
+                                .service-date-row input[type=date]{border:1px solid #a7f3d0;padding:.45rem .6rem;border-radius:6px;background:#f0fdfc;font-size:0.9rem;flex:1}
+                                .service-date-row input[type=number]{border:1px solid #a7f3d0;padding:.45rem .6rem;border-radius:6px;background:#f0fdfc;width:80px;text-align:center}
+                                .service-add-day{background:linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);color:#0d7377;padding:.5rem .75rem;border-radius:8px;border:1.5px solid #6ee7b7;cursor:pointer;font-weight:600;font-size:0.9rem}
+                                .service-add-day:hover{background:linear-gradient(135deg, #a7f3d0 0%, #6ee7b7 100%);box-shadow:0 4px 12px rgba(13, 148, 136, 0.2)}
+                                .service-remove-btn{background:#fecaca;color:#991b1b;padding:.4rem .6rem;border-radius:6px;border:1px solid #fca5a5;cursor:pointer;font-weight:600;font-size:0.85rem}
+                                .service-remove-btn:hover{background:#f87171;box-shadow:0 4px 12px rgba(185, 28, 28, 0.15)}
+                                #services_select + .ts-control{margin-top:.5rem;border-color:#99f6e4}
+                                #selected_services_list .service-card-custom{transition:all .2s ease}
+                                #selected_services_list .service-card-custom:hover{transform:translateY(-6px);box-shadow:0 15px 35px rgba(16, 185, 129, 0.15)}
+                            </style>
+                            </style>
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <label for="services_select" class="block text-sm font-medium text-gray-700 mb-2">Chọn dịch vụ kèm theo</label>
+                                <select id="services_select" placeholder="Chọn 1 hoặc nhiều dịch vụ..." multiple>
+                                    @foreach ($services as $service)
+                                        <option value="{{ $service->id }}" data-price="{{ $service->price }}" data-unit="{{ $service->unit ?? 'cái' }}">{{ $service->name }} - {{ number_format($service->price,0,',','.') }} VNĐ</option>
+                                    @endforeach
+                                </select>
+                                <div id="selected_services_list" class="service-card-grid grid grid-cols-1 md:grid-cols-3 gap-6 mt-4"></div>
+                            </div>
+
+                            <!-- Tổng tiền dịch vụ & tổng thanh toán -->
+                            <div class="bg-gray-50 p-4 rounded-lg mt-4">
+                                <h3 class="text-lg font-medium text-gray-900 mb-4">Tổng tiền</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div class="text-sm text-gray-700">Tổng giá dịch vụ</div>
+                                    <div class="text-sm font-medium text-right text-gray-900" id="total_service_price">0 VNĐ</div>
+
+                                    <div class="text-sm text-gray-700">Tổng giá phòng (đã nhân số đêm)</div>
+                                    <div class="text-sm font-medium text-right text-gray-900" id="total_room_price">0 VNĐ</div>
+
+                                    <div class="text-sm text-gray-700">Tổng thanh toán</div>
+                                    <div class="text-lg font-semibold text-right text-blue-600" id="total_price">0 VNĐ</div>
+                                </div>
+                                <input type="hidden" name="tong_tien" id="tong_tien_input" value="{{ old('tong_tien', $booking->tong_tien ?? 0) }}">
+                            </div>
+
                             <!-- Thông tin khách hàng -->
                             <div class="bg-gray-50 p-4 rounded-lg">
                                 <h3 class="text-lg font-medium text-gray-900 mb-4">Thông tin khách hàng</h3>
@@ -466,8 +513,11 @@
 
     @push('scripts')
     <script>
-        const allLoaiPhongs = @json($loaiPhongs);
-        let roomIndex = {{ count($roomTypes) > 0 ? count($roomTypes) : 1 }};
+        // Existing booking services passed from server (grouped by service_id)
+        const bookingServicesServer = {!! json_encode($bookingServices->map(function($b) use($booking) { return ['service_id' => $b->service_id, 'quantity' => $b->quantity, 'used_at' => $b->used_at ? date('Y-m-d', strtotime($b->used_at)) : date('Y-m-d', strtotime($booking->ngay_nhan))]; })->groupBy('service_id')->map(function($group){ return $group->map(function($item){ return ['ngay'=>$item['used_at'],'so_luong'=>$item['quantity']]; })->values(); })->toArray()) !!};
+    const allLoaiPhongs = @json($loaiPhongs);
+    const currentBookingId = {{ $booking->id ?? 'null' }};
+    let roomIndex = {{ count($roomTypes) > 0 ? count($roomTypes) : 1 }};
 
         document.addEventListener('DOMContentLoaded', function() {
             const ngayNhanInput = document.getElementById('ngay_nhan');
@@ -490,6 +540,9 @@
 
             // Initialize prices and availability for existing rooms
             updateAllRoomAvailability();
+            // derive per-night unit prices for existing rows (edit page stores totals)
+            initializeRoomUnitPrices();
+            if (window.computeTotals) window.computeTotals();
         });
 
         function formatCurrency(amount) {
@@ -555,12 +608,14 @@
             `;
             container.insertAdjacentHTML('beforeend', newRoomHtml);
             roomIndex++;
+            if (window.computeTotals) window.computeTotals();
         }
 
         function removeRoom(index) {
             const roomItem = document.querySelector(`[data-room-index="${index}"]`);
             if (roomItem) {
                 roomItem.remove();
+                if (window.computeTotals) window.computeTotals();
             }
         }
 
@@ -570,10 +625,18 @@
                 const priceInput = document.getElementById(`room_gia_rieng_${index}`);
                 const priceDisplay = document.getElementById(`room_price_${index}`);
                 if (priceInput && priceDisplay) {
-                    priceInput.value = loaiPhong.gia_co_ban;
-                    priceDisplay.textContent = formatCurrency(loaiPhong.gia_co_ban);
+                    // set per-night unit price (prefer promotional price if available)
+                    const unitPerNight = loaiPhong.gia_khuyen_mai ?? loaiPhong.gia_co_ban ?? 0;
+                    priceInput.dataset.unitPerNight = unitPerNight;
+                    const nights = getNights();
+                    const qtyInput = document.querySelector(`input[data-room-index="${index}"]`);
+                    const qty = qtyInput ? parseInt(qtyInput.value) || 1 : 1;
+                    const subtotal = unitPerNight * nights * qty;
+                    priceInput.value = subtotal;
+                    priceDisplay.textContent = formatCurrency(subtotal);
                 }
                 updateRoomAvailability(index, loaiPhongId);
+                if (window.computeTotals) window.computeTotals();
             }
         }
 
@@ -596,15 +659,34 @@
                 body: JSON.stringify({
                     loai_phong_id: loaiPhongId,
                     ngay_nhan: ngayNhan,
-                    ngay_tra: ngayTra
+                    ngay_tra: ngayTra,
+                    booking_id: currentBookingId
                 })
             })
             .then(response => response.json())
             .then(data => {
                 if (availabilityText) {
                     const availableCount = data.available_count || 0;
-                    availabilityText.textContent = `Còn ${availableCount} phòng trống`;
-                    availabilityText.className = `mt-1 text-xs ${availableCount > 0 ? 'text-green-600' : 'text-red-600'}`;
+                    // determine requested qty for this room row
+                    const rowEl = document.querySelector(`[data-room-index="${index}"]`);
+                    const qtyInput = rowEl ? rowEl.querySelector('input[data-room-index]') : null;
+                    const requested = qtyInput ? (parseInt(qtyInput.value) || 1) : 1;
+
+                    let msg = '';
+                    let colorClass = 'text-gray-500';
+                    if (availableCount <= 0) {
+                        msg = 'Hết phòng';
+                        colorClass = 'text-red-600';
+                    } else if (availableCount < requested) {
+                        msg = `Còn ${availableCount} phòng trống (yêu cầu ${requested})`;
+                        colorClass = 'text-red-600';
+                    } else {
+                        msg = `Còn ${availableCount} phòng trống`;
+                        colorClass = 'text-green-600';
+                    }
+
+                    availabilityText.textContent = msg;
+                    availabilityText.className = `mt-1 text-xs ${colorClass}`;
                 }
             })
             .catch(error => {
@@ -653,10 +735,98 @@
             
             if (input && priceInput && priceDisplay) {
                 const quantity = parseInt(input.value) || 1;
-                const price = parseFloat(priceInput.value) || 0;
-                const subtotal = quantity * price;
+                const nights = getNights();
+                // use per-night unit stored on dataset (derived on load or set when room type changes)
+                const unitPerNight = parseFloat(priceInput.dataset.unitPerNight) || 0;
+                const subtotal = unitPerNight * nights * quantity;
+                // update hidden stored total for this row
+                priceInput.value = subtotal;
                 priceDisplay.textContent = formatCurrency(subtotal);
+                // recalc global totals
+                if (window.computeTotals) window.computeTotals();
             }
+        }
+
+        function initializeRoomUnitPrices() {
+            const nights = getNights();
+            document.querySelectorAll('.room-item').forEach(item => {
+                const idx = item.getAttribute('data-room-index');
+                const priceInput = document.getElementById(`room_gia_rieng_${idx}`);
+                const qtyInput = item.querySelector('input[data-room-index]');
+                const priceDisplay = document.getElementById(`room_price_${idx}`);
+                const qty = qtyInput ? parseInt(qtyInput.value) || 1 : 1;
+                if (priceInput) {
+                    const storedTotal = parseFloat(priceInput.value) || 0;
+                    // derive per-night unit price = storedTotal / (qty * nights)
+                    const unitPerNight = (qty > 0 && nights > 0) ? (storedTotal / (qty * nights)) : 0;
+                    priceInput.dataset.unitPerNight = unitPerNight;
+                    // ensure displayed subtotal equals storedTotal
+                    const subtotal = unitPerNight * nights * qty;
+                    if (priceDisplay) priceDisplay.textContent = formatCurrency(subtotal);
+                    priceInput.value = subtotal;
+                }
+            });
+        }
+
+        function getNights() {
+            const start = document.getElementById('ngay_nhan')?.value;
+            const end = document.getElementById('ngay_tra')?.value;
+            if (!start || !end) return 1;
+            const s = new Date(start);
+            const e = new Date(end);
+            const diff = Math.ceil((e - s) / (1000 * 60 * 60 * 24));
+            return Math.max(1, diff);
+        }
+
+        // compute totals: rooms (per-night * nights * qty) + services
+        window.computeTotals = function() {
+            // rooms
+            const nights = getNights();
+            let roomTotal = 0;
+            document.querySelectorAll('.room-item').forEach(item => {
+                const idx = item.getAttribute('data-room-index');
+                const priceInput = document.getElementById(`room_gia_rieng_${idx}`);
+                const qtyInput = item.querySelector('input[data-room-index]');
+                const qty = qtyInput ? parseInt(qtyInput.value) || 0 : 0;
+                let unitPerNight = 0;
+                if (priceInput) {
+                    // prefer explicit dataset unitPerNight (set on load or when changing type)
+                    unitPerNight = parseFloat(priceInput.dataset.unitPerNight);
+                    if (!unitPerNight || isNaN(unitPerNight) || unitPerNight <= 0) {
+                        // fallback: if value looks like a stored subtotal, derive unit per night
+                        const stored = parseFloat(priceInput.value) || 0;
+                        unitPerNight = (qty > 0 && nights > 0) ? (stored / (qty * nights)) : 0;
+                        // persist derived unit for future calculations
+                        priceInput.dataset.unitPerNight = unitPerNight;
+                    }
+                }
+                roomTotal += unitPerNight * qty * nights;
+            });
+
+            // services: sum all entry hidden so_luong * service price
+            let serviceTotal = 0;
+            // find all service cards
+            document.querySelectorAll('#selected_services_list [data-service-id]').forEach(card => {
+                const sid = card.getAttribute('data-service-id');
+                const option = document.querySelector(`#services_select option[value="${sid}"]`);
+                const price = option ? (parseFloat(option.dataset.price) || 0) : 0;
+                // sum quantities for this service
+                const qtyInputs = Array.from(document.querySelectorAll(`#service_dates_${sid} .service-date-row input[type=number]`));
+                qtyInputs.forEach(qi => {
+                    const q = parseInt(qi.value) || 0;
+                    serviceTotal += q * price;
+                });
+            });
+
+            const total = roomTotal + serviceTotal;
+            const roomEl = document.getElementById('total_room_price');
+            const svcEl = document.getElementById('total_service_price');
+            const totalEl = document.getElementById('total_price');
+            const hidden = document.getElementById('tong_tien_input');
+            if (roomEl) roomEl.textContent = formatCurrency(roomTotal);
+            if (svcEl) svcEl.textContent = formatCurrency(serviceTotal);
+            if (totalEl) totalEl.textContent = formatCurrency(total);
+            if (hidden) hidden.value = total;
         }
 
         function confirmBooking() {
@@ -684,6 +854,132 @@
                 }
             }
         }
+        // --- Services Tom Select (init and rendering) ---
+        function loadTomSelectAndInit(cb) {
+            if (window.TomSelect) return cb();
+            var s = document.createElement('script');
+            s.src = 'https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/js/tom-select.complete.min.js';
+            s.onload = cb;
+            document.head.appendChild(s);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTomSelectAndInit(function() {
+                try {
+                    const selectEl = document.getElementById('services_select');
+                    if (!selectEl) return;
+                    const ts = new TomSelect(selectEl, {plugins:['remove_button'], persist:false, create:false,});
+                    // If booking has existing services, pre-select them
+                    try {
+                        const initialServiceIds = Object.keys(bookingServicesServer || {});
+                        if (initialServiceIds && initialServiceIds.length) {
+                            ts.setValue(initialServiceIds);
+                        }
+                    } catch(e) { console.warn('Error preselecting services', e); }
+
+                    function getRangeDates() {
+                        const start = document.getElementById('ngay_nhan')?.value;
+                        const end = document.getElementById('ngay_tra')?.value;
+                        if (!start || !end) return [];
+                        const a = [];
+                        const s = new Date(start);
+                        const e = new Date(end);
+                        for (let d = new Date(s); d <= e; d.setDate(d.getDate()+1)) a.push(new Date(d).toISOString().split('T')[0]);
+                        return a;
+                    }
+
+                    function renderSelectedServices(values) {
+                        const container = document.getElementById('selected_services_list');
+                        container.innerHTML = '';
+                        const range = getRangeDates();
+                        (values||[]).forEach(val=>{
+                            const option = selectEl.querySelector('option[value="'+val+'"]'); if(!option) return;
+                            const id = val;
+                            const serviceName = option.textContent?.split(' - ')[0] || option.innerText;
+                            const price = parseFloat(option.dataset.price||0)||0;
+                            const unit = option.dataset.unit || 'cái';
+
+                            const card = document.createElement('div'); card.className='service-card-custom'; card.setAttribute('data-service-id', id);
+                            const header = document.createElement('div'); header.className='service-card-header';
+                            const titleDiv = document.createElement('div');
+                            titleDiv.className='service-title';
+                            titleDiv.textContent = serviceName;
+                            const priceDiv = document.createElement('div');
+                            priceDiv.className='service-price';
+                            priceDiv.textContent = `${new Intl.NumberFormat('vi-VN').format(price)}/${unit}`;
+                            header.appendChild(titleDiv);
+                            header.appendChild(priceDiv);
+                            card.appendChild(header);
+
+                            const rows = document.createElement('div'); rows.id = 'service_dates_'+id;
+                            function buildRow(dv, qty){ 
+                                const r=document.createElement('div'); r.className='service-date-row'; 
+                                const di=document.createElement('input'); di.type='date'; di.value=dv||''; 
+                                const rg=getRangeDates(); if(rg.length){ di.min=rg[0]; di.max=rg[rg.length-1]; } 
+                                // store previous on focus
+                                di.addEventListener('focus', function(){ this.dataset.prev = this.value || ''; });
+                                // prevent duplicate dates for same service
+                                di.addEventListener('change', function(){
+                                    const val = this.value || '';
+                                    if (!val) { syncHidden(id); return; }
+                                    const others = Array.from(document.querySelectorAll('#service_dates_'+id+' input[type=date]')).filter(i=>i!==this).map(i=>i.value);
+                                    if (others.includes(val)){
+                                        this.value = this.dataset.prev || '';
+                                        alert('Ngày này đã được chọn cho dịch vụ này. Vui lòng chọn ngày khác.');
+                                        return;
+                                    }
+                                    syncHidden(id);
+                                });
+                                const qi=document.createElement('input'); qi.type='number'; qi.min=1; qi.value=(qty && qty>0)?qty:1; qi.className='w-24'; 
+                                const rem=document.createElement('button'); rem.type='button'; rem.className='service-remove-btn ml-2'; rem.textContent='Xóa'; rem.onclick=()=>{ r.remove(); syncHidden(id); };
+                                qi.onchange = ()=>syncHidden(id);
+                                r.appendChild(di); r.appendChild(qi); r.appendChild(rem); return r; 
+                            }
+
+                            // If server has existing entries for this service, render them
+                            const existing = bookingServicesServer && bookingServicesServer[id] ? bookingServicesServer[id] : null;
+                            if (existing && existing.length) {
+                                existing.forEach(e => {
+                                    rows.appendChild(buildRow(e.ngay || (range.length? range[0] : ''), e.so_luong || 1));
+                                });
+                            } else {
+                                // at least one row
+                                const initialDate = (range.length? range[0] : '');
+                                rows.appendChild(buildRow(initialDate, 1));
+                            }
+
+                            const addBtn = document.createElement('button'); addBtn.type='button'; addBtn.className='service-add-day mt-2'; addBtn.textContent='Thêm ngày'; addBtn.onclick=function(){ const used=Array.from(rows.querySelectorAll('input[type=date]')).map(i=>i.value); const avail=getRangeDates().find(d=>!used.includes(d)); if(avail) { rows.appendChild(buildRow(avail)); syncHidden(id); } };
+
+                            card.appendChild(rows); card.appendChild(addBtn);
+
+                            // hidden inputs
+                            const cb = document.createElement('input'); cb.type='checkbox'; cb.name='services[]'; cb.value=id; cb.className='service-checkbox'; cb.style.display='none'; cb.checked=true;
+                            const sum = document.createElement('input'); sum.type='hidden'; sum.name='services_data['+id+'][so_luong]'; sum.id='service_quantity_hidden_'+id; sum.value='1';
+                            const dv = document.createElement('input'); dv.type='hidden'; dv.name='services_data['+id+'][dich_vu_id]'; dv.value=id;
+
+                            container.appendChild(card); container.appendChild(cb); container.appendChild(sum); container.appendChild(dv);
+
+                            function syncHidden(id){ const containerEl = document.getElementById('selected_services_list'); Array.from(containerEl.querySelectorAll('input.entry-hidden[data-service="'+id+'"]')).forEach(n=>n.remove()); const rowsNow = Array.from(document.querySelectorAll('#service_dates_'+id+' .service-date-row')); if(rowsNow.length===0){ try{ ts.removeItem(id); }catch(e){ const el=document.querySelector('[data-service-id="'+id+'"]'); if(el) el.remove(); } return; } let total=0; rowsNow.forEach((r,idx)=>{ const dateVal = r.querySelector('input[type=date]')?.value||''; const qty = parseInt(r.querySelector('input[type=number]')?.value||1); total += qty; const h1=document.createElement('input'); h1.type='hidden'; h1.name='services_data['+id+'][entries]['+idx+'][ngay]'; h1.value=dateVal; h1.className='entry-hidden'; h1.setAttribute('data-service', id); const h2=document.createElement('input'); h2.type='hidden'; h2.name='services_data['+id+'][entries]['+idx+'][so_luong]'; h2.value=qty; h2.className='entry-hidden'; h2.setAttribute('data-service', id); container.appendChild(h1); container.appendChild(h2); }); const sumEl = document.getElementById('service_quantity_hidden_'+id); if(sumEl) sumEl.value = total; if(window.computeTotals) window.computeTotals(); }
+
+                            // Ensure hidden inputs match rendered rows
+                            syncHidden(id);
+
+                        });
+                    }
+
+                    ts.on('change', function(values){ renderSelectedServices(values || []); if(window.computeTotals) window.computeTotals(); });
+
+                    // render initial
+                    renderSelectedServices(ts.getValue() || []);
+                    if(window.computeTotals) window.computeTotals();
+
+                    // normalize on date change
+                    const ngayNhanEl = document.getElementById('ngay_nhan');
+                    const ngayTraEl = document.getElementById('ngay_tra');
+                    if(ngayNhanEl && ngayTraEl){ ngayNhanEl.addEventListener('change', ()=>{ renderSelectedServices(ts.getValue()||[]); }); ngayTraEl.addEventListener('change', ()=>{ renderSelectedServices(ts.getValue()||[]); }); }
+                } catch(e){ console.error('Services init error', e); }
+            });
+        });
     </script>
     @endpush
 @endsection
