@@ -355,15 +355,6 @@
                                         </span>
                                         <span class="font-semibold text-gray-900 text-base">{{ number_format($displayPrice, 0, ',', '.') }} VNĐ</span>
                                     </div>
-                                    @if(isset($surchargeAmount) && $surchargeAmount > 0)
-                                        <div class="flex justify-between items-center bg-amber-50 rounded-md px-3 py-2 border border-amber-200 mt-1">
-                                            <span class="text-amber-800 font-medium text-xs flex items-center">
-                                                <i class="fas fa-user-plus text-amber-600 mr-2 text-sm"></i>
-                                                Phụ phí thêm khách
-                                            </span>
-                                            <span class="font-semibold text-amber-700 text-sm">+{{ number_format($surchargeAmount, 0, ',', '.') }} VNĐ</span>
-                                        </div>
-                                    @endif
                                     <p class="text-[11px] text-gray-600 mt-1 ml-1">Giá phòng đã bao gồm phụ phí.</p>
                                 @endif
 
@@ -467,7 +458,7 @@
                                 </div>
                             @endif
                         </div>
-
+      
                             <!-- Simple Policy Text -->
                             <div class="mt-6 space-y-2 text-sm text-gray-700">
                                 <p><strong>Hủy:</strong> Nếu hủy, thay đổi hoặc không đến, khách sẽ trả toàn bộ giá trị tiền đặt phòng.</p>

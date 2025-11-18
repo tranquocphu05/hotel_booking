@@ -16,16 +16,22 @@ class Invoice extends Model
         'tong_tien',
         'phuong_thuc',
         'trang_thai',
+        'invoice_type',
     ];
+
+    public function isPrepaid(): bool
+    {
+        return ($this->invoice_type ?? '') === 'PREPAID';
+    }
+
+    public function isExtra(): bool
+    {
+        return ($this->invoice_type ?? '') === 'EXTRA';
+    }
 
     public function datPhong()
     {
         return $this->belongsTo(DatPhong::class, 'dat_phong_id');
-    }
-
-    public function thanhToans()
-    {
-        return $this->hasMany(ThanhToan::class, 'hoa_don_id');
     }
     // app/Models/Invoice.php
 public function getPhuongThucUiAttribute(): array

@@ -165,8 +165,9 @@ class ProfileController extends Controller
                 }
             }
             
-            // Clear assigned rooms from pivot table
-            $booking->assignedRooms()->detach();
+            // Clear phong_ids after freeing rooms
+            $booking->phong_ids = [];
+            $booking->save();
 
             // Update so_luong_trong in loai_phong
             if ($booking->loaiPhong) {

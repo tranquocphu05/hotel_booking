@@ -278,6 +278,50 @@
 
                                 </div>
 
+                                <!-- Chọn dịch vụ -->
+                                
+                                <!-- Tom Select based multi-select for services -->
+                                <link href="https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/css/tom-select.css" rel="stylesheet">
+                                <!-- Styles for service cards: blue theme using Tailwind-friendly colors -->
+                                <style>
+                                    .service-card-custom{
+                                        border-radius:10px;
+                                        background: linear-gradient(135deg, #e0f2fe 0%, #bfdbfe 100%);
+                                        border:1.5px solid #2563eb; /* blue-600 */
+                                        padding:0.875rem;
+                                        box-shadow: 0 6px 18px rgba(37, 99, 235, 0.06);
+                                    }
+                                    /* responsive grid for cards */
+                                    .service-card-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:0.75rem}
+                                    .service-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;padding-bottom:0.4rem;border-bottom:1.5px solid #bfdbfe}
+                                    .service-card-header .service-title{color:#1e40af;font-weight:600;font-size:0.95rem}
+                                    .service-card-header .service-price{color:#1e3a8a;font-weight:600;font-size:0.85rem}
+                                    .service-date-row{display:flex;gap:0.5rem;align-items:center;margin-top:0.5rem;padding:0.4rem;background:#ffffff;border-radius:6px;border:1px solid #bfdbfe}
+                                    .service-date-row input[type=date]{border:1px solid #93c5fd;padding:0.35rem 0.5rem;border-radius:5px;background:#eff6ff;font-size:0.85rem;flex:1}
+                                    .service-date-row input[type=number]{border:1px solid #93c5fd;padding:0.35rem 0.5rem;border-radius:5px;background:#eff6ff;width:64px;text-align:center;font-size:0.85rem}
+                                    .service-add-day{background:linear-gradient(135deg, #93c5fd 0%, #2563eb 100%);color:#08203a;padding:0.4rem 0.6rem;border-radius:6px;border:1.5px solid #60a5fa;cursor:pointer;font-weight:600;font-size:0.85rem}
+                                    .service-add-day:hover{background:linear-gradient(135deg, #2563eb 0%, #1e40af 100%);box-shadow:0 4px 12px rgba(37, 99, 235, 0.12)}
+                                    .service-remove-btn{background:#fee2e2;color:#991b1b;padding:0.3rem 0.5rem;border-radius:5px;border:1px solid #fecaca;cursor:pointer;font-weight:600;font-size:0.8rem}
+                                    .service-remove-btn:hover{background:#fca5a5;box-shadow:0 3px 10px rgba(185,28,28,0.12)}
+                                    /* Tom Select input spacing */
+                                    #services_select + .ts-control{margin-top:.5rem;border-color:#2563eb}
+                                    /* selected list item hover */
+                                    #selected_services_list .service-card-custom{transition:all .18s ease}
+                                    #selected_services_list .service-card-custom:hover{transform:translateY(-4px);box-shadow:0 10px 26px rgba(37, 99, 235, 0.12)}
+                                </style>
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <label for="services_select" class="block text-sm font-medium text-gray-700 mb-2">Chọn dịch vụ kèm theo</label>
+                                    <select id="services_select" placeholder="Chọn 1 hoặc nhiều dịch vụ..." multiple>
+                                        @foreach ($services as $service)
+                                            <option value="{{ $service->id }}" data-price="{{ $service->price }}" data-unit="{{ $service->unit ?? '' }}">{{ $service->name }} - {{ number_format($service->price,0,',','.') }} VNĐ</option>
+                                        @endforeach
+                                    </select>
+
+                                    <!-- selected services list (rendered by JS) -->
+                                    <div id="selected_services_list" class="service-card-grid grid grid-cols-1 md:grid-cols-3 gap-6 mt-4"></div>
+                                </div>
+
+
                                 <input type="hidden" name="tong_tien" id="tong_tien_input" value="0">
                                 <!-- Hiển thị tổng tiền -->
                                 <div class="col-span-2">
@@ -766,12 +810,23 @@
                 oldUpdateTotalPrice(); // giữ logic cũ (phòng + voucher)
 
                 let totalServicePrice = 0;
+                // For each selected service, sum quantities across all date-entries and multiply by unit price
                 document.querySelectorAll('.service-checkbox:checked').forEach(checkbox => {
                     const serviceId = checkbox.value;
-                    const quantityInput = document.getElementById('service_quantity_' + serviceId);
-                    const price = parseFloat(checkbox.dataset.price || 0);
-                    const quantity = parseInt(quantityInput?.value || 1);
-                    totalServicePrice += price * quantity;
+                    const price = parseFloat(checkbox.dataset.price || 0) || 0;
+                    // find all per-entry hidden inputs for this service (so_luong)
+                    let sumQty = 0;
+                    Array.from(document.querySelectorAll('input.entry-hidden[data-service="'+serviceId+'"]')).forEach(inp => {
+                        // entry-hidden can be ngay or so_luong; only consider those with name ending in [so_luong]
+                        const name = inp.getAttribute('name') || '';
+                        if (name.endsWith('[so_luong]')) sumQty += parseInt(inp.value || 0);
+                    });
+                    // fallback: if no per-entry inputs exist, try summary hidden
+                    if (sumQty === 0) {
+                        const summary = document.getElementById('service_quantity_hidden_' + serviceId);
+                        sumQty = parseInt(summary?.value || 0) || 0;
+                    }
+                    totalServicePrice += price * sumQty;
                 });
 
                 // Cộng dịch vụ vào tổng tiền hiển thị
@@ -788,6 +843,242 @@
 
             // Form validation is handled by PHP Laravel - no client-side validation needed
             // All validation errors will be displayed by Laravel's error directives
+
+            // Initialize Tom Select for services and helper functions
+            function loadTomSelectAndInit(cb) {
+                if (window.TomSelect) return cb();
+                var s = document.createElement('script');
+                s.src = 'https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/js/tom-select.complete.min.js';
+                s.onload = cb;
+                document.head.appendChild(s);
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                loadTomSelectAndInit(function() {
+                    try {
+                        const selectEl = document.getElementById('services_select');
+                        if (!selectEl) return;
+
+                        const ts = new TomSelect(selectEl, {
+                            plugins: ['remove_button'],
+                            persist: false,
+                            create: false,
+                            onChange: function(values) {
+                                renderSelectedServices(values || []);
+                            }
+                        });
+
+                        // Render selected services list and hidden inputs (with per-date rows and 'Thêm ngày')
+                        function getRangeDates() {
+                            const start = document.getElementById('ngay_nhan')?.value;
+                            const end = document.getElementById('ngay_tra')?.value;
+                            if (!start || !end) return [];
+                            const a = [];
+                            const s = new Date(start);
+                            const e = new Date(end);
+                            for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) a.push(new Date(d).toISOString().split('T')[0]);
+                            return a;
+                        }
+
+                        // Normalize service dates to the current range: keep same number of rows where possible,
+                        // but clamp dates to the new range and remove excess rows if range shrinks.
+                        function normalizeServiceDates() {
+                            const range = getRangeDates();
+                            if (!range.length) return;
+                            document.querySelectorAll('[data-service-id]').forEach(card => {
+                                const id = card.getAttribute('data-service-id');
+                                const rows = Array.from(card.querySelectorAll('.service-date-row'));
+                                // if no rows (shouldn't happen) ensure at least one
+                                if (rows.length === 0) {
+                                    const rowsContainer = document.getElementById('service_dates_'+id);
+                                    if (rowsContainer) {
+                                        const first = rowsContainer.appendChild(document.createElement('div'));
+                                    }
+                                }
+                                // remove extra rows if range shorter
+                                if (rows.length > range.length) {
+                                    for (let i = rows.length - 1; i >= range.length; i--) rows[i].remove();
+                                }
+                                // now set each remaining row's date to the corresponding date in range
+                                const nowRows = Array.from(card.querySelectorAll('.service-date-row'));
+                                nowRows.forEach((r, idx) => {
+                                    const d = r.querySelector('input[type=date]');
+                                    if (d) d.value = range[Math.min(idx, range.length-1)];
+                                });
+                                // sync hidden inputs
+                                const syncFn = card.querySelector('#service_dates_'+id) ? null : null;
+                                // call global syncHiddenEntries by triggering a sync via existing function if present
+                                try { const ev = new Event('service_range_changed'); document.getElementById('service_dates_'+id)?.dispatchEvent(ev); } catch(e){}
+                            });
+                        }
+
+                        function renderSelectedServices(values) {
+                            const container = document.getElementById('selected_services_list');
+
+                            // remember previous row counts per service to preserve number of date-rows when re-rendering
+                            const prevCounts = {};
+                            Array.from(container.querySelectorAll('[data-service-id]')).forEach(card => {
+                                const id = card.getAttribute('data-service-id');
+                                prevCounts[id] = card.querySelectorAll('.service-date-row')?.length || 0;
+                            });
+
+                            container.innerHTML = '';
+                            const range = getRangeDates();
+
+                            (values || []).forEach(val => {
+                                const option = selectEl.querySelector('option[value="' + val + '"]');
+                                if (!option) return;
+                                const serviceId = val;
+                                const serviceName = option.textContent || option.innerText;
+                                const servicePrice = parseFloat(option.dataset.price || 0);
+                                const unit = option.dataset.unit || 'cái';
+                        
+
+                                // card wrapper
+                                const card = document.createElement('div');
+                                card.className = 'service-card-custom';
+                                card.setAttribute('data-service-id', serviceId);
+
+                                // header
+                                const header = document.createElement('div');
+                                header.className = 'service-card-header';
+                                const title = document.createElement('div');
+                                title.innerHTML = `<div class="service-title">${serviceName.split(' - ')[0]}</div>`;
+                                const price = document.createElement('div');
+                                price.className = 'service-price';
+                                price.innerHTML = `${new Intl.NumberFormat('vi-VN').format(servicePrice)}/${unit}`;
+                                header.appendChild(title);
+                                header.appendChild(price);
+                                card.appendChild(header);
+
+                                // date rows container
+                                const rows = document.createElement('div');
+                                rows.id = 'service_dates_' + serviceId;
+
+                                function buildDateRow(dateVal) {
+                                    const r = document.createElement('div'); r.className = 'service-date-row';
+                                    const d = document.createElement('input'); d.type = 'date'; d.className = 'border rounded p-1'; d.value = dateVal || '';
+                                    const rg = getRangeDates(); if (rg.length) { d.min = rg[0]; d.max = rg[rg.length-1]; }
+                                    // store previous value on focus to allow revert if duplicate chosen
+                                    d.addEventListener('focus', function(){ this.dataset.prev = this.value || ''; });
+                                    // prevent selecting a date already used by another row of the same service
+                                    d.addEventListener('change', function(){
+                                        const val = this.value || '';
+                                        if (!val) { syncHiddenEntries(serviceId); return; }
+                                        const others = Array.from(document.querySelectorAll('#service_dates_'+serviceId+' input[type=date]'))
+                                            .filter(i=>i !== this)
+                                            .map(i=>i.value);
+                                        if (others.includes(val)) {
+                                            // revert and notify
+                                            const prev = this.dataset.prev || '';
+                                            this.value = prev;
+                                            // small inline feedback
+                                            alert('Ngày này đã được chọn cho dịch vụ này. Vui lòng chọn ngày khác.');
+                                            return;
+                                        }
+                                        syncHiddenEntries(serviceId);
+                                    });
+                                    const q = document.createElement('input'); q.type = 'number'; q.min = 1; q.value = 1; q.className = 'w-24 border rounded p-1 text-center'; q.onchange = () => syncHiddenEntries(serviceId);
+                                    const rem = document.createElement('button'); rem.type='button'; rem.className='service-remove-btn ml-2'; rem.textContent='Xóa'; rem.onclick = ()=>{ r.remove(); syncHiddenEntries(serviceId); };
+                                    r.appendChild(d); r.appendChild(q); r.appendChild(rem);
+                                    return r;
+                                }
+
+                                // determine how many date rows to render (preserve previous count)
+                                const want = Math.max(1, prevCounts[serviceId] || 1);
+                                const maxRows = Math.min(want, range.length || 1);
+                                for (let i=0;i<maxRows;i++) {
+                                    const dateVal = (range.length && range[i]) ? range[i] : '';
+                                    rows.appendChild(buildDateRow(dateVal));
+                                }
+
+                                // add-day button
+                                const addBtn = document.createElement('button'); addBtn.type='button'; addBtn.className='service-add-day mt-2'; addBtn.textContent='Thêm ngày';
+                                addBtn.onclick = function(){
+                                    const used = Array.from(rows.querySelectorAll('input[type="date"]')).map(i=>i.value);
+                                    const avail = getRangeDates().find(d=>!used.includes(d));
+                                    if (avail) { rows.appendChild(buildDateRow(avail)); syncHiddenEntries(serviceId); }
+                                };
+
+                                card.appendChild(rows);
+                                card.appendChild(addBtn);
+
+                                // hidden inputs container
+                                const hcb = document.createElement('input'); hcb.type='checkbox'; hcb.className='service-checkbox'; hcb.name='services[]'; hcb.value=serviceId; hcb.setAttribute('data-price', servicePrice); hcb.style.display='none'; hcb.checked=true;
+                                const hsum = document.createElement('input'); hsum.type='hidden'; hsum.name='services_data['+serviceId+'][so_luong]'; hsum.id='service_quantity_hidden_'+serviceId; hsum.value='1';
+                                const hdv = document.createElement('input'); hdv.type='hidden'; hdv.name='services_data['+serviceId+'][dich_vu_id]'; hdv.value=serviceId;
+
+                                container.appendChild(card);
+                                container.appendChild(hcb);
+                                container.appendChild(hsum);
+                                container.appendChild(hdv);
+
+                                // sync per-entry hidden inputs and add-button state
+                                function syncHiddenEntries(id){
+                                    // If no rows remain for this service, remove the service selection entirely
+                                    const rowsNow = Array.from(document.querySelectorAll('#service_dates_'+id+' .service-date-row'));
+                                    if (rowsNow.length === 0) {
+                                        try { ts.removeItem(id); } catch(e){
+                                            // fallback: remove DOM nodes
+                                            const card = document.querySelector('[data-service-id="'+id+'"]'); if(card) card.remove();
+                                            Array.from(document.querySelectorAll('input[name="services[]"][value="'+id+'"]')).forEach(n=>n.remove());
+                                        }
+                                        updateTotalPrice();
+                                        return;
+                                    }
+
+                                    // remove existing entry-hidden inputs for this id
+                                    Array.from(document.querySelectorAll('input.entry-hidden[data-service="'+id+'"]')).forEach(n=>n.remove());
+
+                                    let total=0;
+                                    rowsNow.forEach((r, idx)=>{
+                                        const dateVal = r.querySelector('input[type=date]')?.value || '';
+                                        const qty = parseInt(r.querySelector('input[type=number]')?.value || 1);
+                                        total += qty;
+                                        const hNgay = document.createElement('input'); hNgay.type='hidden'; hNgay.name='services_data['+id+'][entries]['+idx+'][ngay]'; hNgay.value=dateVal; hNgay.className='entry-hidden'; hNgay.setAttribute('data-service', id);
+                                        const hSo = document.createElement('input'); hSo.type='hidden'; hSo.name='services_data['+id+'][entries]['+idx+'][so_luong]'; hSo.value=qty; hSo.className='entry-hidden'; hSo.setAttribute('data-service', id);
+                                        container.appendChild(hNgay); container.appendChild(hSo);
+                                    });
+                                    const sumEl = document.getElementById('service_quantity_hidden_'+id); if(sumEl) sumEl.value = total;
+                                    updateTotalPrice(); updateAddBtnState(id);
+                                }
+
+                                function updateAddBtnState(id){ const rowsNow = document.querySelectorAll('#service_dates_'+id+' .service-date-row'); const used = Array.from(rowsNow).map(r=>r.querySelector('input[type=date]').value); const avail = getRangeDates().find(d=>!used.includes(d)); addBtn.disabled = !avail; addBtn.style.opacity = addBtn.disabled? '0.6':'1'; }
+
+                                // call sync initially
+                                syncHiddenEntries(serviceId);
+                                updateAddBtnState(serviceId);
+                            });
+
+                            // Ensure totals recalc
+                            updateTotalPrice();
+                        }
+
+                        // allow global removal
+                        window.removeServiceFromSelect = function(id) {
+                            ts.removeItem(id);
+                        };
+
+                        
+
+                        // When increase/decrease functions run, they already call updateServiceQuantityHidden
+                        // but we must ensure hidden inputs exist - renderSelectedServices created them.
+
+                        // Render current initial selection if any
+                        renderSelectedServices(ts.getValue() || []);
+
+                        // Re-render / normalize service date-rows when global date range changes
+                        const ngayNhanEl = document.getElementById('ngay_nhan');
+                        const ngayTraEl = document.getElementById('ngay_tra');
+                        if (ngayNhanEl && ngayTraEl) {
+                            ngayNhanEl.addEventListener('change', function(){ normalizeServiceDates(); renderSelectedServices(ts.getValue() || []); });
+                            ngayTraEl.addEventListener('change', function(){ normalizeServiceDates(); renderSelectedServices(ts.getValue() || []); });
+                        }
+                    } catch (e) {
+                        console.error('TomSelect init error', e);
+                    }
+                });
+            });
 
             // Initial update
             updateVoucherAvailability();
