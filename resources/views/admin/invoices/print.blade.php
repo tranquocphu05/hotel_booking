@@ -32,14 +32,7 @@
         }
     }
     
-    $voucher = null;
-    $discount = 0;
-    if($booking && $booking->voucher_id) {
-        $voucher = $booking->voucher;
-        if($voucher) {
-            $discount = $subtotal * ($voucher->gia_tri / 100);
-        }
-    }
+    // Note: Voucher discount will be calculated after services total is known
 ?>
 
 <div class="max-w-4xl mx-auto p-8">
@@ -125,7 +118,8 @@
                 </div>
             </div>
 
-            {{-- Table --}}
+            {{-- Chi tiết phòng --}}
+            <h3 class="font-bold text-base mb-3 text-gray-800">CHI TIẾT PHÒNG</h3>
             <table class="w-full border-collapse border-2 border-gray-800 mb-6">
                 <thead>
                     <tr class="bg-gray-200">
@@ -137,34 +131,114 @@
                 </thead>
                 <tbody>
                     <?php foreach($booking->getRoomTypes() as $rt): ?>
-                        <?php $lp = \App\Models\LoaiPhong::find($rt['loai_phong_id']); ?>
+                        <?php 
+                            $lp = \App\Models\LoaiPhong::find($rt['loai_phong_id']); 
+                            // Tính thành tiền: Lấy giá từ LoaiPhong × số lượng × số đêm
+                            $giaPhong = $lp ? ($lp->gia_khuyen_mai ?? $lp->gia_co_ban) : 0;
+                            $thanhTien = $giaPhong * $rt['so_luong'] * $nights;
+                        ?>
                         <tr>
                             <td class="border border-gray-800 px-4 py-2 text-sm">{{ $lp->ten_loai ?? 'N/A' }}</td>
                             <td class="border border-gray-800 px-4 py-2 text-center text-sm">{{ $rt['so_luong'] }}</td>
                             <td class="border border-gray-800 px-4 py-2 text-center text-sm">{{ $nights }}</td>
                             <td class="border border-gray-800 px-4 py-2 text-right text-sm font-semibold">
-                                {{ number_format($rt['gia_rieng'] * $rt['so_luong'] * $nights, 0, ',', '.') }} ₫
+                                {{ number_format($thanhTien, 0, ',', '.') }} ₫
                             </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
 
-            {{-- Total --}}
+            {{-- Danh sách dịch vụ --}}
+            @php
+                $services = collect();
+                if ($booking) {
+                    $services = \App\Models\BookingService::with('service')
+                        ->where('dat_phong_id', $booking->id)
+                        ->orderBy('used_at')
+                        ->get();
+                }
+                $servicesTotal = $services->reduce(function($carry, $item){
+                    return $carry + (($item->quantity ?? 0) * ($item->unit_price ?? 0));
+                }, 0);
+            @endphp
+
+            @if($services->isNotEmpty())
+                <h3 class="font-bold text-base mb-3 text-gray-800 mt-6">DANH SÁCH DỊCH VỤ</h3>
+                <table class="w-full border-collapse border-2 border-gray-800 mb-6">
+                    <thead>
+                        <tr class="bg-gray-200">
+                            <th class="border border-gray-800 px-4 py-2 text-left text-sm font-bold">DỊCH VỤ</th>
+                            <th class="border border-gray-800 px-4 py-2 text-center text-sm font-bold">NGÀY DÙNG</th>
+                            <th class="border border-gray-800 px-4 py-2 text-center text-sm font-bold">SỐ LƯỢNG</th>
+                            <th class="border border-gray-800 px-4 py-2 text-right text-sm font-bold">ĐƠN GIÁ</th>
+                            <th class="border border-gray-800 px-4 py-2 text-right text-sm font-bold">THÀNH TIỀN</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($services as $s)
+                            @php
+                                $svc = $s->service;
+                                $name = $svc ? ($svc->name ?? 'N/A') : ($s->service_name ?? 'N/A');
+                                $usedAt = $s->used_at ? date('d/m/Y', strtotime($s->used_at)) : '-';
+                                $qty = $s->quantity ?? 0;
+                                $unitPrice = $s->unit_price ?? 0;
+                                $serviceSubtotal = $qty * $unitPrice;
+                            @endphp
+                            <tr>
+                                <td class="border border-gray-800 px-4 py-2 text-sm">{{ $name }}</td>
+                                <td class="border border-gray-800 px-4 py-2 text-center text-sm">{{ $usedAt }}</td>
+                                <td class="border border-gray-800 px-4 py-2 text-center text-sm">{{ $qty }}</td>
+                                <td class="border border-gray-800 px-4 py-2 text-right text-sm">{{ number_format($unitPrice, 0, ',', '.') }} đ</td>
+                                <td class="border border-gray-800 px-4 py-2 text-right text-sm font-semibold">{{ number_format($serviceSubtotal, 0, ',', '.') }} đ</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            @endif
+
+            @php
+                // Tính giảm giá từ voucher (CHỈ áp dụng cho tiền phòng)
+                $voucher = null;
+                $discount = 0;
+                if($booking && $booking->voucher_id) {
+                    $voucher = $booking->voucher;
+                    if($voucher && $voucher->gia_tri) {
+                        // Voucher chỉ áp dụng cho tiền phòng (không giảm giá dịch vụ)
+                        $discount = $subtotal * ($voucher->gia_tri / 100);
+                    }
+                }
+                
+                // Tính tổng cộng: (Tiền phòng - Giảm giá) + Tiền dịch vụ
+                $tongCong = max(0, $subtotal - $discount + $servicesTotal);
+            @endphp
+            
+            {{-- Total - Sử dụng dữ liệu từ invoice --}}
             <div class="border-t-2 border-gray-800 pt-4">
                 <div class="space-y-2">
                     <div class="flex justify-between text-sm">
                         <span>Tổng tiền phòng:</span>
-                        <span class="font-semibold">{{ number_format($subtotal, 0, ',', '.') }} ₫</span>
+                        <span class="font-semibold">{{ number_format($invoice->tien_phong ?? $subtotal, 0, ',', '.') }} ₫</span>
                     </div>
                     
-                    <?php if($voucher): ?>
-                        <div class="flex justify-between text-sm text-green-600">
-                            <span>Giảm giá ({{ $voucher->ma_voucher }} - {{ $voucher->gia_tri }}%):</span>
-                            <span class="font-semibold">-{{ number_format($discount, 0, ',', '.') }} ₫</span>
+                    @if(($invoice->giam_gia ?? 0) > 0)
+                        @php
+                            $voucher = $booking->voucher;
+                        @endphp
+                        <div class="flex justify-between text-sm text-red-600">
+                            <span>Giảm giá @if($voucher)({{ $voucher->ma_voucher }} - {{ $voucher->gia_tri }}%)@endif:</span>
+                            <span class="font-semibold">-{{ number_format($invoice->giam_gia, 0, ',', '.') }} ₫</span>
                         </div>
-                        <div class="border-t border-gray-400 my-1"></div>
-                    <?php endif; ?>
+                    @endif
+                    
+                    @if(($invoice->tien_dich_vu ?? $servicesTotal) > 0)
+                        <div class="flex justify-between text-sm">
+                            <span>Tổng tiền dịch vụ:</span>
+                            <span class="font-semibold text-purple-600">{{ number_format($invoice->tien_dich_vu ?? $servicesTotal, 0, ',', '.') }} ₫</span>
+                        </div>
+                    @endif
+                    
+                    <div class="border-t border-gray-400 my-1"></div>
                     
                     <div class="flex justify-between text-lg font-bold">
                         <span>TỔNG THANH TOÁN:</span>

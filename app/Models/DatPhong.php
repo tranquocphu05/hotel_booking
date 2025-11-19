@@ -40,8 +40,6 @@ class DatPhong extends Model
         'so_nguoi',
         'trang_thai',
         'tong_tien',
-        'tien_phong',  // Room total calculated by BookingPriceCalculator
-        'tong_tien_dich_vu',  // Service total calculated by BookingPriceCalculator
         'voucher_id',
         'ly_do_huy',
         'ngay_huy',

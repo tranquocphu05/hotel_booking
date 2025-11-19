@@ -44,25 +44,32 @@ class BookingPriceCalculator
             $tongTienPhong += $soLuong * $unit * $soDem;
         }
 
-        // 4️⃣ Nếu có voucher thì tính giảm giá
+        // 4️⃣ Nếu có voucher thì tính giảm giá (CHỈ áp dụng cho tiền phòng)
         $giamGia = 0;
         if ($booking->voucher_id && $booking->voucher) {
             $voucher = $booking->voucher;
-            if ($voucher->kieu === 'phan_tram') {
-                $giamGia = ($tongTienPhong + $totalServices) * ($voucher->gia_tri / 100);
-            } elseif ($voucher->kieu === 'tien_mat') {
-                $giamGia = min($voucher->gia_tri, $tongTienPhong + $totalServices);
+            if ($voucher->gia_tri) {
+                // Voucher chỉ áp dụng cho tiền phòng (không giảm giá dịch vụ)
+                $giamGia = round($tongTienPhong * ($voucher->gia_tri / 100), 0);
             }
         }
 
-        // 5️⃣ Tổng cuối cùng (không âm)
-        $tongCong = max(0, $tongTienPhong + $totalServices - $giamGia);
+        // 5️⃣ Tổng cuối cùng: (Tiền phòng - Giảm giá) + Tiền dịch vụ
+        $tongCong = max(0, $tongTienPhong - $giamGia + $totalServices);
 
-        // 6️⃣ Cập nhật lại dữ liệu
+        // 6️⃣ Cập nhật booking
         $booking->update([
-            'tien_phong' => $tongTienPhong,
-            'tong_tien_dich_vu' => $totalServices,
             'tong_tien' => $tongCong,
         ]);
+
+        // 7️⃣ Cập nhật invoice nếu có
+        if ($booking->invoice) {
+            $booking->invoice->update([
+                'tien_phong' => $tongTienPhong,
+                'tien_dich_vu' => $totalServices,
+                'giam_gia' => $giamGia,
+                'tong_tien' => $tongCong,
+            ]);
+        }
     }
 }

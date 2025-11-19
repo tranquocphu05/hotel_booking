@@ -224,8 +224,63 @@ class DatPhongController extends Controller
             })->values();
         }
 
-    $services = Service::where('status', 'hoat_dong')->get();
-    $bookingServices = BookingService::with('service')->where('dat_phong_id', $id)->get();
+        // Lấy danh sách dịch vụ đang hoạt động
+        $services = \App\Models\Service::where('status', 'hoat_dong')->get();
+        
+        // Lấy dịch vụ đã sử dụng của booking này
+        $bookingServices = \App\Models\BookingService::with('service')
+            ->where('dat_phong_id', $booking->id)
+            ->get();
+        
+        return view('admin.dat_phong.edit', compact('booking', 'loaiPhongs', 'availableRooms', 'services', 'bookingServices'));
+    }
+
+    /**
+     * Tính toán chính sách hủy phòng
+     */
+    private function calculateCancellationPolicy($booking)
+    {
+        $now = Carbon::now();
+        $checkinDate = Carbon::parse($booking->ngay_nhan);
+        $daysUntilCheckin = $now->diffInDays($checkinDate, false);
+        
+        $policy = [
+            'can_cancel' => true,
+            'refund_percentage' => 0,
+            'refund_amount' => 0,
+            'penalty_amount' => 0,
+            'message' => '',
+            'days_until_checkin' => $daysUntilCheckin,
+        ];
+
+        // Nếu đã quá ngày nhận phòng, không cho hủy (khách đã check-in)
+        if ($daysUntilCheckin < 0) {
+            $policy['can_cancel'] = false;
+            $policy['refund_percentage'] = 0;
+            $policy['refund_amount'] = 0;
+            $policy['penalty_amount'] = $booking->tong_tien;
+            $policy['message'] = 'Không thể hủy sau ngày nhận phòng (khách đã check-in)';
+            return $policy;
+        }
+
+        // Chính sách hoàn tiền theo số ngày trước khi nhận phòng
+        if ($daysUntilCheckin >= 7) {
+            // Hủy trước 7 ngày: Hoàn 100%
+            $policy['refund_percentage'] = 100;
+            $policy['message'] = 'Hoàn 100% tiền đã thanh toán';
+        } elseif ($daysUntilCheckin >= 3) {
+            // Hủy trước 3-6 ngày: Hoàn 50%
+            $policy['refund_percentage'] = 50;
+            $policy['message'] = 'Hoàn 50% tiền đã thanh toán (phí hủy 50%)';
+        } elseif ($daysUntilCheckin >= 1) {
+            // Hủy trước 1-2 ngày: Hoàn 25%
+            $policy['refund_percentage'] = 25;
+            $policy['message'] = 'Hoàn 25% tiền đã thanh toán (phí hủy 75%)';
+        } else {
+            // Hủy trong ngày: Không hoàn tiền
+            $policy['refund_percentage'] = 0;
+            $policy['message'] = 'Không hoàn tiền (hủy quá gần ngày nhận phòng)';
+        }
 
     return view('admin.dat_phong.edit', compact('booking', 'loaiPhongs', 'availableRooms', 'services', 'bookingServices'));
     }
@@ -877,7 +932,7 @@ class DatPhongController extends Controller
         $finalPrice = $finalPrice + $totalServicePrice;
 
     // Create single booking within transaction to ensure atomicity
-    $booking = DB::transaction(function () use ($roomDetails, $priceRatio, $request, $voucherId, $finalPrice, $totalSoLuong, $firstLoaiPhongId, $roomTypesArray, $servicesData) {
+    $booking = DB::transaction(function () use ($roomDetails, $priceRatio, $request, $voucherId, $finalPrice, $totalPrice, $totalSoLuong, $firstLoaiPhongId, $roomTypesArray) {
             // Validate availability for all room types first
             foreach ($roomDetails as $roomDetail) {
                 // Lock and re-check availability inside transaction to prevent race conditions
@@ -973,35 +1028,17 @@ class DatPhongController extends Controller
                 $booking->update(['phong_id' => $allPhongIds[0]]);
             }
 
-            // Lưu các dịch vụ (nếu có) làm booking services
-            // Mỗi entry (ngày) = 1 BookingService record
-            if (is_array($servicesData) && !empty($servicesData)) {
-                foreach ($servicesData as $svcId => $svcRow) {
-                    $service = Service::find($svcId);
-                    if (!$service) continue;
-                    
-                    // Lấy các entries (mỗi ngày)
-                    $entries = isset($svcRow['entries']) && is_array($svcRow['entries']) ? $svcRow['entries'] : [];
-                    foreach ($entries as $entry) {
-                        $ngay = isset($entry['ngay']) ? $entry['ngay'] : '';
-                        $qty = isset($entry['so_luong']) ? intval($entry['so_luong']) : 0;
-                        if (!$ngay || $qty <= 0) continue;
-
-                        \App\Models\BookingService::create([
-                            'dat_phong_id' => $booking->id,
-                            'service_id' => $service->id,
-                            'quantity' => $qty,
-                            'unit_price' => $service->price,
-                            'used_at' => $ngay,
-                        ]);
-                    }
-                }
-            }
-
-            // Automatically create invoice with status "cho_thanh_toan" (waiting for payment)
+            // Tạo invoice ngay với trạng thái chờ thanh toán
+            // Tính breakdown: tien_phong, giam_gia
+            $tienPhong = $totalPrice; // Giá gốc trước voucher
+            $giamGia = $totalPrice - $finalPrice; // Số tiền giảm từ voucher
+            
             \App\Models\Invoice::create([
                 'dat_phong_id' => $booking->id,
-                'tong_tien' => $booking->tong_tien,
+                'tien_phong' => $tienPhong,
+                'tien_dich_vu' => 0, // Chưa có dịch vụ khi mới tạo
+                'giam_gia' => $giamGia,
+                'tong_tien' => $finalPrice,
                 'trang_thai' => 'cho_thanh_toan',
                 'phuong_thuc' => null,
             ]);
@@ -1169,6 +1206,10 @@ class DatPhongController extends Controller
         // Create invoice if missing
         $invoice = $booking->invoice;
         if (!$invoice) {
+            // Tính lại breakdown trước khi tạo invoice
+            \App\Services\BookingPriceCalculator::recalcTotal($booking);
+            $booking = $booking->fresh(); // Reload
+            
             $invoice = \App\Models\Invoice::create([
                 'dat_phong_id' => $booking->id,
                 'tong_tien' => $booking->tong_tien,
