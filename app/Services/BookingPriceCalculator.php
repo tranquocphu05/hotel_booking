@@ -22,7 +22,7 @@ class BookingPriceCalculator
         $soDem = 1;
 
         if ($ngayNhan && $ngayTra && $ngayTra->greaterThan($ngayNhan)) {
-            $soDem = max(1, $ngayTra->diffInDays($ngayNhan));
+            $soDem = max(1, $ngayNhan->diffInDays($ngayTra));
         }
 
         // 3️⃣ Lấy thông tin các loại phòng (giá riêng hoặc giá mặc định)
@@ -31,15 +31,17 @@ class BookingPriceCalculator
 
         foreach ($roomTypes as $rt) {
             $soLuong = (int) ($rt['so_luong'] ?? 1);
-            $giaRieng = (float) ($rt['gia_rieng'] ?? 0);
             $loaiPhongId = (int) ($rt['loai_phong_id'] ?? 0);
 
-            // Lấy giá ưu tiên: giá riêng > giá mặc định loại phòng
-            $gia = $giaRieng > 0
-                ? $giaRieng
-                : (LoaiPhong::find($loaiPhongId)?->gia ?? 0);
+            // Always use LoaiPhong promotional price (gia_khuyen_mai) if available,
+            // otherwise fall back to base price (gia_co_ban).
+            $loaiPhong = LoaiPhong::find($loaiPhongId);
+            $unit = 0;
+            if ($loaiPhong) {
+                $unit = $loaiPhong->gia_khuyen_mai ?? $loaiPhong->gia_co_ban ?? 0;
+            }
 
-            $tongTienPhong += $soLuong * $gia * $soDem;
+            $tongTienPhong += $soLuong * $unit * $soDem;
         }
 
         // 4️⃣ Nếu có voucher thì tính giảm giá
@@ -60,7 +62,6 @@ class BookingPriceCalculator
         $booking->update([
             'tien_phong' => $tongTienPhong,
             'tong_tien_dich_vu' => $totalServices,
-            'giam_gia' => $giamGia,
             'tong_tien' => $tongCong,
         ]);
     }
