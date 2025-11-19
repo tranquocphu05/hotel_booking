@@ -25,7 +25,6 @@ class Invoice extends Model
         'invoice_type',
     ];
 
-<<<<<<< HEAD
     protected $casts = [
         'tong_tien' => 'decimal:2',
         'tien_phong' => 'decimal:2',
@@ -35,17 +34,6 @@ class Invoice extends Model
         'da_thanh_toan' => 'decimal:2',
         'con_lai' => 'decimal:2',
     ];
-=======
-    public function isPrepaid(): bool
-    {
-        return ($this->invoice_type ?? '') === 'PREPAID';
-    }
-
-    public function isExtra(): bool
-    {
-        return ($this->invoice_type ?? '') === 'EXTRA';
-    }
->>>>>>> f1858d0fc0a6aeab6ad720d431df0c46c45d345c
 
     public function datPhong()
     {
