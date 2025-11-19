@@ -98,7 +98,12 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin
     Route::resource('phong', \App\Http\Controllers\Admin\PhongController::class)->names('phong');
     Route::put('phong/{id}/update-status', [\App\Http\Controllers\Admin\PhongController::class, 'updateStatus'])->name('phong.update-status');
     Route::resource('invoices', InvoiceController::class)->names('invoices');
-    Route::get('invoices/{invoice}/print', [InvoiceController::class, 'print'])->name('invoices.print');
+    Route::get('/invoices/{invoice}/export', [InvoiceController::class, 'export'])->name('invoices.export');
+    // Create EXTRA invoice (service-only) from a paid invoice
+    // Show form to compose extra invoice (do NOT persist until confirm)
+    Route::get('/invoices/{invoice}/create-extra', [InvoiceController::class, 'createExtra'])->name('invoices.create_extra');
+    // Store the confirmed extra invoice
+    Route::post('/invoices/{invoice}/store-extra', [InvoiceController::class, 'storeExtra'])->name('invoices.store_extra');
     Route::resource('voucher', VoucherController::class)->names('voucher');
     Route::resource('news', \App\Http\Controllers\Admin\NewsController::class)->names('news');
     Route::prefix('reviews')

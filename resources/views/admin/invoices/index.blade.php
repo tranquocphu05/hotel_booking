@@ -32,11 +32,20 @@
 
       <div class="flex-1">
         <label class="block text-sm font-medium text-gray-700 mb-2">Trạng thái</label>
-        <select name="status" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-700">
-          <option value="" {{ request('status') == '' ? 'selected' : '' }}>Tất cả Trạng thái</option>
-          <option value="cho_thanh_toan" {{ request('status') == 'cho_thanh_toan' ? 'selected' : '' }}>Chờ thanh toán</option>
-          <option value="da_thanh_toan" {{ request('status') == 'da_thanh_toan' ? 'selected' : '' }}>Đã thanh toán</option>
-          <option value="hoan_tien" {{ request('status') == 'hoan_tien' ? 'selected' : '' }}>Hoàn tiền</option>
+        <select name="status" class="w-full px-3 py-2 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-700 text-sm">
+          <option value="">Tất cả Trạng thái</option>
+          <option value="cho_thanh_toan"  @selected(request('status')=='cho_thanh_toan')>Chờ thanh toán</option>
+          <option value="da_thanh_toan"   @selected(request('status')=='da_thanh_toan')>Đã thanh toán</option>
+          <option value="hoan_tien"       @selected(request('status')=='hoan_tien')>Hoàn tiền</option>
+        </select>
+      </div>
+
+      <div class="flex-1">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Loại HĐ</label>
+        <select name="invoice_type" class="w-full px-3 py-2 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-700 text-sm">
+          <option value="">Tất cả loại</option>
+          <option value="EXTRA" @selected(request('invoice_type')=='EXTRA')>PHÁT SINH</option>
+          <option value="PREPAID" @selected(request('invoice_type')=='PREPAID')>Hóa đơn chính</option>
         </select>
       </div>
 
@@ -48,160 +57,100 @@
     </form>
   </div>
 
-  {{-- Statistics Cards --}}
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-    <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 border-l-4 border-yellow-500 rounded-lg p-4 shadow-sm">
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-xs font-medium text-yellow-700 uppercase">Chờ thanh toán</p>
-          <p class="text-2xl font-bold text-yellow-900 mt-1">{{ $invoices->where('trang_thai', 'cho_thanh_toan')->count() }}</p>
-        </div>
-        <div class="bg-yellow-200 rounded-full p-3">
-          <i class="fas fa-clock text-yellow-700 text-xl"></i>
-        </div>
-      </div>
-    </div>
-
-    <div class="bg-gradient-to-br from-green-50 to-green-100 border-l-4 border-green-500 rounded-lg p-4 shadow-sm">
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-xs font-medium text-green-700 uppercase">Đã thanh toán</p>
-          <p class="text-2xl font-bold text-green-900 mt-1">{{ $invoices->where('trang_thai', 'da_thanh_toan')->count() }}</p>
-        </div>
-        <div class="bg-green-200 rounded-full p-3">
-          <i class="fas fa-check-circle text-green-700 text-xl"></i>
-        </div>
-      </div>
-    </div>
-
-    <div class="bg-gradient-to-br from-red-50 to-red-100 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-xs font-medium text-red-700 uppercase">Hoàn tiền</p>
-          <p class="text-2xl font-bold text-red-900 mt-1">{{ $invoices->where('trang_thai', 'hoan_tien')->count() }}</p>
-        </div>
-        <div class="bg-red-200 rounded-full p-3">
-          <i class="fas fa-rotate-left text-red-700 text-xl"></i>
-        </div>
-      </div>
-    </div>
-  </div>
-
   {{-- Table --}}
   <div class="overflow-x-auto w-full">
-    <table class="w-full text-sm text-gray-700 border border-gray-200 rounded-lg shadow-sm">
-      <thead class="bg-gradient-to-r from-gray-50 to-gray-100 text-gray-800 text-xs uppercase font-semibold">
+    <table class="w-full text-sm text-gray-700 border border-gray-200 rounded-lg shadow-sm table-auto">
+      <thead class="bg-gray-100 text-gray-800 text-xs uppercase font-semibold">
         <tr>
-          <th class="px-4 py-3 text-left border-b">ID</th>
-          <th class="px-4 py-3 text-left border-b">Khách hàng</th>
-          <th class="px-4 py-3 text-left border-b">Loại Phòng</th>
-          <th class="px-4 py-3 text-center border-b">Số lượng</th>
-          <th class="px-4 py-3 text-right border-b">Tổng tiền</th>
-          <th class="px-4 py-3 text-center border-b">Phương thức</th>
-          <th class="px-4 py-3 text-center border-b">Trạng thái</th>
-          <th class="px-4 py-3 text-center border-b">Ngày tạo</th>
-          <th class="px-4 py-3 text-center border-b">Thao tác</th>
+          <th class="px-3 py-2 text-center border-b">ID</th>
+          <th class="px-3 py-2 text-center border-b">Khách hàng</th>
+          <th class="px-3 py-2 text-center border-b">CCCD</th>
+          <th class="px-3 py-2 text-center border-b">Loại Phòng</th>
+          <th class="px-3 py-2 text-center border-b">Số lượng</th>
+          <th class="px-3 py-2 text-center border-b">Tổng tiền</th>
+          <th class="px-3 py-2 text-center border-b">Loại HĐ</th>
+          <th class="px-3 py-2 text-center border-b">Phương thức</th>
+          <th class="px-3 py-2 text-center border-b">Trạng thái</th>
+          <th class="px-3 py-2 text-center border-b">Ngày tạo</th>
+          <th class="px-3 py-2 text-center border-b">Thao Tác</th>
         </tr>
       </thead>
 
       <tbody class="divide-y divide-gray-100">
         @forelse($invoices as $inv)
-          @php
-            $booking = $inv->datPhong;
-            $st = $inv->trang_thai_ui;
-            $pm = $inv->phuong_thuc_ui;
-          @endphp
-          <tr class="hover:bg-blue-50 transition-colors">
-            {{-- ID --}}
-            <td class="px-4 py-3">
-              <span class="font-bold text-gray-900">#{{ $inv->id }}</span>
+          <tr class="hover:bg-gray-50 transition">
+            <td class="px-3 py-2 text-center font-semibold text-gray-900">#{{ $inv->id }}</td>
+
+            <td class="px-3 py-2 text-center font-medium">
+              {{ $inv->datPhong ? ($inv->datPhong->username ?? ($inv->datPhong->user->ho_ten ?? 'N/A')) : 'N/A' }}
             </td>
 
-            {{-- Khách hàng --}}
-            <td class="px-4 py-3">
-              <div class="flex flex-col">
-                <span class="font-medium text-gray-900">
-                  {{ $booking ? ($booking->username ?? ($booking->user->ho_ten ?? 'N/A')) : 'N/A' }}
-                </span>
-                <span class="text-xs text-gray-500">
-                  <i class="fas fa-id-card mr-1"></i>
-                  {{ $booking ? ($booking->cccd ?? ($booking->user->cccd ?? 'N/A')) : 'N/A' }}
-                </span>
-              </div>
+            <td class="px-3 py-2 text-center text-gray-600">
+              {{ $inv->datPhong ? ($inv->datPhong->cccd ?? ($inv->datPhong->user->cccd ?? 'N/A')) : 'N/A' }}
             </td>
 
-            {{-- Loại phòng --}}
-            <td class="px-4 py-3">
-              @if($booking)
-                @php
-                  $roomTypes = $booking->getRoomTypes();
-                @endphp
-                @if(count($roomTypes) > 1)
-                  <div class="flex items-center gap-2">
-                    <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded">
-                      {{ count($roomTypes) }} loại phòng
-                    </span>
-                  </div>
-                @else
-                  <span class="text-gray-900 font-medium">
-                    {{ $booking->loaiPhong ? $booking->loaiPhong->ten_loai : 'N/A' }}
-                  </span>
-                @endif
+            <td class="px-3 py-2 text-center font-medium">
+              @php
+                  $booking = $inv->datPhong;
+                  if($booking) {
+                      $roomTypes = $booking->getRoomTypes();
+                      if(count($roomTypes) > 1) {
+                          echo count($roomTypes) . ' loại phòng';
+                      } else {
+                          echo $booking->loaiPhong ? $booking->loaiPhong->ten_loai : 'N/A';
+                      }
+                  } else {
+                      echo 'N/A';
+                  }
+              @endphp
+            </td>
+
+            <td class="px-3 py-2 text-center font-medium">
+              {{ $inv->datPhong ? ($inv->datPhong->so_luong_da_dat ?? 1) : 1 }} phòng
+            </td>
+
+            <td class="px-3 py-2 text-center text-blue-600 font-semibold">
+              {{ number_format($inv->tong_tien, 0, ',', '.') }} VNĐ
+            </td>
+
+            <td class="px-3 py-2 text-center">
+              @php $type = strtoupper(trim($inv->invoice_type ?? '')); @endphp
+              @if($type === 'EXTRA')
+                <span class="inline-block px-3 py-1 rounded-full bg-purple-100 text-purple-800 text-xs font-semibold">PHÁT SINH</span>
+              @elseif($type === 'PREPAID')
+                <span class="inline-block px-3 py-1 rounded-full bg-green-100 text-green-800 text-xs font-semibold">Chính</span>
               @else
-                <span class="text-gray-400">N/A</span>
+                {{-- Do not display other invoice types; keep the column empty for non-EXTRA/PREPAID --}}
               @endif
             </td>
 
-            {{-- Số lượng --}}
-            <td class="px-4 py-3 text-center">
-              <span class="px-3 py-1 bg-gray-100 text-gray-700 text-xs font-semibold rounded-full">
-                {{ $booking ? ($booking->so_luong_da_dat ?? 1) : 1 }} phòng
-              </span>
-            </td>
-
-            {{-- Tổng tiền --}}
-            <td class="px-4 py-3 text-right">
-              <span class="text-base font-bold text-blue-600">
-                {{ number_format($inv->tong_tien, 0, ',', '.') }}₫
-              </span>
-            </td>
-
             {{-- Phương thức --}}
-            <td class="px-4 py-3 text-center">
-              <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium {{ $pm['bg'] }} {{ $pm['text'] }}">
-                {{ $pm['label'] }}
-              </span>
+            @php($pm = $inv->phuong_thuc_ui)
+            <td class="px-3 py-2 text-center align-middle">
+              <x-badge :label="$pm['label']" :bg="$pm['bg']" :text="$pm['text']" min="min-w-[105px]" />
             </td>
 
             {{-- Trạng thái --}}
-            <td class="px-4 py-3 text-center">
-              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold {{ $st['bg'] }} {{ $st['text'] }}">
-                <i class="fas {{ $st['icon'] }}"></i>
-                {{ $st['label'] }}
-              </span>
+            @php($st = $inv->trang_thai_ui)
+            <td class="px-3 py-2 text-center align-middle">
+              <x-badge :label="$st['label']" :bg="$st['bg']" :text="$st['text']" :icon="$st['icon']" min="min-w-[140px]" />
             </td>
 
-            {{-- Ngày tạo --}}
-            <td class="px-4 py-3 text-center">
+            <td class="px-3 py-2 text-center text-gray-600">
               <div class="flex flex-col">
-                <span class="text-sm font-medium text-gray-900">{{ $inv->ngay_tao->format('d/m/Y') }}</span>
-                <span class="text-xs text-gray-500">{{ $inv->ngay_tao->format('H:i') }}</span>
+                <span>{{ $inv->ngay_tao->format('d/m/Y') }}</span>
+                <span class="text-xs text-gray-400">{{ $inv->ngay_tao->format('H:i') }}</span>
               </div>
             </td>
 
-            {{-- Thao tác --}}
-            <td class="px-4 py-3">
+            <td class="px-3 py-2 text-center">
               <div class="flex justify-center items-center gap-2">
-                <a href="{{ route('admin.invoices.show', $inv->id) }}" 
-                   class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors"
-                   title="Xem chi tiết">
-                  <i class="fas fa-eye text-sm"></i>
+                <a href="{{ route('admin.invoices.show', $inv->id) }}" class="text-blue-600 hover:text-blue-700 text-xs inline-flex items-center gap-1" title="Xem">
+                  <i class="fas fa-eye"></i>
                 </a>
-                @if($inv->trang_thai === 'cho_thanh_toan')
-                  <a href="{{ route('admin.invoices.edit', $inv->id) }}" 
-                     class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-yellow-100 text-yellow-600 hover:bg-yellow-200 transition-colors"
-                     title="Chỉnh sửa">
-                    <i class="fas fa-edit text-sm"></i>
+                @if(!in_array($inv->trang_thai, ['da_thanh_toan', 'hoan_tien']))
+                  <a href="{{ route('admin.invoices.edit', $inv->id) }}" class="text-amber-600 hover:text-amber-700 text-xs inline-flex items-center gap-1" title="Chỉnh sửa">
+                    <i class="fas fa-edit"></i>
                   </a>
                 @endif
               </div>
@@ -209,13 +158,11 @@
           </tr>
         @empty
           <tr>
-            <td colspan="9" class="px-6 py-12 text-center">
+            <td colspan="10" class="px-6 py-12 text-center">
               <div class="flex flex-col items-center justify-center">
-                <div class="bg-gray-100 rounded-full p-6 mb-4">
-                  <i class="fas fa-file-invoice text-gray-400 text-5xl"></i>
-                </div>
-                <p class="text-gray-600 text-lg font-semibold mb-2">Không có hóa đơn nào</p>
-                <p class="text-gray-400 text-sm">Các hóa đơn sẽ xuất hiện ở đây khi có đặt phòng</p>
+                <i class="fas fa-file-invoice text-gray-300 text-6xl mb-4"></i>
+                <p class="text-gray-500 text-lg font-medium">Không có hóa đơn nào</p>
+                <p class="text-gray-400 text-sm mt-2">Các hóa đơn sẽ xuất hiện ở đây khi có đặt phòng</p>
               </div>
             </td>
           </tr>

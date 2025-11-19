@@ -50,15 +50,13 @@ class Phong extends Model
     }
 
     /**
-     * Get bookings that have this room assigned (via pivot table)
+     * Get bookings that have this room assigned (via phong_ids JSON)
      * @return \Illuminate\Database\Eloquent\Collection
      */
     public function bookings()
     {
-        // Query bookings via pivot table
-        return DatPhong::whereHas('assignedRooms', function($query) {
-            $query->where('phong_id', $this->id);
-        })->get();
+        // Query bookings that have this room ID in phong_ids JSON
+        return DatPhong::whereContainsPhongId($this->id)->get();
     }
 
     /**
@@ -149,19 +147,20 @@ class Phong extends Model
             })
             ->exists();
 
-        // Kiểm tra bookings qua pivot table booking_rooms
-        $conflictFromPivot = \App\Models\DatPhong::whereHas('assignedRooms', function($query) {
-                $query->where('phong.id', $this->id);
+        // Kiểm tra bookings qua phong_ids JSON
+        // Kiểm tra bookings qua phong_ids JSON (các booking chứa id của phòng này)
+        $conflictFromPhongIds = \App\Models\DatPhong::where(function($query) use ($ngayNhan, $ngayTra, $excludeBookingId, $today) {
+                $query->where(function($q) use ($ngayNhan, $ngayTra) {
+                    $q->where('ngay_tra', '>', $ngayNhan)
+                      ->where('ngay_nhan', '<', $ngayTra);
+                })
+                ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
+                ->where('ngay_tra', '>', $today)
+                ->when($excludeBookingId, function($q) use ($excludeBookingId) {
+                    $q->where('id', '!=', $excludeBookingId);
+                });
             })
-            ->when($excludeBookingId, function($q) use ($excludeBookingId) {
-                $q->where('dat_phong.id', '!=', $excludeBookingId);
-            })
-            ->where(function($query) use ($ngayNhan, $ngayTra, $today) {
-                $query->where('ngay_tra', '>', $ngayNhan)
-                      ->where('ngay_nhan', '<', $ngayTra)
-                      ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
-                      ->where('ngay_tra', '>', $today);
-            })
+            ->whereContainsPhongId($this->id)
             ->exists();
 
         // Phòng khả dụng nếu:
@@ -171,7 +170,7 @@ class Phong extends Model
         // Lưu ý: Không check trạng thái 'dang_thue' hay 'trong' ở đây vì:
         // - Phòng có thể 'dang_thue' cho booking khác (không overlap)
         // - Phòng có thể 'trong' nhưng đã được đặt cho khoảng thời gian này (sẽ bị phát hiện bởi conflict check)
-        return !$conflictFromDirect && !$conflictFromPivot;
+        return !$conflictFromDirect && !$conflictFromPhongIds;
     }
 
     /**
@@ -266,8 +265,10 @@ class Phong extends Model
      * @param Carbon|string $ngayTra
      * @return int
      */
-    public static function countAvailableRooms($loaiPhongId, $ngayNhan, $ngayTra)
+    public static function countAvailableRooms($loaiPhongId, $ngayNhan, $ngayTra, $excludeBookingId = null)
     {
-        return static::findAvailableRooms($loaiPhongId, $ngayNhan, $ngayTra, 999)->count();
+        // Pass through excludeBookingId so findAvailableRooms can ignore rooms
+        // already assigned to the provided booking when calculating availability.
+        return static::findAvailableRooms($loaiPhongId, $ngayNhan, $ngayTra, 999, $excludeBookingId)->count();
     }
 }
