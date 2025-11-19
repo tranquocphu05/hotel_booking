@@ -60,6 +60,9 @@ class ThanhToanController extends Controller
         $roomTypes = $datPhong->getRoomTypes();
         
         // Tính giá gốc và phụ phí
+        // originalPrice: tổng theo từng loại phòng đã lưu (gia_rieng pivot - đã bao gồm phụ phí)
+        // basePrice: tổng giá "chuẩn" theo LoaiPhong (chưa tính phụ phí)
+        // surchargeMap: phụ phí thêm khách cho từng loai_phong_id
         $originalPrice = 0;
         $basePrice = 0;
         $surchargeMap = [];
@@ -68,14 +71,20 @@ class ThanhToanController extends Controller
                 $soLuong = $roomType['so_luong'] ?? 1;
                 $lp = \App\Models\LoaiPhong::find($roomType['loai_phong_id']);
                 if ($lp) {
-                    // Use promotional price of the room type for all calculations
+                    // Giá chuẩn 1 đêm của loại phòng (không phụ phí)
                     $pricePerNight = $lp->gia_khuyen_mai ?? $lp->gia_co_ban ?? 0;
-                    $pre = $pricePerNight * $nights * $soLuong;
-                    $originalPrice += $pre;
-
                     $baseForType = $pricePerNight * $nights * $soLuong;
+
+                    // Tổng tiền đã lưu cho loại phòng này (trước voucher, đã gồm phụ phí)
+                    $storedTotalForType = $roomType['gia_rieng'] ?? $baseForType;
+
+                    // Phụ phí = chênh lệch giữa giá lưu và giá chuẩn
+                    $surchargeForType = max(0, $storedTotalForType - $baseForType);
+
+                    // Cộng dồn
+                    $originalPrice += $storedTotalForType;
                     $basePrice += $baseForType;
-                    $surchargeMap[$roomType['loai_phong_id']] = 0; // canonical pricing from LoaiPhong, no surcharge
+                    $surchargeMap[$roomType['loai_phong_id']] = $surchargeForType;
                 }
             }
         } else {

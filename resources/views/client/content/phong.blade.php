@@ -100,9 +100,9 @@
                 onclick="window.location.href='{{ route('client.phong.show', $phong->id) }}'">
                 <div
                     class="bg-white rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100">
-                    <div class="flex flex-col md:flex-row">
+                    <div class="flex flex-col md:flex-row md:items-stretch">
                         {{-- Ảnh phòng (1/3) --}}
-                        <div class="w-full md:w-1/3 h-72 relative overflow-hidden flex-shrink-0">
+                        <div class="w-full md:w-1/3 h-72 md:h-auto relative overflow-hidden flex-shrink-0 md:self-stretch">
                             @php
                                 $roomImg = !empty($phong->anh) ? asset($phong->anh) : asset('img/room/room-1.jpg');
                             @endphp
@@ -128,21 +128,21 @@
                                 @endif
                                 
                                 <div class="bg-black/80 text-white px-4 py-2.5 rounded-lg shadow-xl text-right">
-                                    <div class="text-2xl font-extrabold text-[#FFD700]">
-                                        {{ number_format($phong->gia_khuyen_mai ?? $phong->gia_co_ban, 0, ',', '.') }}<span class="text-base text-gray-300"> VNĐ</span>
+                                    <div class="text-2xl font-extrabold text-[#FFD700] whitespace-nowrap">
+                                        {{ number_format($phong->gia_khuyen_mai ?? $phong->gia_co_ban, 0, ',', '.') }}
+                                        <span class="text-base text-gray-300"> VNĐ / đêm</span>
                                     </div>
                                     @if($phong->gia_khuyen_mai)
-                                        <div class="text-sm text-gray-400 line-through mt-0.5">
+                                        <div class="text-sm text-gray-400 line-through mt-0.5 whitespace-nowrap">
                                             {{ number_format($phong->gia_co_ban, 0, ',', '.') }} VNĐ
                                         </div>
                                     @endif
-                                    <div class="text-xs text-gray-400 mt-0.5">/ đêm</div>
                                 </div>
                             </div>
                         </div>
 
                         {{-- Nội dung phòng (2/3) --}}
-                        <div class="md:flex-1 p-8">
+                        <div class="md:flex-1 p-8 flex flex-col">
                             <h3
                                 class="text-3xl font-bold text-gray-900 mb-4 group-hover:text-[#D4AF37] transition-colors">
                                 {{ $phong->ten_loai }}
@@ -205,35 +205,35 @@
                                 </div>
                             @endif
 
-                            <div class="space-y-2">
+                            <div class="mt-auto flex justify-end gap-3 pt-4">
                                 @if($checkin && $checkout && isset($availabilityMap[$phong->id]) && $availabilityMap[$phong->id] > 0)
                                     {{-- Có ngày và còn phòng → Hiện nút Đặt ngay --}}
                                     <button onclick="event.stopPropagation(); bookRoomQuick({{ $phong->id }}, '{{ $checkin }}', '{{ $checkout }}')"
-                                        class="w-full bg-[#D4AF37] hover:bg-[#C9A961] text-white px-4 py-2.5 rounded-lg transition-all duration-200 font-semibold text-sm flex items-center justify-center gap-2 shadow-sm hover:shadow-md">
+                                        class="inline-flex items-center justify-center gap-2 bg-[#D4AF37] hover:bg-[#C9A961] text-white px-4 py-2 rounded-lg transition-all duration-200 font-semibold text-sm shadow-sm hover:shadow-md">
                                         <i class="fas fa-calendar-check"></i>
                                         <span>Đặt ngay</span>
                                     </button>
                                     <button onclick="event.stopPropagation(); window.location.href='{{ route('client.phong.show', $phong->id) }}?checkin={{ $checkin }}&checkout={{ $checkout }}'"
-                                        class="w-full bg-white hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg transition-all duration-200 font-medium text-sm flex items-center justify-center gap-1.5 border border-gray-200 hover:border-gray-300">
+                                        class="inline-flex items-center justify-center gap-1.5 bg-white hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg transition-all duration-200 font-medium text-sm border border-gray-200 hover:border-gray-300">
                                         <i class="fas fa-info-circle text-[#D4AF37] text-xs"></i>
                                         <span>Xem chi tiết phòng</span>
                                     </button>
                                 @elseif($checkin && $checkout)
                                     {{-- Có ngày nhưng hết phòng → Chỉ hiện nút Chi tiết --}}
                                     <button onclick="event.stopPropagation(); window.location.href='{{ route('client.phong.show', $phong->id) }}?checkin={{ $checkin }}&checkout={{ $checkout }}'"
-                                        class="w-full bg-white hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg transition-all duration-200 font-medium text-sm flex items-center justify-center gap-1.5 border border-gray-200 hover:border-gray-300">
+                                        class="inline-flex items-center justify-center gap-1.5 bg-white hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg transition-all duration-200 font-medium text-sm border border-gray-200 hover:border-gray-300">
                                         <i class="fas fa-info-circle text-[#D4AF37] text-xs"></i>
                                         <span>Xem chi tiết phòng</span>
                                     </button>
                                 @else
                                     {{-- Chưa có ngày → Khuyến khích chọn ngày --}}
                                     <button onclick="event.stopPropagation(); document.getElementById('checkin_filter').focus(); document.getElementById('checkin_filter').scrollIntoView({ behavior: 'smooth', block: 'center' });"
-                                        class="w-full bg-[#3B82F6] hover:bg-[#2563EB] text-white px-4 py-2.5 rounded-lg transition-all duration-200 font-semibold text-sm flex items-center justify-center gap-2 shadow-sm hover:shadow-md">
+                                        class="inline-flex items-center justify-center gap-2 bg-[#D4AF37] hover:bg-[#C9A961] text-white px-4 py-2 rounded-lg transition-all duration-200 font-semibold text-sm shadow-sm hover:shadow-md">
                                         <i class="fas fa-calendar-alt"></i>
                                         <span>Chọn ngày để đặt</span>
                                     </button>
                                     <button onclick="event.stopPropagation(); window.location.href='{{ route('client.phong.show', $phong->id) }}'"
-                                        class="w-full bg-white hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg transition-all duration-200 font-medium text-sm flex items-center justify-center gap-1.5 border border-gray-200 hover:border-gray-300">
+                                        class="inline-flex items-center justify-center gap-1.5 bg-white hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg transition-all duration-200 font-medium text-sm border border-gray-200 hover:border-gray-300">
                                         <i class="fas fa-info-circle text-[#D4AF37] text-xs"></i>
                                         <span>Xem chi tiết phòng</span>
                                     </button>
