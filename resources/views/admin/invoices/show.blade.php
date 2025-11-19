@@ -132,48 +132,45 @@
                                     <div class="col-span-2 text-center">{{ $nights }} đêm</div>
                                     <div class="col-span-3 text-right font-bold">{{ number_format($rt['gia_rieng'] * $rt['so_luong'] * $nights, 0, ',', '.') }} ₫</div>
                                 </div>
-                                <div>
-                                    <p class="text-sm text-gray-500 font-semibold">Số người</p>
-                                    <p class="text-gray-900">{{ $invoice->datPhong ? ($invoice->datPhong->so_nguoi ?? 'N/A') : 'N/A' }} người</p>
-                                </div>
-                            </div>
-                        </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </div>
+                </div>
 
-                    {{-- Services Section --}}
-                    <div class="mt-8">
-                        <h3 class="text-lg font-bold text-gray-900 mb-4 pb-2 border-b-2 border-blue-500">Danh sách dịch vụ</h3>
+                {{-- Services Section --}}
+                <div class="mt-8">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4 pb-2 border-b-2 border-blue-500">Danh sách dịch vụ</h3>
 
-                        @php
-                            $booking = $invoice->datPhong;
-                            $services = collect();
-                            if ($booking) {
-                                $services = \App\Models\BookingService::with('service')
-                                    ->where('dat_phong_id', $booking->id)
-                                    ->orderBy('used_at')
-                                    ->get();
-                            }
-                            $servicesTotal = $services->reduce(function($carry, $item){
-                                return $carry + (($item->quantity ?? 0) * ($item->unit_price ?? 0));
-                            }, 0);
-                            
-                            // Calculate room total from booking using promotional prices (same as BookingPriceCalculator)
-                            $roomTotal = 0;
-                            if ($booking) {
-                                $nights = max(1, \Carbon\Carbon::parse($booking->ngay_nhan)->diffInDays(\Carbon\Carbon::parse($booking->ngay_tra)));
-                                $roomTypes = $booking->getRoomTypes();
-                                foreach ($roomTypes as $rt) {
-                                    $qty = (int) ($rt['so_luong'] ?? 1);
-                                    $loaiPhongId = (int) ($rt['loai_phong_id'] ?? 0);
-                                    $loaiPhong = \App\Models\LoaiPhong::find($loaiPhongId);
-                                    $unit = 0;
-                                    if ($loaiPhong) {
-                                        $unit = $loaiPhong->gia_khuyen_mai ?? $loaiPhong->gia_co_ban ?? 0;
-                                    }
-                                    $roomTotal += $qty * $unit * $nights;
+                    @php
+                        $booking = $invoice->datPhong;
+                        $services = collect();
+                        if ($booking) {
+                            $services = \App\Models\BookingService::with('service')
+                                ->where('dat_phong_id', $booking->id)
+                                ->orderBy('used_at')
+                                ->get();
+                        }
+                        $servicesTotal = $services->reduce(function($carry, $item){
+                            return $carry + (($item->quantity ?? 0) * ($item->unit_price ?? 0));
+                        }, 0);
+                        
+                        // Calculate room total from booking using promotional prices (same as BookingPriceCalculator)
+                        $roomTotal = 0;
+                        if ($booking) {
+                            $nights = max(1, \Carbon\Carbon::parse($booking->ngay_nhan)->diffInDays(\Carbon\Carbon::parse($booking->ngay_tra)));
+                            $roomTypes = $booking->getRoomTypes();
+                            foreach ($roomTypes as $rt) {
+                                $qty = (int) ($rt['so_luong'] ?? 1);
+                                $loaiPhongId = (int) ($rt['loai_phong_id'] ?? 0);
+                                $loaiPhong = \App\Models\LoaiPhong::find($loaiPhongId);
+                                $unit = 0;
+                                if ($loaiPhong) {
+                                    $unit = $loaiPhong->gia_khuyen_mai ?? $loaiPhong->gia_co_ban ?? 0;
                                 }
+                                $roomTotal += $qty * $unit * $nights;
                             }
-                        @endphp
+                        }
+                    @endphp
 
                         @if($services->isEmpty())
                             <div class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg py-8 text-center">

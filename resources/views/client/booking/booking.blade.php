@@ -8,26 +8,6 @@
 @endpush
 
 @section('client_content')
-    <div class="relative w-full bg-cover bg-center bg-no-repeat -mt-2"
-        style="background-image: url('{{ asset('img/blog/blog-11.jpg') }}');">
-
-        <div class="absolute inset-0 bg-black bg-opacity-40"></div>
-
-        <div class="relative py-28 px-4 text-center text-white">
-            <nav class="text-sm text-gray-200 mb-4">
-                <a href="{{ url('/') }}" class="hover:text-[#D4AF37] transition-colors">Trang chủ</a> /
-                <span class="text-[#FFD700] font-semibold">Phòng nghỉ</span>
-            </nav>
-
-            <h1 class="text-5xl md:text-7xl font-bold mb-8">Phòng Nghỉ</h1>
-
-            <p class="text-lg md:text-xl text-gray-100 leading-relaxed max-w-4xl mx-auto">
-                Khách sạn Ozia Hotel sở hữu những căn phòng nghỉ kết hợp hoàn hảo phong cách thiết kế nội thất
-                truyền thống trang nhã cùng với các tiện nghi đẳng cấp.
-                Nơi đây là điểm đến lý tưởng để nghỉ dưỡng và thưởng lãm vẻ đẹp của thành phố.
-            </p>
-        </div>
-    </div>
     @php
         use Carbon\Carbon;
         use Illuminate\Support\Str;

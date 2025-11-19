@@ -1233,11 +1233,26 @@ class BookingManager {
 
     // === VOUCHER POPUP ===
     openVoucherPopup() {
-        const { soDem } = this.getDatesAndDays();
-        const currentTotal = this.giaMotDem * soDem;
+        // Lấy lại tổng tiền hiện tại (trước khi áp dụng voucher mới)
+        const currentTotal = this.tinhTongTien();
+
+        // Thu thập danh sách các loại phòng đang được chọn từ room cards
+        const selectedRoomTypeIds = [];
+        document.querySelectorAll('.room-card-quantity').forEach((input) => {
+            const qty = parseInt(input.value) || 0;
+            const roomId = input.dataset.roomId;
+            if (qty > 0 && roomId) {
+                selectedRoomTypeIds.push(roomId);
+            }
+        });
+
+        const roomTypeIdsParam = encodeURIComponent(
+            selectedRoomTypeIds.join(',')
+        );
+
         const fetchUrl = `/client/voucher?current_total=${Math.round(
             currentTotal
-        )}&loai_phong_id=${this.loaiPhongId}`;
+        )}&room_type_ids=${roomTypeIdsParam}`;
 
         fetch(fetchUrl)
             .then((response) => {

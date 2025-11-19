@@ -1277,3 +1277,4 @@ class DatPhongController extends Controller
             ->with('success', 'Đã đánh dấu thanh toán và đồng bộ hóa đơn thành công.');
     }
 }
+

@@ -42,12 +42,13 @@
         <div class="p-4 space-y-3 overflow-y-auto custom-scrollbar bg-white" style="max-height: 350px;">
             @php
                 use Carbon\Carbon;
-                $currentRoomTypeId = (int) ($roomTypeId ?? 0);
+
+                $selectedIds = collect($selectedRoomTypeIds ?? [])->map(fn($id) => (int) $id)->filter()->unique()->values();
                 $cartTotal = (int) round($currentCartTotal ?? 0);
                 $now = Carbon::now()->startOfDay();
 
                 $vouchers = collect($vouchers)->sortByDesc(function ($voucher) use (
-                    $currentRoomTypeId,
+                    $selectedIds,
                     $cartTotal,
                     $now,
                 ) {
@@ -58,7 +59,7 @@
                     if ($isApplyToAll) {
                         $isRoomTypeMatch = true;
                     } elseif ($voucherLoaiPhong) {
-                        $isRoomTypeMatch = $voucher->loai_phong_id == $currentRoomTypeId;
+                        $isRoomTypeMatch = $selectedIds->contains((int) $voucher->loai_phong_id);
                     } else {
                         $isRoomTypeMatch = false;
                     }
@@ -83,7 +84,7 @@
                         $isRoomTypeMatch = true;
                     } elseif ($voucherLoaiPhong) {
                         $roomTypeText = $voucherLoaiPhong->ten_loai ?? 'Không xác định';
-                        $isRoomTypeMatch = $voucher->loai_phong_id == $currentRoomTypeId;
+                        $isRoomTypeMatch = $selectedIds->contains((int) $voucher->loai_phong_id);
                     } else {
                         $roomTypeText = 'Không xác định (Lỗi dữ liệu)';
                         $isRoomTypeMatch = false;
