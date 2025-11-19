@@ -248,17 +248,30 @@
                                             <div class="flex gap-4">
                                                 <img src="{{ asset($loaiPhong->anh ?? 'img/room/room-1.jpg') }}" 
                                                     alt="{{ $loaiPhong->ten_loai }}"
-                                                    class="w-full h-32 object-cover rounded-lg mb-2">
-                                                <p class="text-sm font-medium text-gray-900">{{ $loaiPhong->ten_loai }}</p>
-                                                <p class="text-xs text-gray-600">Số lượng: {{ $roomType['so_luong'] }} phòng</p>
-                                                @php
-                                                    $lpUnit = $loaiPhong ? ($loaiPhong->gia_khuyen_mai ?? $loaiPhong->gia_co_ban ?? 0) : 0;
-                                                    $soLuong = $roomType['so_luong'] ?? 1;
-                                                    $nights = ($booking && $booking->ngay_nhan && $booking->ngay_tra) ? \Carbon\Carbon::parse($booking->ngay_nhan)->diffInDays(\Carbon\Carbon::parse($booking->ngay_tra)) : 1;
-                                                    $nights = max(1, $nights);
-                                                    $subtotal = $lpUnit * $nights * $soLuong;
-                                                @endphp
-                                                <p class="text-xs text-gray-600">Giá: {{ number_format($subtotal, 0, ',', '.') }} VNĐ</p>
+                                                    class="w-48 h-32 object-cover rounded-lg flex-shrink-0">
+                                                <div class="flex-1">
+                                                    <p class="text-sm font-medium text-gray-900 mb-2">{{ $loaiPhong->ten_loai }}</p>
+                                                    <p class="text-xs text-gray-600 mb-1">Số lượng: {{ $roomType['so_luong'] }} phòng</p>
+                                                    @php
+                                                        $giaCoBan = $loaiPhong->gia_co_ban ?? 0;
+                                                        $giaKhuyenMai = $loaiPhong->gia_khuyen_mai ?? null;
+                                                        $lpUnit = $giaKhuyenMai ?? $giaCoBan;
+                                                        $soLuong = $roomType['so_luong'] ?? 1;
+                                                        $nights = ($booking && $booking->ngay_nhan && $booking->ngay_tra) ? \Carbon\Carbon::parse($booking->ngay_nhan)->diffInDays(\Carbon\Carbon::parse($booking->ngay_tra)) : 1;
+                                                        $nights = max(1, $nights);
+                                                        $subtotal = $lpUnit * $nights * $soLuong;
+                                                    @endphp
+                                                    <div class="text-xs text-gray-600 mb-1">
+                                                        Giá/đêm: 
+                                                        @if($giaKhuyenMai && $giaKhuyenMai < $giaCoBan)
+                                                            <span class="line-through text-gray-400">{{ number_format($giaCoBan, 0, ',', '.') }}</span>
+                                                            <span class="text-red-600 font-semibold ml-1">{{ number_format($giaKhuyenMai, 0, ',', '.') }} VNĐ</span>
+                                                        @else
+                                                            <span class="font-semibold">{{ number_format($giaCoBan, 0, ',', '.') }} VNĐ</span>
+                                                        @endif
+                                                    </div>
+                                                    <p class="text-xs text-gray-600">Tổng: {{ number_format($subtotal, 0, ',', '.') }} VNĐ</p>
+                                                </div>
                                             </div>
                                         </div>
                                     @endif
@@ -279,7 +292,19 @@
                                         </div>
                                         <div>
                                             <p class="text-sm text-gray-500">Giá/đêm</p>
-                                            <p class="text-lg font-semibold text-gray-900">{{ number_format($booking->loaiPhong->gia_co_ban ?? 0, 0, ',', '.') }} VNĐ</p>
+                                            @php
+                                                $loaiPhong = $booking->loaiPhong;
+                                                $giaCoBan = $loaiPhong->gia_co_ban ?? 0;
+                                                $giaKhuyenMai = $loaiPhong->gia_khuyen_mai ?? null;
+                                            @endphp
+                                            @if($giaKhuyenMai && $giaKhuyenMai < $giaCoBan)
+                                                <div class="flex items-center gap-2">
+                                                    <span class="text-sm text-gray-400 line-through">{{ number_format($giaCoBan, 0, ',', '.') }}</span>
+                                                    <span class="text-lg font-semibold text-red-600">{{ number_format($giaKhuyenMai, 0, ',', '.') }} VNĐ</span>
+                                                </div>
+                                            @else
+                                                <p class="text-lg font-semibold text-gray-900">{{ number_format($giaCoBan, 0, ',', '.') }} VNĐ</p>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>
@@ -576,53 +601,96 @@
                                 </div>
                             @endif
 
+                            {{-- Danh sách dịch vụ --}}
                             @php
-                                // Tính tổng tiền gốc từ LoaiPhong (giá chưa giảm)
-                                $checkin = new DateTime($booking->ngay_nhan);
-                                $checkout = new DateTime($booking->ngay_tra);
-                                $nights = $checkin->diff($checkout)->days;
+                                $bookingServices = \App\Models\BookingService::with('service')
+                                    ->where('dat_phong_id', $booking->id)
+                                    ->orderBy('used_at')
+                                    ->get();
+                            @endphp
+                            
+                            @if($bookingServices->count() > 0)
+                                <div class="mb-4">
+                                    <p class="text-sm font-medium text-gray-900 mb-3 flex items-center">
+                                        <i class="fas fa-concierge-bell text-purple-600 mr-2"></i>
+                                        Dịch vụ đã sử dụng
+                                    </p>
+                                    <div class="space-y-2">
+                                        @foreach($bookingServices as $bs)
+                                            <div class="flex justify-between items-center bg-purple-50 border border-purple-200 rounded-lg px-3 py-2">
+                                                <div class="flex-1">
+                                                    <p class="text-sm font-medium text-gray-900">{{ $bs->service->name ?? 'N/A' }}</p>
+                                                    <p class="text-xs text-gray-600">
+                                                        {{ $bs->used_at ? \Carbon\Carbon::parse($bs->used_at)->format('d/m/Y') : 'N/A' }} 
+                                                        • {{ $bs->quantity }} {{ $bs->service->unit ?? 'lần' }}
+                                                    </p>
+                                                </div>
+                                                <span class="text-sm font-semibold text-purple-700">
+                                                    {{ number_format($bs->quantity * $bs->unit_price, 0, ',', '.') }} VNĐ
+                                                </span>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+
+                            @php
+                                // Lấy dữ liệu từ invoice nếu có, nếu không thì tính toán
+                                $invoice = $booking->invoice;
                                 
-                                $subtotal = 0;
-                                foreach($booking->getRoomTypes() as $rt) {
-                                    $loaiPhong = \App\Models\LoaiPhong::find($rt['loai_phong_id']);
-                                    if($loaiPhong) {
-                                        $giaGoc = $loaiPhong->gia_khuyen_mai ?? $loaiPhong->gia_co_ban;
-                                        $subtotal += $giaGoc * $rt['so_luong'] * $nights;
+                                if ($invoice && $invoice->tien_phong) {
+                                    // Sử dụng dữ liệu từ invoice
+                                    $tienPhong = $invoice->tien_phong;
+                                    $tienDichVu = $invoice->tien_dich_vu ?? 0;
+                                    $giamGia = $invoice->giam_gia ?? 0;
+                                } else {
+                                    // Tính toán nếu chưa có invoice
+                                    $checkin = new DateTime($booking->ngay_nhan);
+                                    $checkout = new DateTime($booking->ngay_tra);
+                                    $nights = $checkin->diff($checkout)->days;
+                                    
+                                    $tienPhong = 0;
+                                    foreach($booking->getRoomTypes() as $rt) {
+                                        $loaiPhong = \App\Models\LoaiPhong::find($rt['loai_phong_id']);
+                                        if($loaiPhong) {
+                                            $giaGoc = $loaiPhong->gia_khuyen_mai ?? $loaiPhong->gia_co_ban;
+                                            $tienPhong += $giaGoc * $rt['so_luong'] * $nights;
+                                        }
                                     }
-                                }
-                                
-                                // Tính giảm giá nếu có voucher
-                                $discount = 0;
-                                if($booking->voucher) {
-                                    $discount = $subtotal * ($booking->voucher->gia_tri / 100);
+                                    
+                                    // Tính tiền dịch vụ
+                                    $tienDichVu = \App\Models\BookingService::where('dat_phong_id', $booking->id)
+                                        ->sum(\DB::raw('quantity * unit_price'));
+                                    
+                                    // Tính giảm giá (chỉ áp dụng cho tiền phòng)
+                                    $giamGia = 0;
+                                    if($booking->voucher) {
+                                        $giamGia = $tienPhong * ($booking->voucher->gia_tri / 100);
+                                    }
                                 }
                             @endphp
 
                             <dl class="space-y-3">
                                 <div class="flex justify-between text-sm">
                                     <dt class="text-gray-600">Tổng tiền phòng</dt>
-                                    <dd class="font-medium text-gray-900">{{ number_format($subtotal, 0, ',', '.') }} VNĐ</dd>
+                                    <dd class="font-medium text-gray-900">{{ number_format($tienPhong, 0, ',', '.') }} VNĐ</dd>
                                 </div>
                                 
-                                @if($booking->voucher)
-                                    <div class="flex justify-between text-sm text-green-600">
-                                        <dt>Giảm giá ({{ $booking->voucher->ma_voucher }} - {{ $booking->voucher->gia_tri }}%)</dt>
-                                        <dd class="font-medium">-{{ number_format($discount, 0, ',', '.') }} VNĐ</dd>
-                                    </div>
-                                    <div class="pt-3 border-t border-gray-200">
-                                        <div class="flex justify-between">
-                                            <dt class="text-base font-semibold text-gray-900">Tổng thanh toán</dt>
-                                            <dd class="text-xl font-bold text-blue-600">{{ number_format($booking->tong_tien, 0, ',', '.') }} VNĐ</dd>
-                                        </div>
-                                    </div>
-                                @else
-                                    <div class="pt-3 border-t border-gray-200">
-                                        <div class="flex justify-between">
-                                            <dt class="text-base font-semibold text-gray-900">Tổng thanh toán</dt>
-                                            <dd class="text-xl font-bold text-blue-600">{{ number_format($booking->tong_tien, 0, ',', '.') }} VNĐ</dd>
-                                        </div>
+
+                                
+                                @if($giamGia > 0)
+                                    <div class="flex justify-between text-sm text-red-600">
+                                        <dt>Giảm giá @if($booking->voucher)({{ $booking->voucher->ma_voucher }} - {{ $booking->voucher->gia_tri }}%)@endif</dt>
+                                        <dd class="font-medium">-{{ number_format($giamGia, 0, ',', '.') }} VNĐ</dd>
                                     </div>
                                 @endif
+                                
+                                <div class="pt-3 border-t border-gray-200">
+                                    <div class="flex justify-between">
+                                        <dt class="text-base font-semibold text-gray-900">Tổng thanh toán</dt>
+                                        <dd class="text-xl font-bold text-blue-600">{{ number_format($booking->tong_tien, 0, ',', '.') }} VNĐ</dd>
+                                    </div>
+                                </div>
                             </dl>
 
                             @if($booking->invoice)

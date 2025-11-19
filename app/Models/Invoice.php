@@ -14,6 +14,9 @@ class Invoice extends Model
     protected $fillable = [
         'dat_phong_id',
         'tong_tien',
+        'tien_phong',
+        'tien_dich_vu',
+        'giam_gia',
         'phuong_thuc',
         'trang_thai',
     ];

@@ -328,7 +328,15 @@ class DatPhongController extends Controller
             })->values();
         }
 
-        return view('admin.dat_phong.edit', compact('booking', 'loaiPhongs', 'availableRooms'));
+        // Lấy danh sách dịch vụ đang hoạt động
+        $services = \App\Models\Service::where('status', 'hoat_dong')->get();
+        
+        // Lấy dịch vụ đã sử dụng của booking này
+        $bookingServices = \App\Models\BookingService::with('service')
+            ->where('dat_phong_id', $booking->id)
+            ->get();
+        
+        return view('admin.dat_phong.edit', compact('booking', 'loaiPhongs', 'availableRooms', 'services', 'bookingServices'));
     }
 
     /**
@@ -958,7 +966,7 @@ class DatPhongController extends Controller
         }
 
     // Create single booking within transaction to ensure atomicity
-    $booking = DB::transaction(function () use ($roomDetails, $priceRatio, $request, $voucherId, $finalPrice, $totalSoLuong, $firstLoaiPhongId, $roomTypesArray) {
+    $booking = DB::transaction(function () use ($roomDetails, $priceRatio, $request, $voucherId, $finalPrice, $totalPrice, $totalSoLuong, $firstLoaiPhongId, $roomTypesArray) {
             // Validate availability for all room types first
             foreach ($roomDetails as $roomDetail) {
                 // Lock and re-check availability inside transaction to prevent race conditions
@@ -1063,9 +1071,16 @@ class DatPhongController extends Controller
             }
 
             // Tạo invoice ngay với trạng thái chờ thanh toán
+            // Tính breakdown: tien_phong, giam_gia
+            $tienPhong = $totalPrice; // Giá gốc trước voucher
+            $giamGia = $totalPrice - $finalPrice; // Số tiền giảm từ voucher
+            
             \App\Models\Invoice::create([
                 'dat_phong_id' => $booking->id,
-                'tong_tien' => $booking->tong_tien,
+                'tien_phong' => $tienPhong,
+                'tien_dich_vu' => 0, // Chưa có dịch vụ khi mới tạo
+                'giam_gia' => $giamGia,
+                'tong_tien' => $finalPrice,
                 'trang_thai' => 'cho_thanh_toan',
                 'phuong_thuc' => null,
             ]);
@@ -1232,6 +1247,10 @@ class DatPhongController extends Controller
         // Create invoice if missing
         $invoice = $booking->invoice;
         if (!$invoice) {
+            // Tính lại breakdown trước khi tạo invoice
+            \App\Services\BookingPriceCalculator::recalcTotal($booking);
+            $booking = $booking->fresh(); // Reload
+            
             $invoice = \App\Models\Invoice::create([
                 'dat_phong_id' => $booking->id,
                 'tong_tien' => $booking->tong_tien,

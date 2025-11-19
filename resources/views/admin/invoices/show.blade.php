@@ -24,12 +24,7 @@
     // Lấy thông tin voucher nếu có
     $voucher = null;
     $discount = 0;
-    if($booking && $booking->voucher_id) {
-        $voucher = $booking->voucher;
-        if($voucher) {
-            $discount = $subtotal * ($voucher->gia_tri / 100);
-        }
-    }
+    // Note: Discount will be calculated after services total is known
 ?>
 <div class="py-6">
     <div class="max-w-4xl mx-auto px-4">
@@ -114,122 +109,131 @@
                 </div>
 
                 <div class="mb-8">
-                    <h3 class="font-bold mb-4">Chi tiết</h3>
+                    <h3 class="font-bold mb-4">Chi tiết phòng</h3>
                     <div class="border rounded-lg overflow-hidden">
                         <div class="bg-gray-50 px-6 py-3 grid grid-cols-12 gap-4 text-xs font-bold text-gray-600">
-                            <div class="col-span-5">MÔ TẢ</div>
+                            <div class="col-span-4">MÔ TẢ</div>
                             <div class="col-span-2 text-center">SỐ LƯỢNG</div>
+                            <div class="col-span-2 text-center">GIÁ/ĐÊM</div>
                             <div class="col-span-2 text-center">SỐ ĐÊM</div>
-                            <div class="col-span-3 text-right">THÀNH TIỀN</div>
+                            <div class="col-span-2 text-right">THÀNH TIỀN</div>
                         </div>
                         <?php if($booking): ?>
                             <?php $roomTypes = $booking->getRoomTypes(); ?>
                             <?php foreach($roomTypes as $rt): ?>
-                                <?php $lp = \App\Models\LoaiPhong::find($rt['loai_phong_id']); ?>
+                                <?php 
+                                    $lp = \App\Models\LoaiPhong::find($rt['loai_phong_id']); 
+                                    // Lấy giá/đêm từ LoaiPhong
+                                    $giaCoBan = $lp ? $lp->gia_co_ban : 0;
+                                    $giaKhuyenMai = $lp ? $lp->gia_khuyen_mai : null;
+                                    $giaPhong = $giaKhuyenMai ?? $giaCoBan; // Giá thực tế áp dụng
+                                    // Tính thành tiền: giá/đêm × số lượng × số đêm
+                                    $thanhTien = $giaPhong * $rt['so_luong'] * $nights;
+                                ?>
                                 <div class="px-6 py-4 grid grid-cols-12 gap-4 border-t text-sm">
-                                    <div class="col-span-5">{{ $lp->ten_loai ?? 'N/A' }}</div>
+                                    <div class="col-span-4">{{ $lp->ten_loai ?? 'N/A' }}</div>
                                     <div class="col-span-2 text-center">{{ $rt['so_luong'] }} phòng</div>
+                                    <div class="col-span-2 text-center">
+                                        @if($giaKhuyenMai && $giaKhuyenMai < $giaCoBan)
+                                            <div class="flex flex-col items-center">
+                                                <span class="text-gray-400 line-through text-xs">{{ number_format($giaCoBan, 0, ',', '.') }} ₫</span>
+                                                <span class="text-red-600 font-semibold">{{ number_format($giaKhuyenMai, 0, ',', '.') }} ₫</span>
+                                            </div>
+                                        @else
+                                            <span>{{ number_format($giaPhong, 0, ',', '.') }} ₫</span>
+                                        @endif
+                                    </div>
                                     <div class="col-span-2 text-center">{{ $nights }} đêm</div>
-                                    <div class="col-span-3 text-right font-bold">{{ number_format($rt['gia_rieng'] * $rt['so_luong'] * $nights, 0, ',', '.') }} ₫</div>
+                                    <div class="col-span-2 text-right font-bold">{{ number_format($thanhTien, 0, ',', '.') }} ₫</div>
                                 </div>
-                                <div>
-                                    <p class="text-sm text-gray-500 font-semibold">Số người</p>
-                                    <p class="text-gray-900">{{ $invoice->datPhong ? ($invoice->datPhong->so_nguoi ?? 'N/A') : 'N/A' }} người</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- Services Section --}}
-                    <div class="mt-8">
-                        <h3 class="text-lg font-bold text-gray-900 mb-4 pb-2 border-b-2 border-blue-500">Danh sách dịch vụ</h3>
-
-                        @php
-                            $booking = $invoice->datPhong;
-                            $services = collect();
-                            if ($booking) {
-                                $services = \App\Models\BookingService::with('service')
-                                    ->where('dat_phong_id', $booking->id)
-                                    ->orderBy('used_at')
-                                    ->get();
-                            }
-                            $servicesTotal = $services->reduce(function($carry, $item){
-                                return $carry + (($item->quantity ?? 0) * ($item->unit_price ?? 0));
-                            }, 0);
-                            
-                            // Calculate room total from booking using promotional prices (same as BookingPriceCalculator)
-                            $roomTotal = 0;
-                            if ($booking) {
-                                $nights = max(1, \Carbon\Carbon::parse($booking->ngay_nhan)->diffInDays(\Carbon\Carbon::parse($booking->ngay_tra)));
-                                $roomTypes = $booking->getRoomTypes();
-                                foreach ($roomTypes as $rt) {
-                                    $qty = (int) ($rt['so_luong'] ?? 1);
-                                    $loaiPhongId = (int) ($rt['loai_phong_id'] ?? 0);
-                                    $loaiPhong = \App\Models\LoaiPhong::find($loaiPhongId);
-                                    $unit = 0;
-                                    if ($loaiPhong) {
-                                        $unit = $loaiPhong->gia_khuyen_mai ?? $loaiPhong->gia_co_ban ?? 0;
-                                    }
-                                    $roomTotal += $qty * $unit * $nights;
-                                }
-                            }
-                        @endphp
-
-                        @if($services->isEmpty())
-                            <div class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg py-8 text-center">
-                                <p class="text-gray-500 text-sm">Không có dịch vụ kèm theo</p>
-                            </div>
-                        @else
-                            <div class="overflow-x-auto">
-                                <table class="w-full">
-                                    <thead>
-                                        <tr class="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
-                                            <th class="px-6 py-4 text-left font-semibold">DỊCH VỤ</th>
-                                            <th class="px-6 py-4 text-center font-semibold">NGÀY DÙNG</th>
-                                            <th class="px-6 py-4 text-right font-semibold">SỐ LƯỢNG</th>
-                                            <th class="px-6 py-4 text-right font-semibold">ĐƠN GIÁ</th>
-                                            <th class="px-6 py-4 text-right font-semibold">THÀNH TIỀN</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-gray-200">
-                                        @foreach($services as $s)
-                                            @php
-                                                $svc = $s->service;
-                                                $name = $svc ? ($svc->name ?? 'N/A') : ($s->service_name ?? 'N/A');
-                                                $usedAt = $s->used_at ? date('d/m/Y', strtotime($s->used_at)) : '-';
-                                                $qty = $s->quantity ?? 0;
-                                                $unitPrice = $s->unit_price ?? 0;
-                                                $subtotal = $qty * $unitPrice;
-                                            @endphp
-                                            <tr class="hover:bg-blue-50 transition">
-                                                <td class="px-6 py-4 text-gray-900">{{ $name }}</td>
-                                                <td class="px-6 py-4 text-center text-gray-700">{{ $usedAt }}</td>
-                                                <td class="px-6 py-4 text-right text-gray-700">{{ $qty }}</td>
-                                                <td class="px-6 py-4 text-right text-gray-700">{{ number_format($unitPrice, 0, ',', '.') }} đ</td>
-                                                <td class="px-6 py-4 text-right font-semibold text-gray-900">{{ number_format($subtotal, 0, ',', '.') }} đ</td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-                        @endif
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </div>
                 </div>
 
+                {{-- Services Section --}}
+                <div class="mb-8">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4 pb-2 border-b-2 border-blue-500">Danh sách dịch vụ</h3>
+
+                    @php
+                        $services = collect();
+                        if ($booking) {
+                            $services = \App\Models\BookingService::with('service')
+                                ->where('dat_phong_id', $booking->id)
+                                ->orderBy('used_at')
+                                ->get();
+                        }
+                        $servicesTotal = $services->reduce(function($carry, $item){
+                            return $carry + (($item->quantity ?? 0) * ($item->unit_price ?? 0));
+                        }, 0);
+                    @endphp
+
+                    @if($services->isEmpty())
+                        <div class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg py-8 text-center">
+                            <p class="text-gray-500 text-sm">Không có dịch vụ kèm theo</p>
+                        </div>
+                    @else
+                        <div class="overflow-x-auto">
+                            <table class="w-full border rounded-lg overflow-hidden">
+                                <thead>
+                                    <tr class="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+                                        <th class="px-6 py-4 text-left font-semibold">DỊCH VỤ</th>
+                                        <th class="px-6 py-4 text-center font-semibold">NGÀY DÙNG</th>
+                                        <th class="px-6 py-4 text-right font-semibold">SỐ LƯỢNG</th>
+                                        <th class="px-6 py-4 text-right font-semibold">ĐƠN GIÁ</th>
+                                        <th class="px-6 py-4 text-right font-semibold">THÀNH TIỀN</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200">
+                                    @foreach($services as $s)
+                                        @php
+                                            $svc = $s->service;
+                                            $name = $svc ? ($svc->name ?? 'N/A') : ($s->service_name ?? 'N/A');
+                                            $usedAt = $s->used_at ? date('d/m/Y', strtotime($s->used_at)) : '-';
+                                            $qty = $s->quantity ?? 0;
+                                            $unitPrice = $s->unit_price ?? 0;
+                                            $serviceSubtotal = $qty * $unitPrice;
+                                        @endphp
+                                        <tr class="hover:bg-blue-50 transition">
+                                            <td class="px-6 py-4 text-gray-900">{{ $name }}</td>
+                                            <td class="px-6 py-4 text-center text-gray-700">{{ $usedAt }}</td>
+                                            <td class="px-6 py-4 text-right text-gray-700">{{ $qty }}</td>
+                                            <td class="px-6 py-4 text-right text-gray-700">{{ number_format($unitPrice, 0, ',', '.') }} đ</td>
+                                            <td class="px-6 py-4 text-right font-semibold text-gray-900">{{ number_format($serviceSubtotal, 0, ',', '.') }} đ</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
+
+                {{-- Hiển thị breakdown từ invoice (đã được tính sẵn bởi BookingPriceCalculator) --}}
                 <div class="border-t-2 pt-6">
                     <div class="space-y-2">
                         <div class="flex justify-between">
                             <span class="text-gray-700">Tổng tiền phòng:</span>
-                            <span class="font-semibold">{{ number_format($subtotal, 0, ',', '.') }} ₫</span>
+                            <span class="font-semibold">{{ number_format($invoice->tien_phong ?? 0, 0, ',', '.') }} ₫</span>
                         </div>
                         
-                        <?php if($voucher): ?>
-                            <div class="flex justify-between text-green-600">
-                                <span>Giảm giá ({{ $voucher->ma_voucher }} - {{ $voucher->gia_tri }}%):</span>
-                                <span class="font-semibold">-{{ number_format($discount, 0, ',', '.') }} ₫</span>
+                        @if(($invoice->giam_gia ?? 0) > 0)
+                            @php
+                                $voucher = $booking->voucher;
+                            @endphp
+                            <div class="flex justify-between text-red-600">
+                                <span>Giảm giá @if($voucher)({{ $voucher->ma_voucher }} - {{ $voucher->gia_tri }}%)@endif:</span>
+                                <span class="font-semibold">-{{ number_format($invoice->giam_gia, 0, ',', '.') }} ₫</span>
                             </div>
-                            <div class="border-t my-2"></div>
-                        <?php endif; ?>
+                        @endif
+                        
+                        @if(($invoice->tien_dich_vu ?? 0) > 0)
+                            <div class="flex justify-between">
+                                <span class="text-gray-700">Tổng tiền dịch vụ:</span>
+                                <span class="font-semibold text-purple-600">{{ number_format($invoice->tien_dich_vu, 0, ',', '.') }} ₫</span>
+                            </div>
+                        @endif
+                        
+                        <div class="border-t my-2"></div>
                         
                         <div class="flex justify-between text-xl font-bold">
                             <span>Tổng thanh toán:</span>
