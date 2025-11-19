@@ -33,15 +33,15 @@
     </div>
 
     <section class="bg-gray-50 py-16 w-full">
-        <div class="w-full px-4">
-            <div class="grid lg:grid-cols-3 gap-12">
+        <div class="w-full mx-auto px-8 lg:px-12">
+            <div class="grid lg:grid-cols-3 gap-10">
                 {{-- Main Content --}}
                 <div class="lg:col-span-2">
                     {{-- Room Image Gallery --}}
-                    <div class="mb-12">
-                        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="mb-10">
+                        <div class="bg-white rounded-2xl shadow-md overflow-hidden">
                             <img src="{{ $loaiPhong->anh ? asset($loaiPhong->anh) : asset('img/room/room-1.jpg') }}"
-                                alt="{{ $loaiPhong->ten_loai }}" class="w-full h-96 object-cover">
+                                alt="{{ $loaiPhong->ten_loai }}" class="w-full h-72 md:h-96 lg:h-[430px] object-cover">
                         </div>
                     </div>
 
@@ -348,24 +348,12 @@
                                                         @php
                                                             $discountPercent = round((($relatedLoaiPhong->gia_co_ban - $relatedLoaiPhong->gia_khuyen_mai) / $relatedLoaiPhong->gia_co_ban) * 100);
                                                         @endphp
-                                                        {{-- Badge khuyến mãi --}}
+                                                        {{-- Badge khuyến mãi (giữ lại), bỏ ô giá --}}
                                                         <div class="inline-flex items-center gap-1.5 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg">
                                                             <i class="fas fa-tag text-white text-xs"></i>
                                                             <span>GIẢM {{ $discountPercent }}%</span>
                                                         </div>
                                                     @endif
-                                                    {{-- Box giá --}}
-                                                    <div class="bg-black/90 text-white px-4 py-2.5 rounded-lg shadow-xl">
-                                                        <div class="text-xl font-bold">
-                                                            {{ number_format($relatedLoaiPhong->gia_khuyen_mai ?? $relatedLoaiPhong->gia_co_ban, 0, ',', '.') }}
-                                                        </div>
-                                                        @if($relatedLoaiPhong->gia_khuyen_mai)
-                                                            <div class="text-sm text-gray-300 line-through mt-0.5">
-                                                                {{ number_format($relatedLoaiPhong->gia_co_ban, 0, ',', '.') }}
-                                                            </div>
-                                                        @endif
-                                                        <div class="text-xs text-gray-300 mt-0.5">VNĐ / đêm</div>
-                                                    </div>
                                                 </div>
                                             </div>
                                             <div class="p-6">

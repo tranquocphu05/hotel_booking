@@ -9,7 +9,7 @@
                 <h2 class="text-2xl font-semibold text-gray-800">Danh sách đặt phòng của bạn</h2>
                 {{-- Nút để tạo đặt phòng mới --}}
                 <a href="{{ route('admin.dat_phong.create') }}"
-                    class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center transition">
+                    class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center transition">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -42,63 +42,7 @@
 
             {{-- Bộ lọc cho danh sách đặt phòng --}}
             <div class="mb-6 bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-lg font-medium text-gray-800">Bộ lọc</h3>
-                    @if(request()->hasAny(['search', 'status', 'from_date', 'to_date']))
-                        <button onclick="clearFilters()" 
-                            class="inline-flex items-center px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition">
-                            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                            Xóa bộ lọc
-                        </button>
-                    @endif
-                </div>
-
-                {{-- Active Filters Badge --}}
-                @if(request()->hasAny(['search', 'status', 'from_date', 'to_date']))
-                    <div class="mb-3 flex flex-wrap gap-2">
-                        @if(request('search'))
-                            <span class="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
-                                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
-                                </svg>
-                                Tìm kiếm: "{{ request('search') }}"
-                            </span>
-                        @endif
-                        @if(request('status'))
-                            <span class="inline-flex items-center px-3 py-1 bg-purple-100 text-purple-800 text-sm rounded-full">
-                                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                                </svg>
-                                @php
-                                    $statusLabels = [
-                                        'cho_xac_nhan' => 'Chờ xác nhận',
-                                        'da_xac_nhan' => 'Đã xác nhận',
-                                        'da_huy' => 'Đã hủy',
-                                        'da_tra' => 'Đã trả phòng',
-                                    ];
-                                @endphp
-                                {{ $statusLabels[request('status')] ?? request('status') }}
-                            </span>
-                        @endif
-                        @if(request('from_date') || request('to_date'))
-                            <span class="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full">
-                                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
-                                </svg>
-                                @if(request('from_date') && request('to_date'))
-                                    {{ date('d/m/Y', strtotime(request('from_date'))) }} - {{ date('d/m/Y', strtotime(request('to_date'))) }}
-                                @elseif(request('from_date'))
-                                    Từ {{ date('d/m/Y', strtotime(request('from_date'))) }}
-                                @else
-                                    Đến {{ date('d/m/Y', strtotime(request('to_date'))) }}
-                                @endif
-                            </span>
-                        @endif
-                    </div>
-                @endif
-
+                <h3 class="text-lg font-medium text-gray-800 mb-3">Bộ lọc</h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
                         <label for="search" class="block text-sm font-medium text-gray-700">Tìm theo tên/mã</label>
@@ -147,7 +91,7 @@
                         <h3 class="text-lg font-medium text-gray-900 mb-2">Chưa có đặt phòng nào</h3>
                         <p class="text-gray-500 mb-4">Hãy tạo một đặt phòng mới để bắt đầu quản lý.</p>
                         <a href="{{ route('admin.dat_phong.create') }}"
-                            class="inline-flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition">
+                            class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -157,36 +101,8 @@
                         </a>
                     </div>
                 @elseif ($bookings->isEmpty() && request()->hasAny(['search', 'status', 'from_date', 'to_date']))
-                    <div class="p-8 text-center">
-                        <svg class="mx-auto h-16 w-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                        <h3 class="text-lg font-medium text-gray-900 mb-2">Không tìm thấy kết quả</h3>
-                        <p class="text-gray-500 mb-4">
-                            Không có đặt phòng nào phù hợp với bộ lọc:
-                            @if(request('status'))
-                                <span class="font-medium">{{ $statusLabels[request('status')] ?? request('status') }}</span>
-                            @endif
-                            @if(request('from_date') || request('to_date'))
-                                từ 
-                                <span class="font-medium">
-                                    @if(request('from_date') && request('to_date'))
-                                        {{ date('d/m/Y', strtotime(request('from_date'))) }} đến {{ date('d/m/Y', strtotime(request('to_date'))) }}
-                                    @elseif(request('from_date'))
-                                        {{ date('d/m/Y', strtotime(request('from_date'))) }}
-                                    @else
-                                        đến {{ date('d/m/Y', strtotime(request('to_date'))) }}
-                                    @endif
-                                </span>
-                            @endif
-                        </p>
-                        <button onclick="clearFilters()" 
-                            class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                            Xóa bộ lọc và xem tất cả
-                        </button>
+                    <div class="p-6 text-center text-gray-500">
+                        Không tìm thấy đặt phòng nào phù hợp với điều kiện lọc.
                     </div>
                 @else
                     <div class="overflow-x-auto">
@@ -269,7 +185,7 @@
                                         <td class="px-6 py-4 text-center whitespace-nowrap">
                                             <div class="flex items-center justify-center space-x-2">
                                                 <a href="{{ route('admin.dat_phong.show', $booking->id) }}" title="Xem chi tiết"
-                                                    class="text-gray-500 hover:text-blue-600 transition">
+                                                    class="text-blue-600 hover:text-blue-700 transition">
                                                     <i class="fas fa-eye"></i>
                                                 </a>
                                                 
@@ -428,11 +344,6 @@
                 document.body.appendChild(form);
                 form.submit();
             }
-        }
-
-        // Clear all filters and reload page
-        function clearFilters() {
-            window.location.href = '{{ route('admin.dat_phong.index') }}';
         }
     </script>
 @endpush
