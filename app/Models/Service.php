@@ -17,6 +17,8 @@ class Service extends Model
         'name',
         'price',
         'unit',
+        'loai',
+        'anh',
         'describe',
         'status',
     ];
@@ -25,6 +27,14 @@ class Service extends Model
     public function bookingServices()
     {
         return $this->hasMany(BookingService::class, 'service_id');
+    }
+
+    /**
+     * Scope for active services
+     */
+    public function scopeHoatDong($query)
+    {
+        return $query->where('status', 'hoat_dong');
     }
 
 }

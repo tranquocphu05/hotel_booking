@@ -29,14 +29,33 @@ class BookingServiceController extends Controller
             'service_id' => 'required|exists:services,id',
             'quantity' => 'required|integer|min:1',
             'unit_price' => 'required|numeric|min:0',
-            'used_at' => 'required|date',
+            'used_at' => 'nullable|date',
             'note' => 'nullable|string|max:255',
+            'ghi_chu' => 'nullable|string|max:500',
+        ], [
+            'dat_phong_id.required' => 'Vui lòng chọn booking',
+            'service_id.required' => 'Vui lòng chọn dịch vụ',
+            'quantity.required' => 'Vui lòng nhập số lượng',
+            'quantity.min' => 'Số lượng tối thiểu là 1',
+            'unit_price.required' => 'Vui lòng nhập đơn giá',
         ]);
+
+        // Validate booking can request service
+        $booking = DatPhong::findOrFail($validated['dat_phong_id']);
+        if (!$booking->canRequestService()) {
+            return response()->json([
+                'message' => 'Chỉ có thể thêm dịch vụ khi khách đang ở (đã check-in, chưa check-out)',
+            ], 422);
+        }
+
+        // Set used_at to now if not provided
+        if (!isset($validated['used_at'])) {
+            $validated['used_at'] = now();
+        }
 
         $bookingService = BookingService::create($validated);
 
         // 🔹 Gọi lại hàm tính tổng
-        $booking = DatPhong::find($validated['dat_phong_id']);
         BookingPriceCalculator::recalcTotal($booking);
 
         return response()->json([

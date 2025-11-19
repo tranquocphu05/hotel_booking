@@ -214,6 +214,12 @@
             </div>
         @endif
 
+        {{-- CHECK-IN / CHECK-OUT SECTION --}}
+        @include('admin.dat_phong._checkin_checkout')
+
+        {{-- BOOKING SERVICES SECTION --}}
+        @include('admin.dat_phong._booking_services')
+
         {{-- MAIN CONTENT: 1 COLUMN LAYOUT WITH SIDEBAR --}}
         <div class="lg:grid lg:grid-cols-12 lg:gap-6">
             

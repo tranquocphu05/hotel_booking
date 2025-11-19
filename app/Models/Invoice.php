@@ -16,9 +16,22 @@ class Invoice extends Model
         'tong_tien',
         'tien_phong',
         'tien_dich_vu',
+        'phi_phat_sinh',
         'giam_gia',
+        'da_thanh_toan',
+        'con_lai',
         'phuong_thuc',
         'trang_thai',
+    ];
+
+    protected $casts = [
+        'tong_tien' => 'decimal:2',
+        'tien_phong' => 'decimal:2',
+        'tien_dich_vu' => 'decimal:2',
+        'phi_phat_sinh' => 'decimal:2',
+        'giam_gia' => 'decimal:2',
+        'da_thanh_toan' => 'decimal:2',
+        'con_lai' => 'decimal:2',
     ];
 
     public function datPhong()

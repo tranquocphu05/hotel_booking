@@ -16,6 +16,12 @@ class BookingService extends Model
         'unit_price',
         'used_at',
         'note',
+        'ghi_chu',
+    ];
+
+    protected $casts = [
+        'used_at' => 'datetime',
+        'unit_price' => 'decimal:2',
     ]; // Mỗi dòng dịch vụ thuộc về một đặt phòng 
     public function booking()
     {

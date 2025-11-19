@@ -54,21 +54,30 @@ class BookingPriceCalculator
             }
         }
 
-        // 5️⃣ Tổng cuối cùng: (Tiền phòng - Giảm giá) + Tiền dịch vụ
-        $tongCong = max(0, $tongTienPhong - $giamGia + $totalServices);
+        // 5️⃣ Lấy phụ phí phát sinh (nếu có)
+        $phiPhatSinh = $booking->phi_phat_sinh ?? 0;
 
-        // 6️⃣ Cập nhật booking
+        // 6️⃣ Tổng cuối cùng: (Tiền phòng - Giảm giá) + Tiền dịch vụ + Phụ phí
+        $tongCong = max(0, $tongTienPhong - $giamGia + $totalServices + $phiPhatSinh);
+
+        // 7️⃣ Cập nhật booking
         $booking->update([
             'tong_tien' => $tongCong,
         ]);
 
-        // 7️⃣ Cập nhật invoice nếu có
+        // 8️⃣ Cập nhật invoice nếu có
         if ($booking->invoice) {
+            // Tính số tiền còn lại = Tổng tiền - Đã thanh toán
+            $daThanhtoan = $booking->invoice->da_thanh_toan ?? 0;
+            $conLai = max(0, $tongCong - $daThanhtoan);
+
             $booking->invoice->update([
                 'tien_phong' => $tongTienPhong,
                 'tien_dich_vu' => $totalServices,
+                'phi_phat_sinh' => $phiPhatSinh,
                 'giam_gia' => $giamGia,
                 'tong_tien' => $tongCong,
+                'con_lai' => $conLai,
             ]);
         }
     }
