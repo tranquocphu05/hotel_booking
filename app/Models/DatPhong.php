@@ -67,17 +67,12 @@ class DatPhong extends Model
         'ngay_nhan' => 'date',
         'ngay_tra' => 'date',
         'tong_tien' => 'decimal:2',
-<<<<<<< HEAD
         'phi_phat_sinh' => 'decimal:2',
         'thoi_gian_checkin' => 'datetime',
         'thoi_gian_checkout' => 'datetime',
         // JSON fields deprecated - now using pivot tables
         // 'room_types' => 'array',
         // 'phong_ids' => 'array',
-=======
-        'room_types' => 'array', // Auto decode/encode JSON
-        'phong_ids' => 'array', // Auto decode/encode JSON
->>>>>>> f1858d0fc0a6aeab6ad720d431df0c46c45d345c
     ];
 
     /**
