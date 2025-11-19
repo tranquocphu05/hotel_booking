@@ -22,7 +22,7 @@ class ThanhToanController extends Controller
         }
 
         // Eager load relationships for efficiency
-        $datPhong->load('voucher', 'loaiPhong', 'user', 'phong');
+        $datPhong->load('voucher', 'loaiPhong', 'user', 'phong', 'assignedRooms', 'roomTypes');
         
         // Get available rooms for assignment if needed
         $availableRooms = null;
@@ -86,8 +86,15 @@ class ThanhToanController extends Controller
             $basePrice = $originalPrice;
         }
 
-        // Calculate discount amount (if voucher was applied)
-        $discountAmount = max(0, $originalPrice - $datPhong->tong_tien);
+        // Calculate discount amount from voucher (only applies to room price, not services)
+        $discountAmount = 0;
+        if ($datPhong->voucher_id && $datPhong->voucher) {
+            $voucher = $datPhong->voucher;
+            if ($voucher->gia_tri) {
+                // Voucher only applies to room price (originalPrice), not services
+                $discountAmount = $originalPrice * ($voucher->gia_tri / 100);
+            }
+        }
         $surchargeAmount = max(0, $originalPrice - $basePrice);
 
         // Lấy invoice đã tạo sẵn, hoặc tạo mới nếu chưa có

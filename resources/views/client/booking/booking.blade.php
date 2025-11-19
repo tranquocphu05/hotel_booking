@@ -371,7 +371,6 @@
                                                                             shadow-sm
                                                                             focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
                                                                             cursor-pointer"
-                                                                    value="{{ $option->id === ($loaiPhong->id ?? null) ? '1' : '0' }}"
                                                                     min="0"
                                                                     max="{{ $option->so_luong_phong }}"
                                                                     data-room-id="{{ $option->id }}"
@@ -379,8 +378,11 @@
                                                                     data-room-price="{{ $optionPrice }}"
                                                                     data-max-quantity="{{ $initialAvailable }}"
                                                                     onchange="updateRoomCardQuantity('{{ $option->id }}')">
+                                                                    @php
+                                                                        $isPreselected = $option->id === ($loaiPhong->id ?? null);
+                                                                    @endphp
                                                                     @for ($q = 0; $q <= $initialAvailable; $q++)
-                                                                        <option value="{{ $q }}">{{ $q }} Phòng</option>
+                                                                        <option value="{{ $q }}" {{ ($isPreselected && $q === 1) ? 'selected' : '' }}>{{ $q }} Phòng</option>
                                                                     @endfor
                                                                 </select>
                                                             </div>
