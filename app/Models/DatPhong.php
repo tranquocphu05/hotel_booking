@@ -46,7 +46,15 @@ class DatPhong extends Model
         'username',
         'email',
         'sdt',
-        'cccd'
+        'cccd',
+        // Check-in/Check-out fields
+        'thoi_gian_checkin',
+        'thoi_gian_checkout',
+        'nguoi_checkin',
+        'nguoi_checkout',
+        'phi_phat_sinh',
+        'ghi_chu_checkin',
+        'ghi_chu_checkout',
     ];
 
     /**
@@ -59,8 +67,12 @@ class DatPhong extends Model
         'ngay_nhan' => 'date',
         'ngay_tra' => 'date',
         'tong_tien' => 'decimal:2',
-        'room_types' => 'array', // Auto decode/encode JSON
-        'phong_ids' => 'array', // Auto decode/encode JSON
+        'phi_phat_sinh' => 'decimal:2',
+        'thoi_gian_checkin' => 'datetime',
+        'thoi_gian_checkout' => 'datetime',
+        // JSON fields deprecated - now using pivot tables
+        // 'room_types' => 'array',
+        // 'phong_ids' => 'array',
     ];
 
     /**
@@ -297,6 +309,34 @@ class DatPhong extends Model
     public function isDaTra()
     {
         return $this->trang_thai === 'da_tra';
+    }
+
+    /**
+     * Check if guest can request services (checked in but not checked out)
+     */
+    public function canRequestService()
+    {
+        return $this->thoi_gian_checkin 
+            && !$this->thoi_gian_checkout
+            && $this->trang_thai === 'da_xac_nhan';
+    }
+
+    /**
+     * Check if booking can be checked in
+     */
+    public function canCheckin()
+    {
+        return $this->trang_thai === 'da_xac_nhan' 
+            && !$this->thoi_gian_checkin;
+    }
+
+    /**
+     * Check if booking can be checked out
+     */
+    public function canCheckout()
+    {
+        return $this->thoi_gian_checkin 
+            && !$this->thoi_gian_checkout;
     }
 
     /**

@@ -37,8 +37,148 @@
                 </span>
             </div>
 
+<<<<<<< HEAD
+        {{-- CHÍNH SÁCH HỦY PHÒNG (CHỈ HIỂN THỊ KHI ĐÃ XÁC NHẬN) --}}
+        @if($booking->trang_thai === 'da_xac_nhan' && isset($cancellationPolicy))
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 rounded-lg shadow-sm overflow-hidden">
+                <div class="p-6">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            <svg class="h-8 w-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-4 flex-1">
+                            <h3 class="text-xl font-bold text-gray-900 mb-4">
+                                <i class="fas fa-info-circle"></i> Chính sách hủy phòng
+                            </h3>
+                            
+                            <div class="grid md:grid-cols-2 gap-6">
+                                {{-- Thông tin thời gian --}}
+                                <div class="bg-white p-5 rounded-lg border border-blue-200 shadow-sm">
+                                    <div class="space-y-3">
+                                        <div class="flex justify-between items-center pb-3 border-b border-gray-200">
+                                            <span class="text-sm font-medium text-gray-600">Ngày nhận phòng</span>
+                                            <span class="text-lg font-bold text-gray-900">{{ date('d/m/Y', strtotime($booking->ngay_nhan)) }}</span>
+                                        </div>
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-sm font-medium text-gray-600">Thời gian còn lại</span>
+                                            <span class="text-2xl font-bold text-blue-600">{{ number_format($cancellationPolicy['days_until_checkin'], 0) }} ngày</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Thông tin hoàn tiền --}}
+                                <div class="bg-white p-5 rounded-lg border border-blue-200 shadow-sm">
+                                    <p class="text-sm font-semibold text-gray-700 mb-3">
+                                        <i class="fas fa-calculator"></i> Nếu hủy phòng ngay bây giờ:
+                                    </p>
+                                    <div class="space-y-3">
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-sm text-gray-600">Hoàn lại cho khách</span>
+                                            <div class="text-right">
+                                                <p class="text-xl font-bold text-green-600">
+                                                    {{ number_format($cancellationPolicy['refund_amount'], 0, ',', '.') }}₫
+                                                </p>
+                                                <p class="text-xs text-gray-500">({{ $cancellationPolicy['refund_percentage'] }}%)</p>
+                                            </div>
+                                        </div>
+                                        @if($cancellationPolicy['penalty_amount'] > 0)
+                                            <div class="flex justify-between items-center pt-3 border-t border-gray-200">
+                                                <span class="text-sm text-gray-600">Phí hủy phòng</span>
+                                                <p class="text-lg font-bold text-red-600">
+                                                    {{ number_format($cancellationPolicy['penalty_amount'], 0, ',', '.') }}₫
+                                                </p>
+                                            </div>
+                                        @endif
+                                    </div>
+                                    
+                                    <div class="mt-3 pt-3 border-t border-gray-200">
+                                        <p class="text-xs text-gray-500 italic">
+                                            <i class="fas fa-info-circle"></i> 
+                                            Đây là số tiền đề xuất theo chính sách. Admin có thể điều chỉnh khi hủy.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Bảng chính sách chi tiết --}}
+                            <div class="mt-6 bg-white p-5 rounded-lg border border-gray-200">
+                                <p class="text-sm font-semibold text-gray-700 mb-3">
+                                    <i class="fas fa-list-ul"></i> Bảng chính sách hoàn tiền:
+                                </p>
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                    <div class="text-center p-3 bg-green-50 rounded-lg border border-green-200">
+                                        <p class="text-xs text-gray-600 mb-1">≥ 7 ngày</p>
+                                        <p class="text-lg font-bold text-green-600">100%</p>
+                                    </div>
+                                    <div class="text-center p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                                        <p class="text-xs text-gray-600 mb-1">3-6 ngày</p>
+                                        <p class="text-lg font-bold text-yellow-600">50%</p>
+                                    </div>
+                                    <div class="text-center p-3 bg-orange-50 rounded-lg border border-orange-200">
+                                        <p class="text-xs text-gray-600 mb-1">1-2 ngày</p>
+                                        <p class="text-lg font-bold text-orange-600">25%</p>
+                                    </div>
+                                    <div class="text-center p-3 bg-red-50 rounded-lg border border-red-200">
+                                        <p class="text-xs text-gray-600 mb-1">Trong ngày</p>
+                                        <p class="text-lg font-bold text-red-600">0%</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Nút hủy phòng --}}
+                            <div class="mt-6">
+                                @if($cancellationPolicy['can_cancel'])
+                                    <div class="flex justify-end">
+                                        <a href="{{ route('admin.dat_phong.cancel', $booking->id) }}" 
+                                           class="inline-flex items-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white text-base font-semibold rounded-lg shadow-md transition-all hover:shadow-lg">
+                                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                            Hủy đặt phòng
+                                        </a>
+                                    </div>
+                                @else
+                                    <div class="bg-red-50 border-l-4 border-red-400 p-4">
+                                        <div class="flex">
+                                            <div class="flex-shrink-0">
+                                                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                                </svg>
+                                            </div>
+                                            <div class="ml-3">
+                                                <p class="text-sm text-red-700">
+                                                    <strong>{{ $cancellationPolicy['message'] }}</strong>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        {{-- CHECK-IN / CHECK-OUT SECTION --}}
+        @include('admin.dat_phong._checkin_checkout')
+
+        {{-- BOOKING SERVICES SECTION --}}
+        @include('admin.dat_phong._booking_services')
+
+        {{-- MAIN CONTENT: 1 COLUMN LAYOUT WITH SIDEBAR --}}
+        <div class="lg:grid lg:grid-cols-12 lg:gap-6">
+            
+            {{-- MAIN CONTENT (LEFT) --}}
+            <div class="lg:col-span-8 space-y-6">
+
+                {{-- THÔNG TIN PHÒNG --}}
+=======
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <!-- Card Thông tin phòng -->
+>>>>>>> f1858d0fc0a6aeab6ad720d431df0c46c45d345c
                 <div class="bg-white rounded-lg shadow-sm overflow-hidden">
                     <div class="p-4 border-b border-gray-200">
                         <h3 class="text-lg font-medium text-gray-900">Thông tin phòng</h3>
