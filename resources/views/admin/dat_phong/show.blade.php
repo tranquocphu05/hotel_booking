@@ -1,95 +1,43 @@
 @extends('layouts.admin')
 
-@section('title', 'Chi tiết đặt phòng #' . $booking->id)
+@section('title', 'Chi tiết đặt phòng')
 
-@section('admin_content')
-<div class="min-h-screen bg-gray-50 py-6">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
-        {{-- HEADER WITH QUICK ACTIONS --}}
-        <div class="bg-white rounded-lg shadow-sm mb-6 p-6">
-            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                {{-- Left: Title & Status --}}
-                <div class="flex items-center gap-4">
-                    <a href="{{ route('admin.dat_phong.index') }}" 
-                        class="text-gray-400 hover:text-gray-600 transition">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                        </svg>
-                    </a>
-                    <div>
-                        <h1 class="text-2xl font-bold text-gray-900">
-                            Đặt phòng #{{ $booking->id }}
-                        </h1>
-                        <p class="text-sm text-gray-500 mt-1">
-                            Đặt lúc {{ date('d/m/Y H:i', strtotime($booking->ngay_dat)) }}
-                        </p>
-                    </div>
-                    <span class="px-4 py-2 rounded-full text-sm font-semibold
-                        @if ($booking->trang_thai === 'da_xac_nhan') bg-green-100 text-green-800
-                        @elseif($booking->trang_thai === 'cho_xac_nhan') bg-yellow-100 text-yellow-800
-                        @elseif($booking->trang_thai === 'da_huy') bg-red-100 text-red-800
-                        @elseif($booking->trang_thai === 'tu_choi') bg-red-100 text-red-800
-                        @elseif($booking->trang_thai === 'da_tra') bg-blue-100 text-blue-800
-                        @else bg-gray-100 text-gray-800 @endif">
-                        @php
-                            $statuses = [
-                                'cho_xac_nhan' => 'Chờ xác nhận',
-                                'da_xac_nhan' => 'Đã xác nhận',
-                                'da_huy' => 'Đã hủy',
-                                'tu_choi' => 'Từ chối',
-                                'da_tra' => 'Đã trả phòng',
-                                'thanh_toan_that_bai' => 'Thanh toán thất bại',
-                            ];
-                        @endphp
-                        {{ $statuses[$booking->trang_thai] ?? $booking->trang_thai }}
-                    </span>
-                </div>
-
-                {{-- Right: Quick Actions --}}
-                <div class="flex flex-wrap gap-2">
-                    @if($booking->trang_thai === 'cho_xac_nhan')
-                        <form action="{{ route('admin.dat_phong.confirm', $booking->id) }}" method="POST" class="inline">
-                            @csrf
-                            @method('PUT')
-                            <button type="submit" 
-                                class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition">
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                </svg>
-                                Xác nhận
-                            </button>
-                        </form>
-                        <a href="{{ route('admin.dat_phong.cancel', $booking->id) }}"
-                            class="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                            Hủy
-                        </a>
+@section('admin_content') 
+    <div class="py-6">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <div class="mb-6 flex justify-between items-center">
+                @php
+                    $roomTypes = $booking->getRoomTypes();
+                @endphp
+                @php
+                    $serviceTotal = isset($bookingServices) ? $bookingServices->sum(function($s){ return ($s->unit_price * $s->quantity); }) : 0;
+                @endphp
+                <h2 class="text-2xl font-semibold text-gray-800">
+                    Chi tiết đặt phòng 
+                    @if(count($roomTypes) > 1)
+                        <b>{{ count($roomTypes) }} loại phòng</b>
+                    @else
+                        <b>{{ $booking->loaiPhong->ten_loai ?? 'N/A' }}</b>
                     @endif
-                    
-                    @if($booking->trang_thai === 'cho_xac_nhan')
-                        <a href="{{ route('admin.dat_phong.edit', $booking->id) }}"
-                            class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                            Sửa
-                        </a>
-                    @endif
-
-                    <button onclick="window.print()" 
-                        class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                        </svg>
-                        In
-                    </button>
-                </div>
+                </h2>
+                <span class="px-3 py-1 rounded-full text-sm font-medium
+                    @if ($booking->trang_thai === 'da_xac_nhan') bg-green-100 text-green-800
+                    @elseif($booking->trang_thai === 'cho_xac_nhan') bg-yellow-100 text-yellow-800
+                    @elseif($booking->trang_thai === 'da_huy') bg-red-100 text-red-800
+                    @else bg-blue-100 text-blue-800 @endif">
+                    @php
+                        $statuses = [
+                            'cho_xac_nhan' => 'Chờ xác nhận',
+                            'da_xac_nhan' => 'Đã xác nhận',
+                            'da_huy' => 'Đã hủy',
+                            'da_tra' => 'Đã trả phòng',
+                        ];
+                    @endphp
+                    {{ $statuses[$booking->trang_thai] ?? $booking->trang_thai }}
+                </span>
             </div>
-        </div>
 
+<<<<<<< HEAD
         {{-- CHÍNH SÁCH HỦY PHÒNG (CHỈ HIỂN THỊ KHI ĐÃ XÁC NHẬN) --}}
         @if($booking->trang_thai === 'da_xac_nhan' && isset($cancellationPolicy))
             <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 rounded-lg shadow-sm overflow-hidden">
@@ -227,31 +175,30 @@
             <div class="lg:col-span-8 space-y-6">
 
                 {{-- THÔNG TIN PHÒNG --}}
+=======
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Card Thông tin phòng -->
+>>>>>>> f1858d0fc0a6aeab6ad720d431df0c46c45d345c
                 <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-                    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                        <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                            <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                            </svg>
-                            Thông tin phòng
-                        </h2>
+                    <div class="p-4 border-b border-gray-200">
+                        <h3 class="text-lg font-medium text-gray-900">Thông tin phòng</h3>
                     </div>
-                    <div class="p-6">
-                        @php
-                            $roomTypes = $booking->getRoomTypes();
-                            $assignedPhongs = $booking->getAssignedPhongs();
-                        @endphp
-
-                        @if(count($roomTypes) > 1)
-                            {{-- Multi-room booking --}}
-                            <div class="space-y-4">
-                                @foreach($roomTypes as $index => $roomType)
-                                    @php
-                                        $loaiPhong = \App\Models\LoaiPhong::find($roomType['loai_phong_id']);
-                                    @endphp
-                                    @if($loaiPhong)
-                                        <div class="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition">
-                                            <div class="flex gap-4">
+                    <div class="p-4">
+                        <div class="space-y-3">
+                            @php
+                                $roomTypes = $booking->getRoomTypes();
+                            @endphp
+                            
+                            @if(count($roomTypes) > 1)
+                                {{-- Hiển thị nhiều loại phòng --}}
+                                <div class="space-y-3">
+                                    <p class="text-sm font-semibold text-gray-700">Các loại phòng:</p>
+                                    @foreach($roomTypes as $roomType)
+                                        @php
+                                            $loaiPhong = \App\Models\LoaiPhong::find($roomType['loai_phong_id']);
+                                        @endphp
+                                        @if($loaiPhong)
+                                            <div class="border border-gray-200 rounded-lg p-3 bg-gray-50">
                                                 <img src="{{ asset($loaiPhong->anh ?? 'img/room/room-1.jpg') }}" 
                                                     alt="{{ $loaiPhong->ten_loai }}"
                                                     class="w-48 h-32 object-cover rounded-lg flex-shrink-0">
@@ -279,13 +226,12 @@
                                                     <p class="text-xs text-gray-600">Tổng: {{ number_format($subtotal, 0, ',', '.') }} VNĐ</p>
                                                 </div>
                                             </div>
-                                        </div>
-                                    @endif
-                                @endforeach
-                            </div>
-                        @else
-                            {{-- Single room type --}}
-                            <div class="flex gap-6">
+                                        @endif
+                                    @endforeach
+                                </div>
+                                <p class="text-sm text-gray-600">Tổng số phòng: <span class="font-medium">{{ $booking->so_luong_da_dat ?? 1 }} phòng</span></p>
+                            @else
+                                {{-- Hiển thị 1 loại phòng (legacy) --}}
                                 <img src="{{ asset($booking->loaiPhong->anh ?? 'img/room/room-1.jpg') }}" 
                                     alt="{{ $booking->loaiPhong->ten_loai ?? 'N/A' }}"
                                     class="w-32 h-32 object-cover rounded-lg flex-shrink-0">
@@ -317,212 +263,215 @@
                             </div>
                         @endif
 
-                        {{-- Assigned Rooms --}}
-                        @if($assignedPhongs->count() > 0)
-                            <div class="mt-6 pt-6 border-t border-gray-200">
-                                <div class="flex items-center justify-between mb-3">
-                                    <h4 class="font-semibold text-gray-900 flex items-center">
-                                        <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                        Phòng đã sắp xếp
-                                    </h4>
-                                    <span class="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-semibold rounded-full">
-                                        {{ $assignedPhongs->count() }}/{{ $booking->so_luong_da_dat }}
-                                    </span>
-                                </div>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    @foreach($assignedPhongs as $phong)
-                                        <div class="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-lg hover:shadow-md transition">
-                                            <div class="flex-1">
-                                                <p class="font-bold text-blue-900 text-lg">
-                                                    Phòng {{ $phong->so_phong }}
+                            @if($assignedCount > 0)
+                                <div class="mt-2">
+                                    <p class="text-sm font-medium text-gray-700 mb-2">
+                                        Phòng đã gán ({{ $assignedCount }}/{{ $booking->so_luong_da_dat }}):
+                                    </p>
+                                    <div class="space-y-2">
+                                        @foreach($assignedPhongs as $phong)
+                                            <div class="p-2 bg-blue-50 border border-blue-200 rounded-md">
+                                                <p class="text-sm font-medium text-blue-900">
+                                                    Phòng: {{ $phong->so_phong }}
+                                                    @if($phong->ten_phong)
+                                                        ({{ $phong->ten_phong }})
+                                                    @endif
                                                 </p>
-                                                @if($phong->ten_phong)
-                                                    <p class="text-sm text-blue-700 mt-0.5">{{ $phong->ten_phong }}</p>
-                                                @endif
-                                                <div class="flex items-center gap-3 mt-2 text-xs">
-                                                    <span class="text-blue-600">
-                                                        <svg class="w-3 h-3 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                                            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
-                                                        </svg>
-                                                        Tầng {{ $phong->tang ?? 'N/A' }}
-                                                    </span>
-                                                    <span class="px-2 py-0.5 rounded-full font-medium
-                                                        @if($phong->trang_thai === 'trong') bg-green-100 text-green-700
-                                                        @elseif($phong->trang_thai === 'dang_thue') bg-blue-100 text-blue-700
-                                                        @elseif($phong->trang_thai === 'dang_don') bg-yellow-100 text-yellow-700
-                                                        @else bg-red-100 text-red-700 @endif
+                                                <p class="text-xs text-blue-700 mt-1">
+                                                    Tầng: {{ $phong->tang ?? 'N/A' }} | 
+                                                    Trạng thái: 
+                                                    <span class="
+                                                        @if($phong->trang_thai === 'trong') text-green-600
+                                                        @elseif($phong->trang_thai === 'dang_thue') text-blue-600
+                                                        @elseif($phong->trang_thai === 'dang_don') text-yellow-600
+                                                        @else text-red-600 @endif
                                                     ">
                                                         {{ $phong->trang_thai === 'trong' ? 'Trống' : 
                                                            ($phong->trang_thai === 'dang_thue' ? 'Đang thuê' : 
                                                            ($phong->trang_thai === 'dang_don' ? 'Đang dọn' : 'Bảo trì')) }}
                                                     </span>
-                                                </div>
+                                                </p>
                                             </div>
-                                        </div>
-                                    @endforeach
+                                        @endforeach
+                                    </div>
                                 </div>
-                            </div>
-                        @endif
-
-                        {{-- Assign Room Form --}}
-                        @php
-                            $remainingCount = $booking->so_luong_da_dat - $assignedPhongs->count();
-                        @endphp
-                        @if($remainingCount > 0 && isset($availableRooms) && $availableRooms->count() > 0)
-                            <div class="mt-6 pt-6 border-t border-gray-200">
-                                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                                    <p class="text-sm text-yellow-800 mb-3">
-                                        <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-                                        </svg>
-                                        Còn thiếu {{ $remainingCount }} phòng cần gán
+                            @elseif($booking->phong)
+                                {{-- Legacy support: Hiển thị phòng từ phong_id --}}
+                                <div class="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
+                                    <p class="text-sm font-medium text-blue-900">
+                                        Phòng: {{ $booking->phong->so_phong }}
+                                        @if($booking->phong->ten_phong)
+                                            ({{ $booking->phong->ten_phong }})
+                                        @endif
                                     </p>
-                                    <form action="{{ route('admin.dat_phong.assign_room', $booking->id) }}" method="POST" class="flex gap-2">
+                                    <p class="text-xs text-blue-700 mt-1">
+                                        Tầng: {{ $booking->phong->tang ?? 'N/A' }} | 
+                                        Trạng thái: 
+                                        <span class="
+                                            @if($booking->phong->trang_thai === 'trong') text-green-600
+                                            @elseif($booking->phong->trang_thai === 'dang_thue') text-blue-600
+                                            @elseif($booking->phong->trang_thai === 'dang_don') text-yellow-600
+                                            @else text-red-600 @endif
+                                        ">
+                                            {{ $booking->phong->trang_thai === 'trong' ? 'Trống' : 
+                                               ($booking->phong->trang_thai === 'dang_thue' ? 'Đang thuê' : 
+                                               ($booking->phong->trang_thai === 'dang_don' ? 'Đang dọn' : 'Bảo trì')) }}
+                                        </span>
+                                    </p>
+                                </div>
+                            @else
+                                <p class="text-sm text-yellow-600 mt-2">
+                                    <i class="fas fa-exclamation-triangle text-xs mr-1"></i>
+                                    Chưa gán phòng cụ thể
+                                </p>
+                            @endif
+
+                            @if($remainingCount > 0 && isset($availableRooms) && $availableRooms->count() > 0)
+                                <div class="mt-3 pt-3 border-t border-gray-200">
+                                    <p class="text-xs text-gray-600 mb-2">
+                                        <i class="fas fa-info-circle mr-1"></i>
+                                        Còn thiếu {{ $remainingCount }} phòng. Chọn phòng để gán:
+                                    </p>
+                                    <form action="{{ route('admin.dat_phong.assign_room', $booking->id) }}" method="POST">
                                         @csrf
                                         @method('PUT')
-                                        <select name="phong_id" class="flex-1 border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                                        <select name="phong_id" class="mt-1 w-full text-xs border-gray-300 rounded-md">
                                             <option value="">-- Chọn phòng --</option>
                                             @foreach($availableRooms as $room)
                                                 <option value="{{ $room->id }}">
-                                                    Phòng {{ $room->so_phong }} 
+                                                    {{ $room->so_phong }} 
                                                     @if($room->tang) (Tầng {{ $room->tang }}) @endif
                                                     @if($room->co_view_dep) - View đẹp @endif
                                                 </option>
                                             @endforeach
                                         </select>
                                         <button type="submit" 
-                                            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition">
+                                            class="mt-2 px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">
                                             Gán phòng
                                         </button>
                                     </form>
                                 </div>
-                            </div>
-                        @elseif($remainingCount > 0)
-                            <div class="mt-6 pt-6 border-t border-gray-200">
-                                <p class="text-xs text-gray-500">
+                            @elseif($remainingCount > 0)
+                                <p class="text-xs text-gray-500 mt-2">
                                     <i class="fas fa-info-circle mr-1"></i>
                                     Còn thiếu {{ $remainingCount }} phòng. Không có phòng trống trong khoảng thời gian này.
                                 </p>
-                            </div>
-                        @endif
+                            @endif
+                            @if(count($roomTypes) > 1)
+                                <div class="mt-3 pt-3 border-t border-gray-200">
+                                    <p class="text-xs text-gray-600 mb-2">Tổng giá: <span class="font-medium">{{ number_format($booking->tong_tien, 0, ',', '.') }} VNĐ</span></p>
+                                </div>
+                            @else
+                                <p class="text-sm text-gray-600">Giá phòng: <span class="font-medium">{{ number_format($booking->loaiPhong->gia_khuyen_mai ?? $booking->loaiPhong->gia_co_ban ?? 0, 0, ',', '.') }} VNĐ/đêm</span></p>
+                                <p class="text-sm px-3 py-1 rounded-full text-sm font-medium
+                                    @if ($booking->loaiPhong->trang_thai === 'hoat_dong') bg-green-100 text-green-800
+                                    @else bg-yellow-100 text-yellow-800 @endif">
+                                    {{ $booking->loaiPhong->trang_thai === 'hoat_dong' ? 'Hoạt động' : 'Ngừng' }}
+                                </p>
+                            @endif
+                        </div>
                     </div>
                 </div>
 
-                {{-- THÔNG TIN ĐẶT PHÒNG --}}
+                <!-- Card Thông tin đặt phòng -->
                 <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-                    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                        <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                            <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                            Chi tiết đặt phòng
-                        </h2>
+                    <div class="p-4 border-b border-gray-200">
+                        <h3 class="text-lg font-medium text-gray-900">Thông tin đặt phòng</h3>
                     </div>
-                    <div class="p-6">
-                        <dl class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <dt class="text-sm font-medium text-gray-500">Ngày nhận phòng</dt>
-                                <dd class="mt-1 text-lg font-semibold text-gray-900">{{ date('d/m/Y', strtotime($booking->ngay_nhan)) }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-sm font-medium text-gray-500">Ngày trả phòng</dt>
-                                <dd class="mt-1 text-lg font-semibold text-gray-900">{{ date('d/m/Y', strtotime($booking->ngay_tra)) }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-sm font-medium text-gray-500">Số đêm</dt>
-                                <dd class="mt-1 text-lg font-semibold text-gray-900">
-                                    @php
-                                        $checkin = new DateTime($booking->ngay_nhan);
-                                        $checkout = new DateTime($booking->ngay_tra);
-                                        $soDem = $checkin->diff($checkout)->days;
-                                    @endphp
-                                    {{ $soDem }} đêm
-                                </dd>
-                            </div>
-                            <div>
-                                <dt class="text-sm font-medium text-gray-500">Số người</dt>
-                                <dd class="mt-1 text-lg font-semibold text-gray-900">{{ $booking->so_nguoi }} người</dd>
-                            </div>
-                            @if($booking->ghi_chu)
-                                <div class="md:col-span-2">
-                                    <dt class="text-sm font-medium text-gray-500">Ghi chú</dt>
-                                    <dd class="mt-1 text-sm text-gray-900 bg-gray-50 p-3 rounded-lg">{{ $booking->ghi_chu }}</dd>
+                    <div class="p-4">
+                        <div class="space-y-3">
+                            <p class="text-sm text-gray-600">Ngày đặt: <span class="font-medium">{{ date('d/m/Y H:i', strtotime($booking->ngay_dat)) }}</span></p>
+                            <p class="text-sm text-gray-600">Số người: <span class="font-medium">{{ $booking->so_nguoi }} người</span></p>
+                            <p class="text-sm text-gray-600">Ngày nhận phòng: <span class="font-medium">{{ date('d/m/Y', strtotime($booking->ngay_nhan)) }}</span></p>
+                            <p class="text-sm text-gray-600">Ngày trả phòng: <span class="font-medium">{{ date('d/m/Y', strtotime($booking->ngay_tra)) }}</span></p>
+                            @if ($booking->ghi_chu)
+                                <p class="text-sm text-gray-600">Ghi chú: <span class="font-medium">{{ $booking->ghi_chu }}</span></p>
+                            @endif
+
+                            <!-- Dịch vụ đã đặt (bên trong card - dạng compact) -->
+                            @if(isset($bookingServices) && $bookingServices->count() > 0)
+                                <div class="mt-4 pt-4 border-t border-gray-200">
+                                    <h4 class="text-sm font-semibold text-gray-900 mb-2">
+                                        <i class="fas fa-concierge-bell mr-2 text-teal-600"></i>Dịch vụ đã đặt
+                                    </h4>
+                                    <div class="text-xs space-y-1">
+                                        @foreach($bookingServices as $bs)
+                                            @php $line = ($bs->unit_price * $bs->quantity); @endphp
+                                            <div class="flex justify-between items-center px-2 py-1 bg-teal-50 rounded border border-teal-100">
+                                                <span class="text-teal-900 font-medium">{{ $bs->service->name ?? 'Dịch vụ' }}</span>
+                                                <span class="text-teal-700">
+                                                    @if($bs->used_at)
+                                                        <span class="text-teal-600 font-medium">{{ date('d/m', strtotime($bs->used_at)) }}</span>
+                                                    @endif
+                                                    | {{ $bs->quantity }}× 
+                                                    <span class="font-medium">{{ number_format($line,0,',','.') }} VNĐ</span>
+                                                </span>
+                                            </div>
+                                        @endforeach
+                                    </div>
                                 </div>
                             @endif
-                        </dl>
+                        </div>
                     </div>
                 </div>
 
-                {{-- THÔNG TIN KHÁCH HÀNG --}}
+                <!-- Card Thông tin khách hàng -->
                 <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-                    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                        <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                            <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
-                            Thông tin khách hàng
-                        </h2>
+                    <div class="p-4 border-b border-gray-200">
+                        <h3 class="text-lg font-medium text-gray-900">Thông tin khách hàng</h3>
                     </div>
-                    <div class="p-6">
-                        <dl class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <dt class="text-sm font-medium text-gray-500">Họ tên</dt>
-                                <dd class="mt-1 text-base font-semibold text-gray-900">{{ $booking->username }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-sm font-medium text-gray-500">Email</dt>
-                                <dd class="mt-1 text-base text-gray-900">
-                                    <a href="mailto:{{ $booking->email }}" class="text-blue-600 hover:text-blue-800">
-                                        {{ $booking->email }}
-                                    </a>
-                                </dd>
-                            </div>
-                            <div>
-                                <dt class="text-sm font-medium text-gray-500">Số điện thoại</dt>
-                                <dd class="mt-1 text-base text-gray-900">
-                                    <a href="tel:{{ $booking->sdt }}" class="text-blue-600 hover:text-blue-800">
-                                        {{ $booking->sdt }}
-                                    </a>
-                                </dd>
-                            </div>
-                            <div>
-                                <dt class="text-sm font-medium text-gray-500">CCCD/CMND</dt>
-                                <dd class="mt-1 text-base font-mono text-gray-900">
-                                    @if($booking->cccd)
-                                        {{ $booking->cccd }}
-                                    @else
-                                        <span class="text-yellow-600 italic text-sm">
-                                            <svg class="w-4 h-4 inline" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-                                            </svg>
-                                            Chưa cập nhật
-                                        </span>
-                                    @endif
-                                </dd>
-                            </div>
-                        </dl>
+                    <div class="p-4">
+                        <div class="space-y-3">
+                            <p class="text-sm text-gray-600">Tên khách: <span class="font-medium">{{ $booking->username }}</span></p>
+                            <p class="text-sm text-gray-600">Email: <span class="font-medium">{{ $booking->email }}</span></p>
+                            <p class="text-sm text-gray-600">Số điện thoại: <span class="font-medium">{{ $booking->sdt }}</span></p>
+                            <p class="text-sm text-gray-600">CCCD/CMND: 
+                                @if($booking->cccd)
+                                    <span class="font-medium">{{ $booking->cccd }}</span>
+                                @else
+                                    <span class="text-yellow-600 italic">
+                                        <i class="fas fa-exclamation-triangle text-xs mr-1"></i>
+                                        Chưa cập nhật
+                                    </span>
+                                @endif
+                            </p>
+                        </div>
                     </div>
                 </div>
 
-                {{-- THÔNG TIN HỦY (if cancelled) --}}
-                @if($booking->trang_thai === 'da_huy' && $booking->ly_do_huy)
-                    <div class="bg-red-50 border border-red-200 rounded-lg p-6">
-                        <h3 class="text-lg font-semibold text-red-900 mb-4 flex items-center">
-                            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                            </svg>
-                            Thông tin hủy đặt phòng
-                        </h3>
-                        <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <dt class="text-sm font-medium text-red-700">Ngày hủy</dt>
-                                <dd class="mt-1 text-base text-red-900">{{ $booking->ngay_huy ? date('d/m/Y H:i', strtotime($booking->ngay_huy)) : 'N/A' }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-sm font-medium text-red-700">Lý do</dt>
-                                <dd class="mt-1 text-base text-red-900">
+                <!-- Card Thông tin thanh toán -->
+                <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                    <div class="p-4 border-b border-gray-200">
+                        <h3 class="text-lg font-medium text-gray-900">Thông tin thanh toán</h3>
+                    </div>
+                    <div class="p-4">
+                        <div class="space-y-3">
+                            @php $roomOnly = $booking->tong_tien - ($serviceTotal ?? 0); @endphp
+                            <p class="text-sm text-gray-600">Tổng tiền phòng: <span class="font-medium">{{ number_format($roomOnly, 0, ',', '.') }} VNĐ</span></p>
+                            @if(isset($serviceTotal) && $serviceTotal > 0)
+                                <p class="text-sm text-gray-600">Tổng tiền dịch vụ: <span class="font-medium">{{ number_format($serviceTotal, 0, ',', '.') }} VNĐ</span></p>
+                            @endif
+                            <p class="text-sm text-gray-600">Tổng thanh toán: <span class="font-medium">{{ number_format($booking->tong_tien, 0, ',', '.') }} VNĐ</span></p>
+                            @if($booking->voucher)
+                                <p class="text-sm text-gray-600">Mã voucher: <span class="font-medium text-indigo-600">{{ $booking->voucher->ma_voucher }}</span></p>
+                                <p class="text-sm text-gray-600">Giảm giá: <span class="font-medium">{{ $booking->voucher->giam_gia }}%</span></p>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card thông tin hủy (nếu có) -->
+            @if($booking->trang_thai === 'da_huy')
+                <div class="mt-6">
+                    <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                        <div class="p-4 border-b border-gray-200">
+                            <h3 class="text-lg font-medium text-gray-900">Thông tin hủy đặt phòng</h3>
+                        </div>
+                        <div class="p-4">
+                            <div class="space-y-3">
+                                <p class="text-sm text-gray-600">Ngày hủy: <span class="font-medium">{{ date('d/m/Y H:i', strtotime($booking->ngay_huy)) }}</span></p>
+                                <p class="text-sm text-gray-600">Lý do hủy: <span class="font-medium">
                                     @php
                                         $reasons = [
                                             'thay_doi_lich_trinh' => 'Thay đổi lịch trình',
@@ -532,7 +481,7 @@
                                         ];
                                     @endphp
                                     {{ $reasons[$booking->ly_do_huy] ?? $booking->ly_do_huy }}
-                                </dd>
+                                </span></p>
                             </div>
                         </dl>
 
@@ -748,128 +697,38 @@
                             @endif
                         </div>
                     </div>
-
-                    {{-- TIMELINE --}}
-                    <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-                        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                            <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                                <svg class="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                Lịch sử
-                            </h2>
-                        </div>
-                        <div class="p-6">
-                            <div class="flow-root">
-                                <ul class="-mb-8">
-                                    {{-- Booking Created --}}
-                                    <li>
-                                        <div class="relative pb-8">
-                                            <span class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
-                                            <div class="relative flex space-x-3">
-                                                <div>
-                                                    <span class="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center ring-8 ring-white">
-                                                        <svg class="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
-                                                        </svg>
-                                                    </span>
-                                                </div>
-                                                <div class="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
-                                                    <div>
-                                                        <p class="text-sm text-gray-900 font-medium">Đặt phòng được tạo</p>
-                                                        <p class="text-xs text-gray-500 mt-0.5">Bởi {{ $booking->username }}</p>
-                                                    </div>
-                                                    <div class="text-right text-sm whitespace-nowrap text-gray-500">
-                                                        <time>{{ date('d/m/Y H:i', strtotime($booking->ngay_dat)) }}</time>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </li>
-
-                                    {{-- Status Changes --}}
-                                    @if($booking->trang_thai === 'da_xac_nhan')
-                                        <li>
-                                            <div class="relative pb-8">
-                                                <span class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
-                                                <div class="relative flex space-x-3">
-                                                    <div>
-                                                        <span class="h-8 w-8 rounded-full bg-green-500 flex items-center justify-center ring-8 ring-white">
-                                                            <svg class="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                                                            </svg>
-                                                        </span>
-                                                    </div>
-                                                    <div class="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
-                                                        <div>
-                                                            <p class="text-sm text-gray-900 font-medium">Đã xác nhận</p>
-                                                            <p class="text-xs text-gray-500 mt-0.5">Booking đã được xác nhận</p>
-                                                        </div>
-                                                        <div class="text-right text-sm whitespace-nowrap text-gray-500">
-                                                            <time>{{ $booking->updated_at ? date('d/m/Y H:i', strtotime($booking->updated_at)) : 'N/A' }}</time>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </li>
-                                    @endif
-
-                                    @if($booking->trang_thai === 'da_huy')
-                                        <li>
-                                            <div class="relative pb-8">
-                                                <div class="relative flex space-x-3">
-                                                    <div>
-                                                        <span class="h-8 w-8 rounded-full bg-red-500 flex items-center justify-center ring-8 ring-white">
-                                                            <svg class="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                                                            </svg>
-                                                        </span>
-                                                    </div>
-                                                    <div class="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
-                                                        <div>
-                                                            <p class="text-sm text-gray-900 font-medium">Đã hủy</p>
-                                                            <p class="text-xs text-gray-500 mt-0.5">{{ $booking->ly_do_huy ?? 'Không có lý do' }}</p>
-                                                        </div>
-                                                        <div class="text-right text-sm whitespace-nowrap text-gray-500">
-                                                            <time>{{ $booking->ngay_huy ? date('d/m/Y H:i', strtotime($booking->ngay_huy)) : 'N/A' }}</time>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </li>
-                                    @endif
-
-                                    @if($booking->trang_thai === 'da_tra')
-                                        <li>
-                                            <div class="relative pb-8">
-                                                <div class="relative flex space-x-3">
-                                                    <div>
-                                                        <span class="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center ring-8 ring-white">
-                                                            <svg class="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                                                <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
-                                                            </svg>
-                                                        </span>
-                                                    </div>
-                                                    <div class="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
-                                                        <div>
-                                                            <p class="text-sm text-gray-900 font-medium">Đã trả phòng</p>
-                                                            <p class="text-xs text-gray-500 mt-0.5">Khách đã check-out</p>
-                                                        </div>
-                                                        <div class="text-right text-sm whitespace-nowrap text-gray-500">
-                                                            <time>{{ $booking->updated_at ? date('d/m/Y H:i', strtotime($booking->updated_at)) : 'N/A' }}</time>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </li>
-                                    @endif
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
                 </div>
+            @endif
+
+            <!-- Nút thao tác -->
+            <div class="mt-6 flex justify-between">
+                <a href="{{ route('admin.dat_phong.index') }}" 
+                    class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Quay lại
+                </a>
+                @if($booking->trang_thai === 'cho_xac_nhan')
+                    <div class="space-x-3">
+                        <a href="{{ route('admin.dat_phong.edit', $booking->id) }}"
+                            class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            Sửa thông tin
+                        </a>
+                        <a href="{{ route('admin.dat_phong.cancel', $booking->id) }}"
+                            class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            Hủy đặt phòng
+                        </a>
+                    </div>
+                @endif
             </div>
         </div>
     </div>
-</div>
 @endsection
+

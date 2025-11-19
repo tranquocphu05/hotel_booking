@@ -101,5 +101,4 @@ class BookingServiceController extends Controller
 
         return response()->json(['message' => 'Xóa dịch vụ thành công']);
     }
-
 }

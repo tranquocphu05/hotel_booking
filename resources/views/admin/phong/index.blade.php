@@ -125,7 +125,7 @@
                                 <i class="fas fa-eye"></i>
                             </a>
                             <a href="{{ route('admin.phong.edit', $phong->id) }}" 
-                               class="text-amber-600 hover:text-amber-700 flex items-center gap-1 transition text-xs"
+                               class="text-yellow-500 hover:text-yellow-600 flex items-center gap-1 transition text-xs"
                                title="Sửa">
                                 <i class="fas fa-edit"></i>
                             </a>

@@ -61,13 +61,7 @@ class AutoCancelExpiredBookings
                         // Tính thời gian chính xác từ lúc đặt đến lúc hủy
                         $bookingAge = Carbon::now()->diffInSeconds($booking->ngay_dat);
 
-                        // Xóa invoice chưa thanh toán
-                        if ($booking->invoice && $booking->invoice->trang_thai === 'cho_thanh_toan') {
-                            $booking->invoice->delete();
-                            Log::info("Đã xóa invoice #{$booking->invoice->id} của booking #{$booking->id}");
-                        }
-
-                        // Cập nhật trạng thái booking
+                        // Cập nhật trạng thái
                         $booking->trang_thai = 'da_huy';
                         $booking->ly_do_huy = 'Tự động hủy do không thanh toán sau 5 phút';
                         $booking->ngay_huy = now();
@@ -75,18 +69,34 @@ class AutoCancelExpiredBookings
 
                         Log::info("Đã tự động hủy booking #{$booking->id} - Đặt lúc: {$booking->ngay_dat}, Hủy lúc: " . now() . ", Thời gian: {$bookingAge} giây");
 
-                        // Giải phóng phòng qua pivot table
+                        // Giải phóng phòng qua phong_id (legacy)
+                        if ($booking->phong_id && $booking->phong) {
+                            $hasOtherBooking = DatPhong::where('id', '!=', $booking->id)
+                                ->where(function($q) use ($booking) {
+                                    $q->where('phong_id', $booking->phong_id)
+                                      ->orWhereContainsPhongId($booking->phong_id);
+                                })
+                                ->where(function($q) use ($booking) {
+                                    $q->where('ngay_tra', '>', $booking->ngay_nhan)
+                                      ->where('ngay_nhan', '<', $booking->ngay_tra);
+                                })
+                                ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
+                                ->exists();
+
+                            if (!$hasOtherBooking) {
+                                $booking->phong->update(['trang_thai' => 'trong']);
+                            }
+                        }
+
+                        // Giải phóng phòng qua phong_ids JSON
                         $phongIds = $booking->getPhongIds();
                         foreach ($phongIds as $phongId) {
                             $phong = Phong::find($phongId);
                             if ($phong) {
-                                // Check both phong_id (legacy) and pivot table
                                 $hasOtherBooking = DatPhong::where('id', '!=', $booking->id)
                                     ->where(function($q) use ($phongId) {
                                         $q->where('phong_id', $phongId)
-                                          ->orWhereHas('assignedRooms', function($query) use ($phongId) {
-                                              $query->where('phong_id', $phongId);
-                                          });
+                                          ->orWhereContainsPhongId($phongId);
                                     })
                                     ->where(function($q) use ($booking) {
                                         $q->where('ngay_tra', '>', $booking->ngay_nhan)
@@ -101,12 +111,9 @@ class AutoCancelExpiredBookings
                             }
                         }
 
-                        // Clear phong_id (legacy)
-                        $booking->phong_id = null;
+                        // Xóa phong_ids
+                        $booking->phong_ids = [];
                         $booking->save();
-
-                        // Clear assigned rooms from pivot table
-                        $booking->assignedRooms()->detach();
 
                         // Hoàn trả voucher
                         if ($booking->voucher_id) {

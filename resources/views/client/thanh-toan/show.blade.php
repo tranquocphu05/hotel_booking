@@ -153,6 +153,11 @@
                                                         <div class="text-sm text-gray-600 mt-1">
                                                             Giá: {{ number_format($roomType['gia_rieng'] ?? 0, 0, ',', '.') }} VNĐ
                                                         </div>
+                                                        @if(isset($surchargeMap[$roomType['loai_phong_id']]) && $surchargeMap[$roomType['loai_phong_id']] > 0)
+                                                            <div class="mt-1 text-sm text-amber-700">
+                                                                Phụ phí: +{{ number_format($surchargeMap[$roomType['loai_phong_id']], 0, ',', '.') }} VNĐ
+                                                            </div>
+                                                        @endif
                                                     </div>
                                                 @endif
                                             @endforeach
@@ -319,6 +324,8 @@
                                                 $soLuong = $roomType['so_luong'] ?? 1;
                                                 $unitPrice = $loaiPhong ? ($loaiPhong->gia_khuyen_mai ?? $loaiPhong->gia_co_ban ?? 0) : 0;
                                                 $giaRieng = $unitPrice * ($nights ?? 1) * $soLuong; // subtotal computed from promotional price
+                                                $roomSurcharge = isset($surchargeMap[$roomType['loai_phong_id']]) ? $surchargeMap[$roomType['loai_phong_id']] : 0;
+                                                $displaySubtotal = $giaRieng + $roomSurcharge; // giá hiển thị đã bao gồm phụ phí
                                             @endphp
                                             @if($loaiPhong)
                                                 <div class="flex justify-between items-center bg-white/60 rounded-lg px-4 py-3">
@@ -331,15 +338,15 @@
                                                             ({{ $nights }} đêm)
                                                         @endif
                                                     </span>
-                                                    <span class="font-semibold text-gray-900 text-base">{{ number_format($giaRieng, 0, ',', '.') }} VNĐ</span>
+                                                    <span class="font-semibold text-gray-900 text-base">{{ number_format($displaySubtotal, 0, ',', '.') }} VNĐ</span>
                                                 </div>
-                                                @if(isset($surchargeMap[$roomType['loai_phong_id']]) && $surchargeMap[$roomType['loai_phong_id']] > 0)
+                                                @if($roomSurcharge > 0)
                                                     <div class="flex justify-between items-center bg-amber-50 rounded-md px-3 py-2 border border-amber-200 mt-1">
                                                         <span class="text-amber-800 font-medium text-xs flex items-center">
                                                             <i class="fas fa-user-plus text-amber-600 mr-2 text-sm"></i>
                                                             Phụ phí thêm khách ({{ $loaiPhong->ten_loai }})
                                                         </span>
-                                                        <span class="font-semibold text-amber-700 text-sm">+{{ number_format($surchargeMap[$roomType['loai_phong_id']], 0, ',', '.') }} VNĐ</span>
+                                                        <span class="font-semibold text-amber-700 text-sm">+{{ number_format($roomSurcharge, 0, ',', '.') }} VNĐ</span>
                                                     </div>
                                                 @endif
                                             @endif
@@ -354,6 +361,8 @@
                                         $lp = $datPhong->loaiPhong;
                                         $unit = $lp ? ($lp->gia_khuyen_mai ?? $lp->gia_co_ban ?? 0) : 0;
                                         $displayPrice = $unit * ($nights ?? 1) * ($soLuongPhong ?? 1);
+                                        $roomSurcharge = isset($surchargeAmount) ? $surchargeAmount : 0;
+                                        $displayPriceWithSurcharge = $displayPrice + $roomSurcharge; // giá hiển thị đã bao gồm phụ phí
                                     @endphp
                                     <div class="flex justify-between items-center bg-white/60 rounded-lg px-4 py-3">
                                         <span class="text-gray-700 font-medium">
@@ -365,17 +374,8 @@
                                                 ({{ $nights }} đêm)
                                             @endif
                                         </span>
-                                        <span class="font-semibold text-gray-900 text-base">{{ number_format($displayPrice, 0, ',', '.') }} VNĐ</span>
+                                        <span class="font-semibold text-gray-900 text-base">{{ number_format($displayPriceWithSurcharge, 0, ',', '.') }} VNĐ</span>
                                     </div>
-                                    @if(isset($surchargeAmount) && $surchargeAmount > 0)
-                                        <div class="flex justify-between items-center bg-amber-50 rounded-md px-3 py-2 border border-amber-200 mt-1">
-                                            <span class="text-amber-800 font-medium text-xs flex items-center">
-                                                <i class="fas fa-user-plus text-amber-600 mr-2 text-sm"></i>
-                                                Phụ phí thêm khách
-                                            </span>
-                                            <span class="font-semibold text-amber-700 text-sm">+{{ number_format($surchargeAmount, 0, ',', '.') }} VNĐ</span>
-                                        </div>
-                                    @endif
                                     <p class="text-[11px] text-gray-600 mt-1 ml-1">Giá phòng đã bao gồm phụ phí.</p>
                                 @endif
 
@@ -517,7 +517,7 @@
                                 </div>
                             @endif
                         </div>
-
+      
                             <!-- Simple Policy Text -->
                             <div class="mt-6 space-y-2 text-sm text-gray-700">
                                 <p><strong>Hủy:</strong> Nếu hủy, thay đổi hoặc không đến, khách sẽ trả toàn bộ giá trị tiền đặt phòng.</p>
