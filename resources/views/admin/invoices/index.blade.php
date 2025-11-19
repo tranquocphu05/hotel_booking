@@ -199,7 +199,7 @@
                 </a>
                 @if($inv->trang_thai === 'cho_thanh_toan')
                   <a href="{{ route('admin.invoices.edit', $inv->id) }}" 
-                     class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-amber-100 text-amber-600 hover:bg-amber-200 transition-colors"
+                     class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-yellow-100 text-yellow-600 hover:bg-yellow-200 transition-colors"
                      title="Chỉnh sửa">
                     <i class="fas fa-edit text-sm"></i>
                   </a>

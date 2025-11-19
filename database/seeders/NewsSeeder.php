@@ -218,7 +218,14 @@ Những công nghệ này giúp chúng tôi cung cấp dịch vụ nhanh chóng,
         ];
 
         foreach ($newsData as $data) {
-            News::create($data);
+            // Tạo slug từ tiêu đề để tránh lỗi trùng unique
+            $slug = \Str::slug($data['tieu_de']);
+            $payload = array_merge($data, ['slug' => $slug]);
+
+            News::updateOrCreate(
+                ['slug' => $slug],
+                $payload
+            );
         }
     }
 }

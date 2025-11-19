@@ -9,7 +9,7 @@
                 <h2 class="text-2xl font-semibold text-gray-800">Danh sách đặt phòng của bạn</h2>
                 {{-- Nút để tạo đặt phòng mới --}}
                 <a href="{{ route('admin.dat_phong.create') }}"
-                    class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center transition">
+                    class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center transition">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -147,7 +147,7 @@
                         <h3 class="text-lg font-medium text-gray-900 mb-2">Chưa có đặt phòng nào</h3>
                         <p class="text-gray-500 mb-4">Hãy tạo một đặt phòng mới để bắt đầu quản lý.</p>
                         <a href="{{ route('admin.dat_phong.create') }}"
-                            class="inline-flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition">
+                            class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -269,7 +269,7 @@
                                         <td class="px-6 py-4 text-center whitespace-nowrap">
                                             <div class="flex items-center justify-center space-x-2">
                                                 <a href="{{ route('admin.dat_phong.show', $booking->id) }}" title="Xem chi tiết"
-                                                    class="text-gray-500 hover:text-blue-600 transition">
+                                                    class="text-blue-600 hover:text-blue-700 transition">
                                                     <i class="fas fa-eye"></i>
                                                 </a>
                                                 
