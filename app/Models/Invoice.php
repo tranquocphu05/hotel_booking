@@ -35,16 +35,6 @@ class Invoice extends Model
         'con_lai' => 'decimal:2',
     ];
 
-    public function isPrepaid(): bool
-    {
-        return ($this->invoice_type ?? '') === 'PREPAID';
-    }
-
-    public function isExtra(): bool
-    {
-        return ($this->invoice_type ?? '') === 'EXTRA';
-    }
-
     public function datPhong()
     {
         return $this->belongsTo(DatPhong::class, 'dat_phong_id');
