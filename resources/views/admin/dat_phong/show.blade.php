@@ -37,8 +37,7 @@
                 </span>
             </div>
 
-<<<<<<< HEAD
-        {{-- CHÍNH SÁCH HỦY PHÒNG (CHỈ HIỂN THỊ KHI ĐÃ XÁC NHẬN) --}}
+       
         @if($booking->trang_thai === 'da_xac_nhan' && isset($cancellationPolicy))
             <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 rounded-lg shadow-sm overflow-hidden">
                 <div class="p-6">
@@ -175,10 +174,6 @@
             <div class="lg:col-span-8 space-y-6">
 
                 {{-- THÔNG TIN PHÒNG --}}
-=======
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <!-- Card Thông tin phòng -->
->>>>>>> f1858d0fc0a6aeab6ad720d431df0c46c45d345c
                 <div class="bg-white rounded-lg shadow-sm overflow-hidden">
                     <div class="p-4 border-b border-gray-200">
                         <h3 class="text-lg font-medium text-gray-900">Thông tin phòng</h3>
@@ -262,6 +257,12 @@
                                 </div>
                             </div>
                         @endif
+
+                            @php
+                                $assignedPhongs = $booking->getAssignedPhongs();
+                                $assignedCount = $assignedPhongs->count();
+                                $remainingCount = max(0, ($booking->so_luong_da_dat ?? 0) - $assignedCount);
+                            @endphp
 
                             @if($assignedCount > 0)
                                 <div class="mt-2">
@@ -694,7 +695,6 @@
                                         </button>
                                     </form>
                                 @endif
-                            @endif
                         </div>
                     </div>
                 </div>

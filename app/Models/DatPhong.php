@@ -30,8 +30,8 @@ class DatPhong extends Model
     protected $fillable = [
         'nguoi_dung_id',
         'loai_phong_id',  // Book by room type (primary/legacy support)
-        'room_types',  // JSON array of room types: [{"loai_phong_id": 1, "so_luong": 2, "gia_rieng": 1000000}, ...]
-        'phong_ids',  // JSON array of assigned room IDs: [1, 2, 3]
+        // 'room_types',  // DEPRECATED - now using booking_room_types pivot table
+        // 'phong_ids',  // DEPRECATED - now using booking_rooms pivot table
         'so_luong_da_dat',  // Number of rooms booked in this booking
         'phong_id',  // Specific room assigned (nullable, legacy support)
         'ngay_dat',
@@ -43,6 +43,7 @@ class DatPhong extends Model
         'voucher_id',
         'ly_do_huy',
         'ngay_huy',
+        'ghi_chu_hoan_tien',
         'username',
         'email',
         'sdt',
