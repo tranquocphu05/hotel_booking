@@ -139,6 +139,17 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin
         Route::put('/{id}/confirm', [DatPhongController::class, 'quickConfirm'])->name('confirm');
         // Mark as paid
         Route::put('/{id}/mark-paid', [DatPhongController::class, 'markPaid'])->name('mark_paid');
+        // Check-in/Check-out
+        Route::post('/{id}/checkin', [DatPhongController::class, 'checkin'])->name('checkin');
+        Route::post('/{id}/checkout', [DatPhongController::class, 'checkout'])->name('checkout');
+    });
+
+    // Booking Services routes
+    Route::prefix('booking-services')->name('booking_services.')->group(function () {
+        Route::get('/{datPhongId}', [\App\Http\Controllers\Admin\BookingServiceController::class, 'index'])->name('index');
+        Route::post('/', [\App\Http\Controllers\Admin\BookingServiceController::class, 'store'])->name('store');
+        Route::put('/{id}', [\App\Http\Controllers\Admin\BookingServiceController::class, 'update'])->name('update');
+        Route::delete('/{id}', [\App\Http\Controllers\Admin\BookingServiceController::class, 'destroy'])->name('destroy');
     });
 });
 

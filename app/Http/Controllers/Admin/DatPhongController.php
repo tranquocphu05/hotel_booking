@@ -183,9 +183,16 @@ class DatPhongController extends Controller
             })->values();
         }
 
-    $bookingServices = BookingService::with('service')->where('dat_phong_id', $id)->get();
+        // Tính chính sách hủy nếu booking đã xác nhận
+        $cancellationPolicy = null;
+        if ($booking->trang_thai === 'da_xac_nhan') {
+            $cancellationPolicy = $this->calculateCancellationPolicy($booking);
+        }
 
-    return view('admin.dat_phong.show', compact('booking', 'availableRooms', 'bookingServices'));
+        // Lấy danh sách dịch vụ đang hoạt động
+        $services = \App\Models\Service::where('status', 'hoat_dong')->get();
+
+        return view('admin.dat_phong.show', compact('booking', 'availableRooms', 'cancellationPolicy', 'services'));
     }
 
     public function edit($id)
@@ -224,8 +231,63 @@ class DatPhongController extends Controller
             })->values();
         }
 
-    $services = Service::where('status', 'hoat_dong')->get();
-    $bookingServices = BookingService::with('service')->where('dat_phong_id', $id)->get();
+        // Lấy danh sách dịch vụ đang hoạt động
+        $services = \App\Models\Service::where('status', 'hoat_dong')->get();
+        
+        // Lấy dịch vụ đã sử dụng của booking này
+        $bookingServices = \App\Models\BookingService::with('service')
+            ->where('dat_phong_id', $booking->id)
+            ->get();
+        
+        return view('admin.dat_phong.edit', compact('booking', 'loaiPhongs', 'availableRooms', 'services', 'bookingServices'));
+    }
+
+    /**
+     * Tính toán chính sách hủy phòng
+     */
+    private function calculateCancellationPolicy($booking)
+    {
+        $now = Carbon::now();
+        $checkinDate = Carbon::parse($booking->ngay_nhan);
+        $daysUntilCheckin = $now->diffInDays($checkinDate, false);
+        
+        $policy = [
+            'can_cancel' => true,
+            'refund_percentage' => 0,
+            'refund_amount' => 0,
+            'penalty_amount' => 0,
+            'message' => '',
+            'days_until_checkin' => $daysUntilCheckin,
+        ];
+
+        // Nếu đã quá ngày nhận phòng, không cho hủy (khách đã check-in)
+        if ($daysUntilCheckin < 0) {
+            $policy['can_cancel'] = false;
+            $policy['refund_percentage'] = 0;
+            $policy['refund_amount'] = 0;
+            $policy['penalty_amount'] = $booking->tong_tien;
+            $policy['message'] = 'Không thể hủy sau ngày nhận phòng (khách đã check-in)';
+            return $policy;
+        }
+
+        // Chính sách hoàn tiền theo số ngày trước khi nhận phòng
+        if ($daysUntilCheckin >= 7) {
+            // Hủy trước 7 ngày: Hoàn 100%
+            $policy['refund_percentage'] = 100;
+            $policy['message'] = 'Hoàn 100% tiền đã thanh toán';
+        } elseif ($daysUntilCheckin >= 3) {
+            // Hủy trước 3-6 ngày: Hoàn 50%
+            $policy['refund_percentage'] = 50;
+            $policy['message'] = 'Hoàn 50% tiền đã thanh toán (phí hủy 50%)';
+        } elseif ($daysUntilCheckin >= 1) {
+            // Hủy trước 1-2 ngày: Hoàn 25%
+            $policy['refund_percentage'] = 25;
+            $policy['message'] = 'Hoàn 25% tiền đã thanh toán (phí hủy 75%)';
+        } else {
+            // Hủy trong ngày: Không hoàn tiền
+            $policy['refund_percentage'] = 0;
+            $policy['message'] = 'Không hoàn tiền (hủy quá gần ngày nhận phòng)';
+        }
 
     return view('admin.dat_phong.edit', compact('booking', 'loaiPhongs', 'availableRooms', 'services', 'bookingServices'));
     }
@@ -877,7 +939,7 @@ class DatPhongController extends Controller
         $finalPrice = $finalPrice + $totalServicePrice;
 
     // Create single booking within transaction to ensure atomicity
-    $booking = DB::transaction(function () use ($roomDetails, $priceRatio, $request, $voucherId, $finalPrice, $totalSoLuong, $firstLoaiPhongId, $roomTypesArray, $servicesData) {
+    $booking = DB::transaction(function () use ($roomDetails, $priceRatio, $request, $voucherId, $finalPrice, $totalPrice, $totalSoLuong, $firstLoaiPhongId, $roomTypesArray) {
             // Validate availability for all room types first
             foreach ($roomDetails as $roomDetail) {
                 // Lock and re-check availability inside transaction to prevent race conditions
@@ -973,35 +1035,17 @@ class DatPhongController extends Controller
                 $booking->update(['phong_id' => $allPhongIds[0]]);
             }
 
-            // Lưu các dịch vụ (nếu có) làm booking services
-            // Mỗi entry (ngày) = 1 BookingService record
-            if (is_array($servicesData) && !empty($servicesData)) {
-                foreach ($servicesData as $svcId => $svcRow) {
-                    $service = Service::find($svcId);
-                    if (!$service) continue;
-                    
-                    // Lấy các entries (mỗi ngày)
-                    $entries = isset($svcRow['entries']) && is_array($svcRow['entries']) ? $svcRow['entries'] : [];
-                    foreach ($entries as $entry) {
-                        $ngay = isset($entry['ngay']) ? $entry['ngay'] : '';
-                        $qty = isset($entry['so_luong']) ? intval($entry['so_luong']) : 0;
-                        if (!$ngay || $qty <= 0) continue;
-
-                        \App\Models\BookingService::create([
-                            'dat_phong_id' => $booking->id,
-                            'service_id' => $service->id,
-                            'quantity' => $qty,
-                            'unit_price' => $service->price,
-                            'used_at' => $ngay,
-                        ]);
-                    }
-                }
-            }
-
-            // Automatically create invoice with status "cho_thanh_toan" (waiting for payment)
+            // Tạo invoice ngay với trạng thái chờ thanh toán
+            // Tính breakdown: tien_phong, giam_gia
+            $tienPhong = $totalPrice; // Giá gốc trước voucher
+            $giamGia = $totalPrice - $finalPrice; // Số tiền giảm từ voucher
+            
             \App\Models\Invoice::create([
                 'dat_phong_id' => $booking->id,
-                'tong_tien' => $booking->tong_tien,
+                'tien_phong' => $tienPhong,
+                'tien_dich_vu' => 0, // Chưa có dịch vụ khi mới tạo
+                'giam_gia' => $giamGia,
+                'tong_tien' => $finalPrice,
                 'trang_thai' => 'cho_thanh_toan',
                 'phuong_thuc' => null,
             ]);
@@ -1169,6 +1213,10 @@ class DatPhongController extends Controller
         // Create invoice if missing
         $invoice = $booking->invoice;
         if (!$invoice) {
+            // Tính lại breakdown trước khi tạo invoice
+            \App\Services\BookingPriceCalculator::recalcTotal($booking);
+            $booking = $booking->fresh(); // Reload
+            
             $invoice = \App\Models\Invoice::create([
                 'dat_phong_id' => $booking->id,
                 'tong_tien' => $booking->tong_tien,
@@ -1212,6 +1260,163 @@ class DatPhongController extends Controller
 
         return redirect()->route('admin.dat_phong.index')
             ->with('success', 'Đã đánh dấu thanh toán và đồng bộ hóa đơn thành công.');
+    }
+
+    /**
+     * Check-in booking
+     */
+    public function checkin(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'ghi_chu_checkin' => 'nullable|string|max:500',
+        ], [
+            'ghi_chu_checkin.max' => 'Ghi chú không được vượt quá 500 ký tự',
+        ]);
+
+        try {
+            DB::transaction(function () use ($id, $validated) {
+                $booking = DatPhong::lockForUpdate()->findOrFail($id);
+
+                // Validate
+                if (!$booking->canCheckin()) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'error' => 'Không thể check-in booking này. Booking phải đã thanh toán và chưa check-in.'
+                    ]);
+                }
+
+                // Update booking
+                $booking->update([
+                    'thoi_gian_checkin' => now(),
+                    'nguoi_checkin' => Auth::user()->ho_ten,
+                    'ghi_chu_checkin' => $validated['ghi_chu_checkin'] ?? null,
+                ]);
+
+                // Update room status to 'dang_thue'
+                foreach ($booking->getAssignedPhongs() as $phong) {
+                    $phong->update(['trang_thai' => 'dang_thue']);
+                }
+
+                Log::info('Booking checked in', [
+                    'booking_id' => $booking->id,
+                    'staff' => Auth::user()->ho_ten,
+                ]);
+            });
+
+            return redirect()->back()->with('success', 'Check-in thành công');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->back()->withErrors($e->errors());
+        } catch (\Exception $e) {
+            Log::error('Check-in failed: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Có lỗi xảy ra khi check-in. Vui lòng thử lại.');
+        }
+    }
+
+    /**
+     * Check-out booking
+     */
+    public function checkout(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'phi_phat_sinh' => 'nullable|numeric|min:0',
+            'ly_do_phi' => 'nullable|string|max:500',
+            'ghi_chu_checkout' => 'nullable|string|max:500',
+        ], [
+            'phi_phat_sinh.numeric' => 'Phụ phí phải là số',
+            'phi_phat_sinh.min' => 'Phụ phí không được âm',
+            'ly_do_phi.max' => 'Lý do không được vượt quá 500 ký tự',
+            'ghi_chu_checkout.max' => 'Ghi chú không được vượt quá 500 ký tự',
+        ]);
+
+        try {
+            DB::transaction(function () use ($id, $validated) {
+                $booking = DatPhong::lockForUpdate()->findOrFail($id);
+
+                // Validate
+                if (!$booking->canCheckout()) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'error' => 'Không thể check-out. Booking phải đã check-in và chưa check-out.'
+                    ]);
+                }
+
+                // Calculate late checkout fee
+                $phiCheckoutMuon = 0;
+                $checkoutTime = now();
+                $expectedCheckout = Carbon::parse($booking->ngay_tra)->setTime(12, 0);
+
+                if ($checkoutTime->gt($expectedCheckout)) {
+                    $hoursLate = $checkoutTime->diffInHours($expectedCheckout);
+                    if ($hoursLate <= 6) { // Before 18:00
+                        $phiCheckoutMuon = $booking->tong_tien * 0.5;
+                    } else { // After 18:00
+                        $phiCheckoutMuon = $booking->tong_tien;
+                    }
+                }
+
+                $tongPhiPhatSinh = ($validated['phi_phat_sinh'] ?? 0) + $phiCheckoutMuon;
+
+                // Build checkout note
+                $ghiChuCheckout = $validated['ghi_chu_checkout'] ?? '';
+                if ($phiCheckoutMuon > 0) {
+                    $ghiChuCheckout .= "\nPhí check-out muộn: " . number_format($phiCheckoutMuon) . "đ";
+                }
+                if (!empty($validated['ly_do_phi'])) {
+                    $ghiChuCheckout .= "\nLý do phụ phí: " . $validated['ly_do_phi'];
+                }
+
+                // Update booking
+                $booking->update([
+                    'thoi_gian_checkout' => $checkoutTime,
+                    'nguoi_checkout' => Auth::user()->ho_ten,
+                    'phi_phat_sinh' => $tongPhiPhatSinh,
+                    'ghi_chu_checkout' => trim($ghiChuCheckout),
+                    'trang_thai' => 'da_tra',
+                ]);
+
+                // Update invoice
+                if ($booking->invoice) {
+                    $tongMoi = $booking->invoice->tien_phong 
+                        + $booking->invoice->tien_dich_vu 
+                        + $tongPhiPhatSinh 
+                        - $booking->invoice->giam_gia;
+
+                    $booking->invoice->update([
+                        'phi_phat_sinh' => $tongPhiPhatSinh,
+                        'tong_tien' => $tongMoi,
+                        'con_lai' => $tongMoi - $booking->invoice->da_thanh_toan,
+                    ]);
+
+                    // Create payment record for additional fees if any
+                    if ($tongPhiPhatSinh > 0) {
+                        ThanhToan::create([
+                            'hoa_don_id' => $booking->invoice->id,
+                            'loai' => 'phi_phat_sinh',
+                            'so_tien' => $tongPhiPhatSinh,
+                            'ngay_thanh_toan' => now(),
+                            'trang_thai' => 'pending',
+                            'ghi_chu' => 'Phụ phí phát sinh khi check-out',
+                        ]);
+                    }
+                }
+
+                // Update room status to 'dang_don'
+                foreach ($booking->getAssignedPhongs() as $phong) {
+                    $phong->update(['trang_thai' => 'dang_don']);
+                }
+
+                Log::info('Booking checked out', [
+                    'booking_id' => $booking->id,
+                    'staff' => Auth::user()->ho_ten,
+                    'phi_phat_sinh' => $tongPhiPhatSinh,
+                ]);
+            });
+
+            return redirect()->back()->with('success', 'Check-out thành công');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->back()->withErrors($e->errors());
+        } catch (\Exception $e) {
+            Log::error('Check-out failed: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Có lỗi xảy ra khi check-out. Vui lòng thử lại.');
+        }
     }
 }
 

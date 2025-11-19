@@ -406,13 +406,21 @@ class BookingController extends Controller
 
             // Cập nhật phong_id (legacy support) nếu chỉ có 1 phòng
             if (count($allPhongIds) == 1) {
-                $booking->update(['phong_id' => $allPhongIds[0]]);
+                $booking->phong_id = $allPhongIds[0];
+                $booking->save();
             }
 
-            // Automatically create invoice with status "cho_thanh_toan" (waiting for payment)
+            // Tạo invoice ngay với trạng thái chờ thanh toán
+            // Tính breakdown: tien_phong, giam_gia
+            $tienPhong = $totalPrice; // Giá gốc trước voucher
+            $giamGia = $totalPrice - $finalPrice; // Số tiền giảm từ voucher
+            
             Invoice::create([
                 'dat_phong_id' => $booking->id,
-                'tong_tien' => $booking->tong_tien,
+                'tien_phong' => $tienPhong,
+                'tien_dich_vu' => 0, // Chưa có dịch vụ khi mới tạo
+                'giam_gia' => $giamGia,
+                'tong_tien' => $finalPrice,
                 'trang_thai' => 'cho_thanh_toan',
                 'phuong_thuc' => null, // Will be set when user chooses payment method
             ]);

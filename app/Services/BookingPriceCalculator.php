@@ -44,25 +44,41 @@ class BookingPriceCalculator
             $tongTienPhong += $soLuong * $unit * $soDem;
         }
 
-        // 4️⃣ Nếu có voucher thì tính giảm giá
+        // 4️⃣ Nếu có voucher thì tính giảm giá (CHỈ áp dụng cho tiền phòng)
         $giamGia = 0;
         if ($booking->voucher_id && $booking->voucher) {
             $voucher = $booking->voucher;
-            if ($voucher->kieu === 'phan_tram') {
-                $giamGia = ($tongTienPhong + $totalServices) * ($voucher->gia_tri / 100);
-            } elseif ($voucher->kieu === 'tien_mat') {
-                $giamGia = min($voucher->gia_tri, $tongTienPhong + $totalServices);
+            if ($voucher->gia_tri) {
+                // Voucher chỉ áp dụng cho tiền phòng (không giảm giá dịch vụ)
+                $giamGia = round($tongTienPhong * ($voucher->gia_tri / 100), 0);
             }
         }
 
-        // 5️⃣ Tổng cuối cùng (không âm)
-        $tongCong = max(0, $tongTienPhong + $totalServices - $giamGia);
+        // 5️⃣ Lấy phụ phí phát sinh (nếu có)
+        $phiPhatSinh = $booking->phi_phat_sinh ?? 0;
 
-        // 6️⃣ Cập nhật lại dữ liệu
+        // 6️⃣ Tổng cuối cùng: (Tiền phòng - Giảm giá) + Tiền dịch vụ + Phụ phí
+        $tongCong = max(0, $tongTienPhong - $giamGia + $totalServices + $phiPhatSinh);
+
+        // 7️⃣ Cập nhật booking
         $booking->update([
-            'tien_phong' => $tongTienPhong,
-            'tong_tien_dich_vu' => $totalServices,
             'tong_tien' => $tongCong,
         ]);
+
+        // 8️⃣ Cập nhật invoice nếu có
+        if ($booking->invoice) {
+            // Tính số tiền còn lại = Tổng tiền - Đã thanh toán
+            $daThanhtoan = $booking->invoice->da_thanh_toan ?? 0;
+            $conLai = max(0, $tongCong - $daThanhtoan);
+
+            $booking->invoice->update([
+                'tien_phong' => $tongTienPhong,
+                'tien_dich_vu' => $totalServices,
+                'phi_phat_sinh' => $phiPhatSinh,
+                'giam_gia' => $giamGia,
+                'tong_tien' => $tongCong,
+                'con_lai' => $conLai,
+            ]);
+        }
     }
 }
