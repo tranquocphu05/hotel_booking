@@ -22,7 +22,7 @@ class ThanhToanController extends Controller
         }
 
         // Eager load relationships for efficiency
-        $datPhong->load('voucher', 'loaiPhong', 'user', 'phong', 'assignedRooms', 'roomTypes');
+        $datPhong->load('voucher', 'loaiPhong', 'user', 'phong', 'services');
         
         // Get available rooms for assignment if needed
         $availableRooms = null;
