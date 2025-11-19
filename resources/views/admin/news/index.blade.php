@@ -11,7 +11,7 @@
             <p class="text-gray-600">Quản lý các bài viết tin tức của khách sạn</p>
         </div>
         <a href="{{ route('admin.news.create') }}" 
-           class="btn-primary btn-animate inline-flex items-center px-4 py-2 rounded-md">
+           class="inline-flex items-center px-4 py-2 rounded-md bg-green-600 hover:bg-green-700 text-white shadow-sm transition">
             <i class="fas fa-plus mr-2"></i>
             Thêm tin tức mới
         </a>

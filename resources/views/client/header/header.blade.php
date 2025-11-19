@@ -15,7 +15,7 @@
     </div>
     <div class="absolute inset-0 bg-black/60 z-10"></div>
 
-    <div class="w-full max-w-screen-xl mx-auto flex flex-col items-center justify-center relative z-10 pt-24 md:pt-32">
+    <div class="w-full max-w-screen-xl mx-auto flex flex-col items-center justify-center relative z-10 pt-36 md:pt-44 pb-4">
 
         {{-- Khối Nội dung Chính --}}
         <div class="text-white z-10 text-center max-w-4xl drop-shadow-[0_4px_20px_rgba(0,0,0,0.55)]">
@@ -28,17 +28,10 @@
                 OZIA Khách Sạn Sang Trọng
             </h1>
 
-            <p class="text-lg md:text-xl mb-10 mx-auto font-light text-gray-100 max-w-3xl">
+            <p class="text-lg md:text-xl mb-6 mx-auto font-light text-gray-100 max-w-3xl">
                 Trải nghiệm sự xa hoa tột đỉnh. Chúng tôi cam kết mang đến dịch vụ 5 sao cá nhân hóa,
                 nơi mọi chi tiết đều được chạm khắc bằng vàng.
             </p>
-
-            <a href="#"
-                class="inline-block px-10 py-4 text-white font-bold uppercase tracking-widest transition duration-300
-                   shadow-[0_0_20px_rgba(212,175,55,0.7)]
-                   border-2 border-[#D4AF37] hover:bg-[#D4AF37] hover:text-black rounded-full">
-                Khám Phá Ngay
-            </a>
         </div>
 
     </div>

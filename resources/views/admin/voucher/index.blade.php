@@ -11,7 +11,7 @@
                     <span class="text-orange-500 mr-2">📜</span> Danh sách phiếu giảm giá
                 </h1>
                 <a href="{{ route('admin.voucher.create') }}"
-                    class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-md transition font-medium">
+                    class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-md transition font-medium">
                     + Thêm Voucher
                 </a>
             </div>
@@ -100,7 +100,7 @@
                                 </td>
                                 <td>
                                     <a href="{{ route('admin.voucher.edit', $voucher) }}"
-                                        class="text-blue-500 hover:text-blue-700 font-medium mr-2">
+                                        class="text-yellow-500 hover:text-yellow-600 font-medium mr-2">
                                         Sửa
                                     </a>
                                     <form method="POST" action="{{ route('admin.voucher.destroy', $voucher) }}"

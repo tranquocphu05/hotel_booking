@@ -400,31 +400,33 @@ class BookingController extends Controller
                 }
             }
 
-            // Sync assigned rooms to pivot table
-            $booking->assignedRooms()->sync($allPhongIds);
-            
-            // Sync room types to pivot table  
-            $roomTypesForSync = [];
-            foreach ($roomDetails as $detail) {
-                $roomTypesForSync[$detail['loai_phong_id']] = [
-                    'so_luong' => $detail['so_luong'],
-                    'gia_rieng' => $detail['price'], // Total price for this room type
-                ];
-            }
-            $booking->roomTypes()->sync($roomTypesForSync);
+            // Lưu tất cả phong_ids vào JSON column sau khi đã gán xong tất cả loại phòng
+            $booking->phong_ids = $allPhongIds;
+            $booking->save();
 
             // Cập nhật phong_id (legacy support) nếu chỉ có 1 phòng
             if (count($allPhongIds) == 1) {
-                $booking->update(['phong_id' => $allPhongIds[0]]);
+                $booking->phong_id = $allPhongIds[0];
+                $booking->save();
             }
 
             // Tạo invoice ngay với trạng thái chờ thanh toán
+            // Tính breakdown: tien_phong, giam_gia
+            $tienPhong = $totalPrice; // Giá gốc trước voucher
+            $giamGia = $totalPrice - $finalPrice; // Số tiền giảm từ voucher
+            
             Invoice::create([
                 'dat_phong_id' => $booking->id,
-                'tong_tien' => $booking->tong_tien,
+                'tien_phong' => $tienPhong,
+                'tien_dich_vu' => 0, // Chưa có dịch vụ khi mới tạo
+                'giam_gia' => $giamGia,
+                'tong_tien' => $finalPrice,
                 'trang_thai' => 'cho_thanh_toan',
-                'phuong_thuc' => null,
+                'phuong_thuc' => null, // Will be set when user chooses payment method
             ]);
+
+            // Booking sẽ được tự động hủy bởi AutoCancelExpiredBookings middleware
+            // Không cần queue worker - tích hợp trực tiếp vào code
 
             return [$booking];
         });

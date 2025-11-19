@@ -98,7 +98,12 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin
     Route::resource('phong', \App\Http\Controllers\Admin\PhongController::class)->names('phong');
     Route::put('phong/{id}/update-status', [\App\Http\Controllers\Admin\PhongController::class, 'updateStatus'])->name('phong.update-status');
     Route::resource('invoices', InvoiceController::class)->names('invoices');
-    Route::get('invoices/{invoice}/print', [InvoiceController::class, 'print'])->name('invoices.print');
+    Route::get('/invoices/{invoice}/export', [InvoiceController::class, 'export'])->name('invoices.export');
+    // Create EXTRA invoice (service-only) from a paid invoice
+    // Show form to compose extra invoice (do NOT persist until confirm)
+    Route::get('/invoices/{invoice}/create-extra', [InvoiceController::class, 'createExtra'])->name('invoices.create_extra');
+    // Store the confirmed extra invoice
+    Route::post('/invoices/{invoice}/store-extra', [InvoiceController::class, 'storeExtra'])->name('invoices.store_extra');
     Route::resource('voucher', VoucherController::class)->names('voucher');
     Route::resource('news', \App\Http\Controllers\Admin\NewsController::class)->names('news');
     Route::prefix('reviews')
@@ -134,6 +139,17 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin
         Route::put('/{id}/confirm', [DatPhongController::class, 'quickConfirm'])->name('confirm');
         // Mark as paid
         Route::put('/{id}/mark-paid', [DatPhongController::class, 'markPaid'])->name('mark_paid');
+        // Check-in/Check-out
+        Route::post('/{id}/checkin', [DatPhongController::class, 'checkin'])->name('checkin');
+        Route::post('/{id}/checkout', [DatPhongController::class, 'checkout'])->name('checkout');
+    });
+
+    // Booking Services routes
+    Route::prefix('booking-services')->name('booking_services.')->group(function () {
+        Route::get('/{datPhongId}', [\App\Http\Controllers\Admin\BookingServiceController::class, 'index'])->name('index');
+        Route::post('/', [\App\Http\Controllers\Admin\BookingServiceController::class, 'store'])->name('store');
+        Route::put('/{id}', [\App\Http\Controllers\Admin\BookingServiceController::class, 'update'])->name('update');
+        Route::delete('/{id}', [\App\Http\Controllers\Admin\BookingServiceController::class, 'destroy'])->name('destroy');
     });
 });
 

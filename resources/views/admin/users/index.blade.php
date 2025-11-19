@@ -5,8 +5,8 @@
 @section('admin_content')
     <div class="flex items-center justify-between mb-4">
         <h1 class="text-xl font-semibold">Users</h1>
-        <!-- Make the create button more visible -->
-        <a href="{{ route('admin.users.create') }}" class="btn-primary btn-animate inline-flex items-center gap-2"> 
+        <!-- Nút thêm user: xanh lá -->
+        <a href="{{ route('admin.users.create') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-sm transition">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
             </svg>
@@ -48,18 +48,18 @@
                             <td class="px-4 py-2 text-center space-x-2">
                                 @if($u->vai_tro === 'admin')
                                     @if(($activeAdminCount ?? 0) > 1)
-                                        <a href="{{ route('admin.users.edit', $u) }}" class="table-btn btn-info link-hover">Edit</a>
+                                        <a href="{{ route('admin.users.edit', $u) }}" class="inline-flex items-center px-3 py-1 rounded bg-yellow-500 text-white text-xs font-semibold hover:bg-yellow-600 transition">Edit</a>
                                     @else
                                         <span class="text-xs text-gray-400 italic">Admin cuối cùng (không sửa)</span>
                                     @endif
                                 @else
-                                    <a href="{{ route('admin.users.edit', $u) }}" class="table-btn btn-info link-hover">Edit</a>
+                                    <a href="{{ route('admin.users.edit', $u) }}" class="inline-flex items-center px-3 py-1 rounded bg-yellow-500 text-white text-xs font-semibold hover:bg-yellow-600 transition">Edit</a>
                                 @endif
 
                                 @if(auth()->user() && auth()->user()->id !== $u->id)
                                     <form method="POST" action="{{ route('admin.impersonate', $u->id) }}" style="display:inline">
                                         @csrf
-                                        <button type="submit" class="table-btn btn-warning btn-animate">Impersonate</button>
+                                        <button type="submit" class="inline-flex items-center px-3 py-1 rounded bg-blue-500 text-white text-xs font-semibold hover:bg-blue-600 transition">Impersonate</button>
                                     </form>
                                 @endif
 
@@ -68,9 +68,9 @@
                                         @csrf
                                         @method('PUT')
                                         @if($u->trang_thai === 'hoat_dong')
-                                            <button type="submit" class="table-btn btn-danger btn-animate" onclick="return confirm('Vô hiệu hóa tài khoản này?')">Vô hiệu hóa</button>
+                                            <button type="submit" class="inline-flex items-center px-3 py-1 rounded bg-red-500 text-white text-xs font-semibold hover:bg-red-600 transition" onclick="return confirm('Vô hiệu hóa tài khoản này?')">Vô hiệu hóa</button>
                                         @else
-                                            <button type="submit" class="table-btn btn-success btn-animate" onclick="return confirm('Kích hoạt lại tài khoản này?')">Kích hoạt</button>
+                                            <button type="submit" class="inline-flex items-center px-3 py-1 rounded bg-green-500 text-white text-xs font-semibold hover:bg-green-600 transition" onclick="return confirm('Kích hoạt lại tài khoản này?')">Kích hoạt</button>
                                         @endif
                                     </form>
                                 @else

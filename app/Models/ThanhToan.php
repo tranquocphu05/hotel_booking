@@ -15,14 +15,15 @@ class ThanhToan extends Model
 
     protected $fillable = [
         'hoa_don_id',
+        'loai',
         'so_tien',
         'ngay_thanh_toan',
         'trang_thai',
-        'ghi_chu',
     ];
 
     protected $casts = [
         'ngay_thanh_toan' => 'datetime',
+        'so_tien' => 'decimal:2',
     ];
 
     public function hoaDon()

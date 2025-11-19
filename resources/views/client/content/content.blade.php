@@ -412,7 +412,7 @@
                     <img src="{{ asset($phong->anh ?: 'img/room/room-1.jpg') }}"
                         class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
 
-                    {{-- Badge + Giá --}}
+                    {{-- Badge khuyến mãi (giữ lại), bỏ ô giá góc trên --}}
                     <div class="absolute top-4 right-4 z-10 flex flex-col items-end gap-1">
                         @if ($phong->gia_khuyen_mai)
                             @php
@@ -425,15 +425,6 @@
                                 <i class="fas fa-tag"></i> GIẢM {{ $discountPercent }}%
                             </div>
                         @endif
-                        <div class="bg-black/90 text-white px-4 py-2.5 rounded-lg shadow-xl">
-                            <div class="text-xl font-bold">
-                                {{ number_format($phong->gia_khuyen_mai ?? $phong->gia_co_ban, 0, ',', '.') }}</div>
-                            @if ($phong->gia_khuyen_mai)
-                                <div class="text-sm text-gray-300 line-through">
-                                    {{ number_format($phong->gia_co_ban, 0, ',', '.') }}</div>
-                            @endif
-                            <div class="text-xs text-gray-300">VNĐ / đêm</div>
-                        </div>
                     </div>
 
                     {{-- Lớp phủ --}}

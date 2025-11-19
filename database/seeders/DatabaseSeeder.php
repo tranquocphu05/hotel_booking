@@ -26,7 +26,9 @@ class DatabaseSeeder extends Seeder
                 $this->call([
                     AdminUserSeeder::class,
                     LoaiPhongSeeder::class,
-                    PhongSeeder::class, // Phải chạy sau LoaiPhongSeeder
+                    PhongSeeder::class, 
+                    CommentSeeder::class,
+                    NewsSeeder::class,
                 ]);
         }
 }
