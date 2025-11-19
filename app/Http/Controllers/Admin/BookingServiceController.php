@@ -31,9 +31,42 @@ class BookingServiceController extends Controller
             'unit_price' => 'required|numeric|min:0',
             'used_at' => 'required|date',
             'note' => 'nullable|string|max:255',
+            'invoice_id' => 'nullable|exists:hoa_don,id',
         ]);
 
-        $bookingService = BookingService::create($validated);
+        // If a service entry for the same booking/service/date exists, increment quantity instead
+        $existing = BookingService::where('dat_phong_id', $validated['dat_phong_id'])
+            ->where('service_id', $validated['service_id'])
+            ->where('used_at', $validated['used_at'])
+            ->whereNull('invoice_id')
+            ->first();
+
+        if ($existing) {
+            $existing->quantity = ($existing->quantity ?? 0) + (int) $validated['quantity'];
+            $existing->unit_price = $validated['unit_price'];
+            $existing->save();
+            $bookingService = $existing;
+        } else {
+            try {
+                $bookingService = BookingService::create($validated);
+            } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+                // Fallback: someone created the same non-invoice entry right after our check
+                $existingFallback = BookingService::where('dat_phong_id', $validated['dat_phong_id'])
+                    ->where('service_id', $validated['service_id'])
+                    ->where('used_at', $validated['used_at'])
+                    ->whereNull('invoice_id')
+                    ->first();
+
+                if ($existingFallback) {
+                    $existingFallback->quantity = ($existingFallback->quantity ?? 0) + (int) $validated['quantity'];
+                    $existingFallback->unit_price = $validated['unit_price'];
+                    $existingFallback->save();
+                    $bookingService = $existingFallback;
+                } else {
+                    throw $e;
+                }
+            }
+        }
 
         // 🔹 Gọi lại hàm tính tổng
         $booking = DatPhong::find($validated['dat_phong_id']);

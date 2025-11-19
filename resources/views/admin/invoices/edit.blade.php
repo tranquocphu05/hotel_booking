@@ -128,21 +128,21 @@
                         <!-- Inline services picker (same UI as booking create/edit) -->
                         <link href="https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/css/tom-select.css" rel="stylesheet">
                         <style>
-                            .service-card-custom{border-radius:12px;background:linear-gradient(135deg, #f0fdfc 0%, #ccfbf1 100%);border:2px solid #99f6e4;padding:1.25rem;box-shadow:0 10px 25px rgba(16, 185, 129, 0.08);} 
-                            .service-card-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1.25rem}
-                            .service-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;padding-bottom:.5rem;border-bottom:2px solid #d1fae5}
-                            .service-card-header .service-title{color:#0d9488;font-weight:700;font-size:1.1rem}
-                            .service-card-header .service-price{color:#0f766e;font-weight:600;font-size:0.95rem}
-                            .service-date-row{display:flex;gap:.75rem;align-items:center;margin-top:.75rem;padding:.5rem;background:#ffffff;border-radius:8px;border:1px solid #d1fae5}
-                            .service-date-row input[type=date]{border:1px solid #a7f3d0;padding:.45rem .6rem;border-radius:6px;background:#f0fdfc;font-size:0.9rem;flex:1}
-                            .service-date-row input[type=number]{border:1px solid #a7f3d0;padding:.45rem .6rem;border-radius:6px;background:#f0fdfc;width:80px;text-align:center}
-                            .service-add-day{background:linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);color:#0d7377;padding:.5rem .75rem;border-radius:8px;border:1.5px solid #6ee7b7;cursor:pointer;font-weight:600;font-size:0.9rem}
-                            .service-add-day:hover{background:linear-gradient(135deg, #a7f3d0 0%, #6ee7b7 100%);box-shadow:0 4px 12px rgba(13, 148, 136, 0.2)}
-                            .service-remove-btn{background:#fecaca;color:#991b1b;padding:.4rem .6rem;border-radius:6px;border:1px solid #fca5a5;cursor:pointer;font-weight:600;font-size:0.85rem}
-                            .service-remove-btn:hover{background:#f87171;box-shadow:0 4px 12px rgba(185, 28, 28, 0.15)}
-                            #services_select + .ts-control{margin-top:.5rem;border-color:#99f6e4}
-                            #selected_services_list .service-card-custom{transition:all .2s ease}
-                            #selected_services_list .service-card-custom:hover{transform:translateY(-6px);box-shadow:0 15px 35px rgba(16, 185, 129, 0.15)}
+                                .service-card-custom{border-radius:12px;background:linear-gradient(135deg, #e0f2fe 0%, #bfdbfe 100%);border:2px solid #2563eb;padding:1.25rem;box-shadow:0 10px 25px rgba(37, 99, 235, 0.08);} 
+                                .service-card-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1.25rem}
+                                .service-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;padding-bottom:.5rem;border-bottom:2px solid #bfdbfe}
+                                .service-card-header .service-title{color:#1e40af;font-weight:700;font-size:1.1rem}
+                                .service-card-header .service-price{color:#1e3a8a;font-weight:600;font-size:0.95rem}
+                                .service-date-row{display:flex;gap:.75rem;align-items:center;margin-top:.75rem;padding:.5rem;background:#ffffff;border-radius:8px;border:1px solid #bfdbfe}
+                                .service-date-row input[type=date]{border:1px solid #93c5fd;padding:.45rem .6rem;border-radius:6px;background:#eff6ff;font-size:0.9rem;flex:1}
+                                .service-date-row input[type=number]{border:1px solid #93c5fd;padding:.45rem .6rem;border-radius:6px;background:#eff6ff;width:80px;text-align:center}
+                                .service-add-day{background:linear-gradient(135deg, #93c5fd 0%, #2563eb 100%);color:#07316a;padding:.5rem .75rem;border-radius:8px;border:1.5px solid #60a5fa;cursor:pointer;font-weight:600;font-size:0.9rem}
+                                .service-add-day:hover{background:linear-gradient(135deg, #2563eb 0%, #1e40af 100%);box-shadow:0 4px 12px rgba(37, 99, 235, 0.15)}
+                                .service-remove-btn{background:#fee2e2;color:#991b1b;padding:.4rem .6rem;border-radius:6px;border:1px solid #fecaca;cursor:pointer;font-weight:600;font-size:0.85rem}
+                                .service-remove-btn:hover{background:#fca5a5;box-shadow:0 4px 12px rgba(185, 28, 28, 0.15)}
+                                #services_select + .ts-control{margin-top:.5rem;border-color:#2563eb}
+                                #selected_services_list .service-card-custom{transition:all .2s ease}
+                                #selected_services_list .service-card-custom:hover{transform:translateY(-6px);box-shadow:0 15px 35px rgba(37, 99, 235, 0.15)}
                         </style>
                         <div class="bg-gray-50 p-4 rounded-lg mb-4">
                             <label for="services_select" class="block text-sm font-medium text-gray-700 mb-2">Chọn dịch vụ kèm theo</label>
@@ -159,7 +159,10 @@
                             // Calculate room total properly from booking data
                             $nights = 1;
                             $roomTotalCalculated = 0;
-                            if($booking && $booking->ngay_nhan && $booking->ngay_tra) {
+                            // If this invoice is an EXTRA invoice, do not include room price
+                            if ($invoice->isExtra()) {
+                                $roomTotalCalculated = 0;
+                            } else if($booking && $booking->ngay_nhan && $booking->ngay_tra) {
                                 $checkin = \Carbon\Carbon::parse($booking->ngay_nhan);
                                 $checkout = \Carbon\Carbon::parse($booking->ngay_tra);
                                 $nights = max(1, $checkin->diffInDays($checkout));
@@ -187,18 +190,27 @@
                         @endphp
                         <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                             <p><strong>Ngày nhận:</strong> {{ optional($booking)->ngay_nhan ? date('d/m/Y', strtotime($booking->ngay_nhan)) : 'N/A' }} | <strong>Ngày trả:</strong> {{ optional($booking)->ngay_tra ? date('d/m/Y', strtotime($booking->ngay_tra)) : 'N/A' }} | <strong>{{ $nights }} đêm</strong></p>
-                            <p class="mt-2"><strong>Giá phòng:</strong> <span id="base_room_total_text" class="text-lg font-semibold text-blue-600">{{ number_format($roomTotalCalculated,0,',','.') }} VNĐ</span></p>
-                            <p class="mt-2"><strong>Tổng tiền dịch vụ:</strong> <span id="service_total_text" class="text-lg font-semibold text-green-600">{{ number_format($currentServiceTotal,0,',','.') }} VNĐ</span></p>
-                            <p class="mt-3 pt-3 border-t border-blue-200"><strong>Tổng thanh toán:</strong> <span id="total_price" class="text-2xl font-bold text-blue-700">{{ number_format($roomTotalCalculated + $currentServiceTotal,0,',','.') }} VNĐ</span></p>
-                            <input type="hidden" id="base_room_total" value="{{ $roomTotalCalculated }}">
-                            <input type="hidden" id="tong_tien_input" name="tong_tien" value="{{ $roomTotalCalculated + $currentServiceTotal }}">
+                            @if($invoice->isExtra())
+                                <p class="mt-2"><strong>Hóa đơn dịch vụ:</strong> <span class="text-sm text-gray-600">(Giá phòng không được tính trong hóa đơn này)</span></p>
+                                <p class="mt-2"><strong>Giá phòng:</strong> <span id="base_room_total_text" class="text-lg font-semibold text-blue-600">0 VNĐ</span></p>
+                                <p class="mt-2"><strong>Tổng tiền dịch vụ:</strong> <span id="service_total_text" class="text-lg font-semibold text-green-600">{{ number_format($currentServiceTotal,0,',','.') }} VNĐ</span></p>
+                                <p class="mt-3 pt-3 border-t border-blue-200"><strong>Tổng thanh toán:</strong> <span id="total_price" class="text-2xl font-bold text-blue-700">{{ number_format($currentServiceTotal,0,',','.') }} VNĐ</span></p>
+                                <input type="hidden" id="base_room_total" value="0">
+                                <input type="hidden" id="tong_tien_input" name="tong_tien" value="{{ $currentServiceTotal }}">
+                            @else
+                                <p class="mt-2"><strong>Giá phòng:</strong> <span id="base_room_total_text" class="text-lg font-semibold text-blue-600">{{ number_format($roomTotalCalculated,0,',','.') }} VNĐ</span></p>
+                                <p class="mt-2"><strong>Tổng tiền dịch vụ:</strong> <span id="service_total_text" class="text-lg font-semibold text-green-600">{{ number_format($currentServiceTotal,0,',','.') }} VNĐ</span></p>
+                                <p class="mt-3 pt-3 border-t border-blue-200"><strong>Tổng thanh toán:</strong> <span id="total_price" class="text-2xl font-bold text-blue-700">{{ number_format($roomTotalCalculated + $currentServiceTotal,0,',','.') }} VNĐ</span></p>
+                                <input type="hidden" id="base_room_total" value="{{ $roomTotalCalculated }}">
+                                <input type="hidden" id="tong_tien_input" name="tong_tien" value="{{ $roomTotalCalculated + $currentServiceTotal }}">
+                            @endif
                         </div>
 
                         <div class="flex items-center justify-between">
-                            <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
                                 Cập nhật
                             </button>
-                            <a href="{{ route('admin.invoices.index') }}" class="inline-block align-baseline font-bold text-sm text-blue-500 hover:text-blue-800">
+                            <a href="{{ route('admin.invoices.index') }}" class="inline-block align-baseline font-bold text-sm text-blue-600 hover:text-blue-800">
                                 Hủy
                             </a>
                         </div>
@@ -230,6 +242,8 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadTomSelectAndInit(function() {
                 try {
+                    // Flag from server: whether this invoice is an EXTRA (service-only) invoice
+                    const isExtraInvoice = {!! json_encode($invoice->isExtra()) !!};
                     const selectEl = document.getElementById('services_select');
                     if (!selectEl) return;
                     const ts = new TomSelect(selectEl, {plugins:['remove_button'], persist:false, create:false,});
@@ -254,7 +268,8 @@
 
                     function updateTotalsFromHidden() {
                         // Sum all service entries (sum across all entry hidden inputs for each service)
-                        const baseRoom = parseFloat(document.getElementById('base_room_total')?.value || 0);
+                        let baseRoom = parseFloat(document.getElementById('base_room_total')?.value || 0);
+                        if (isExtraInvoice) baseRoom = 0;
                         let servicesTotal = 0;
                         // iterate over selected service cards
                         const container = document.getElementById('selected_services_list');
@@ -354,7 +369,8 @@
 
                     // Initialize service total from existing services on page load
                     function initializeServiceTotal() {
-                        const baseRoom = parseFloat(document.getElementById('base_room_total')?.value || 0);
+                        let baseRoom = parseFloat(document.getElementById('base_room_total')?.value || 0);
+                        if (isExtraInvoice) baseRoom = 0;
                         let currentServiceTotal = 0;
                         const container = document.getElementById('selected_services_list');
                         if (container) {
