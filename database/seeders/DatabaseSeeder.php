@@ -29,6 +29,9 @@ class DatabaseSeeder extends Seeder
                     PhongSeeder::class, 
                     CommentSeeder::class,
                     NewsSeeder::class,
+                    ServiceSeeder::class,
+                    VoucherSeeder::class,
+                    BookingSeeder::class,
                 ]);
         }
 }

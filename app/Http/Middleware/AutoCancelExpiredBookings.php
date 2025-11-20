@@ -61,59 +61,29 @@ class AutoCancelExpiredBookings
                         // Tính thời gian chính xác từ lúc đặt đến lúc hủy
                         $bookingAge = Carbon::now()->diffInSeconds($booking->ngay_dat);
 
-                        // Cập nhật trạng thái
+                        // BUG FIX #5: Lưu phong_ids trước khi xóa để có thể rollback nếu lỗi
+                        $phongIdsToFree = $booking->getPhongIds();
+
+                        // Cập nhật trạng thái booking
                         $booking->trang_thai = 'da_huy';
                         $booking->ly_do_huy = 'Tự động hủy do không thanh toán sau 5 phút';
                         $booking->ngay_huy = now();
                         $booking->save();
+                        
+                        // Detach all rooms from pivot table
+                        $booking->phongs()->detach();
 
                         Log::info("Đã tự động hủy booking #{$booking->id} - Đặt lúc: {$booking->ngay_dat}, Hủy lúc: " . now() . ", Thời gian: {$bookingAge} giây");
 
                         // Giải phóng phòng qua phong_id (legacy)
                         if ($booking->phong_id && $booking->phong) {
-                            $hasOtherBooking = DatPhong::where('id', '!=', $booking->id)
-                                ->where(function($q) use ($booking) {
-                                    $q->where('phong_id', $booking->phong_id)
-                                      ->orWhereContainsPhongId($booking->phong_id);
-                                })
-                                ->where(function($q) use ($booking) {
-                                    $q->where('ngay_tra', '>', $booking->ngay_nhan)
-                                      ->where('ngay_nhan', '<', $booking->ngay_tra);
-                                })
-                                ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
-                                ->exists();
-
-                            if (!$hasOtherBooking) {
-                                $booking->phong->update(['trang_thai' => 'trong']);
-                            }
+                            $this->freeRoomIfNoOtherBooking($booking->phong_id, $booking);
                         }
 
                         // Giải phóng phòng qua phong_ids JSON
-                        $phongIds = $booking->getPhongIds();
-                        foreach ($phongIds as $phongId) {
-                            $phong = Phong::find($phongId);
-                            if ($phong) {
-                                $hasOtherBooking = DatPhong::where('id', '!=', $booking->id)
-                                    ->where(function($q) use ($phongId) {
-                                        $q->where('phong_id', $phongId)
-                                          ->orWhereContainsPhongId($phongId);
-                                    })
-                                    ->where(function($q) use ($booking) {
-                                        $q->where('ngay_tra', '>', $booking->ngay_nhan)
-                                          ->where('ngay_nhan', '<', $booking->ngay_tra);
-                                    })
-                                    ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
-                                    ->exists();
-
-                                if (!$hasOtherBooking) {
-                                    $phong->update(['trang_thai' => 'trong']);
-                                }
-                            }
+                        foreach ($phongIdsToFree as $phongId) {
+                            $this->freeRoomIfNoOtherBooking($phongId, $booking);
                         }
-
-                        // Xóa phong_ids
-                        $booking->phong_ids = [];
-                        $booking->save();
 
                         // Hoàn trả voucher
                         if ($booking->voucher_id) {
@@ -124,27 +94,9 @@ class AutoCancelExpiredBookings
                         }
 
                         // Cập nhật so_luong_trong cho tất cả loại phòng
-                        $roomTypes = $booking->getRoomTypes();
-                        $loaiPhongIdsToUpdate = [];
-
-                        if (!empty($roomTypes)) {
-                            foreach ($roomTypes as $roomType) {
-                                if (isset($roomType['loai_phong_id'])) {
-                                    $loaiPhongIdsToUpdate[] = $roomType['loai_phong_id'];
-                                }
-                            }
-                        }
-
-                        if ($booking->loai_phong_id && !in_array($booking->loai_phong_id, $loaiPhongIdsToUpdate)) {
-                            $loaiPhongIdsToUpdate[] = $booking->loai_phong_id;
-                        }
-
+                        $loaiPhongIdsToUpdate = $this->getAffectedRoomTypeIds($booking);
                         foreach (array_unique($loaiPhongIdsToUpdate) as $loaiPhongId) {
-                            $trongCount = Phong::where('loai_phong_id', $loaiPhongId)
-                                ->where('trang_thai', 'trong')
-                                ->count();
-                            \App\Models\LoaiPhong::where('id', $loaiPhongId)
-                                ->update(['so_luong_trong' => $trongCount]);
+                            $this->recalculateSoLuongTrong($loaiPhongId);
                         }
                     });
                 } catch (\Exception $e) {
@@ -156,6 +108,79 @@ class AutoCancelExpiredBookings
             // Log lỗi nhưng không dừng request
             Log::error("Lỗi trong AutoCancelExpiredBookings middleware: " . $e->getMessage());
         }
+    }
+
+    /**
+     * Free room if no other booking is using it in the same period
+     *
+     * @param int $phongId
+     * @param DatPhong $booking
+     * @return void
+     */
+    private function freeRoomIfNoOtherBooking(int $phongId, DatPhong $booking): void
+    {
+        $phong = Phong::find($phongId);
+        if (!$phong) {
+            return;
+        }
+
+        $hasOtherBooking = DatPhong::where('id', '!=', $booking->id)
+            ->where(function($q) use ($phongId) {
+                $q->where('phong_id', $phongId)
+                  ->orWhereContainsPhongId($phongId);
+            })
+            ->where(function($q) use ($booking) {
+                $q->where('ngay_tra', '>', $booking->ngay_nhan)
+                  ->where('ngay_nhan', '<', $booking->ngay_tra);
+            })
+            ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
+            ->exists();
+
+        if (!$hasOtherBooking) {
+            $phong->update(['trang_thai' => 'trong']);
+        }
+    }
+
+    /**
+     * Get all room type IDs affected by this booking
+     *
+     * @param DatPhong $booking
+     * @return array
+     */
+    private function getAffectedRoomTypeIds(DatPhong $booking): array
+    {
+        $loaiPhongIds = [];
+        
+        // Add primary loai_phong_id
+        if ($booking->loai_phong_id) {
+            $loaiPhongIds[] = $booking->loai_phong_id;
+        }
+        
+        // Add all room types from room_types JSON
+        $roomTypes = $booking->getRoomTypes();
+        foreach ($roomTypes as $roomType) {
+            if (isset($roomType['loai_phong_id'])) {
+                $loaiPhongIds[] = $roomType['loai_phong_id'];
+            }
+        }
+        
+        return array_unique($loaiPhongIds);
+    }
+
+    /**
+     * Recalculate so_luong_trong for a room type
+     *
+     * @param int $loaiPhongId
+     * @return void
+     */
+    private function recalculateSoLuongTrong(int $loaiPhongId): void
+    {
+        $trongCount = Phong::where('loai_phong_id', $loaiPhongId)
+            ->where('trang_thai', 'trong')
+            ->count();
+        
+        \App\Models\LoaiPhong::where('id', $loaiPhongId)
+            ->update(['so_luong_trong' => $trongCount]);
     }
 }
 

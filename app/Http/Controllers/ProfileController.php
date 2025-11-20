@@ -156,7 +156,7 @@ class ProfileController extends Controller
                 $booking->phong->update(['trang_thai' => 'trong']);
             }
 
-            // Free up rooms via phong_ids JSON
+            // Free up rooms via pivot table (getPhongIds reads from booking_rooms)
             $phongIds = $booking->getPhongIds();
             foreach ($phongIds as $phongId) {
                 $phong = Phong::find($phongId);
@@ -165,8 +165,9 @@ class ProfileController extends Controller
                 }
             }
             
-            // Clear phong_ids after freeing rooms
-            $booking->phong_ids = [];
+            // CRITICAL FIX: Clear pivot table relationships instead of JSON field
+            $booking->phongs()->detach();
+            $booking->roomTypes()->detach();
             $booking->save();
 
             // Update so_luong_trong in loai_phong

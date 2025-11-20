@@ -30,8 +30,6 @@ class DatPhong extends Model
     protected $fillable = [
         'nguoi_dung_id',
         'loai_phong_id',  // Book by room type (primary/legacy support)
-        // 'room_types',  // DEPRECATED - now using booking_room_types pivot table
-        // 'phong_ids',  // DEPRECATED - now using booking_rooms pivot table
         'so_luong_da_dat',  // Number of rooms booked in this booking
         'phong_id',  // Specific room assigned (nullable, legacy support)
         'ngay_dat',
@@ -71,9 +69,6 @@ class DatPhong extends Model
         'phi_phat_sinh' => 'decimal:2',
         'thoi_gian_checkin' => 'datetime',
         'thoi_gian_checkout' => 'datetime',
-        // JSON fields deprecated - now using pivot tables
-        // 'room_types' => 'array',
-        // 'phong_ids' => 'array',
     ];
 
     /**
@@ -109,127 +104,127 @@ class DatPhong extends Model
     }
 
     /**
-     * Get all rooms assigned to this booking (via phong_ids JSON).
-     * @deprecated Use getPhongIds() or getAssignedPhongs() instead. Pivot table has been removed.
-     * This method returns a relationship that queries phong_ids JSON column.
+     * Get all rooms assigned to this booking via pivot table
+     * Many-to-Many relationship through booking_rooms pivot table
      */
     public function phongs()
     {
-        // Create a relationship that queries rooms based on phong_ids JSON column
-        // Since we can't reference parent table columns directly in hasMany WHERE,
-        // we need to use a subquery or get the IDs first
-        // For now, return empty relationship and use getAssignedPhongs() instead
-        $phongIds = $this->getPhongIds();
-
-        if (empty($phongIds)) {
-            // Return empty relationship if no phong_ids
-            return $this->hasMany(Phong::class, 'id', 'id')
-                ->whereRaw('1 = 0');
-        }
-
-        // Return relationship that filters by IDs from phong_ids JSON
-        return $this->hasMany(Phong::class, 'id', 'id')
-            ->whereIn('id', $phongIds);
+        return $this->belongsToMany(Phong::class, 'booking_rooms', 'dat_phong_id', 'phong_id')
+            ->withTimestamps();
     }
 
     /**
-     * Get array of assigned room IDs from JSON column.
+     * Get all room types in this booking via pivot table
+     * Many-to-Many relationship through booking_room_types pivot table
+     */
+    public function roomTypes()
+    {
+        return $this->belongsToMany(LoaiPhong::class, 'booking_room_types', 'dat_phong_id', 'loai_phong_id')
+            ->withPivot('so_luong', 'gia_rieng')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get array of assigned room IDs from pivot table
      * Returns array of room IDs: [1, 2, 3]
      */
     public function getPhongIds()
     {
-        if ($this->phong_ids && is_array($this->phong_ids)) {
-            return $this->phong_ids;
-        }
-
-        // Fallback: If no phong_ids, try to get from phong_id (legacy support)
-        if ($this->phong_id) {
+        // Get from pivot table
+        $phongIds = $this->phongs()->pluck('phong_id')->toArray();
+        
+        // Fallback: If no rooms in pivot, try legacy phong_id
+        if (empty($phongIds) && $this->phong_id) {
             return [$this->phong_id];
         }
 
-        // Fallback: If no phong_ids, pivot table has been removed
-        // All data should now be in phong_ids JSON column
-
-        return [];
+        return $phongIds;
     }
 
     /**
-     * Get assigned Phong models from phong_ids JSON.
+     * Get assigned Phong models from pivot table
      */
     public function getAssignedPhongs()
     {
-        $phongIds = $this->getPhongIds();
-        if (empty($phongIds)) {
-            return collect([]);
-        }
-
-        return Phong::whereIn('id', $phongIds)->get();
+        return $this->phongs;
     }
 
     /**
-     * Set phong_ids array.
+     * Add a room to booking via pivot table
      */
-    public function setPhongIds(array $phongIds)
+    public function addPhong($phongId)
     {
-        $this->phong_ids = $phongIds;
-        return $this;
-    }
-
-    /**
-     * Add a room ID to phong_ids.
-     */
-    public function addPhongId($phongId)
-    {
-        $phongIds = $this->getPhongIds();
-        if (!in_array($phongId, $phongIds)) {
-            $phongIds[] = $phongId;
-            $this->phong_ids = $phongIds;
+        // Check if already attached
+        if (!$this->phongs()->where('phong_id', $phongId)->exists()) {
+            $this->phongs()->attach($phongId);
         }
         return $this;
     }
 
     /**
-     * Remove a room ID from phong_ids.
+     * Remove a room from booking via pivot table
      */
-    public function removePhongId($phongId)
+    public function removePhong($phongId)
     {
-        $phongIds = $this->getPhongIds();
-        $phongIds = array_values(array_filter($phongIds, function($id) use ($phongId) {
-            return $id != $phongId;
-        }));
-        $this->phong_ids = $phongIds;
+        $this->phongs()->detach($phongId);
         return $this;
     }
 
     /**
-     * Get all room types in this booking (from JSON field).
-     * Returns array of room types with loai_phong_id, so_luong, gia_rieng
+     * Sync rooms with booking (replace all rooms)
+     */
+    public function syncPhongs(array $phongIds)
+    {
+        $this->phongs()->sync($phongIds);
+        return $this;
+    }
+
+    /**
+     * Get all room types in this booking from pivot table
+     * Returns collection with loai_phong_id, so_luong, gia_rieng
      */
     public function getRoomTypes()
     {
-        if ($this->room_types && is_array($this->room_types)) {
-            return $this->room_types;
-        }
-
-        // Fallback: If no room_types, return single room type (legacy support)
-        if ($this->loai_phong_id) {
-            return [[
+        $roomTypes = $this->roomTypes()->get();
+        
+        // If no room types in pivot, fallback to legacy single room type
+        if ($roomTypes->isEmpty() && $this->loai_phong_id) {
+            return collect([[
                 'loai_phong_id' => $this->loai_phong_id,
                 'so_luong' => $this->so_luong_da_dat ?? 1,
                 'gia_rieng' => $this->tong_tien ?? 0,
-            ]];
+            ]]);
         }
 
-        return [];
+        // Transform to array format for compatibility
+        return $roomTypes->map(function($roomType) {
+            return [
+                'loai_phong_id' => $roomType->id,
+                'so_luong' => $roomType->pivot->so_luong,
+                'gia_rieng' => $roomType->pivot->gia_rieng,
+            ];
+        });
     }
 
     /**
-     * Get all assigned room models directly (via phong_ids JSON).
-     * @deprecated Use getAssignedPhongs() instead
+     * Add room type to booking via pivot table
      */
-    public function assignedPhongs()
+    public function addRoomType($loaiPhongId, $soLuong, $giaRieng)
     {
-        return $this->getAssignedPhongs();
+        $this->roomTypes()->attach($loaiPhongId, [
+            'so_luong' => $soLuong,
+            'gia_rieng' => $giaRieng,
+        ]);
+        return $this;
+    }
+
+    /**
+     * Sync room types with booking (replace all room types)
+     */
+    public function syncRoomTypes(array $roomTypesData)
+    {
+        $this->roomTypes()->sync($roomTypesData);
+        return $this;
     }
 
     /**
@@ -257,8 +252,12 @@ class DatPhong extends Model
     }
 
     /**
-     * Scope: safely filter bookings that contain a specific room id
+     * @deprecated Use whereHas('phongs', function($q) use ($phongId) { $q->where('phong_id', $phongId); }) instead
+     * 
+     * Legacy scope: safely filter bookings that contain a specific room id
      * Falls back to legacy `phong_id` when `phong_ids` JSON column is not present.
+     * Kept for backward compatibility only. System now uses pivot table booking_rooms.
+     * 
      * Usage: DatPhong::whereContainsPhongId($phongId)->get();
      */
     public function scopeWhereContainsPhongId($query, $phongId)
@@ -272,8 +271,12 @@ class DatPhong extends Model
     }
 
     /**
-     * Scope: safely add an OR condition for bookings that contain a specific room id
+     * @deprecated Use orWhereHas('phongs', function($q) use ($phongId) { $q->where('phong_id', $phongId); }) instead
+     * 
+     * Legacy scope: safely add an OR condition for bookings that contain a specific room id
      * Falls back to legacy `phong_id` when `phong_ids` JSON column is not present.
+     * Kept for backward compatibility only. System now uses pivot table booking_rooms.
+     * 
      * Usage: DatPhong::orWhereContainsPhongId($phongId)
      */
     public function scopeOrWhereContainsPhongId($query, $phongId)
@@ -371,12 +374,29 @@ class DatPhong extends Model
                 $soLuong = $booking->so_luong_da_dat ?? 1;
 
                 // Recalculate so_luong_trong dựa trên số phòng thực tế có trang_thai = 'trong'
-                // Không dùng decrement/increment nữa vì có thể gây ra số âm hoặc không chính xác
-                $trongCount = \App\Models\Phong::where('loai_phong_id', $booking->loai_phong_id)
-                    ->where('trang_thai', 'trong')
-                    ->count();
-                LoaiPhong::where('id', $booking->loai_phong_id)
-                    ->update(['so_luong_trong' => $trongCount]);
+                // Recalculate cho TẤT CẢ loại phòng trong booking
+                $roomTypes = $booking->getRoomTypes();
+                $loaiPhongIdsToUpdate = [];
+                
+                foreach ($roomTypes as $roomType) {
+                    if (isset($roomType['loai_phong_id'])) {
+                        $loaiPhongIdsToUpdate[] = $roomType['loai_phong_id'];
+                    }
+                }
+                
+                // Thêm loai_phong_id chính nếu chưa có
+                if ($booking->loai_phong_id && !in_array($booking->loai_phong_id, $loaiPhongIdsToUpdate)) {
+                    $loaiPhongIdsToUpdate[] = $booking->loai_phong_id;
+                }
+                
+                // Recalculate cho tất cả
+                foreach (array_unique($loaiPhongIdsToUpdate) as $loaiPhongId) {
+                    $trongCount = \App\Models\Phong::where('loai_phong_id', $loaiPhongId)
+                        ->where('trang_thai', 'trong')
+                        ->count();
+                    LoaiPhong::where('id', $loaiPhongId)
+                        ->update(['so_luong_trong' => $trongCount]);
+                }
 
                 // Load relationships
                 $booking->load(['phong']);
@@ -411,11 +431,11 @@ class DatPhong extends Model
                     // Khi booking bị hủy/từ chối -> phòng chuyển về "trống"
                     elseif (in_array($newStatus, ['da_huy', 'tu_choi', 'thanh_toan_that_bai'])
                         && in_array($oldStatus, ['cho_xac_nhan', 'da_xac_nhan'])) {
-                        // Kiểm tra xem phòng có đang được đặt cho booking khác không
+                        // CRITICAL FIX: Kiểm tra xem phòng có đang được đặt cho booking khác không
+                        // Sử dụng pivot table thay vì JSON field
                                         $hasOtherBooking = \App\Models\DatPhong::where('id', '!=', $booking->id)
-                                                        ->where(function($q) use ($phong, $booking) {
-                                                                // Use safe scope to check phong_ids JSON if present, otherwise fallback to phong_id
-                                                                $q->whereContainsPhongId($phong->id);
+                                                        ->whereHas('phongs', function($q) use ($phong) {
+                                                                $q->where('phong_id', $phong->id);
                                                         })
                                                         ->where(function($q) use ($booking) {
                                                                 $q->where('ngay_tra', '>', $booking->ngay_nhan)
@@ -436,22 +456,82 @@ class DatPhong extends Model
 
                 // Recalculate so_luong_trong based on actual room status
                 if (in_array($newStatus, ['da_huy', 'tu_choi', 'thanh_toan_that_bai', 'da_tra'])) {
-                    $trongCount = \App\Models\Phong::where('loai_phong_id', $booking->loai_phong_id)
-                        ->where('trang_thai', 'trong')
-                        ->count();
-                    LoaiPhong::where('id', $booking->loai_phong_id)
-                        ->update(['so_luong_trong' => $trongCount]);
+                    foreach (array_unique($loaiPhongIdsToUpdate) as $loaiPhongId) {
+                        $trongCount = \App\Models\Phong::where('loai_phong_id', $loaiPhongId)
+                            ->where('trang_thai', 'trong')
+                            ->count();
+                        LoaiPhong::where('id', $loaiPhongId)
+                            ->update(['so_luong_trong' => $trongCount]);
+                    }
                 }
             }
         });
 
         // When booking is deleted, recalculate so_luong_trong
         static::deleted(function ($booking) {
-            $trongCount = \App\Models\Phong::where('loai_phong_id', $booking->loai_phong_id)
-                ->where('trang_thai', 'trong')
-                ->count();
-            LoaiPhong::where('id', $booking->loai_phong_id)
-                ->update(['so_luong_trong' => $trongCount]);
+            $roomTypes = $booking->getRoomTypes();
+            $loaiPhongIdsToUpdate = [];
+            
+            foreach ($roomTypes as $roomType) {
+                if (isset($roomType['loai_phong_id'])) {
+                    $loaiPhongIdsToUpdate[] = $roomType['loai_phong_id'];
+                }
+            }
+            
+            if ($booking->loai_phong_id && !in_array($booking->loai_phong_id, $loaiPhongIdsToUpdate)) {
+                $loaiPhongIdsToUpdate[] = $booking->loai_phong_id;
+            }
+            
+            foreach (array_unique($loaiPhongIdsToUpdate) as $loaiPhongId) {
+                $trongCount = \App\Models\Phong::where('loai_phong_id', $loaiPhongId)
+                    ->where('trang_thai', 'trong')
+                    ->count();
+                LoaiPhong::where('id', $loaiPhongId)
+                    ->update(['so_luong_trong' => $trongCount]);
+            }
         });
+    }
+
+    /**
+     * Get all room type IDs affected by this booking
+     * Includes both primary loai_phong_id and all room types in room_types JSON
+     *
+     * @param DatPhong $booking
+     * @return array
+     */
+    protected static function getAffectedRoomTypeIds($booking): array
+    {
+        $loaiPhongIds = [];
+        
+        // Add primary loai_phong_id
+        if ($booking->loai_phong_id) {
+            $loaiPhongIds[] = $booking->loai_phong_id;
+        }
+        
+        // Add all room types from room_types JSON
+        $roomTypes = $booking->getRoomTypes();
+        foreach ($roomTypes as $roomType) {
+            if (isset($roomType['loai_phong_id'])) {
+                $loaiPhongIds[] = $roomType['loai_phong_id'];
+            }
+        }
+        
+        return array_unique($loaiPhongIds);
+    }
+
+    /**
+     * Recalculate so_luong_trong for a room type based on actual room status
+     *
+     * @param int $loaiPhongId
+     * @return void
+     */
+    protected static function recalculateSoLuongTrong(int $loaiPhongId): void
+    {
+        $trongCount = \App\Models\Phong::where('loai_phong_id', $loaiPhongId)
+            ->where('trang_thai', 'trong')
+            ->count();
+        
+        LoaiPhong::where('id', $loaiPhongId)
+            ->update(['so_luong_trong' => $trongCount]);
     }
 }

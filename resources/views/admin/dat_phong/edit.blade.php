@@ -208,7 +208,7 @@
                                     @php
                                         $assignedPhongs = $booking->getAssignedPhongs();
                                         $assignedCount = $assignedPhongs->count();
-                                        $totalRooms = array_sum(array_column($roomTypes, 'so_luong')) ?: ($booking->so_luong_da_dat ?? 0);
+                                        $totalRooms = $roomTypes->sum('so_luong') ?: ($booking->so_luong_da_dat ?? 0);
                                         $remainingCount = $totalRooms - $assignedCount;
                                     @endphp
 
