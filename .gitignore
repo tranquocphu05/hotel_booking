@@ -33,12 +33,24 @@ Thumbs.db
 !SYSTEM_RULES.txt
 !BUSINESS_RULES.md
 
+# Text files - ignore all except important ones
+*.txt
+BUG_REPORT.txt
+!SYSTEM_RULES.txt
+!public/robots.txt
+
 # Kiro IDE
 /.kiro/
 
 # Test files
 test_vnpay_config.php
+test_*.php
+scripts/test_*.php
+app/Console/Commands/Test*.php
+
+# Temporary/accidental files
 tatus
+web.php
 
 # Editor configs
 /.cursor/

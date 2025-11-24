@@ -23,7 +23,7 @@ class ThanhToanController extends Controller
 
         // Eager load relationships for efficiency
         $datPhong->load('voucher', 'loaiPhong', 'user', 'phong', 'services');
-        
+
         // Get available rooms for assignment if needed
         $availableRooms = null;
         if ($datPhong->ngay_nhan && $datPhong->ngay_tra) {
@@ -32,7 +32,7 @@ class ThanhToanController extends Controller
             $totalRooms = $roomTypes->sum('so_luong') ?: ($datPhong->so_luong_da_dat ?? 1);
             $assignedCount = count($assignedPhongIds);
             $remainingCount = $totalRooms - $assignedCount;
-            
+
             // If rooms are missing, get available rooms for all room types
             if ($remainingCount > 0) {
                 $availableRooms = collect();
@@ -58,7 +58,7 @@ class ThanhToanController extends Controller
 
         // Get room types from JSON or fallback to single room type
         $roomTypes = $datPhong->getRoomTypes();
-        
+
         // Tính giá gốc và phụ phí
         // originalPrice: tổng theo từng loại phòng đã lưu (gia_rieng pivot - đã bao gồm phụ phí)
         // basePrice: tổng giá "chuẩn" theo LoaiPhong (chưa tính phụ phí)
