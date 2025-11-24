@@ -181,7 +181,7 @@ class PhongController extends Controller
         $hasActiveBooking = $phong->datPhongs()
             ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan', 'da_thanh_toan'])
             ->exists();
-        
+
         // Kiểm tra qua pivot table
         $hasActivePivotBooking = false;
         if (method_exists($phong, 'datPhongPhongs')) {
@@ -310,31 +310,23 @@ class PhongController extends Controller
             if ($oldLoaiPhongId != $validated['loai_phong_id']) {
                 $oldLoaiPhong = LoaiPhong::find($oldLoaiPhongId);
                 $newLoaiPhong = LoaiPhong::find($validated['loai_phong_id']);
-                
+
                 if ($oldLoaiPhong) {
                     if ($oldLoaiPhong->so_luong_phong > 0) {
                         $oldLoaiPhong->decrement('so_luong_phong');
                     }
-                    if ($oldTrangThai === 'trong' && $oldLoaiPhong->so_luong_trong > 0) {
-                        $oldLoaiPhong->decrement('so_luong_trong');
-                    }
+                    // Recalculate so_luong_trong cho loại phòng cũ
+                    $this->recalculateSoLuongTrong($oldLoaiPhongId);
                 }
-                
+
                 if ($newLoaiPhong) {
                     $newLoaiPhong->increment('so_luong_phong');
-                    if ($validated['trang_thai'] === 'trong') {
-                        $newLoaiPhong->increment('so_luong_trong');
-                    }
+                    // Recalculate so_luong_trong cho loại phòng mới
+                    $this->recalculateSoLuongTrong($validated['loai_phong_id']);
                 }
             } else {
-                // Cập nhật so_luong_trong nếu trạng thái thay đổi
-                if ($oldTrangThai === 'trong' && $validated['trang_thai'] !== 'trong') {
-                    if ($loaiPhong->so_luong_trong > 0) {
-                        $loaiPhong->decrement('so_luong_trong');
-                    }
-                } elseif ($oldTrangThai !== 'trong' && $validated['trang_thai'] === 'trong') {
-                    $loaiPhong->increment('so_luong_trong');
-                }
+                // Recalculate so_luong_trong khi trạng thái thay đổi
+                $this->recalculateSoLuongTrong($validated['loai_phong_id']);
             }
 
             return redirect()->route('admin.phong.index')
@@ -410,17 +402,32 @@ class PhongController extends Controller
 
         $phong->update(['trang_thai' => $request->trang_thai]);
 
-        // Cập nhật so_luong_trong của loại phòng
-        $loaiPhong = LoaiPhong::find($phong->loai_phong_id);
-        if ($loaiPhong) {
-            if ($oldTrangThai === 'trong' && $request->trang_thai !== 'trong') {
-                $loaiPhong->decrement('so_luong_trong');
-            } elseif ($oldTrangThai !== 'trong' && $request->trang_thai === 'trong') {
-                $loaiPhong->increment('so_luong_trong');
-            }
-        }
+        // Recalculate so_luong_trong dựa trên số phòng thực tế có trang_thai = 'trong'
+        $this->recalculateSoLuongTrong($phong->loai_phong_id);
 
         return redirect()->back()
             ->with('success', 'Cập nhật trạng thái phòng thành công!');
+    }
+
+    /**
+     * Recalculate so_luong_trong for a room type based on actual room status
+     *
+     * @param int $loaiPhongId
+     * @return void
+     */
+    private function recalculateSoLuongTrong($loaiPhongId)
+    {
+        if (!$loaiPhongId) {
+            return;
+        }
+
+        // Đếm số phòng có trang_thai = 'trong'
+        $trongCount = Phong::where('loai_phong_id', $loaiPhongId)
+            ->where('trang_thai', 'trong')
+            ->count();
+
+        // Cập nhật so_luong_trong
+        LoaiPhong::where('id', $loaiPhongId)
+            ->update(['so_luong_trong' => $trongCount]);
     }
 }

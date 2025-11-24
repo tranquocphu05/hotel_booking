@@ -14,3 +14,10 @@ Schedule::command('bookings:cancel-expired --minutes=5')
     ->everyMinute()
     ->withoutOverlapping()
     ->appendOutputTo(storage_path('logs/booking-auto-cancel.log'));
+
+// Tự động chuyển phòng từ 'dang_don' về 'trong' sau khi ngày checkout đã qua
+// Chạy mỗi giờ để kiểm tra và cập nhật trạng thái phòng
+Schedule::command('rooms:auto-clean')
+    ->hourly()
+    ->withoutOverlapping()
+    ->appendOutputTo(storage_path('logs/room-auto-clean.log'));

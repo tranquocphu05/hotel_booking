@@ -29,6 +29,58 @@
                         </div>
                     </div>
 
+                    {{-- Hiển thị thông tin chính sách hủy nếu booking đã thanh toán --}}
+                    @if(isset($cancellationPolicy) && $cancellationPolicy)
+                        <div class="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                            <h3 class="text-lg font-semibold text-yellow-900 mb-4 flex items-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Chính sách hủy phòng
+                            </h3>
+
+                            @if($cancellationPolicy['can_cancel'])
+                                <div class="grid md:grid-cols-2 gap-4 mb-4">
+                                    <div class="bg-white p-4 rounded-lg border border-yellow-200">
+                                        <p class="text-sm text-gray-600 mb-1">Thời gian còn lại</p>
+                                        <p class="text-2xl font-bold text-blue-600">
+                                            @if($cancellationPolicy['days_until_checkin'] < 0)
+                                                Đã qua ngày
+                                            @else
+                                                {{ max(0, (int)$cancellationPolicy['days_until_checkin']) }} ngày
+                                            @endif
+                                        </p>
+                                    </div>
+                                    <div class="bg-white p-4 rounded-lg border border-yellow-200">
+                                        <p class="text-sm text-gray-600 mb-1">Số tiền hoàn lại</p>
+                                        <p class="text-2xl font-bold text-green-600">
+                                            {{ number_format($cancellationPolicy['refund_amount'], 0, ',', '.') }}₫
+                                        </p>
+                                        <p class="text-xs text-gray-500">({{ $cancellationPolicy['refund_percentage'] }}%)</p>
+                                    </div>
+                                </div>
+
+                                @if($cancellationPolicy['penalty_amount'] > 0)
+                                    <div class="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                                        <p class="text-sm text-gray-700 mb-1">Phí hủy:</p>
+                                        <p class="text-lg font-bold text-red-600">
+                                            {{ number_format($cancellationPolicy['penalty_amount'], 0, ',', '.') }}₫
+                                        </p>
+                                    </div>
+                                @endif
+
+                                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                    <p class="text-sm font-semibold text-gray-700 mb-2">Chính sách:</p>
+                                    <p class="text-sm text-gray-600">{{ $cancellationPolicy['message'] }}</p>
+                                </div>
+                            @else
+                                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                                    <p class="text-red-700 font-semibold">{{ $cancellationPolicy['message'] }}</p>
+                                </div>
+                            @endif
+                        </div>
+                    @endif
+
                     <form action="{{ route('admin.dat_phong.cancel.submit', $booking->id) }}" method="POST" novalidate>
                         @csrf
                         <div class="space-y-4">

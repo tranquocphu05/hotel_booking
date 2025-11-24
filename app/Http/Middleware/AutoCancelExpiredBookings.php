@@ -29,6 +29,16 @@ class AutoCancelExpiredBookings
             Cache::put($cacheKey, Carbon::now(), 30); // Cache 30 giây
         }
 
+        // Tự động chuyển phòng từ 'dang_don' về 'trong' (check mỗi 30 giây)
+        $roomCleanCacheKey = 'last_room_clean_check';
+        $lastRoomClean = Cache::get($roomCleanCacheKey);
+
+        // Chỉ check nếu chưa check trong 30 giây gần đây
+        if (!$lastRoomClean || Carbon::now()->diffInSeconds($lastRoomClean) >= 30) {
+            $this->autoCleanRooms();
+            Cache::put($roomCleanCacheKey, Carbon::now(), 30); // Cache 30 giây
+        }
+
         return $next($request);
     }
 
@@ -69,7 +79,7 @@ class AutoCancelExpiredBookings
                         $booking->ly_do_huy = 'Tự động hủy do không thanh toán sau 5 phút';
                         $booking->ngay_huy = now();
                         $booking->save();
-                        
+
                         // Detach all rooms from pivot table
                         $booking->phongs()->detach();
 
@@ -150,12 +160,12 @@ class AutoCancelExpiredBookings
     private function getAffectedRoomTypeIds(DatPhong $booking): array
     {
         $loaiPhongIds = [];
-        
+
         // Add primary loai_phong_id
         if ($booking->loai_phong_id) {
             $loaiPhongIds[] = $booking->loai_phong_id;
         }
-        
+
         // Add all room types from room_types JSON
         $roomTypes = $booking->getRoomTypes();
         foreach ($roomTypes as $roomType) {
@@ -163,7 +173,7 @@ class AutoCancelExpiredBookings
                 $loaiPhongIds[] = $roomType['loai_phong_id'];
             }
         }
-        
+
         return array_unique($loaiPhongIds);
     }
 
@@ -178,9 +188,97 @@ class AutoCancelExpiredBookings
         $trongCount = Phong::where('loai_phong_id', $loaiPhongId)
             ->where('trang_thai', 'trong')
             ->count();
-        
+
         \App\Models\LoaiPhong::where('id', $loaiPhongId)
             ->update(['so_luong_trong' => $trongCount]);
+    }
+
+    /**
+     * Tự động chuyển phòng từ 'dang_don' về 'trong' sau khi ngày checkout đã qua
+     */
+    private function autoCleanRooms()
+    {
+        try {
+            $today = Carbon::today();
+
+            // Tìm các phòng đang ở trạng thái 'dang_don'
+            $dangDonRooms = Phong::where('trang_thai', 'dang_don')->get();
+
+            $cleanedCount = 0;
+
+            foreach ($dangDonRooms as $phong) {
+                // Tìm booking gần nhất đã checkout cho phòng này
+                $lastCheckout = DatPhong::whereHas('phongs', function($q) use ($phong) {
+                        $q->where('phong_id', $phong->id);
+                    })
+                    ->where('trang_thai', 'da_tra')
+                    ->whereNotNull('thoi_gian_checkout')
+                    ->orderBy('thoi_gian_checkout', 'desc')
+                    ->first();
+
+                if ($lastCheckout) {
+                    $checkoutDate = Carbon::parse($lastCheckout->thoi_gian_checkout)->startOfDay();
+
+                    // Nếu đã qua ngày checkout (sau 1 ngày), chuyển về 'trong'
+                    // Kiểm tra xem có booking conflict trong tương lai không
+                    $hasFutureBooking = DatPhong::whereHas('phongs', function($q) use ($phong) {
+                            $q->where('phong_id', $phong->id);
+                        })
+                        ->where(function($q) use ($today) {
+                            $q->where('ngay_tra', '>', $today)
+                              ->where('ngay_nhan', '>', $today);
+                        })
+                        ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
+                        ->exists();
+
+                    // Chuyển về 'trong' nếu:
+                    // 1. Đã qua ngày checkout (sau 1 ngày)
+                    // 2. Không có booking conflict trong tương lai
+                    if ($today->gt($checkoutDate->copy()->addDay()) && !$hasFutureBooking) {
+                        DB::transaction(function () use ($phong) {
+                            $phong->update(['trang_thai' => 'trong']);
+
+                            // Recalculate so_luong_trong cho loại phòng
+                            $loaiPhongId = $phong->loai_phong_id;
+                            $this->recalculateSoLuongTrong($loaiPhongId);
+                        });
+
+                        $cleanedCount++;
+                        Log::info("Auto cleaned room {$phong->so_phong} (ID: {$phong->id}) from dang_don to trong");
+                    }
+                } else {
+                    // Nếu không tìm thấy booking checkout, có thể là phòng bị stuck ở dang_don
+                    // Chuyển về 'trong' nếu không có booking conflict
+                    $hasConflict = DatPhong::whereHas('phongs', function($q) use ($phong) {
+                            $q->where('phong_id', $phong->id);
+                        })
+                        ->where(function($q) use ($today) {
+                            $q->where('ngay_tra', '>', $today);
+                        })
+                        ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
+                        ->exists();
+
+                    if (!$hasConflict) {
+                        DB::transaction(function () use ($phong) {
+                            $phong->update(['trang_thai' => 'trong']);
+
+                            $loaiPhongId = $phong->loai_phong_id;
+                            $this->recalculateSoLuongTrong($loaiPhongId);
+                        });
+
+                        $cleanedCount++;
+                        Log::info("Auto cleaned stuck room {$phong->so_phong} (ID: {$phong->id}) from dang_don to trong");
+                    }
+                }
+            }
+
+            if ($cleanedCount > 0) {
+                Log::info("AutoCleanRooms: Đã tự động chuyển {$cleanedCount} phòng từ 'dang_don' về 'trong'");
+            }
+        } catch (\Exception $e) {
+            // Log lỗi nhưng không dừng request
+            Log::error("Lỗi trong autoCleanRooms: " . $e->getMessage());
+        }
     }
 }
 
