@@ -26,7 +26,7 @@ class ProfileController extends Controller
             ->orderBy('ngay_dat', 'desc')
             ->paginate(3);
 
-        // Tính toán chính sách hủy cho mỗi booking đã thanh toán
+        // Tính toán chính sách hủy cho mỗi booking đã thanh toán (để hiển thị thông tin khi hủy)
         $cancellationPolicies = [];
         foreach ($bookings as $booking) {
             if ($booking->trang_thai === 'da_xac_nhan' && $booking->invoice && $booking->invoice->trang_thai === 'da_thanh_toan') {
@@ -156,9 +156,10 @@ class ProfileController extends Controller
             return Redirect::route('profile.edit')->with('error', 'Không thể hủy booking đã check-in. Vui lòng liên hệ quản trị viên để thực hiện check-out.');
         }
 
-        // Cho phép hủy booking đang chờ xác nhận hoặc đã xác nhận (đã thanh toán)
+        // Cho phép hủy booking chờ xác nhận hoặc đã xác nhận (nhưng chưa check-in)
+        // validateStatusTransition() sẽ kiểm tra không cho hủy nếu đã check-in
         if (!in_array($booking->trang_thai, ['cho_xac_nhan', 'da_xac_nhan'])) {
-            return Redirect::route('profile.edit')->with('error', 'Chỉ có thể hủy đặt phòng đang chờ xác nhận hoặc đã xác nhận.');
+            return Redirect::route('profile.edit')->with('error', 'Chỉ có thể hủy đặt phòng đang chờ xác nhận hoặc đã xác nhận (chưa check-in).');
         }
 
         // Tính toán chính sách hoàn tiền nếu booking đã thanh toán
@@ -167,7 +168,7 @@ class ProfileController extends Controller
         if ($invoice && $invoice->trang_thai === 'da_thanh_toan') {
             $refundInfo = $this->calculateCancellationPolicy($booking);
 
-            // Kiểm tra xem có thể hủy không (ví dụ: đã quá ngày nhận phòng)
+            // Kiểm tra xem có thể hủy không (ví dụ: đã quá ngày nhận phòng hoặc đã check-in)
             if (!$refundInfo['can_cancel']) {
                 return Redirect::route('profile.edit')->with('error', $refundInfo['message']);
             }
@@ -175,7 +176,7 @@ class ProfileController extends Controller
 
         // Update booking status and free up rooms
         try {
-            DB::transaction(function () use ($booking, $request, $refundInfo, $invoice) {
+            DB::transaction(function () use ($booking, $request, $refundInfo) {
                 // Load relationships
                 $booking->load(['phong', 'loaiPhong', 'invoice']);
 
@@ -187,13 +188,21 @@ class ProfileController extends Controller
                     throw $e;
                 }
 
+            // BUG FIX: Use fresh $booking->invoice instead of stale $invoice from outer scope
+            $invoice = $booking->invoice;
+
             // Xử lý hoàn tiền nếu booking đã thanh toán
             $ghiChuHoanTien = null;
             if ($invoice && $invoice->trang_thai === 'da_thanh_toan' && $refundInfo && $refundInfo['refund_amount'] > 0) {
                 // Cập nhật invoice status thành hoàn tiền
+                // con_lai = số tiền đã thanh toán - số tiền hoàn lại
+                // Nếu hoàn đủ hoặc nhiều hơn, thì con_lai = 0 (khách không còn nợ)
+                $daThanhToan = $invoice->da_thanh_toan ?? 0;
+                $conLai = max(0, $daThanhToan - $refundInfo['refund_amount']);
+                
                 $invoice->update([
                     'trang_thai' => 'hoan_tien',
-                    'con_lai' => $invoice->tong_tien - $refundInfo['refund_amount'],
+                    'con_lai' => $conLai, // Số tiền còn lại sau khi hoàn (0 nếu đã hoàn đủ)
                 ]);
 
                 // Ghi chú về hoàn tiền
@@ -263,12 +272,14 @@ class ProfileController extends Controller
                 }
             }
 
-            // CRITICAL FIX: Clear pivot table relationships
+            // CRITICAL FIX: Get room types BEFORE detaching (to preserve data for recalculation)
+            $roomTypes = $booking->getRoomTypes();
+
+            // Clear pivot table relationships
             $booking->phongs()->detach();
             $booking->roomTypes()->detach();
 
             // Update so_luong_trong cho tất cả loại phòng trong booking
-            $roomTypes = $booking->getRoomTypes();
             $loaiPhongIdsToUpdate = [];
             foreach ($roomTypes as $roomType) {
                 if (isset($roomType['loai_phong_id'])) {
@@ -279,12 +290,42 @@ class ProfileController extends Controller
                 $loaiPhongIdsToUpdate[] = $booking->loai_phong_id;
             }
 
+            // BUG FIX #3: Recalculate so_luong_trong considering dang_don rooms (consistent with DatPhong model)
             foreach (array_unique($loaiPhongIdsToUpdate) as $loaiPhongId) {
+                // Đếm phòng 'trong'
                 $trongCount = Phong::where('loai_phong_id', $loaiPhongId)
                     ->where('trang_thai', 'trong')
                     ->count();
+
+                // Đếm phòng 'dang_don' không có booking conflict trong 7 ngày tới
+                $today = \Carbon\Carbon::today();
+                $futureDate = $today->copy()->addDays(7);
+
+                $dangDonAvailable = Phong::where('loai_phong_id', $loaiPhongId)
+                    ->where('trang_thai', 'dang_don')
+                    ->get()
+                    ->filter(function($phong) use ($today, $futureDate) {
+                        // Kiểm tra xem phòng có booking conflict trong 7 ngày tới không
+                        $hasConflict = \App\Models\DatPhong::whereHas('phongs', function($q) use ($phong) {
+                                $q->where('phong_id', $phong->id);
+                            })
+                            ->where(function($q) use ($today, $futureDate) {
+                                $q->where('ngay_tra', '>', $today)
+                                  ->where('ngay_nhan', '<', $futureDate);
+                            })
+                            ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
+                            ->exists();
+
+                        // Phòng 'dang_don' được tính nếu không có conflict
+                        return !$hasConflict;
+                    })
+                    ->count();
+
+                // Tổng số phòng available = trong + dang_don (không conflict)
+                $totalAvailable = $trongCount + $dangDonAvailable;
+
                 \App\Models\LoaiPhong::where('id', $loaiPhongId)
-                    ->update(['so_luong_trong' => $trongCount]);
+                    ->update(['so_luong_trong' => $totalAvailable]);
             }
 
             // Hoàn trả voucher nếu có
@@ -353,14 +394,20 @@ class ProfileController extends Controller
         // Kiểm tra xem khách đã check-in chưa (dựa vào thoi_gian_checkin, không phải ngày)
         // Nếu admin đã check-in cho khách thì không thể hủy
         if ($booking->thoi_gian_checkin) {
+            // Use invoice amount if available, otherwise use booking amount
+            $invoice = $booking->invoice;
+            $totalPaid = $invoice ? $invoice->tong_tien : $booking->tong_tien;
+            
             $policy['can_cancel'] = false;
             $policy['refund_percentage'] = 0;
             $policy['refund_amount'] = 0;
-            $policy['penalty_amount'] = $booking->tong_tien;
+            $policy['penalty_amount'] = $totalPaid;
             $policy['message'] = 'Không thể hủy booking đã check-in. Vui lòng liên hệ quản trị viên để check-out.';
             return $policy;
         }
 
+        // Use invoice amount if available (includes fees), otherwise use booking amount
+        // BUG FIX #1: Consistent calculation with AdminDatPhongController
         $invoice = $booking->invoice;
         $totalPaid = $invoice ? $invoice->tong_tien : $booking->tong_tien;
 
@@ -368,27 +415,24 @@ class ProfileController extends Controller
         if ($daysUntilCheckin >= 7) {
             // Hủy trước 7 ngày: Hoàn 100%
             $policy['refund_percentage'] = 100;
-            $policy['refund_amount'] = $totalPaid;
             $policy['message'] = 'Hoàn 100% tiền đã thanh toán';
         } elseif ($daysUntilCheckin >= 3) {
             // Hủy trước 3-6 ngày: Hoàn 50%
             $policy['refund_percentage'] = 50;
-            $policy['refund_amount'] = $totalPaid * 0.5;
-            $policy['penalty_amount'] = $totalPaid * 0.5;
             $policy['message'] = 'Hoàn 50% tiền đã thanh toán (phí hủy 50%)';
         } elseif ($daysUntilCheckin >= 1) {
             // Hủy trước 1-2 ngày: Hoàn 25%
             $policy['refund_percentage'] = 25;
-            $policy['refund_amount'] = $totalPaid * 0.25;
-            $policy['penalty_amount'] = $totalPaid * 0.75;
             $policy['message'] = 'Hoàn 25% tiền đã thanh toán (phí hủy 75%)';
         } else {
             // Hủy trong ngày: Không hoàn tiền
             $policy['refund_percentage'] = 0;
-            $policy['refund_amount'] = 0;
-            $policy['penalty_amount'] = $totalPaid;
             $policy['message'] = 'Hủy trong ngày nhận phòng không được hoàn tiền';
         }
+
+        // Calculate amounts after setting percentage (consistent with AdminDatPhongController)
+        $policy['refund_amount'] = ($totalPaid * $policy['refund_percentage']) / 100;
+        $policy['penalty_amount'] = $totalPaid - $policy['refund_amount'];
 
         return $policy;
     }

@@ -425,7 +425,7 @@
                                                     Xem chi tiết
                                                 </button>
 
-                                                <!-- Nút hủy phòng (cho phòng chờ xác nhận hoặc đã thanh toán) -->
+                                                <!-- Nút hủy phòng (cho booking chờ xác nhận hoặc đã xác nhận nhưng chưa check-in) -->
                                                 @if (in_array($booking->trang_thai, ['cho_xac_nhan', 'da_xac_nhan']) && !$booking->thoi_gian_checkin)
                                                     <button onclick="showCancelModal({{ $booking->id }})"
                                                         class="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg transition-colors font-medium flex items-center gap-2">
@@ -435,45 +435,52 @@
                                                 @endif
                                             </div>
 
-                                            @if ($booking->trang_thai === 'da_xac_nhan' && isset($cancellationPolicies[$booking->id]))
-                                                @php
-                                                    $policy = $cancellationPolicies[$booking->id];
-                                                @endphp
-                                                <div class="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-3 text-yellow-800 text-sm">
-                                                    <div class="flex items-start gap-2">
-                                                        <i class="fas fa-info-circle mt-0.5"></i>
-                                                        <div class="flex-1">
-                                                            <p class="font-semibold mb-1">Chính sách hủy phòng:</p>
-                                                            @if ($policy['can_cancel'])
-                                                                <p class="mb-1">
-                                                                    @if ($policy['days_until_checkin'] >= 7)
-                                                                        Hủy trước 7 ngày: Hoàn <strong>100%</strong> tiền đã thanh toán
-                                                                    @elseif ($policy['days_until_checkin'] >= 3)
-                                                                        Hủy trước 3-6 ngày: Hoàn <strong>50%</strong> tiền đã thanh toán (phí hủy 50%)
-                                                                    @elseif ($policy['days_until_checkin'] >= 1)
-                                                                        Hủy trước 1-2 ngày: Hoàn <strong>25%</strong> tiền đã thanh toán (phí hủy 75%)
-                                                                    @else
-                                                                        Hủy trong ngày: <strong>Không hoàn tiền</strong>
-                                                                    @endif
-                                                                </p>
-                                                                <p class="text-xs text-gray-600">
-                                                                    @if ($policy['days_until_checkin'] < 0)
-                                                                        Đã qua ngày nhận phòng (chưa check-in)
-                                                                    @else
-                                                                        Còn <strong>{{ max(0, (int)$policy['days_until_checkin']) }}</strong> ngày trước ngày nhận phòng
-                                                                    @endif
-                                                                </p>
-                                                            @else
-                                                                <p class="text-red-600 font-semibold">{{ $policy['message'] }}</p>
-                                                            @endif
+                                            @if ($booking->trang_thai === 'da_xac_nhan')
+                                                @if ($booking->thoi_gian_checkin)
+                                                    <div class="mt-3 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-red-800 text-sm">
+                                                        <div class="flex items-start gap-2">
+                                                            <i class="fas fa-exclamation-triangle mt-0.5"></i>
+                                                            <div class="flex-1">
+                                                                <p class="font-semibold mb-1">Không thể hủy:</p>
+                                                                <p>Đặt phòng đã check-in, không thể hủy. Vui lòng liên hệ quản trị viên để check-out.</p>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            @elseif ($booking->trang_thai === 'da_xac_nhan' && $booking->thoi_gian_checkin)
-                                                <div class="mt-3 bg-red-50 border border-red-200 rounded-lg px-4 py-2 text-red-700 text-sm">
-                                                    <i class="fas fa-exclamation-triangle mr-2"></i>
-                                                    Đặt phòng đã check-in, không thể hủy. Vui lòng liên hệ quản trị viên để check-out.
-                                                </div>
+                                                @elseif (isset($cancellationPolicies[$booking->id]))
+                                                    @php
+                                                        $policy = $cancellationPolicies[$booking->id];
+                                                    @endphp
+                                                    <div class="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-3 text-yellow-800 text-sm">
+                                                        <div class="flex items-start gap-2">
+                                                            <i class="fas fa-info-circle mt-0.5"></i>
+                                                            <div class="flex-1">
+                                                                <p class="font-semibold mb-1">Chính sách hủy phòng:</p>
+                                                                @if ($policy['can_cancel'])
+                                                                    <p class="mb-1">
+                                                                        @if ($policy['days_until_checkin'] >= 7)
+                                                                            Hủy trước 7 ngày: Hoàn <strong>100%</strong> tiền đã thanh toán
+                                                                        @elseif ($policy['days_until_checkin'] >= 3)
+                                                                            Hủy trước 3-6 ngày: Hoàn <strong>50%</strong> tiền đã thanh toán (phí hủy 50%)
+                                                                        @elseif ($policy['days_until_checkin'] >= 1)
+                                                                            Hủy trước 1-2 ngày: Hoàn <strong>25%</strong> tiền đã thanh toán (phí hủy 75%)
+                                                                        @else
+                                                                            Hủy trong ngày: <strong>Không hoàn tiền</strong>
+                                                                        @endif
+                                                                    </p>
+                                                                    <p class="text-xs text-gray-600">
+                                                                        @if ($policy['days_until_checkin'] < 0)
+                                                                            Đã qua ngày nhận phòng (chưa check-in)
+                                                                        @else
+                                                                            Còn <strong>{{ max(0, (int)$policy['days_until_checkin']) }}</strong> ngày trước ngày nhận phòng
+                                                                        @endif
+                                                                    </p>
+                                                                @else
+                                                                    <p class="text-red-600 font-semibold">{{ $policy['message'] }}</p>
+                                                                @endif
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                @endif
                                             @endif
                                         </div>
                                     </div>

@@ -1,0 +1,62 @@
+# ==============================================================================
+# EMAIL CONFIGURATION - Copy these lines to your .env file
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# OPTION 1: Gmail (for Development/Testing) - RECOMMENDED FOR GETTING STARTED
+# ------------------------------------------------------------------------------
+# Steps:
+# 1. Go to https://myaccount.google.com/security
+# 2. Enable "2-Step Verification"
+# 3. Go to "App passwords" and create one for "Mail" on "Windows Computer"
+# 4. Copy the 16-character password (remove spaces)
+# 5. Paste below
+
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=your-email@gmail.com
+MAIL_PASSWORD=your-16-digit-app-password-here
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS=your-email@gmail.com
+MAIL_FROM_NAME="Hotel Booking System"
+
+# ------------------------------------------------------------------------------
+# OPTION 2: Mailtrap (for Testing - Emails don't go out)
+# ------------------------------------------------------------------------------
+# Perfect for testing - emails stay in Mailtrap inbox
+# Sign up at https://mailtrap.io (free)
+
+# MAIL_MAILER=smtp
+# MAIL_HOST=sandbox.smtp.mailtrap.io
+# MAIL_PORT=2525
+# MAIL_USERNAME=your-mailtrap-username
+# MAIL_PASSWORD=your-mailtrap-password
+# MAIL_ENCRYPTION=tls
+# MAIL_FROM_ADDRESS=noreply@hotelbooking.local
+# MAIL_FROM_NAME="Hotel Booking System"
+
+# ------------------------------------------------------------------------------
+# OPTION 3: Log Only (for Local Dev - No real emails)
+# ------------------------------------------------------------------------------
+# Emails written to storage/logs/laravel.log
+
+# MAIL_MAILER=log
+# MAIL_LOG_CHANNEL=stack
+# MAIL_FROM_ADDRESS=noreply@hotelbooking.local
+# MAIL_FROM_NAME="Hotel Booking System"
+
+# ==============================================================================
+# HOW TO USE:
+# 1. Open your .env file
+# 2. Find the MAIL_* section (or add if not exists)
+# 3. Copy ONE of the options above
+# 4. Replace the placeholder values with your real credentials
+# 5. Save .env
+# 6. Run: php artisan config:clear
+# 7. Test: php artisan mail:test your-email@example.com
+# ==============================================================================
+
+
+
+

@@ -517,6 +517,7 @@
                                         $tienPhong = $invoice->tien_phong;
                                         $tienDichVu = $invoice->tien_dich_vu ?? 0;
                                         $giamGia = $invoice->giam_gia ?? 0;
+                                        $phiPhatSinh = $invoice->phi_phat_sinh ?? 0;
                                     } else {
                                         $checkin = new DateTime($booking->ngay_nhan);
                                         $checkout = new DateTime($booking->ngay_tra);
@@ -538,26 +539,48 @@
                                         if($booking->voucher) {
                                             $giamGia = $tienPhong * ($booking->voucher->gia_tri / 100);
                                         }
+                                        
+                                        $phiPhatSinh = $booking->phi_phat_sinh ?? 0;
                                     }
+                                    
+                                    // Tính tổng: (Tiền phòng - Giảm giá) + Tiền dịch vụ + Phụ phí
+                                    // Ưu tiên lấy từ invoice vì invoice luôn có tổng tiền chính xác nhất (bao gồm phụ phí checkout)
+                                    $tongTienHienThi = ($invoice && $invoice->tong_tien) 
+                                        ? $invoice->tong_tien 
+                                        : ($booking->tong_tien ?? max(0, (float)$tienPhong - (float)$giamGia + (float)$tienDichVu + (float)$phiPhatSinh));
                                 @endphp
 
                                 <dl class="space-y-3">
                                     <div class="flex justify-between text-sm">
                                         <dt class="text-gray-600">Tiền phòng</dt>
-                                        <dd class="font-semibold text-gray-900">{{ number_format($tienPhong, 0, ',', '.') }} VNĐ</dd>
+                                        <dd class="font-semibold text-gray-900">{{ number_format((float)$tienPhong, 0, ',', '.') }} VNĐ</dd>
                                     </div>
 
-                                    @if($giamGia > 0)
+                                    @if(isset($giamGia) && (float)$giamGia > 0)
                                         <div class="flex justify-between text-sm">
                                             <dt class="text-red-600">Giảm giá</dt>
-                                            <dd class="font-semibold text-red-600">-{{ number_format($giamGia, 0, ',', '.') }} VNĐ</dd>
+                                            <dd class="font-semibold text-red-600">-{{ number_format((float)($giamGia ?? 0), 0, ',', '.') }} VNĐ</dd>
+                                        </div>
+                                    @endif
+                                    
+                                    @if($tienDichVu > 0)
+                                        <div class="flex justify-between text-sm">
+                                            <dt class="text-gray-600">Tiền dịch vụ</dt>
+                                            <dd class="font-semibold text-purple-600">{{ number_format((float)$tienDichVu, 0, ',', '.') }} VNĐ</dd>
+                                        </div>
+                                    @endif
+                                    
+                                    @if($phiPhatSinh > 0)
+                                        <div class="flex justify-between text-sm">
+                                            <dt class="text-gray-600">Phụ phí phát sinh</dt>
+                                            <dd class="font-semibold text-red-600">{{ number_format((float)$phiPhatSinh, 0, ',', '.') }} VNĐ</dd>
                                         </div>
                                     @endif
 
                                     <div class="pt-3 border-t-2 border-gray-200">
                                         <div class="flex justify-between">
                                             <dt class="text-base font-semibold text-gray-900">Tổng thanh toán</dt>
-                                            <dd class="text-xl font-bold text-blue-600">{{ number_format($booking->tong_tien, 0, ',', '.') }} VNĐ</dd>
+                                            <dd class="text-xl font-bold text-blue-600">{{ number_format((float)$tongTienHienThi, 0, ',', '.') }} VNĐ</dd>
                                         </div>
                                     </div>
                                 </dl>

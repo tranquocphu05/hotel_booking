@@ -386,7 +386,7 @@ class DatPhong extends Model
         }
 
         // Additional business rules
-        // Cannot cancel booking that has been checked in
+        // Cannot cancel booking that has been checked in (applies to both cho_xac_nhan and da_xac_nhan)
         if ($newStatus === 'da_huy' && $this->thoi_gian_checkin) {
             throw \Illuminate\Validation\ValidationException::withMessages([
                 'trang_thai' => 'Không thể hủy booking đã check-in. Vui lòng thực hiện check-out trước.'
@@ -484,36 +484,24 @@ class DatPhong extends Model
                             && in_array($oldStatus, ['cho_xac_nhan', 'da_xac_nhan'])) {
                             $phong->update(['trang_thai' => 'trong']);
                         }
-                        // Khi booking hoàn thành (check-out) -> phòng chuyển về "trong" ngay nếu không có booking conflict
+                        // Khi booking hoàn thành (check-out) -> phòng chuyển về "dang_don" để dọn dẹp
+                        // Logic nghiệp vụ: Sau checkout, phòng không còn được khách sử dụng,
+                        // nên không thể giữ ở trạng thái 'dang_thue' (đang thuê)
+                        // Phòng cần được dọn dẹp trước khi sử dụng lại (kể cả có booking tương lai)
                         elseif ($newStatus === 'da_tra' && $oldStatus !== 'da_tra') {
-                            // Kiểm tra xem phòng có booking conflict trong tương lai hoặc đang diễn ra không
-                            $today = Carbon::today();
-                            $hasFutureBooking = \App\Models\DatPhong::where('id', '!=', $booking->id)
-                                ->where(function($q) use ($phong) {
-                                    $q->where('phong_id', $phong->id)
-                                      ->orWhereHas('phongs', function($query) use ($phong) {
-                                          $query->where('phong_id', $phong->id);
-                                      });
-                                })
-                                ->where(function($q) use ($today) {
-                                    // Booking trong tương lai (ngay_nhan > today)
-                                    $q->where(function($subQ) use ($today) {
-                                        $subQ->where('ngay_nhan', '>', $today)
-                                             ->where('ngay_tra', '>', $today);
-                                    })
-                                    // Hoặc booking đang diễn ra (ngay_nhan <= today và ngay_tra > today)
-                                    ->orWhere(function($subQ) use ($today) {
-                                        $subQ->where('ngay_nhan', '<=', $today)
-                                             ->where('ngay_tra', '>', $today);
-                                    });
-                                })
-                                ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
-                                ->exists();
-
-                            // Nếu không có booking conflict → chuyển về 'trong' ngay
-                            // Nếu có booking conflict → giữ 'dang_thue' (phòng sẽ được dùng tiếp)
-                            if (!$hasFutureBooking) {
-                                $phong->update(['trang_thai' => 'trong']);
+                            // Sau checkout, phòng luôn về 'dang_don' để dọn dẹp
+                            // Không phụ thuộc vào booking tương lai - trạng thái 'dang_thue' chỉ áp dụng khi khách đang ở
+                            // Hệ thống sẽ tự động chuyển từ 'dang_don' về 'trong' sau khi dọn dẹp xong
+                            $phong->update(['trang_thai' => 'dang_don']);
+                            
+                            // Recalculate so_luong_trong cho loại phòng
+                            $loaiPhongId = $phong->loai_phong_id;
+                            if ($loaiPhongId) {
+                                $trongCount = \App\Models\Phong::where('loai_phong_id', $loaiPhongId)
+                                    ->where('trang_thai', 'trong')
+                                    ->count();
+                                \App\Models\LoaiPhong::where('id', $loaiPhongId)
+                                    ->update(['so_luong_trong' => $trongCount]);
                             }
                         }
                     }
@@ -546,33 +534,22 @@ class DatPhong extends Model
                             $phong->update(['trang_thai' => 'trong']);
                         }
                     }
-                    // Khi booking hoàn thành (check-out) -> phòng chuyển về "trong" ngay nếu không có booking conflict
+                    // Khi booking hoàn thành (check-out) -> phòng chuyển về "dang_don" để dọn dẹp
+                    // Logic nghiệp vụ: Sau checkout, phòng không còn được khách sử dụng,
+                    // nên không thể giữ ở trạng thái 'dang_thue' (đang thuê)
                     elseif ($newStatus === 'da_tra' && $oldStatus !== 'da_tra') {
-                        // Kiểm tra xem phòng có booking conflict trong tương lai hoặc đang diễn ra không
-                        $today = Carbon::today();
-                        $hasFutureBooking = \App\Models\DatPhong::where('id', '!=', $booking->id)
-                            ->whereHas('phongs', function($q) use ($phong) {
-                                $q->where('phong_id', $phong->id);
-                            })
-                            ->where(function($q) use ($today) {
-                                // Booking trong tương lai (ngay_nhan > today)
-                                $q->where(function($subQ) use ($today) {
-                                    $subQ->where('ngay_nhan', '>', $today)
-                                         ->where('ngay_tra', '>', $today);
-                                })
-                                // Hoặc booking đang diễn ra (ngay_nhan <= today và ngay_tra > today)
-                                ->orWhere(function($subQ) use ($today) {
-                                    $subQ->where('ngay_nhan', '<=', $today)
-                                         ->where('ngay_tra', '>', $today);
-                                });
-                            })
-                            ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
-                            ->exists();
-
-                        // Nếu không có booking conflict → chuyển về 'trong' ngay
-                        // Nếu có booking conflict → giữ 'dang_thue' (phòng sẽ được dùng tiếp)
-                        if (!$hasFutureBooking) {
-                            $phong->update(['trang_thai' => 'trong']);
+                        // Sau checkout, phòng luôn về 'dang_don' để dọn dẹp
+                        // Không phụ thuộc vào booking tương lai - trạng thái 'dang_thue' chỉ áp dụng khi khách đang ở
+                        $phong->update(['trang_thai' => 'dang_don']);
+                        
+                        // Recalculate so_luong_trong cho loại phòng
+                        $loaiPhongId = $phong->loai_phong_id;
+                        if ($loaiPhongId) {
+                            $trongCount = \App\Models\Phong::where('loai_phong_id', $loaiPhongId)
+                                ->where('trang_thai', 'trong')
+                                ->count();
+                            \App\Models\LoaiPhong::where('id', $loaiPhongId)
+                                ->update(['so_luong_trong' => $trongCount]);
                         }
                     }
                 }

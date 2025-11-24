@@ -51,12 +51,14 @@ class Phong extends Model
 
     /**
      * Get bookings that have this room assigned via pivot table booking_rooms
-     * @return \Illuminate\Database\Eloquent\Collection
+     * BUG FIX: Use belongsToMany to query pivot table instead of legacy hasMany
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
      */
-    public function bookings()
+    public function bookings(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
-        // Query bookings via pivot table booking_rooms
-        return $this->datPhongs;  // Uses datPhongs() relationship defined below
+        // Query bookings via pivot table booking_rooms (new system)
+        return $this->belongsToMany(DatPhong::class, 'booking_rooms', 'phong_id', 'dat_phong_id')
+            ->withTimestamps();
     }
 
     /**

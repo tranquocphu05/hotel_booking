@@ -197,23 +197,7 @@
                 </table>
             @endif
 
-            @php
-                // Tính giảm giá từ voucher (CHỈ áp dụng cho tiền phòng)
-                $voucher = null;
-                $discount = 0;
-                if($booking && $booking->voucher_id) {
-                    $voucher = $booking->voucher;
-                    if($voucher && $voucher->gia_tri) {
-                        // Voucher chỉ áp dụng cho tiền phòng (không giảm giá dịch vụ)
-                        $discount = $subtotal * ($voucher->gia_tri / 100);
-                    }
-                }
-                
-                // Tính tổng cộng: (Tiền phòng - Giảm giá) + Tiền dịch vụ
-                $tongCong = max(0, $subtotal - $discount + $servicesTotal);
-            @endphp
-            
-            {{-- Total - Sử dụng dữ liệu từ invoice --}}
+            {{-- Total - Sử dụng dữ liệu từ invoice để đảm bảo tính nhất quán --}}
             <div class="border-t-2 border-gray-800 pt-4">
                 <div class="space-y-2">
                     <div class="flex justify-between text-sm">
@@ -235,6 +219,41 @@
                         <div class="flex justify-between text-sm">
                             <span>Tổng tiền dịch vụ:</span>
                             <span class="font-semibold text-purple-600">{{ number_format($invoice->tien_dich_vu ?? $servicesTotal, 0, ',', '.') }} ₫</span>
+                        </div>
+                    @endif
+                    
+                    {{-- Phụ phí thiệt hại tài sản --}}
+                    @php
+                        $phiPhatSinh = $invoice->phi_phat_sinh ?? 0;
+                        $lyDoThietHai = '';
+                        $loaiThietHai = '';
+                        
+                        // Extract thông tin thiệt hại từ ghi_chu_checkout
+                        if ($booking && $booking->ghi_chu_checkout) {
+                            // Extract lý do từ format [LY_DO_PHI: ...]
+                            if (preg_match('/\[LY_DO_PHI:\s*(.+?)\]/', $booking->ghi_chu_checkout, $matches)) {
+                                $lyDoThietHai = trim($matches[1]);
+                            }
+                            
+                            // Extract danh mục thiệt hại từ format === THIỆT HẠI TÀI SẢN ===
+                            if (preg_match('/Danh mục:\s*(.+?)(?:\n|$)/', $booking->ghi_chu_checkout, $matches)) {
+                                $loaiThietHai = trim($matches[1]);
+                            }
+                        }
+                    @endphp
+                    
+                    @if($phiPhatSinh > 0)
+                        <div class="flex justify-between text-sm border-t border-gray-400 pt-2 mt-2">
+                            <div class="flex-1">
+                                <div class="font-semibold text-red-700">Phụ phí thiệt hại tài sản:</div>
+                                @if($loaiThietHai)
+                                    <div class="text-xs text-gray-600 mt-1">Danh mục: {{ $loaiThietHai }}</div>
+                                @endif
+                                @if($lyDoThietHai)
+                                    <div class="text-xs text-gray-600">{{ $lyDoThietHai }}</div>
+                                @endif
+                            </div>
+                            <span class="font-semibold text-red-700 ml-4">{{ number_format($phiPhatSinh, 0, ',', '.') }} ₫</span>
                         </div>
                     @endif
                     

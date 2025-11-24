@@ -41,7 +41,7 @@
                 data-booking-context="true" data-gia-mot-dem="{{ $gia_mot_dem }}"
                 data-loai-phong-id="{{ $loaiPhong->id }}">
                 @csrf
-                @if ($errors->any())
+                @if (isset($errors) && $errors->any())
                     <div class="form-error-panel">
                         <div class="form-error-header">
                             <span><i class="fas fa-exclamation-triangle"></i></span>
@@ -199,40 +199,43 @@
 
                 <div class="block block-list-room">
                     <div class="list-rooms">
-                        @if ($errors->has('error'))
+                        @php
+                            $errorObj = isset($errors) && is_object($errors) ? $errors : null;
+                        @endphp
+                        @if ($errorObj && method_exists($errorObj, 'has') && $errorObj->has('error'))
                             <div class="alert alert-error">
                                 <strong class="font-bold">Lỗi!</strong>
-                                <span class="block">{{ $errors->first('error') }}</span>
+                                <span class="block">{{ method_exists($errorObj, 'first') ? $errorObj->first('error') : '' }}</span>
                             </div>
                         @endif
 
-                        @if ($errors->has('rooms'))
+                        @if ($errorObj && method_exists($errorObj, 'has') && $errorObj->has('rooms'))
                             <div class="alert alert-error">
                                 <strong class="font-bold">Lỗi!</strong>
                                 <ul class="list-disc list-inside mt-1">
-                                    @foreach ($errors->get('rooms') as $error)
+                                    @foreach ((method_exists($errorObj, 'get')) ? $errorObj->get('rooms') : [] as $error)
                                         <li>{{ $error }}</li>
                                     @endforeach
                                 </ul>
                             </div>
                         @endif
 
-                        @if ($errors->has('rooms.*.loai_phong_id'))
+                        @if ($errorObj && method_exists($errorObj, 'has') && $errorObj->has('rooms.*.loai_phong_id'))
                             <div class="alert alert-error">
                                 <strong class="font-bold">Lỗi!</strong>
                                 <ul class="list-disc list-inside mt-1">
-                                    @foreach ($errors->get('rooms.*.loai_phong_id') as $error)
+                                    @foreach ((method_exists($errorObj, 'get')) ? $errorObj->get('rooms.*.loai_phong_id') : [] as $error)
                                         <li>{{ $error }}</li>
                                     @endforeach
                                 </ul>
                             </div>
                         @endif
 
-                        @if ($errors->has('rooms.*.so_luong'))
+                        @if ($errorObj && method_exists($errorObj, 'has') && $errorObj->has('rooms.*.so_luong'))
                             <div class="alert alert-error">
                                 <strong class="font-bold">Lỗi!</strong>
                                 <ul class="list-disc list-inside mt-1">
-                                    @foreach ($errors->get('rooms.*.so_luong') as $error)
+                                    @foreach ((method_exists($errorObj, 'get')) ? $errorObj->get('rooms.*.so_luong') : [] as $error)
                                         <li>{{ $error }}</li>
                                     @endforeach
                                 </ul>
@@ -399,13 +402,13 @@
                                         @endforeach
                                     </div>
 
-                                    @if ($errors->has('rooms.*.loai_phong_id'))
+                                    @if ($errorObj && method_exists($errorObj, 'has') && $errorObj->has('rooms.*.loai_phong_id'))
                                         <div class="form-field-error mt-4">
                                             Vui lòng chọn loại phòng hợp lệ cho từng thẻ.
                                         </div>
                                     @endif
 
-                                    @if ($errors->has('rooms.*.so_luong'))
+                                    @if ($errorObj && method_exists($errorObj, 'has') && $errorObj->has('rooms.*.so_luong'))
                                         <div class="form-field-error">
                                             Kiểm tra lại số lượng phòng đã nhập.
                                         </div>

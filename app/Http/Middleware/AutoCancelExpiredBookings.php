@@ -220,13 +220,23 @@ class AutoCancelExpiredBookings
                     $checkoutDate = Carbon::parse($lastCheckout->thoi_gian_checkout)->startOfDay();
 
                     // Nếu đã qua ngày checkout (sau 1 ngày), chuyển về 'trong'
-                    // Kiểm tra xem có booking conflict trong tương lai không
+                    // BUG FIX #2: Check for both future bookings AND ongoing bookings
+                    // Ongoing bookings: started before/on today but end in future
+                    // Future bookings: start and end in future
                     $hasFutureBooking = DatPhong::whereHas('phongs', function($q) use ($phong) {
                             $q->where('phong_id', $phong->id);
                         })
                         ->where(function($q) use ($today) {
-                            $q->where('ngay_tra', '>', $today)
-                              ->where('ngay_nhan', '>', $today);
+                            // Booking trong tương lai (ngay_nhan > today)
+                            $q->where(function($subQ) use ($today) {
+                                $subQ->where('ngay_nhan', '>', $today)
+                                     ->where('ngay_tra', '>', $today);
+                            })
+                            // Hoặc booking đang diễn ra (ngay_nhan <= today và ngay_tra > today)
+                            ->orWhere(function($subQ) use ($today) {
+                                $subQ->where('ngay_nhan', '<=', $today)
+                                     ->where('ngay_tra', '>', $today);
+                            });
                         })
                         ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
                         ->exists();

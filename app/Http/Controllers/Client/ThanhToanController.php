@@ -45,7 +45,7 @@ class ThanhToanController extends Controller
                     );
                     // Filter out already assigned rooms
                     $rooms = $rooms->reject(function($room) use ($assignedPhongIds) {
-                        return in_array($room->id, $assignedPhongIds);
+                        return $room instanceof \App\Models\Phong && in_array($room->id, $assignedPhongIds);
                     });
                     $availableRooms = $availableRooms->merge($rooms);
                 }

@@ -79,6 +79,17 @@
                                 </div>
                             @endif
                         </div>
+                    @else
+                        {{-- Thông báo: Booking chờ xác nhận chưa thanh toán nên không cần hoàn tiền --}}
+                        <div class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div class="flex items-start gap-2">
+                                <i class="fas fa-info-circle text-blue-600 mt-0.5"></i>
+                                <div>
+                                    <p class="text-blue-800 font-semibold mb-1">Thông báo:</p>
+                                    <p class="text-blue-700 text-sm">Booking đang ở trạng thái chờ xác nhận và chưa thanh toán, nên không cần xử lý hoàn tiền khi hủy.</p>
+                                </div>
+                            </div>
+                        </div>
                     @endif
 
                     <form action="{{ route('admin.dat_phong.cancel.submit', $booking->id) }}" method="POST" novalidate>

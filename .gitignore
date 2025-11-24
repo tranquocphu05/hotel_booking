@@ -23,7 +23,15 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 *.yaml
+
+# Documentation files (Markdown) - ignore all except important ones
 *.md
+!README.md
+!CHANGELOG.md
+
+# Important documentation files
+!SYSTEM_RULES.txt
+!BUSINESS_RULES.md
 
 # Kiro IDE
 /.kiro/
@@ -39,4 +47,4 @@ tatus
 /.qodo/
 /.windsurf/
 /.trae
-.md
+

@@ -211,23 +211,94 @@
                                 {{-- Room fee --}}
                                 <div class="flex justify-between items-center py-2">
                                     <span class="text-gray-700 font-medium">Tiền phòng</span>
-                                    <span class="text-gray-900 font-semibold text-lg">{{ number_format($roomTotal, 0, ',', '.') }} đ</span>
+                                    <span class="text-gray-900 font-semibold text-lg">{{ number_format($invoice->tien_phong ?? $roomTotal, 0, ',', '.') }} đ</span>
                                 </div>
+                                
+                                {{-- Voucher discount --}}
+                                @if(($invoice->giam_gia ?? 0) > 0)
+                                    @php
+                                        $voucher = $booking->voucher;
+                                    @endphp
+                                    <div class="flex justify-between items-center py-2">
+                                        <span class="text-gray-700 font-medium">
+                                            Giảm giá @if($voucher)({{ $voucher->ma_voucher ?? '' }} - {{ $voucher->gia_tri ?? 0 }}%)@endif
+                                        </span>
+                                        <span class="text-red-600 font-semibold text-lg">-{{ number_format($invoice->giam_gia, 0, ',', '.') }} đ</span>
+                                    </div>
+                                @endif
+                                
                                 <div class="border-t border-gray-200"></div>
                             @endif
 
                             {{-- Services total --}}
-                            <div class="flex justify-between items-center py-2">
-                                <span class="text-gray-700 font-medium">Tổng dịch vụ</span>
-                                <span class="text-gray-900 font-semibold text-lg">{{ number_format($servicesTotal, 0, ',', '.') }} đ</span>
-                            </div>
+                            @if($servicesTotal > 0 || ($invoice->tien_dich_vu ?? 0) > 0)
+                                <div class="flex justify-between items-center py-2">
+                                    <span class="text-gray-700 font-medium">Tổng dịch vụ</span>
+                                    <span class="text-gray-900 font-semibold text-lg">{{ number_format($invoice->tien_dich_vu ?? $servicesTotal, 0, ',', '.') }} đ</span>
+                                </div>
+                            @endif
+
+                            {{-- Phụ phí thiệt hại tài sản --}}
+                            @php
+                                $phiPhatSinh = $invoice->phi_phat_sinh ?? 0;
+                                $lyDoThietHai = '';
+                                $loaiThietHai = '';
+                                
+                                // Extract thông tin thiệt hại từ ghi_chu_checkout
+                                if ($booking && $booking->ghi_chu_checkout) {
+                                    // Extract lý do từ format [LY_DO_PHI: ...]
+                                    if (preg_match('/\[LY_DO_PHI:\s*(.+?)\]/', $booking->ghi_chu_checkout, $matches)) {
+                                        $lyDoThietHai = trim($matches[1]);
+                                    }
+                                    
+                                    // Extract danh mục thiệt hại từ format === THIỆT HẠI TÀI SẢN ===
+                                    if (preg_match('/Danh mục:\s*(.+?)(?:\n|$)/', $booking->ghi_chu_checkout, $matches)) {
+                                        $loaiThietHai = trim($matches[1]);
+                                    }
+                                }
+                            @endphp
+                            
+                            @if($phiPhatSinh > 0)
+                                <div class="border-t border-gray-200 my-2"></div>
+                                <div class="bg-red-50 border-l-4 border-red-500 rounded p-4 mb-2">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <div class="flex-1">
+                                            <div class="flex items-center gap-2 mb-1">
+                                                <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                </svg>
+                                                <span class="text-red-800 font-semibold">Phụ phí thiệt hại tài sản</span>
+                                            </div>
+                                            @if($loaiThietHai)
+                                                <p class="text-sm text-red-700 mb-1">
+                                                    <span class="font-medium">Danh mục:</span> {{ $loaiThietHai }}
+                                                </p>
+                                            @endif
+                                            @if($lyDoThietHai)
+                                                <p class="text-sm text-red-700">
+                                                    <span class="font-medium">Mô tả:</span> {{ $lyDoThietHai }}
+                                                </p>
+                                            @endif
+                                        </div>
+                                        <span class="text-red-600 font-bold text-lg ml-4">{{ number_format($phiPhatSinh, 0, ',', '.') }} đ</span>
+                                    </div>
+                                </div>
+                            @endif
                             
                             <div class="border-t-2 border-gray-300"></div>
 
                             {{-- Total --}}
+                            @php
+                                // Tính tổng cuối cùng: (Tiền phòng - Giảm giá) + Tiền dịch vụ + Phụ phí
+                                $tienPhong = $invoice->tien_phong ?? $roomTotal;
+                                $giamGia = $invoice->giam_gia ?? 0;
+                                $tienDichVu = $invoice->tien_dich_vu ?? $servicesTotal;
+                                $phiPhatSinh = $invoice->phi_phat_sinh ?? 0;
+                                $tongCuoiCung = $invoice->tong_tien ?? max(0, $tienPhong - $giamGia + $tienDichVu + $phiPhatSinh);
+                            @endphp
                             <div class="flex justify-between items-center py-3 bg-blue-600 -mx-6 px-6 -mb-6">
                                 <span class="font-bold text-white text-lg">TỔNG THANH TOÁN</span>
-                                <span class="text-white text-3xl font-bold">{{ number_format($invoice->tong_tien ?? ($roomTotal + $servicesTotal), 0, ',', '.') }} đ</span>
+                                <span class="text-white text-3xl font-bold">{{ number_format($tongCuoiCung, 0, ',', '.') }} đ</span>
                             </div>
                         </div>
 
