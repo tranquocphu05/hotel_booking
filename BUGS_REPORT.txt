@@ -1,0 +1,500 @@
+================================================================================
+                    BÁO CÁO LỖI HỆ THỐNG ĐẶT PHÒNG
+================================================================================
+Ngày phát hiện: 20/11/2025
+Phiên bản: Laravel 12.x
+Tổng số bug: 10
+Mức độ: 3 Critical, 4 High, 3 Medium
+
+================================================================================
+                            DANH SÁCH CÁC BUG
+================================================================================
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ BUG #1: CONFLICT TRONG DATPHONG MODEL - PHONG_IDS KHÔNG ĐƯỢC CAST       │
+│ Mức độ: 🔴 CRITICAL                                                      │
+└──────────────────────────────────────────────────────────────────────────┘
+
+File: app/Models/DatPhong.php
+Dòng: 68-72
+
+VẤN ĐỀ:
+- Model comment nói phong_ids và room_types đã DEPRECATED và chuyển sang 
+  pivot table
+- Nhưng code vẫn đang sử dụng JSON fields này ở khắp nơi
+- Các casts cho phong_ids và room_types đã bị comment out:
+
+    protected $casts = [
+        // 'room_types' => 'array',  // DEPRECATED
+        // 'phong_ids' => 'array',   // DEPRECATED
+    ];
+
+HẬU QUẢ:
+- phong_ids và room_types không tự động encode/decode JSON
+- Phải gọi save() thủ công mỗi lần thay đổi
+- Dễ gây lỗi khi quên cast
+- Dữ liệu có thể bị lưu sai định dạng
+
+GIẢI PHÁP:
+1. Uncomment các casts:
+   protected $casts = [
+       'room_types' => 'array',
+       'phong_ids' => 'array',
+   ];
+
+2. Hoặc xóa hẳn pivot table logic và chỉ dùng JSON
+
+3. Cập nhật fillable để bao gồm phong_ids và room_types
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ BUG #2: RACE CONDITION TRONG BOOKINGCONTROLLER::SUBMIT()                │
+│ Mức độ: 🔴 CRITICAL                                                      │
+└──────────────────────────────────────────────────────────────────────────┘
+
+File: app/Http/Controllers/BookingController.php
+Dòng: 200-250
+
+VẤN ĐỀ:
+Trong vòng lặp gán phòng:
+
+    $allPhongIds = [];
+    foreach ($roomDetails as $roomDetail) {
+        $availableRooms = Phong::findAvailableRooms(...);
+        
+        // Filter out rooms already assigned
+        $availableRooms = $availableRooms->reject(function($phong) use ($allPhongIds) {
+            return in_array($phong->id, $allPhongIds);
+        });
+        
+        // Nhưng KHÔNG lock trước khi filter
+        // Có thể bị race condition giữa reject và lock
+    }
+
+HẬU QUẢ:
+- Hai request đồng thời có thể gán cùng một phòng
+- Filter reject() xảy ra TRƯỚC khi lock
+- Giữa lúc filter và lock, phòng có thể đã được gán bởi request khác
+- Double booking xảy ra
+
+GIẢI PHÁP:
+1. Lock phòng TRƯỚC khi filter:
+   
+   foreach ($availableRooms as $phong) {
+       $phongLocked = Phong::lockForUpdate()->find($phong->id);
+       
+       // Check sau khi lock
+       if (in_array($phongLocked->id, $allPhongIds)) {
+           continue;
+       }
+       
+       if ($phongLocked->isAvailableInPeriod(...)) {
+           $allPhongIds[] = $phongLocked->id;
+       }
+   }
+
+2. Hoặc lock tất cả phòng cùng lúc trước khi filter
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ BUG #3: LOGIC TÍNH SO_LUONG_TRONG KHÔNG NHẤT QUÁN                       │
+│ Mức độ: 🔴 CRITICAL                                                      │
+└──────────────────────────────────────────────────────────────────────────┘
+
+File: app/Models/DatPhong.php
+Dòng: 350-360
+
+VẤN ĐỀ:
+Trong DatPhong::boot() updated event:
+
+    // Recalculate so_luong_trong
+    $trongCount = \App\Models\Phong::where('loai_phong_id', $booking->loai_phong_id)
+        ->where('trang_thai', 'trong')
+        ->count();
+    LoaiPhong::where('id', $booking->loai_phong_id)
+        ->update(['so_luong_trong' => $trongCount]);
+
+Vấn đề:
+- Chỉ recalculate cho loai_phong_id chính
+- KHÔNG recalculate cho các loại phòng khác trong room_types JSON
+- Khi booking có nhiều loại phòng, chỉ loại đầu tiên được cập nhật
+
+HẬU QUẢ:
+- so_luong_trong sai cho các loại phòng thứ 2, 3, ...
+- Dashboard admin hiển thị số phòng trống không chính xác
+- Khách có thể đặt phòng đã hết
+
+GIẢI PHÁP:
+Recalculate cho TẤT CẢ loại phòng trong booking:
+
+    $roomTypes = $booking->getRoomTypes();
+    $loaiPhongIdsToUpdate = [];
+    
+    foreach ($roomTypes as $roomType) {
+        if (isset($roomType['loai_phong_id'])) {
+            $loaiPhongIdsToUpdate[] = $roomType['loai_phong_id'];
+        }
+    }
+    
+    // Thêm loai_phong_id chính nếu chưa có
+    if (!in_array($booking->loai_phong_id, $loaiPhongIdsToUpdate)) {
+        $loaiPhongIdsToUpdate[] = $booking->loai_phong_id;
+    }
+    
+    // Recalculate cho tất cả
+    foreach (array_unique($loaiPhongIdsToUpdate) as $loaiPhongId) {
+        $trongCount = Phong::where('loai_phong_id', $loaiPhongId)
+            ->where('trang_thai', 'trong')
+            ->count();
+        LoaiPhong::where('id', $loaiPhongId)
+            ->update(['so_luong_trong' => $trongCount]);
+    }
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ BUG #4: KHÔNG KIỂM TRA PHONG_IDS TRÙNG LẶP                              │
+│ Mức độ: 🟡 HIGH                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+
+File: app/Http/Controllers/BookingController.php
+Dòng: 240
+
+VẤN ĐỀ:
+    foreach ($availableRooms as $phong) {
+        // Skip nếu phòng đã được gán trong loop trước
+        if (in_array($phong->id, $allPhongIds)) {
+            continue;
+        }
+        
+        $phongLocked = Phong::lockForUpdate()->find($phong->id);
+        // ... gán phòng
+        $allPhongIds[] = $phongLocked->id;
+    }
+
+Vấn đề:
+- Check in_array TRƯỚC khi lock
+- Giữa lúc check và lock, phòng có thể đã được thêm vào $allPhongIds 
+  bởi thread khác
+- Có thể gán trùng phòng
+
+HẬU QUẢ:
+- Cùng một phòng được gán cho nhiều loại phòng trong cùng booking
+- Dữ liệu không nhất quán
+- Khách nhận được ít phòng hơn đã đặt
+
+GIẢI PHÁP:
+Check lại SAU khi lock:
+
+    $phongLocked = Phong::lockForUpdate()->find($phong->id);
+    
+    // Check lại sau khi lock
+    if (in_array($phongLocked->id, $allPhongIds)) {
+        continue;
+    }
+    
+    if ($phongLocked->isAvailableInPeriod(...)) {
+        $allPhongIds[] = $phongLocked->id;
+    }
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ BUG #5: AUTOCANCELEXPIREDBOOKINGS KHÔNG XÓA PHONG_IDS ĐÚNG CÁCH         │
+│ Mức độ: 🟡 HIGH                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+
+File: app/Http/Middleware/AutoCancelExpiredBookings.php
+Dòng: 100
+
+VẤN ĐỀ:
+    // Giải phóng phòng qua phong_ids JSON
+    $phongIds = $booking->getPhongIds();
+    foreach ($phongIds as $phongId) {
+        // ... giải phóng phòng
+    }
+    
+    // Xóa phong_ids SAU khi đã giải phóng
+    $booking->phong_ids = [];
+    $booking->save();
+
+Vấn đề:
+- Xóa phong_ids SAU khi đã giải phóng phòng
+- Nếu có lỗi khi giải phóng phòng, phong_ids vẫn bị xóa
+- Không nhất quán với logic khác
+
+HẬU QUẢ:
+- Mất dữ liệu phong_ids khi có lỗi
+- Không thể rollback nếu transaction fail
+- Khó debug khi có vấn đề
+
+GIẢI PHÁP:
+Xóa phong_ids TRƯỚC khi giải phóng hoặc trong cùng bước:
+
+    DB::transaction(function () use ($booking) {
+        $phongIds = $booking->getPhongIds();
+        
+        // Xóa phong_ids trước
+        $booking->phong_ids = [];
+        $booking->save();
+        
+        // Sau đó giải phóng phòng
+        foreach ($phongIds as $phongId) {
+            // ... giải phóng
+        }
+    });
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ BUG #6: KHÔNG VALIDATE DUPLICATE ROOM TYPES TRONG ADMIN CREATE          │
+│ Mức độ: 🟢 MEDIUM                                                        │
+└──────────────────────────────────────────────────────────────────────────┘
+
+File: app/Http/Controllers/Admin/DatPhongController.php
+Dòng: 600+
+
+VẤN ĐỀ:
+Admin có thể chọn cùng loại phòng nhiều lần khi tạo booking.
+Không có validation để kiểm tra duplicate room types.
+
+HẬU QUẢ:
+- Dữ liệu không nhất quán
+- Tính toán giá sai
+- Gán phòng trùng lặp
+- Khó quản lý và debug
+
+GIẢI PHÁP:
+Thêm validation trong store():
+
+    $selectedRoomTypes = $request->room_types ?? [];
+    
+    // Check duplicate
+    if (count($selectedRoomTypes) !== count(array_unique($selectedRoomTypes))) {
+        return back()->withErrors([
+            'room_types' => 'Không thể chọn trùng loại phòng. Vui lòng chọn số lượng phù hợp.'
+        ])->withInput();
+    }
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ BUG #7: PHONG::ISAVAILABLEINPERIOD() KHÔNG CHECK BAO_TRI ĐÚNG           │
+│ Mức độ: 🟢 MEDIUM                                                        │
+└──────────────────────────────────────────────────────────────────────────┘
+
+File: app/Models/Phong.php
+Dòng: 100-105
+
+VẤN ĐỀ:
+    // Nếu phòng đang bảo trì, không khả dụng
+    if ($this->trang_thai === 'bao_tri') {
+        return false;
+    }
+    
+    // Nhưng sau đó lại check conflict với bookings
+    // Logic có thể bị bypass
+
+Logic hiện tại:
+1. Check bao_tri → return false
+2. Check conflict với bookings
+3. Return true nếu không có conflict
+
+Vấn đề: Logic đúng nhưng có thể bị confuse
+
+HẬU QUẢ:
+- Không có bug thực sự nhưng logic khó hiểu
+- Có thể gây nhầm lẫn khi maintain
+
+GIẢI PHÁP:
+Làm rõ logic và thêm comment:
+
+    /**
+     * Kiểm tra phòng có trống trong khoảng thời gian cụ thể không
+     * 
+     * @return bool true nếu phòng khả dụng, false nếu:
+     *              - Phòng đang bảo trì
+     *              - Phòng có booking conflict trong khoảng thời gian
+     */
+    public function isAvailableInPeriod($ngayNhan, $ngayTra, $excludeBookingId = null)
+    {
+        // Rule 1: Phòng bảo trì LUÔN không khả dụng
+        if ($this->trang_thai === 'bao_tri') {
+            return false;
+        }
+        
+        // Rule 2: Check conflict với bookings
+        // ...
+    }
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ BUG #8: MISSING LOCK TRONG ASSIGNROOM                                   │
+│ Mức độ: 🟡 HIGH                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+
+File: app/Http/Controllers/Admin/DatPhongController.php
+Dòng: 650
+
+VẤN ĐỀ:
+    DB::transaction(function () use ($booking, $phongId, $phong) {
+        $booking->refresh();
+        
+        $phongIds = $booking->getPhongIds();
+        if (!in_array($phongId, $phongIds)) {
+            $phongIds[] = (int) $phongId;
+            $booking->phong_ids = $phongIds;
+            $booking->save(); // Save TRONG transaction
+        }
+        
+        // Nhưng KHÔNG lock booking trước khi update
+        // Có thể bị race condition
+    });
+
+HẬU QUẢ:
+- Hai admin có thể gán phòng đồng thời
+- Một trong hai gán phòng có thể bị mất
+- Race condition khi update phong_ids
+
+GIẢI PHÁP:
+Lock booking trước khi update:
+
+    DB::transaction(function () use ($booking, $phongId, $phong) {
+        // Lock booking trước
+        $booking = DatPhong::lockForUpdate()->find($booking->id);
+        
+        $phongIds = $booking->getPhongIds();
+        if (!in_array($phongId, $phongIds)) {
+            $phongIds[] = (int) $phongId;
+            $booking->phong_ids = $phongIds;
+            $booking->save();
+        }
+    });
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ BUG #9: CALCULATECANCELLATIONPOLICY() BỊ INCOMPLETE                     │
+│ Mức độ: 🟢 MEDIUM                                                        │
+└──────────────────────────────────────────────────────────────────────────┘
+
+File: app/Http/Controllers/Admin/DatPhongController.php
+Dòng: 280
+
+VẤN ĐỀ:
+Method bị cắt ngang, không có phần tính refund_amount và penalty_amount:
+
+    } else {
+        // Hủy trong ngày: Không hoàn tiền
+        $policy['refund_percentage'] = 0;
+        $policy['message'] = 'Không hoàn tiền (hủy quá gần ngày nhận phòng)';
+    }
+
+    // THIẾU phần tính refund_amount và penalty_amount
+    return view('admin.dat_phong.edit', ...); // SAI - return view thay vì return $policy
+
+HẬU QUẢ:
+- Method không return đúng giá trị
+- Gây lỗi khi gọi method
+- Không tính được số tiền hoàn lại
+
+GIẢI PHÁP:
+Hoàn thiện method:
+
+    } else {
+        $policy['refund_percentage'] = 0;
+        $policy['message'] = 'Không hoàn tiền (hủy quá gần ngày nhận phòng)';
+    }
+    
+    // Tính số tiền hoàn lại
+    $policy['refund_amount'] = ($booking->tong_tien * $policy['refund_percentage']) / 100;
+    $policy['penalty_amount'] = $booking->tong_tien - $policy['refund_amount'];
+    
+    return $policy; // Return policy, KHÔNG phải view
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ BUG #10: KHÔNG VALIDATE PHONG_IDS KHI UPDATE BOOKING                    │
+│ Mức độ: 🟡 HIGH                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+
+File: app/Http/Controllers/Admin/DatPhongController.php
+Dòng: 450
+
+VẤN ĐỀ:
+Khi update booking, không kiểm tra xem newPhongIds có đủ số lượng không:
+
+    // 3. Update booking với thông tin mới
+    $booking->update([
+        'phong_ids' => $newPhongIds, // Có thể thiếu phòng
+        'so_luong_da_dat' => $totalSoLuong,
+    ]);
+    
+    // KHÔNG kiểm tra: count($newPhongIds) == $totalSoLuong
+
+HẬU QUẢ:
+- Booking có thể có so_luong_da_dat = 3 nhưng chỉ gán được 2 phòng
+- Dữ liệu không nhất quán
+- Khách nhận ít phòng hơn đã đặt
+
+GIẢI PHÁP:
+Validate sau khi gán phòng:
+
+    // 3. Update booking với thông tin mới
+    $booking->update([
+        'phong_ids' => $newPhongIds,
+        'so_luong_da_dat' => $totalSoLuong,
+    ]);
+    
+    // Validate số lượng phòng đã gán
+    if (count($newPhongIds) < $totalSoLuong) {
+        throw \Illuminate\Validation\ValidationException::withMessages([
+            'error' => "Chỉ gán được " . count($newPhongIds) . "/" . $totalSoLuong . " phòng. Vui lòng kiểm tra lại."
+        ]);
+    }
+
+
+================================================================================
+                            TỔNG KẾT VÀ ƯU TIÊN
+================================================================================
+
+PHÂN LOẠI THEO MỨC ĐỘ:
+┌─────────────┬───────────────────────────────────────────────────────────┐
+│ 🔴 CRITICAL │ Bug #1, #2, #3                                            │
+│ 🟡 HIGH     │ Bug #4, #5, #8, #10                                       │
+│ 🟢 MEDIUM   │ Bug #6, #7, #9                                            │
+└─────────────┴───────────────────────────────────────────────────────────┘
+
+KHUYẾN NGHỊ ƯU TIÊN FIX:
+1. Bug #1 - Uncomment casts cho phong_ids và room_types (NGAY LẬP TỨC)
+2. Bug #2 - Fix race condition trong BookingController::submit()
+3. Bug #3 - Fix logic tính so_luong_trong cho multi-room booking
+4. Bug #8 - Thêm lock trong assignRoom
+5. Bug #10 - Validate phong_ids khi update
+6. Bug #4 - Fix duplicate check trong gán phòng
+7. Bug #5 - Fix logic xóa phong_ids trong auto-cancel
+8. Bug #6 - Thêm validation duplicate room types
+9. Bug #9 - Hoàn thiện calculateCancellationPolicy()
+10. Bug #7 - Cải thiện comment và documentation
+
+THỜI GIAN ƯỚC TÍNH:
+- Bug Critical: 4-6 giờ
+- Bug High: 3-4 giờ
+- Bug Medium: 1-2 giờ
+- Tổng: 8-12 giờ (1-1.5 ngày làm việc)
+
+TESTING CHECKLIST:
+□ Test concurrent booking (2 users đặt cùng lúc)
+□ Test multi-room booking (3+ loại phòng)
+□ Test auto-cancel (booking quá 5 phút)
+□ Test admin assign room (gán phòng thủ công)
+□ Test update booking (đổi ngày, đổi phòng)
+□ Test cancellation policy (hủy phòng)
+□ Test so_luong_trong accuracy (kiểm tra số phòng trống)
+□ Test race condition scenarios (stress test)
+
+NOTES:
+- Backup database trước khi fix
+- Test trên staging environment trước
+- Deploy vào giờ thấp điểm
+- Monitor logs sau khi deploy
+- Chuẩn bị rollback plan
+
+================================================================================
+                                KẾT THÚC BÁO CÁO
+================================================================================

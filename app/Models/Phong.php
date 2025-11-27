@@ -50,13 +50,15 @@ class Phong extends Model
     }
 
     /**
-     * Get bookings that have this room assigned (via phong_ids JSON)
-     * @return \Illuminate\Database\Eloquent\Collection
+     * Get bookings that have this room assigned via pivot table booking_rooms
+     * BUG FIX: Use belongsToMany to query pivot table instead of legacy hasMany
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
      */
-    public function bookings()
+    public function bookings(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
-        // Query bookings that have this room ID in phong_ids JSON
-        return DatPhong::whereContainsPhongId($this->id)->get();
+        // Query bookings via pivot table booking_rooms (new system)
+        return $this->belongsToMany(DatPhong::class, 'booking_rooms', 'phong_id', 'dat_phong_id')
+            ->withTimestamps();
     }
 
     /**
@@ -102,33 +104,43 @@ class Phong extends Model
 
     /**
      * Kiểm tra phòng có trống trong khoảng thời gian cụ thể không
-     * Kiểm tra cả bookings qua phong_id (legacy) và qua phong_ids JSON
-     * 
-     * @param Carbon|string $ngayNhan
-     * @param Carbon|string $ngayTra
+     * Kiểm tra bookings qua phong_id (legacy) và qua pivot table booking_rooms
+     *
+     * BUG FIX #7: Làm rõ logic và thêm documentation
+     *
+     * Logic kiểm tra:
+     * 1. Phòng bảo trì → LUÔN return false (không khả dụng)
+     * 2. Check conflict với bookings trong khoảng thời gian
+     * 3. Return true nếu không có conflict
+     *
+     * Lưu ý: KHÔNG dựa vào trang_thai 'trong' hay 'dang_thue' để check availability
+     * vì phòng có thể 'dang_thue' cho booking khác (không overlap) → vẫn available
+     *
+     * @param Carbon|string $ngayNhan Check-in date
+     * @param Carbon|string $ngayTra Check-out date
      * @param int|null $excludeBookingId Booking ID để loại trừ khỏi kiểm tra (khi đang đổi phòng)
-     * @return bool
+     * @return bool true nếu phòng khả dụng, false nếu:
+     *              - Phòng đang bảo trì
+     *              - Phòng có booking conflict trong khoảng thời gian
      */
     public function isAvailableInPeriod($ngayNhan, $ngayTra, $excludeBookingId = null)
     {
-        // Nếu phòng đang bảo trì, không khả dụng (không phụ thuộc vào khoảng thời gian)
+        // Rule 1: Phòng bảo trì LUÔN không khả dụng (bất kể có booking hay không)
         if ($this->trang_thai === 'bao_tri') {
             return false;
         }
 
-        // Chuyển đổi sang Carbon nếu cần
+        // Rule 2: Check conflict với bookings
+        // Convert to Carbon if needed
         if (!$ngayNhan instanceof Carbon) {
             $ngayNhan = Carbon::parse($ngayNhan);
         }
         if (!$ngayTra instanceof Carbon) {
             $ngayTra = Carbon::parse($ngayTra);
         }
-        
-        // Kiểm tra conflict với bookings trong khoảng thời gian này trước
-        // Nếu có conflict, phòng không khả dụng (dù trạng thái là gì)
-        // Nếu không có conflict, phòng khả dụng (trừ khi đang bảo trì)
 
-        // Kiểm tra bookings qua phong_id trực tiếp (legacy)
+        // Conflict detection logic:
+        // Hai booking conflict nếu: existing.ngay_tra > new.ngay_nhan AND existing.ngay_nhan < new.ngay_tra
         // Chỉ tính conflict với các booking chưa kết thúc (ngay_tra > hôm nay)
         $today = Carbon::today();
         $conflictFromDirect = $this->datPhongs()
@@ -147,30 +159,32 @@ class Phong extends Model
             })
             ->exists();
 
-        // Kiểm tra bookings qua phong_ids JSON
-        // Kiểm tra bookings qua phong_ids JSON (các booking chứa id của phòng này)
-        $conflictFromPhongIds = \App\Models\DatPhong::where(function($query) use ($ngayNhan, $ngayTra, $excludeBookingId, $today) {
+        // CRITICAL FIX: Kiểm tra bookings qua PIVOT TABLE booking_rooms
+        // Đã chuyển từ phong_ids JSON sang pivot table
+        $conflictFromPivot = \App\Models\DatPhong::whereHas('phongs', function($q) {
+                $q->where('phong_id', $this->id);
+            })
+            ->when($excludeBookingId, function($query) use ($excludeBookingId) {
+                $query->where('id', '!=', $excludeBookingId);
+            })
+            ->where(function($query) use ($ngayNhan, $ngayTra, $today) {
                 $query->where(function($q) use ($ngayNhan, $ngayTra) {
                     $q->where('ngay_tra', '>', $ngayNhan)
                       ->where('ngay_nhan', '<', $ngayTra);
                 })
                 ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
-                ->where('ngay_tra', '>', $today)
-                ->when($excludeBookingId, function($q) use ($excludeBookingId) {
-                    $q->where('id', '!=', $excludeBookingId);
-                });
+                ->where('ngay_tra', '>', $today);
             })
-            ->whereContainsPhongId($this->id)
             ->exists();
 
         // Phòng khả dụng nếu:
         // 1. Không có conflict với bookings trong khoảng thời gian này
         // 2. Phòng không đang bảo trì (đã check ở đầu method)
-        // 
+        //
         // Lưu ý: Không check trạng thái 'dang_thue' hay 'trong' ở đây vì:
         // - Phòng có thể 'dang_thue' cho booking khác (không overlap)
         // - Phòng có thể 'trong' nhưng đã được đặt cho khoảng thời gian này (sẽ bị phát hiện bởi conflict check)
-        return !$conflictFromDirect && !$conflictFromPhongIds;
+        return !$conflictFromDirect && !$conflictFromPivot;
     }
 
     /**
@@ -220,7 +234,7 @@ class Phong extends Model
 
     /**
      * Tìm phòng trống trong loại phòng cho khoảng thời gian cụ thể
-     * 
+     *
      * @param int $loaiPhongId
      * @param Carbon|string $ngayNhan
      * @param Carbon|string $ngayTra
@@ -255,11 +269,11 @@ class Phong extends Model
 
     /**
      * Đếm số phòng trống trong loại phòng cho khoảng thời gian cụ thể
-     * 
+     *
      * Ví dụ: Nếu tất cả phòng đã được đặt từ 01/11 - 07/11,
      * nhưng khách muốn đặt từ 08/11 - 14/11, method này sẽ trả về
      * số phòng trống cho khoảng thời gian 08/11 - 14/11 (không conflict với booking 01/11 - 07/11)
-     * 
+     *
      * @param int $loaiPhongId
      * @param Carbon|string $ngayNhan
      * @param Carbon|string $ngayTra
@@ -270,5 +284,62 @@ class Phong extends Model
         // Pass through excludeBookingId so findAvailableRooms can ignore rooms
         // already assigned to the provided booking when calculating availability.
         return static::findAvailableRooms($loaiPhongId, $ngayNhan, $ngayTra, 999, $excludeBookingId)->count();
+    }
+
+    /**
+     * Boot method - Register model events
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Khi trạng thái phòng thay đổi, recalculate so_luong_trong của loại phòng
+        static::updated(function ($phong) {
+            if ($phong->isDirty('trang_thai') && $phong->loai_phong_id) {
+                // Recalculate so_luong_trong dựa trên số phòng thực tế có trang_thai = 'trong'
+                $trongCount = static::where('loai_phong_id', $phong->loai_phong_id)
+                    ->where('trang_thai', 'trong')
+                    ->count();
+
+                LoaiPhong::where('id', $phong->loai_phong_id)
+                    ->update(['so_luong_trong' => $trongCount]);
+            }
+
+            // Nếu đổi loại phòng, cần recalculate cho cả 2 loại phòng
+            if ($phong->isDirty('loai_phong_id')) {
+                $oldLoaiPhongId = $phong->getOriginal('loai_phong_id');
+                $newLoaiPhongId = $phong->loai_phong_id;
+
+                // Recalculate cho loại phòng cũ
+                if ($oldLoaiPhongId) {
+                    $trongCountOld = static::where('loai_phong_id', $oldLoaiPhongId)
+                        ->where('trang_thai', 'trong')
+                        ->count();
+                    LoaiPhong::where('id', $oldLoaiPhongId)
+                        ->update(['so_luong_trong' => $trongCountOld]);
+                }
+
+                // Recalculate cho loại phòng mới
+                if ($newLoaiPhongId) {
+                    $trongCountNew = static::where('loai_phong_id', $newLoaiPhongId)
+                        ->where('trang_thai', 'trong')
+                        ->count();
+                    LoaiPhong::where('id', $newLoaiPhongId)
+                        ->update(['so_luong_trong' => $trongCountNew]);
+                }
+            }
+        });
+
+        // Khi phòng bị xóa, recalculate so_luong_trong
+        static::deleted(function ($phong) {
+            if ($phong->loai_phong_id) {
+                $trongCount = static::where('loai_phong_id', $phong->loai_phong_id)
+                    ->where('trang_thai', 'trong')
+                    ->count();
+
+                LoaiPhong::where('id', $phong->loai_phong_id)
+                    ->update(['so_luong_trong' => $trongCount]);
+            }
+        });
     }
 }

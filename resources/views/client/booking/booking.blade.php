@@ -41,7 +41,7 @@
                 data-booking-context="true" data-gia-mot-dem="{{ $gia_mot_dem }}"
                 data-loai-phong-id="{{ $loaiPhong->id }}">
                 @csrf
-                @if ($errors->any())
+                @if (isset($errors) && $errors->any())
                     <div class="form-error-panel">
                         <div class="form-error-header">
                             <span><i class="fas fa-exclamation-triangle"></i></span>
@@ -199,40 +199,43 @@
 
                 <div class="block block-list-room">
                     <div class="list-rooms">
-                        @if ($errors->has('error'))
+                        @php
+                            $errorObj = isset($errors) && is_object($errors) ? $errors : null;
+                        @endphp
+                        @if ($errorObj && method_exists($errorObj, 'has') && $errorObj->has('error'))
                             <div class="alert alert-error">
                                 <strong class="font-bold">Lỗi!</strong>
-                                <span class="block">{{ $errors->first('error') }}</span>
+                                <span class="block">{{ method_exists($errorObj, 'first') ? $errorObj->first('error') : '' }}</span>
                             </div>
                         @endif
 
-                        @if ($errors->has('rooms'))
+                        @if ($errorObj && method_exists($errorObj, 'has') && $errorObj->has('rooms'))
                             <div class="alert alert-error">
                                 <strong class="font-bold">Lỗi!</strong>
                                 <ul class="list-disc list-inside mt-1">
-                                    @foreach ($errors->get('rooms') as $error)
+                                    @foreach ((method_exists($errorObj, 'get')) ? $errorObj->get('rooms') : [] as $error)
                                         <li>{{ $error }}</li>
                                     @endforeach
                                 </ul>
                             </div>
                         @endif
 
-                        @if ($errors->has('rooms.*.loai_phong_id'))
+                        @if ($errorObj && method_exists($errorObj, 'has') && $errorObj->has('rooms.*.loai_phong_id'))
                             <div class="alert alert-error">
                                 <strong class="font-bold">Lỗi!</strong>
                                 <ul class="list-disc list-inside mt-1">
-                                    @foreach ($errors->get('rooms.*.loai_phong_id') as $error)
+                                    @foreach ((method_exists($errorObj, 'get')) ? $errorObj->get('rooms.*.loai_phong_id') : [] as $error)
                                         <li>{{ $error }}</li>
                                     @endforeach
                                 </ul>
                             </div>
                         @endif
 
-                        @if ($errors->has('rooms.*.so_luong'))
+                        @if ($errorObj && method_exists($errorObj, 'has') && $errorObj->has('rooms.*.so_luong'))
                             <div class="alert alert-error">
                                 <strong class="font-bold">Lỗi!</strong>
                                 <ul class="list-disc list-inside mt-1">
-                                    @foreach ($errors->get('rooms.*.so_luong') as $error)
+                                    @foreach ((method_exists($errorObj, 'get')) ? $errorObj->get('rooms.*.so_luong') : [] as $error)
                                         <li>{{ $error }}</li>
                                     @endforeach
                                 </ul>
@@ -266,16 +269,16 @@
                                                 $optionImage = $option->anh
                                                     ? asset($option->anh)
                                                     : '/img/room/room-1.jpg';
-                                                
+
                                                 // Lấy dữ liệu đánh giá cho loại phòng này
                                                 $averageRating = \App\Models\Comment::where('loai_phong_id', $option->id)
                                                     ->where('trang_thai', 'hien_thi')
                                                     ->avg('so_sao') ?? 0;
-                                                
+
                                                 $totalReviews = \App\Models\Comment::where('loai_phong_id', $option->id)
                                                     ->where('trang_thai', 'hien_thi')
                                                     ->count();
-                                                
+
                                                 // Lấy 5 đánh giá gần nhất
                                                 $recentReviews = \App\Models\Comment::where('loai_phong_id', $option->id)
                                                     ->where('trang_thai', 'hien_thi')
@@ -297,8 +300,52 @@
                                             @endphp
                                             <article
                                                 class="room-card {{ $option->id === ($loaiPhong->id ?? null) ? 'room-card--active' : '' }}">
-                                                <div class="room-card__media">
-                                                    <img src="{{ $optionImage }}" alt="{{ $option->ten_loai }}">
+                                                <div class="room-card__left">
+                                                    <div class="room-card__media">
+                                                        <img src="{{ $optionImage }}" alt="{{ $option->ten_loai }}">
+                                                    </div>
+                                                    @php
+                                                        $initialAvailable = isset($roomAvailabilityMap) && isset($roomAvailabilityMap[$option->id])
+                                                            ? max(0, (int)$roomAvailabilityMap[$option->id])
+                                                            : (int)($option->so_luong_phong ?? 0);
+                                                    @endphp
+                                                    <div class="room-card__selection-area">
+                                                        <div class="room-selection-wrapper">
+                                                            <div class="room-quantity-card p-2.5">
+                                                                <label class="flex items-center gap-1.5 mb-2 text-xs font-semibold text-gray-700" for="room_card_quantity_{{ $option->id }}">
+                                                                    <div class="flex items-center justify-center w-6 h-6 rounded-md bg-blue-500 text-white shadow-sm">
+                                                                        <i class="fas fa-door-open text-xs"></i>
+                                                                    </div>
+                                                                    <span>Số lượng phòng</span>
+                                                                </label>
+                                                                <div class="relative">
+                                                                    <select
+                                                                        id="room_card_quantity_{{ $option->id }}"
+                                                                        class="room-card-quantity-modern appearance-none w-full bg-white border-2 border-blue-300 rounded-md px-3 py-2 pr-10 text-xs font-semibold text-gray-800 shadow-sm transition-all duration-200 hover:border-blue-500 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-500 cursor-pointer"
+                                                                        min="0"
+                                                                        max="{{ $option->so_luong_phong }}"
+                                                                        data-room-id="{{ $option->id }}"
+                                                                        data-room-name="{{ $option->ten_loai }}"
+                                                                        data-room-price="{{ $optionPrice }}"
+                                                                        data-max-quantity="{{ $initialAvailable }}"
+                                                                        onchange="updateRoomCardQuantity('{{ $option->id }}')">
+                                                                        @php
+                                                                            $isPreselected = $option->id === ($loaiPhong->id ?? null);
+                                                                        @endphp
+                                                                        @for ($q = 0; $q <= $initialAvailable; $q++)
+                                                                            <option value="{{ $q }}" {{ ($isPreselected && $q === 1) ? 'selected' : '' }}>{{ $q }} Phòng</option>
+                                                                        @endfor
+                                                                    </select>
+                                                                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                                                        <i class="fas fa-chevron-down text-blue-500 text-xs transition-transform duration-200 dropdown-chevron"></i>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div id="room_card_guest_rows_{{ $option->id }}" class="mt-2 hidden space-y-2">
+                                                                <!-- JS will render per-room guest selectors here when quantity > 0 -->
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                                 <div class="room-card__content">
                                                     <div class="room-card__header">
@@ -328,60 +375,25 @@
                                                         Xem tất cả tiện nghi
                                                     </button>
                                                     <div class="room-card__footer">
-                                                        <div>
-                                                            <p class="room-card__note">Giá chỉ từ</p>
-                                                            <p class="room-card__price">
-                                                                {{ number_format($optionPrice, 0, ',', '.') }} <span>VNĐ /
-                                                                    đêm</span></p>
+                                                        <div class="room-card__footer-top flex items-center justify-between gap-4">
+                                                            <div class="room-price-section">
+                                                                <p class="room-card__note text-xs text-gray-600 mb-1">Giá chỉ từ</p>
+                                                                <p class="room-card__price text-lg font-bold text-orange-500">
+                                                                    {{ number_format($optionPrice, 0, ',', '.') }} <span class="text-xs font-normal text-gray-600">VNĐ / đêm</span></p>
+                                                            </div>
                                                         </div>
-                                                        <div class="room-card__actions flex flex-wrap items-center gap-4">
-                                                            <div class="md:ml-0">
-                                                                <label class="sr-only" for="room_card_quantity_{{ $option->id }}">Số phòng</label>
-                                                                @php
-                                                                    $initialAvailable = isset($roomAvailabilityMap) && isset($roomAvailabilityMap[$option->id])
-                                                                        ? max(0, (int)$roomAvailabilityMap[$option->id])
-                                                                        : (int)($option->so_luong_phong ?? 0);
-                                                                @endphp
-                                                                <select 
-                                                                    id="room_card_quantity_{{ $option->id }}"
-                                                                    class="room-card-quantity rounded-md border border-gray-300
-                                                                            bg-white
-                                                                            py-1.5 pl-3 pr-8
-                                                                            text-sm text-gray-800
-                                                                            shadow-sm
-                                                                            focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                                                                            cursor-pointer"
-                                                                    min="0"
-                                                                    max="{{ $option->so_luong_phong }}"
-                                                                    data-room-id="{{ $option->id }}"
-                                                                    data-room-name="{{ $option->ten_loai }}"
-                                                                    data-room-price="{{ $optionPrice }}"
-                                                                    data-max-quantity="{{ $initialAvailable }}"
-                                                                    onchange="updateRoomCardQuantity('{{ $option->id }}')">
-                                                                    @php
-                                                                        $isPreselected = $option->id === ($loaiPhong->id ?? null);
-                                                                    @endphp
-                                                                    @for ($q = 0; $q <= $initialAvailable; $q++)
-                                                                        <option value="{{ $q }}" {{ ($isPreselected && $q === 1) ? 'selected' : '' }}>{{ $q }} Phòng</option>
-                                                                    @endfor
-                                                                </select>
+                                                        <div class="room-availability-info mt-auto" id="availability_info_{{ $option->id }}">
+                                                            <div class="availability-status">
+                                                                <i class="fas fa-bed text-green-500"></i>
+                                                                <span class="availability-text" id="availability_{{ $option->id }}">
+                                                                    Còn {{ $initialAvailable }} phòng
+                                                                </span>
                                                             </div>
-                                                            <div id="room_card_guest_rows_{{ $option->id }}" class="w-full md:ml-0 md:pl-2 mt-2 hidden">
-                                                                <!-- JS will render per-room guest selectors here when quantity > 0 -->
-                                                            </div>
-                                                            <div class="room-availability-info ml-auto mt-3 md:mt-0" id="availability_info_{{ $option->id }}">
-                                                                <div class="availability-status">
-                                                                    <i class="fas fa-bed text-green-500"></i>
-                                                                    <span class="availability-text" id="availability_{{ $option->id }}">
-                                                                        Còn {{ $initialAvailable }} phòng
-                                                                    </span>
-                                                                </div>
-                                                                <div class="date-range-info" id="date_range_{{ $option->id }}">
-                                                                    <small class="text-gray-500">
-                                                                        <i class="fas fa-calendar-alt"></i>
-                                                                        Vui lòng chọn ngày để xem phòng trống
-                                                                    </small>
-                                                                </div>
+                                                            <div class="date-range-info" id="date_range_{{ $option->id }}">
+                                                                <small class="text-gray-500">
+                                                                    <i class="fas fa-calendar-alt"></i>
+                                                                    Vui lòng chọn ngày để xem phòng trống
+                                                                </small>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -390,13 +402,13 @@
                                         @endforeach
                                     </div>
 
-                                    @if ($errors->has('rooms.*.loai_phong_id'))
+                                    @if ($errorObj && method_exists($errorObj, 'has') && $errorObj->has('rooms.*.loai_phong_id'))
                                         <div class="form-field-error mt-4">
                                             Vui lòng chọn loại phòng hợp lệ cho từng thẻ.
                                         </div>
                                     @endif
 
-                                    @if ($errors->has('rooms.*.so_luong'))
+                                    @if ($errorObj && method_exists($errorObj, 'has') && $errorObj->has('rooms.*.so_luong'))
                                         <div class="form-field-error">
                                             Kiểm tra lại số lượng phòng đã nhập.
                                         </div>
@@ -642,7 +654,7 @@
                     <div class="modal-media">
                         <img id="modalRoomImage" src="" alt="Hình ảnh phòng">
                     </div>
-                    
+
                     {{-- Rating Summary ngay dưới ảnh --}}
                     <div class="modal-rating-summary" id="modalRatingSummary">
                         <div class="rating-display">

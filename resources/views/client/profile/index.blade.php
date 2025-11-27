@@ -40,9 +40,28 @@
 
             @if (session('error'))
                 <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
-                    <div class="flex items-center">
-                        <i class="fas fa-exclamation-circle text-red-500 text-xl mr-3"></i>
-                        <p class="text-red-800 font-medium">{{ session('error') }}</p>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <i class="fas fa-exclamation-circle text-red-500 text-xl mr-3"></i>
+                            <p class="text-red-800 font-medium">{{ session('error') }}</p>
+                        </div>
+                        <button onclick="this.parentElement.parentElement.remove()" class="text-red-500 hover:text-red-700">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            @endif
+
+            @if (session('info'))
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <i class="fas fa-info-circle text-blue-500 text-xl mr-3"></i>
+                            <p class="text-blue-800 font-medium">{{ session('info') }}</p>
+                        </div>
+                        <button onclick="this.parentElement.parentElement.remove()" class="text-blue-500 hover:text-blue-700">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
                 </div>
             @endif
@@ -406,8 +425,8 @@
                                                     Xem chi tiết
                                                 </button>
 
-                                                <!-- Nút hủy phòng (chỉ cho phòng chờ xác nhận) -->
-                                                @if ($booking->trang_thai === 'cho_xac_nhan')
+                                                <!-- Nút hủy phòng (cho booking chờ xác nhận hoặc đã xác nhận nhưng chưa check-in) -->
+                                                @if (in_array($booking->trang_thai, ['cho_xac_nhan', 'da_xac_nhan']) && !$booking->thoi_gian_checkin)
                                                     <button onclick="showCancelModal({{ $booking->id }})"
                                                         class="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg transition-colors font-medium flex items-center gap-2">
                                                         <i class="fas fa-times-circle"></i>
@@ -417,11 +436,51 @@
                                             </div>
 
                                             @if ($booking->trang_thai === 'da_xac_nhan')
-                                                <div
-                                                    class="mt-3 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 text-blue-700 text-sm">
-                                                    <i class="fas fa-info-circle mr-2"></i>
-                                                    Đặt phòng đã được xác nhận, không thể hủy
-                                                </div>
+                                                @if ($booking->thoi_gian_checkin)
+                                                    <div class="mt-3 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-red-800 text-sm">
+                                                        <div class="flex items-start gap-2">
+                                                            <i class="fas fa-exclamation-triangle mt-0.5"></i>
+                                                            <div class="flex-1">
+                                                                <p class="font-semibold mb-1">Không thể hủy:</p>
+                                                                <p>Đặt phòng đã check-in, không thể hủy. Vui lòng liên hệ quản trị viên để check-out.</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                @elseif (isset($cancellationPolicies[$booking->id]))
+                                                    @php
+                                                        $policy = $cancellationPolicies[$booking->id];
+                                                    @endphp
+                                                    <div class="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-3 text-yellow-800 text-sm">
+                                                        <div class="flex items-start gap-2">
+                                                            <i class="fas fa-info-circle mt-0.5"></i>
+                                                            <div class="flex-1">
+                                                                <p class="font-semibold mb-1">Chính sách hủy phòng:</p>
+                                                                @if ($policy['can_cancel'])
+                                                                    <p class="mb-1">
+                                                                        @if ($policy['days_until_checkin'] >= 7)
+                                                                            Hủy trước 7 ngày: Hoàn <strong>100%</strong> tiền đã thanh toán
+                                                                        @elseif ($policy['days_until_checkin'] >= 3)
+                                                                            Hủy trước 3-6 ngày: Hoàn <strong>50%</strong> tiền đã thanh toán (phí hủy 50%)
+                                                                        @elseif ($policy['days_until_checkin'] >= 1)
+                                                                            Hủy trước 1-2 ngày: Hoàn <strong>25%</strong> tiền đã thanh toán (phí hủy 75%)
+                                                                        @else
+                                                                            Hủy trong ngày: <strong>Không hoàn tiền</strong>
+                                                                        @endif
+                                                                    </p>
+                                                                    <p class="text-xs text-gray-600">
+                                                                        @if ($policy['days_until_checkin'] < 0)
+                                                                            Đã qua ngày nhận phòng (chưa check-in)
+                                                                        @else
+                                                                            Còn <strong>{{ max(0, (int)$policy['days_until_checkin']) }}</strong> ngày trước ngày nhận phòng
+                                                                        @endif
+                                                                    </p>
+                                                                @else
+                                                                    <p class="text-red-600 font-semibold">{{ $policy['message'] }}</p>
+                                                                @endif
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                @endif
                                             @endif
                                         </div>
                                     </div>
@@ -540,6 +599,9 @@
                         <i class="fas fa-info-circle text-blue-500 mr-2"></i>
                         Bạn có chắc chắn muốn hủy đặt phòng này không? Vui lòng nhập lý do hủy phòng.
                     </p>
+
+                    <!-- Thông tin chính sách hủy (sẽ được hiển thị động) -->
+                    <div id="cancelPolicyInfo" class="mb-4"></div>
 
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">
@@ -663,12 +725,61 @@
             const modal = document.getElementById('cancelModal');
             const form = document.getElementById('cancelForm');
             const textarea = document.getElementById('ly_do_huy');
+            const policyInfo = document.getElementById('cancelPolicyInfo');
 
             // Set form action
             form.action = `/profile/booking/${bookingId}/cancel`;
 
             // Clear textarea
             textarea.value = '';
+
+            // Tìm booking và hiển thị thông tin chính sách hủy
+            const bookingItem = document.querySelector(`[data-booking-id="${bookingId}"]`);
+            if (bookingItem) {
+                const status = bookingItem.getAttribute('data-status');
+                if (status === 'da_xac_nhan') {
+                    // Hiển thị thông tin chính sách hủy cho booking đã thanh toán
+                    const policy = @json($cancellationPolicies ?? []);
+                    if (policy[bookingId]) {
+                        const p = policy[bookingId];
+                        if (p.can_cancel) {
+                            let policyText = '';
+                            if (p.days_until_checkin >= 7) {
+                                policyText = `Hủy trước 7 ngày: Hoàn <strong>100%</strong> (${new Intl.NumberFormat('vi-VN').format(p.refund_amount)} VNĐ)`;
+                            } else if (p.days_until_checkin >= 3) {
+                                policyText = `Hủy trước 3-6 ngày: Hoàn <strong>50%</strong> (${new Intl.NumberFormat('vi-VN').format(p.refund_amount)} VNĐ), phí hủy 50%`;
+                            } else if (p.days_until_checkin >= 1) {
+                                policyText = `Hủy trước 1-2 ngày: Hoàn <strong>25%</strong> (${new Intl.NumberFormat('vi-VN').format(p.refund_amount)} VNĐ), phí hủy 75%`;
+                            } else {
+                                policyText = `Hủy trong ngày: <strong>Không hoàn tiền</strong>`;
+                            }
+                            policyInfo.innerHTML = `
+                                <div class="bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-3 mb-4 text-yellow-800 text-sm">
+                                    <p class="font-semibold mb-1">Chính sách hủy:</p>
+                                    <p>${policyText}</p>
+                                    <p class="text-xs text-gray-600 mt-1">
+                                        ${p.days_until_checkin < 0
+                                            ? 'Đã qua ngày nhận phòng (chưa check-in)'
+                                            : `Còn <strong>${Math.max(0, Math.floor(p.days_until_checkin))}</strong> ngày trước ngày nhận phòng`}
+                                    </p>
+                                </div>
+                            `;
+                            policyInfo.classList.remove('hidden');
+                        } else {
+                            policyInfo.innerHTML = `
+                                <div class="bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-4 text-red-700 text-sm">
+                                    <p>${p.message}</p>
+                                </div>
+                            `;
+                            policyInfo.classList.remove('hidden');
+                        }
+                    } else {
+                        policyInfo.classList.add('hidden');
+                    }
+                } else {
+                    policyInfo.classList.add('hidden');
+                }
+            }
 
             // Show modal
             modal.classList.remove('hidden');

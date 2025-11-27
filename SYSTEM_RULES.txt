@@ -1,0 +1,92 @@
+# System Business Rules & Logic
+
+## 1. Booking System (Đặt Phòng)
+
+### 1.1. Booking Flow
+- **Initiation**: Users book by **Room Type** (`loai_phong_id`), not specific rooms.
+- **Multi-Room Support**: A single booking can include multiple rooms of different types.
+- **Room Assignment**:
+    - The system automatically assigns specific rooms (`phong_ids`) based on availability at the time of booking.
+    - **Concurrency Control**: Uses `lockForUpdate()` and database transactions to prevent double-booking (race conditions).
+- **Status Lifecycle**:
+    1.  `cho_xac_nhan` (Pending): Initial state after booking submission.
+    2.  `da_xac_nhan` (Confirmed): After successful payment or admin approval.
+    3.  `da_tra` (Completed): After guest checks out.
+    4.  `da_huy` (Cancelled): User or Admin cancels.
+    5.  `tu_choi` (Rejected): Admin rejects.
+    6.  `thanh_toan_that_bai` (Payment Failed): Online payment failed.
+    7.  `da_chong` (Blocked): Admin blocks the room (can be unblocked back to `da_xac_nhan`).
+- **Status Transition Rules**:
+    - Terminal states (`da_tra`, `da_huy`, `tu_choi`, `thanh_toan_that_bai`) cannot be changed.
+    - `cho_xac_nhan` can transition to: `da_xac_nhan`, `da_huy`, `tu_choi`, `thanh_toan_that_bai`.
+    - `da_xac_nhan` can transition to: `da_tra`, `da_huy`, `da_chong`.
+    - `da_chong` can transition back to: `da_xac_nhan`.
+    - **Cancellation Rules**:
+        - `cho_xac_nhan`: Can be cancelled anytime (no refund needed as not paid).
+        - `da_xac_nhan`: Can be cancelled ONLY if not checked in yet. Refund policy applies based on cancellation timing.
+        - Cannot cancel booking that has been checked in (must checkout first).
+    - Cannot set `da_tra` without completing checkout process.
+
+### 1.2. Room Availability & Status
+- **Availability Calculation**:
+    - Based on `loai_phong` capacity and existing bookings in the requested date range.
+    - Logic: `Total Rooms - Booked Rooms (in date range)`.
+- **Room Status (`trang_thai` in `phong` table)**:
+    - `trong`: Available.
+    - `dang_thue`: Currently occupied (Booking is `da_xac_nhan` and within stay period).
+    - `dang_don`: Cleaning (After `da_tra`).
+    - `bao_tri`: Maintenance.
+- **Status Synchronization**:
+    - When a booking status changes (e.g., to `da_xac_nhan`), the assigned rooms' status automatically updates to `dang_thue`.
+    - When a booking ends (`da_tra`), rooms update to `dang_don`.
+    - When cancelled (`da_huy`), rooms revert to `trong` (unless booked by another overlapping reservation).
+
+### 1.3. Pricing & Vouchers
+- **Price Calculation**:
+    - Base Price: `gia_khuyen_mai` (if active) or `gia_co_ban`.
+    - Formula: `(Price * Nights * Rooms) + Extra Guest Fee`.
+- **Vouchers**:
+    - Applied to the total booking value.
+    - Validated against: Expiry date, Minimum order value, Room type restrictions.
+    - Discount is distributed proportionally across room types in the booking for data consistency.
+
+## 2. Financial System (Hóa Đơn & Thanh Toán)
+
+### 2.1. Invoice Generation
+- An invoice (`hoa_don`) is created **immediately** upon booking creation.
+- **Initial Status**: `cho_thanh_toan`.
+- **Components**:
+    - `tien_phong`: Total room charges.
+    - `tien_dich_vu`: Charges for extra services (added later).
+    - `giam_gia`: Voucher discount.
+    - `tong_tien`: Final payable amount.
+
+### 2.2. Payment Methods
+- Supported: `tien_mat` (Cash), `vnpay`, `momo`, `chuyen_khoan` (Bank Transfer).
+- **Online Payment**: Integrated with VNPAY/MoMo (implied by controller logic).
+- **Status**: `da_thanh_toan` marks the financial transaction as complete.
+
+### 2.3. Invoice Types
+- `PREPAID`: Initial booking payment.
+- `EXTRA`: Additional charges incurred during the stay (e.g., minibar, spa).
+
+## 3. Data Integrity & Legacy Support
+
+### 3.1. Data Storage
+- **Bookings**:
+    - `room_types` (JSON): Stores details of all room types in a booking (id, quantity, price).
+    - `phong_ids` (JSON): Stores IDs of actual assigned rooms.
+- **Legacy Support**:
+    - The system maintains `loai_phong_id` and `phong_id` columns in `dat_phong` table for backward compatibility with older single-room booking logic.
+
+### 3.2. Validation
+- **Input Validation**: Strict validation on dates (`after_or_equal:today`, `after:ngay_nhan`), phone numbers (regex), and citizen ID (CCCD).
+- **Logic Validation**:
+    - Cannot book more rooms than available.
+    - Cannot apply invalid/expired vouchers.
+    - Duplicate room types in selection are flagged.
+
+## 4. User & Roles
+- **Roles**: `admin`, `user` (implied).
+- **Authentication**: Required for booking (User must be logged in or created/identified during booking).
+- **Notifications**: Admin receives email notifications (`AdminBookingEvent`) for new bookings.

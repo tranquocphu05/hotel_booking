@@ -153,7 +153,14 @@
                                         </td>
                                         <td class="px-6 py-4 text-center whitespace-nowrap">{{ $booking->so_nguoi }}</td>
                                         <td class="px-6 py-4 text-right font-medium text-blue-700 whitespace-nowrap">
-                                            {{ number_format($booking->tong_tien, 0, ',', '.') }} VNĐ
+                                            @php
+                                                // Ưu tiên hiển thị từ invoice vì invoice luôn có tổng tiền chính xác nhất
+                                                // (bao gồm cả phụ phí checkout nếu có)
+                                                $tongTienHienThi = $booking->invoice && $booking->invoice->tong_tien 
+                                                    ? $booking->invoice->tong_tien 
+                                                    : $booking->tong_tien;
+                                            @endphp
+                                            {{ number_format($tongTienHienThi, 0, ',', '.') }} VNĐ
                                             @if ($booking->voucher_id)
                                                 <p class="text-xs text-green-500 mt-1">
                                                     ({{ $booking->voucher ? $booking->voucher->ma_voucher : 'Voucher' }})
@@ -216,16 +223,27 @@
                                                         @method('PUT')
                                                     </form>
                                                 
-                                                @elseif ($booking->trang_thai === 'da_xac_nhan' && (!$booking->invoice || $booking->invoice->trang_thai !== 'da_thanh_toan'))
-                                                    {{-- Nút Đánh dấu đã thanh toán (chỉ khi đã xác nhận và chưa thanh toán) --}}
-                                                    <form action="{{ route('admin.dat_phong.mark_paid', $booking->id) }}" method="POST" class="inline"
-                                                        onsubmit="return confirm('Đánh dấu đặt phòng #{{ $booking->id }} đã thanh toán?')">
-                                                        @csrf
-                                                        @method('PUT')
-                                                        <button type="submit" title="Đánh dấu đã TT" class="text-blue-600 hover:text-blue-700 transition">
-                                                            <i class="fas fa-money-bill-wave"></i>
-                                                        </button>
-                                                    </form>
+                                                @elseif ($booking->trang_thai === 'da_xac_nhan')
+                                                    {{-- Nút Hủy cho booking đã xác nhận nhưng chưa check-in --}}
+                                                    @if (!$booking->thoi_gian_checkin)
+                                                        <a href="{{ route('admin.dat_phong.cancel', $booking->id) }}" title="Hủy"
+                                                            class="text-red-600 hover:text-red-700 transition"
+                                                            onclick="event.preventDefault(); if(confirm('Bạn có chắc chắn muốn hủy đặt phòng #{{ $booking->id }}? Booking đã xác nhận sẽ được xử lý hoàn tiền theo chính sách.')) { window.location.href='{{ route('admin.dat_phong.cancel', $booking->id) }}'; }">
+                                                            <i class="fas fa-times-circle"></i>
+                                                        </a>
+                                                    @endif
+                                                    
+                                                    @if (!$booking->invoice || $booking->invoice->trang_thai !== 'da_thanh_toan')
+                                                        {{-- Nút Đánh dấu đã thanh toán (chỉ khi đã xác nhận và chưa thanh toán) --}}
+                                                        <form action="{{ route('admin.dat_phong.mark_paid', $booking->id) }}" method="POST" class="inline"
+                                                            onsubmit="return confirm('Đánh dấu đặt phòng #{{ $booking->id }} đã thanh toán?')">
+                                                            @csrf
+                                                            @method('PUT')
+                                                            <button type="submit" title="Đánh dấu đã TT" class="text-blue-600 hover:text-blue-700 transition">
+                                                                <i class="fas fa-money-bill-wave"></i>
+                                                            </button>
+                                                        </form>
+                                                    @endif
                                                 @endif
                                             </div>
                                         </td>
