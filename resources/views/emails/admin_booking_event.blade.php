@@ -48,7 +48,7 @@
                 <div class="row"><span class="label">Loại phòng:</span> <span class="value">{{ optional($booking->loaiPhong)->ten_loai ?? 'N/A' }}</span></div>
                 <div class="row"><span class="label">Ngày nhận - trả:</span> <span class="value">{{ date('d/m/Y', strtotime($booking->ngay_nhan)) }} → {{ date('d/m/Y', strtotime($booking->ngay_tra)) }}</span></div>
                 <div class="row"><span class="label">Tổng tiền:</span> <span class="value">{{ number_format($booking->tong_tien, 0, ',', '.') }}₫</span></div>
-                <div class="row"><span class="label">Trạng thái:</span> <span class="value">{{ $booking->trang_thai }}</span></div>
+                <div class="row"><span class="label">Trạng thái:</span> <span class="value">{{ $booking->trang_thai_label }}</span></div>
             </div>
 
             <p class="muted" style="margin-top: 16px;">Vui lòng truy cập trang quản trị để xem chi tiết và xử lý.</p>
