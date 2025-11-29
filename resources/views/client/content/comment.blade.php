@@ -11,7 +11,7 @@ if (auth()->check()) {
     // ✅ Kiểm tra xem user đã có đơn đặt phòng của loại phòng này chưa
     $hasBooking = DatPhong::where('nguoi_dung_id', $user->id)
         ->where('loai_phong_id', $room->id)
-        ->whereIn('trang_thai', ['da_xac_nhan', 'da_tra']) // trạng thái đã hoàn tất
+        ->whereIn('trang_thai', ['da_tra']) // trạng thái đã hoàn tất
         ->exists();
 
     // ✅ Kiểm tra user đã đánh giá chưa
@@ -41,7 +41,7 @@ $filterStar = request()->query('star');
 
 
 {{-- 🔴 THÔNG BÁO KHI CHƯA ĐẶT PHÒNG --}}
-@if(auth()->check() && !$hasBooking)
+{{-- @if(auth()->check() && !$hasBooking)
 <div class="bg-yellow-50 border border-yellow-200 p-6 rounded-xl shadow-md mb-8">
     <div class="flex items-center">
         <div class="flex-shrink-0">
@@ -59,7 +59,7 @@ $filterStar = request()->query('star');
         </div>
     </div>
 </div>
-@endif
+@endif --}}
 
 {{-- 🟢 FORM GỬI ĐÁNH GIÁ (chỉ hiển thị khi đã đặt phòng và chưa đánh giá) --}}
 <form id="newReviewForm" action="{{ route('client.comment.store') }}" method="POST" enctype="multipart/form-data"
