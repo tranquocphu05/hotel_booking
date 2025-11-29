@@ -11,7 +11,7 @@ class CommentController extends Controller
 {
     public function index(Request $request)
     {
-        $comments = Comment::with('user')
+        $comments = Comment::with(['user', 'loaiPhong'])
             ->when($request->keyword, fn($q) => $q->where('noi_dung', 'like', "%{$request->keyword}%"))
             ->when($request->rating, fn($q) => $q->where('so_sao', $request->rating))
             ->when($request->status, fn($q) => $q->where('trang_thai', $request->status))
