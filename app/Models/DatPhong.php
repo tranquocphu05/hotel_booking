@@ -718,4 +718,19 @@ class DatPhong extends Model
         LoaiPhong::where('id', $loaiPhongId)
             ->update(['so_luong_trong' => $totalAvailable]);
     }
+    public function getTrangThaiLabelAttribute()
+{
+    $map = [
+        'cho_xac_nhan'        => 'Chờ xác nhận',
+        'da_xac_nhan'         => 'Đã xác nhận',
+        'da_huy'              => 'Đã hủy',
+        'da_tra'              => 'Đã trả',
+        'tu_choi'             => 'Từ chối',
+        'thanh_toan_that_bai' => 'Thanh toán thất bại',
+        'da_chong'            => 'Đã chồng phòng',
+    ];
+
+    return $map[$this->trang_thai] ?? ucfirst(str_replace('_', ' ', $this->trang_thai));
+}
+
 }
