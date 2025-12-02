@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\DatPhong;
 use App\Models\LoaiPhong;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
 
 class BookingPriceCalculator
@@ -45,12 +46,33 @@ class BookingPriceCalculator
         }
 
         // 4️⃣ Nếu có voucher thì tính giảm giá (CHỈ áp dụng cho tiền phòng)
+        // Nếu voucher gán cho 1 loại phòng cụ thể (loai_phong_id), thì chỉ áp dụng phần tương ứng của loại phòng đó
         $giamGia = 0;
         if ($booking->voucher_id && $booking->voucher) {
             $voucher = $booking->voucher;
             if ($voucher->gia_tri) {
-                // Voucher chỉ áp dụng cho tiền phòng (không giảm giá dịch vụ)
-                $giamGia = round($tongTienPhong * ($voucher->gia_tri / 100), 0);
+                $percent = $voucher->gia_tri / 100;
+                if (!empty($voucher->loai_phong_id)) {
+                    // Compute subtotal only for room types matching voucher->loai_phong_id
+                    $applicableTotal = 0;
+                    $roomTypes = $booking->getRoomTypes();
+                    foreach ($roomTypes as $rt) {
+                        $lpId = $rt['loai_phong_id'] ?? null;
+                        if ($lpId && $lpId == $voucher->loai_phong_id) {
+                            $soLuong = (int) ($rt['so_luong'] ?? 1);
+                            $loaiPhong = LoaiPhong::find($lpId);
+                            $unit = 0;
+                            if ($loaiPhong) {
+                                $unit = $loaiPhong->gia_khuyen_mai ?? $loaiPhong->gia_co_ban ?? 0;
+                            }
+                            $applicableTotal += $soLuong * $unit * $soDem;
+                        }
+                    }
+                    $giamGia = round($applicableTotal * $percent, 0);
+                } else {
+                    // Voucher applies to full room total
+                    $giamGia = round($tongTienPhong * $percent, 0);
+                }
             }
         }
 
@@ -61,9 +83,20 @@ class BookingPriceCalculator
         $tongCong = max(0, $tongTienPhong - $giamGia + $totalServices + $phiPhatSinh);
 
         // 7️⃣ Cập nhật booking
-        $booking->update([
+        // Note: tien_phong stores the FULL room price (before voucher discount)
+        // The voucher discount is only applied to the final tong_tien
+        $bookingUpdate = [
             'tong_tien' => $tongCong,
-        ]);
+        ];
+
+        if (Schema::hasColumn('dat_phong', 'tien_phong')) {
+            $bookingUpdate['tien_phong'] = $tongTienPhong;
+        }
+        if (Schema::hasColumn('dat_phong', 'tien_dich_vu')) {
+            $bookingUpdate['tien_dich_vu'] = $totalServices;
+        }
+
+        $booking->update($bookingUpdate);
 
         // 8️⃣ Cập nhật invoice nếu có
         if ($booking->invoice) {
@@ -81,4 +114,4 @@ class BookingPriceCalculator
             ]);
         }
     }
-}
+} 

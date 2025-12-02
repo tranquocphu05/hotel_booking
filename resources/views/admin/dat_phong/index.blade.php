@@ -208,13 +208,9 @@
                                                     {{-- Nút Hủy --}}
                                                     <a href="{{ route('admin.dat_phong.cancel', $booking->id) }}" title="Hủy"
                                                         class="text-red-600 hover:text-red-700 transition"
-                                                        onclick="event.preventDefault(); if(confirm('Bạn có chắc chắn muốn hủy đặt phòng #{{ $booking->id }}?')) { document.getElementById('cancel-form-{{ $booking->id }}').submit(); }">
+                                                        onclick="if(!confirm('Bạn có chắc chắn muốn hủy đặt phòng #{{ $booking->id }}?')) return false;">
                                                         <i class="fas fa-times-circle"></i>
                                                     </a>
-                                                    <form id="cancel-form-{{ $booking->id }}" action="{{ route('admin.dat_phong.cancel', $booking->id) }}" method="POST" style="display: none;">
-                                                        @csrf
-                                                        @method('PUT')
-                                                    </form>
                                                 
                                                 @elseif ($booking->trang_thai === 'da_xac_nhan' && (!$booking->invoice || $booking->invoice->trang_thai !== 'da_thanh_toan'))
                                                     {{-- Nút Đánh dấu đã thanh toán (chỉ khi đã xác nhận và chưa thanh toán) --}}

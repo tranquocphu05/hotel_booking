@@ -151,6 +151,8 @@
                                                     phòng
                                                 </p>
                                             </div>
+                                            {{-- Danh sách các phòng cụ thể có sẵn (sẽ được JS điền vào) --}}
+                                            <div id="available_rooms_{{ $loaiPhong->id }}" class="available-rooms mt-3 hidden"></div>
                                         </div>
                                     @endforeach
                                 </div>
@@ -212,27 +214,27 @@
                                                                 : '');
                                                 @endphp
 
-                                                <div class="relative">
-                                                    <input type="radio" name="voucher"
+                                                <div class="relative voucher-container" data-voucher-id="{{ $voucher->id }}">
+                                                    <input type="radio" name="voucher_radio"
                                                         id="voucher_{{ $voucher->id }}"
                                                         value="{{ $voucher->ma_voucher }}"
                                                         class="sr-only peer voucher-radio"
                                                         data-value="{{ $voucher->gia_tri }}"
                                                         data-loai-phong="{{ $voucher->loai_phong_id }}"
+                                                        data-start="{{ $voucher->ngay_bat_dau ? date('Y-m-d', strtotime($voucher->ngay_bat_dau)) : '' }}"
+                                                        data-end="{{ $voucher->ngay_ket_thuc ? date('Y-m-d', strtotime($voucher->ngay_ket_thuc)) : '' }}"
                                                         {{ $isDisabled ? 'disabled' : '' }}>
 
                                                     <label for="voucher_{{ $voucher->id }}"
                                                         class="block p-4 bg-gray-50 border-2 border-gray-200 rounded-xl cursor-pointer relative transition-all duration-300 ease-in-out
                                             peer-checked:bg-white peer-checked:border-green-500 peer-checked:ring-2 peer-checked:ring-green-400 peer-checked:shadow-lg
                                             hover:bg-gray-100 hover:border-gray-300 hover:shadow-md
-                                            disabled:opacity-50 disabled:cursor-not-allowed z-0 peer-checked:z-10">
-
-
+                                            z-0 peer-checked:z-10 voucher-label {{ $isDisabled ? 'opacity-50 cursor-not-allowed' : '' }}">
 
                                                         {{-- Overlay hiển thị trạng thái --}}
                                                         @if ($isDisabled)
                                                             <div
-                                                                class="absolute inset-0 bg-opacity-70 flex items-center justify-center rounded-xl">
+                                                                class="voucher-overlay-server absolute inset-0 bg-opacity-70 flex items-center justify-center rounded-xl pointer-events-none">
                                                                 <span
                                                                     class="text-gray-700 text-sm font-medium">{{ $overlayText }}</span>
                                                             </div>
@@ -323,6 +325,9 @@
 
 
                                 <input type="hidden" name="tong_tien" id="tong_tien_input" value="0">
+                                <!-- Hidden voucher mirrors (radios named voucher_radio, backend expects 'voucher' and may use voucher_id) -->
+                                <input type="hidden" name="voucher" id="voucher_input" value="">
+                                <input type="hidden" name="voucher_id" id="voucher_id_input" value="">
                                 <!-- Hiển thị tổng tiền -->
                                 <div class="col-span-2">
                                     <div class="bg-gray-100 p-4 rounded-lg">
@@ -446,7 +451,6 @@
                     currency: 'VND'
                 }).format(amount).replace('₫', 'VNĐ');
             }
-
             function toggleRoomType(checkbox, roomTypeId) {
                 const quantityContainer = document.getElementById('quantity_container_' + roomTypeId);
                 const quantityInput = document.getElementById('quantity_' + roomTypeId);
@@ -459,6 +463,11 @@
                     if (hiddenInput) {
                         hiddenInput.value = quantityInput.value || 1;
                     }
+                    // Show available specific rooms for this type
+                    const roomsContainer = document.getElementById('available_rooms_' + roomTypeId);
+                    if (roomsContainer) roomsContainer.classList.remove('hidden');
+                    // Fetch latest availability and rooms immediately
+                    try { updateRoomAvailability(roomTypeId); } catch(e){}
                 } else {
                     quantityContainer.classList.add('hidden');
                     quantityInput.required = false;
@@ -468,12 +477,110 @@
                     if (hiddenInput) {
                         hiddenInput.value = 0;
                     }
+                    // hide and clear available rooms when unchecking type
+                    const roomsContainer = document.getElementById('available_rooms_' + roomTypeId);
+                    if (roomsContainer) { roomsContainer.classList.add('hidden'); roomsContainer.innerHTML = ''; }
                 }
 
                 updateVoucherAvailability();
                 updateTotalPrice();
             }
+            // Ensure available room checkboxes cannot exceed selected quantity for that room type
+            function enforceRoomSelectionLimit(loaiPhongId) {
+                const boxes = Array.from(document.querySelectorAll('#available_rooms_' + loaiPhongId + ' input.available-room-checkbox'));
+                boxes.forEach(b => {
+                    // assign onchange directly so we replace previous handlers
+                    b.onchange = function(e) {
+                        const wantNow = parseInt(document.getElementById('quantity_' + loaiPhongId)?.value || 0);
+                        const boxesNow = Array.from(document.querySelectorAll('#available_rooms_' + loaiPhongId + ' input.available-room-checkbox'));
+                        const checkedNow = boxesNow.filter(x=>x.checked).length;
+                        if (checkedNow > wantNow) {
+                            // revert this change
+                            this.checked = false;
+                            alert('Bạn chỉ được chọn tối đa ' + wantNow + ' phòng cho loại này');
+                        }
+                        // sync service room lists when selection changes
+                        updateServiceRoomLists();
+                    };
+                });
+            }
+            // Update all service cards room-option lists to reflect currently selected booking rooms
+            function updateServiceRoomLists() {
+                const selectedRoomInputs = Array.from(document.querySelectorAll('.available-room-checkbox:checked'));
+                // for each service card, rebuild its room checkbox UI (visual checkboxes inside room_checkboxes_{serviceId})
+                document.querySelectorAll('[data-service-id]').forEach(card => {
+                    const serviceId = card.getAttribute('data-service-id');
+                    const roomCheckboxContainer = document.getElementById('room_checkboxes_' + serviceId);
+                    if (roomCheckboxContainer) {
+                        roomCheckboxContainer.innerHTML = '';
+                        selectedRoomInputs.forEach(inp => {
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'flex items-center gap-2 py-1';
 
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.className = 'service-room-checkbox';
+                        checkbox.setAttribute('data-room-id', inp.value);
+                        checkbox.value = inp.value;
+                        checkbox.onchange = () => syncHiddenEntries(serviceId);
+
+                        const label = document.createElement('label');
+                        label.className = 'text-xs cursor-pointer';
+                        label.textContent = inp.getAttribute('data-room-name') || ('Phòng ' + inp.value);
+
+                        wrapper.appendChild(checkbox);
+                            wrapper.appendChild(label);
+                            roomCheckboxContainer.appendChild(wrapper);
+                        });
+                    }
+
+                    // Also update per-entry room selectors inside each date row
+                    const rows = card.querySelectorAll('.service-date-row');
+                    // Determine if this service card is in specific mode
+                    const specificRadio = card.querySelector('input[name="service_room_mode_' + serviceId + '"][value="specific"]');
+                    const isSpecific = specificRadio ? specificRadio.checked : false;
+                    rows.forEach((r, idx) => {
+                        // find or create entry-room container
+                        let entryRoomContainer = r.querySelector('.entry-room-container');
+                        if (!entryRoomContainer) {
+                            entryRoomContainer = document.createElement('div');
+                            entryRoomContainer.className = 'entry-room-container mt-2 pl-2 border-l';
+                            r.appendChild(entryRoomContainer);
+                        }
+                        entryRoomContainer.innerHTML = '';
+                        // Only render per-entry room checkboxes when the service is set to 'specific'
+                        if (!isSpecific) {
+                            // hide container when global mode
+                            entryRoomContainer.classList.add('hidden');
+                            return;
+                        } else {
+                            entryRoomContainer.classList.remove('hidden');
+                        }
+
+                        selectedRoomInputs.forEach(inp => {
+                            const ewrap = document.createElement('div'); ewrap.className = 'inline-flex items-center gap-1 mr-2';
+                            const ecb = document.createElement('input'); ecb.type = 'checkbox'; ecb.className = 'entry-room-checkbox'; ecb.setAttribute('data-room-id', inp.value);
+                            ecb.value = inp.value; ecb.checked = true; 
+                            ecb.onchange = () => { 
+                                const serviceId = card.getAttribute('data-service-id');
+                                console.log('entry-room-checkbox changed, serviceId=', serviceId);
+                                // Call via window to ensure function exists
+                                setTimeout(() => {
+                                    try { 
+                                        if (typeof window.syncHiddenEntries === 'function') {
+                                            window.syncHiddenEntries(serviceId);
+                                        }
+                                    } catch(e) { console.error('syncHiddenEntries error:', e); }
+                                    try { updateTotalPrice(); } catch(e) { console.error('updateTotalPrice error:', e); }
+                                }, 0);
+                            };
+                            const elbl = document.createElement('label'); elbl.className='text-xs'; elbl.textContent = inp.getAttribute('data-room-name') || ('Phòng ' + inp.value);
+                            ewrap.appendChild(ecb); ewrap.appendChild(elbl);
+                            entryRoomContainer.appendChild(ewrap);
+                        });
+                    });
+                });
+            }
             function updateQuantityHidden(roomTypeId) {
                 const displayInput = document.getElementById('quantity_' + roomTypeId);
                 const hiddenInput = document.getElementById('quantity_hidden_' + roomTypeId);
@@ -481,12 +588,10 @@
                     hiddenInput.value = displayInput.value;
                 }
             }
-
             function getMaxAvailable(roomTypeId) {
                 const maxElement = document.getElementById('max_available_' + roomTypeId);
                 return maxElement ? parseInt(maxElement.textContent) || 0 : 0;
             }
-
             function validateQuantity(input, roomTypeId) {
                 // UI-only validation - just adjust value if out of bounds
                 // Real validation is done by PHP Laravel
@@ -495,12 +600,11 @@
                 const errorElement = document.getElementById('quantity_error_' + roomTypeId);
                 const hiddenInput = document.getElementById('quantity_hidden_' + roomTypeId);
                 const maxErrorElement = document.getElementById('max_available_error_' + roomTypeId);
-
                 if (maxErrorElement) {
                     maxErrorElement.textContent = maxAvailable;
                 }
 
-                if (value > maxAvailable && maxAvailable > 0) {
+                if (maxAvailable > 0 && value > maxAvailable) {
                     errorElement?.classList.remove('hidden');
                     input.value = maxAvailable;
                     if (hiddenInput) hiddenInput.value = maxAvailable;
@@ -513,30 +617,50 @@
                     if (hiddenInput) hiddenInput.value = value;
                 }
 
+                // enforce room check limits and update services' room lists
+                try { enforceRoomSelectionLimit(roomTypeId); } catch(e){}
+                // auto pre-check additional boxes when quantity increases
+                try {
+                    const want = parseInt(document.getElementById('quantity_' + roomTypeId)?.value || 0);
+                    const boxes = Array.from(document.querySelectorAll('#available_rooms_' + roomTypeId + ' input.available-room-checkbox'));
+                    if (want > 0 && boxes.length > 0) {
+                        for (let i = 0; i < Math.min(want, boxes.length); i++) boxes[i].checked = true;
+                    }
+                } catch(e){}
+                try { updateServiceRoomLists(); } catch(e){}
                 updateTotalPrice();
             }
-
             function decreaseQuantity(roomTypeId) {
-                const input = document.getElementById('quantity_' + roomTypeId);
-                const currentValue = parseInt(input.value) || 1;
-                if (currentValue > 1) {
-                    input.value = currentValue - 1;
-                    updateQuantityHidden(roomTypeId);
-                    validateQuantity(input, roomTypeId);
+                try {
+                    const input = document.getElementById('quantity_' + roomTypeId);
+                    if (!input) { console.debug('decreaseQuantity: input not found for', roomTypeId); return; }
+                    const currentValue = parseInt(input.value) || 1;
+                    if (currentValue > 1) {
+                        input.value = currentValue - 1;
+                        updateQuantityHidden(roomTypeId);
+                        validateQuantity(input, roomTypeId);
+                    }
+                } catch (e) {
+                    console.error('decreaseQuantity error for', roomTypeId, e);
                 }
             }
-
             function increaseQuantity(roomTypeId) {
-                const input = document.getElementById('quantity_' + roomTypeId);
-                const maxAvailable = getMaxAvailable(roomTypeId);
-                const currentValue = parseInt(input.value) || 1;
-                if (currentValue < maxAvailable) {
-                    input.value = currentValue + 1;
-                    updateQuantityHidden(roomTypeId);
-                    validateQuantity(input, roomTypeId);
+                try {
+                    const input = document.getElementById('quantity_' + roomTypeId);
+                    if (!input) { console.debug('increaseQuantity: input not found for', roomTypeId); return; }
+                    // If server hasn't set maxAvailable yet (0), treat as unlimited so UI still increments
+                    let maxAvailable = getMaxAvailable(roomTypeId);
+                    if (!maxAvailable || maxAvailable <= 0) maxAvailable = Infinity;
+                    const currentValue = parseInt(input.value) || 1;
+                    if (currentValue < maxAvailable) {
+                        input.value = currentValue + 1;
+                        updateQuantityHidden(roomTypeId);
+                        validateQuantity(input, roomTypeId);
+                    }
+                } catch (e) {
+                    console.error('increaseQuantity error for', roomTypeId, e);
                 }
             }
-
             // Function to update availability for a single room type
             function updateRoomAvailability(loaiPhongId) {
                 const checkin = document.getElementById('ngay_nhan').value;
@@ -553,10 +677,11 @@
                             'X-CSRF-TOKEN': '{{ csrf_token() }}'
                         },
                         body: JSON.stringify({
-                            loai_phong_id: loaiPhongId,
-                            checkin: checkin,
-                            checkout: checkout
-                        })
+                                    loai_phong_id: loaiPhongId,
+                                    checkin: checkin,
+                                    checkout: checkout,
+                                    include_rooms: 1
+                                })
                     })
                     .then(response => response.json())
                     .then(data => {
@@ -595,13 +720,55 @@
                                 quantityInput.value = 0;
                                 updateQuantityHidden(loaiPhongId);
                             }
+
+                            // Render available specific rooms (if provided)
+                            const roomsContainer = document.getElementById('available_rooms_' + loaiPhongId);
+                            if (roomsContainer) {
+                                roomsContainer.innerHTML = '';
+                                if (Array.isArray(data.rooms) && data.rooms.length > 0 && document.getElementById('loai_phong_' + loaiPhongId)?.checked) {
+                                    // only show room list when the room-type is checked by admin
+                                    roomsContainer.classList.remove('hidden');
+                                    // Render checkboxes for admins to select specific rooms
+                                    data.rooms.forEach((r, idx) => {
+                                        const wrap = document.createElement('div');
+                                        wrap.className = 'flex items-center gap-2 py-1';
+
+                                        const cb = document.createElement('input');
+                                        cb.type = 'checkbox';
+                                        cb.name = `rooms[${loaiPhongId}][phong_ids][]`;
+                                        cb.value = r.id;
+                                        cb.className = 'available-room-checkbox';
+                                        cb.setAttribute('data-room-name', r.so_phong || r.ten_phong || r.name || r.id);
+
+                                        const lbl = document.createElement('label');
+                                        lbl.className = 'text-sm';
+                                        lbl.textContent = r.so_phong ? ('Phòng ' + r.so_phong) : (r.ten_phong || ('Phòng ' + r.id));
+
+                                        wrap.appendChild(cb);
+                                        wrap.appendChild(lbl);
+                                        roomsContainer.appendChild(wrap);
+                                    });
+
+                                    // Pre-check first N boxes according to selected quantity
+                                    const want = parseInt(quantityInput?.value || 0);
+                                    if (want > 0) {
+                                        const boxes = Array.from(roomsContainer.querySelectorAll('input.available-room-checkbox'));
+                                        for (let i = 0; i < Math.min(want, boxes.length); i++) boxes[i].checked = true;
+                                    }
+                                    // Enforce selection limit and attach listeners
+                                    try { enforceRoomSelectionLimit(loaiPhongId); } catch(e){}
+                                    // Sync service cards room lists to reflect available/checked rooms
+                                    try { updateServiceRoomLists(); } catch(e){}
+                                } else {
+                                    roomsContainer.classList.add('hidden');
+                                }
+                            }
                         }
                     })
                     .catch(error => {
                         console.error('Error updating availability:', error);
                     });
             }
-
             // Function to update availability for all room types
             function updateAllRoomAvailability() {
                 const checkin = document.getElementById('ngay_nhan').value;
@@ -620,7 +787,6 @@
                     }
                 });
             }
-
             document.addEventListener('DOMContentLoaded', function() {
                 const ngayNhanInput = document.getElementById('ngay_nhan');
                 const ngayTraInput = document.getElementById('ngay_tra');
@@ -664,105 +830,200 @@
                 // Update voucher availability when room selection changes
                 document.querySelectorAll('.room-type-checkbox').forEach(checkbox => {
                     checkbox.addEventListener('change', function() {
-                        updateVoucherAvailability();
+                        const loaiId = this.value;
+                        // If room-type is unchecked, clear any specific-room selections for that type
+                        if (!this.checked) {
+                            try {
+                                const boxes = Array.from(document.querySelectorAll('#available_rooms_' + loaiId + ' input.available-room-checkbox'));
+                                boxes.forEach(b => { b.checked = false; });
+                            } catch(e){}
+                        }
+
+                        // Re-run related UI syncs so service cards reflect the current booking-selected rooms
+                        try { enforceRoomSelectionLimit(loaiId); } catch(e){}
+                        try { updateServiceRoomLists(); } catch(e){}
+                        try { updateVoucherAvailability(); } catch(e){}
+                        try { updateTotalPrice(); } catch(e){}
                     });
                 });
 
-                // Voucher change listener
-                document.querySelectorAll('.voucher-radio').forEach(v => {
-                    v.addEventListener('change', updateTotalPrice);
-                });
+                // Also update voucher availability when dates change
+                ngayNhanInput.addEventListener('change', updateVoucherAvailability);
+                ngayTraInput.addEventListener('change', updateVoucherAvailability);
+
+                // Setup voucher system and listeners
+                try { setupVoucherEventSystem(); } catch(e) { console.error('setupVoucherEventSystem error', e); }
 
                 // Tính toán ban đầu
                 updateTotalPrice();
                 updateVoucherAvailability();
             });
+            // Setup unified voucher event system (DOMContentLoaded)
+            function setupVoucherEventSystem() {
+                // Attach change handler to radios so 'change' triggers totals update immediately
+                document.querySelectorAll('.voucher-radio').forEach(radio => {
+                    radio.addEventListener('change', handleVoucherChange);
+                });
+
+                // Label click handler (toggle behavior: select/deselect)
+                document.querySelectorAll('.voucher-label').forEach(label => {
+                    label.addEventListener('click', function(e) {
+                        // Prevent native label toggle to avoid double-change events
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const radio = this.closest('.voucher-container').querySelector('.voucher-radio');
+                        if (!radio) return;
+
+                        // Don't allow interaction on disabled radios
+                        if (radio.disabled) {
+                            e.preventDefault();
+                            return;
+                        }
+
+                        // Toggle selected state and dispatch change so handler runs
+                        const newState = !radio.checked;
+                        radio.checked = newState;
+                        radio.dispatchEvent(new Event('change', { bubbles: true }));
+                    });
+                });
+            }
+
+            // Unified handler for all voucher changes
+            function handleVoucherChange() {
+                const voucherIdInput = document.getElementById('voucher_id_input');
+                const voucherMirror = document.getElementById('voucher_input');
+
+                if (this.checked) {
+                    // Voucher selected: update hidden input with voucher ID
+                    const container = this.closest('.voucher-container');
+                    const voucherId = container?.getAttribute('data-voucher-id') || this.value;
+                        if (voucherIdInput) voucherIdInput.value = voucherId;
+                        // Mirror the voucher code expected by backend (radio.value is ma_voucher)
+                        if (voucherMirror) voucherMirror.value = this.value || voucherId;
+                    console.log('Voucher selected:', voucherId);
+                } else {
+                    // Voucher deselected: clear hidden inputs
+                    if (voucherIdInput) voucherIdInput.value = '';
+                    if (voucherMirror) voucherMirror.value = '';
+                    console.log('Voucher deselected');
+                }
+
+                // Recalculate totals immediately
+                updateTotalPrice();
+
+                // Also refresh service UI and hidden inputs so services remain consistent
+                try {
+                    if (typeof updateServiceRoomLists === 'function') {
+                        updateServiceRoomLists();
+                    }
+                } catch (e) {
+                    console.error('Error running updateServiceRoomLists after voucher change', e);
+                }
+
+                // Recreate hidden inputs for all service cards
+                try {
+                    document.querySelectorAll('#selected_services_list [data-service-id]').forEach(card => {
+                        const sid = card.getAttribute('data-service-id');
+                        if (sid && typeof syncHiddenEntries === 'function') {
+                            try { syncHiddenEntries(sid); } catch (er) { console.error('syncHiddenEntries error', er); }
+                        }
+                    });
+                } catch (e) {
+                    console.error('Error syncing hidden service entries after voucher change', e);
+                }
+
+                // Re-run service card update (safe no-op if not present)
+                if (typeof window.updateServiceCards === 'function') {
+                    try { window.updateServiceCards(); } catch (e) { console.error('updateServiceCards error', e); }
+                }
+            }
 
             function updateVoucherAvailability() {
                 const selectedRoomTypes = Array.from(document.querySelectorAll('.room-type-checkbox:checked')).map(cb => cb
                     .value);
                 const voucherInputs = document.querySelectorAll('.voucher-radio');
 
+                // Get check-in and check-out dates for date range filtering
+                const checkinDate = document.getElementById('ngay_nhan')?.value || '';
+                const checkoutDate = document.getElementById('ngay_tra')?.value || '';
+
+                // If either date is missing, hide all voucher UI and clear selection
+                if (!checkinDate || !checkoutDate) {
+                    document.querySelectorAll('.voucher-container').forEach(container => {
+                        container.style.display = 'none';
+                        const radio = container.querySelector('.voucher-radio');
+                        if (radio) {
+                            radio.checked = false;
+                            radio.disabled = true;
+                        }
+                    });
+                    // clear mirrored hidden inputs as no voucher should be active
+                    const voucherMirror = document.getElementById('voucher_input');
+                    const voucherIdInput = document.getElementById('voucher_id_input');
+                    if (voucherMirror) voucherMirror.value = '';
+                    if (voucherIdInput) voucherIdInput.value = '';
+                    return;
+                }
+
+                // show voucher containers when dates are set
+                document.querySelectorAll('.voucher-container').forEach(container => container.style.display = '');
+
                 // Disable all vouchers first
                 voucherInputs.forEach(v => {
                     v.disabled = true;
-                    v.checked = false;
                 });
 
-                if (selectedRoomTypes.length === 0) {
-                    // No rooms selected, keep all vouchers disabled
-                    return;
-                }
+                // Enable/disable vouchers based on room type compatibility AND date range
+                voucherInputs.forEach(radio => {
+                    const voucherRoomType = radio.dataset.loaiPhong;
+                    const vStart = radio.dataset.start || '';
+                    const vEnd = radio.dataset.end || '';
+                    const container = radio.closest('.voucher-container');
 
-                // Enable vouchers that match any selected room type or have no room type restriction
-                voucherInputs.forEach(v => {
-                    const voucherRoomType = v.dataset.loaiPhong;
-                    const overlay = document.getElementById(`overlay_${v.id.split('_')[1]}`);
+                    // Date check: check-in date must be within [start, end] inclusive
+                    let dateOk = true;
+                    if (checkinDate && vStart && vEnd) {
+                        // Parse dates for proper comparison (YYYY-MM-DD format)
+                        const checkin = new Date(checkinDate + 'T00:00:00Z');
+                        const start = new Date(vStart + 'T00:00:00Z');
+                        const end = new Date(vEnd + 'T00:00:00Z');
+                        // Check if checkin is within [start, end]
+                        if (checkin < start || checkin > end) {
+                            dateOk = false;
+                        }
+                    }
 
-                    // If voucher has no room type restriction or matches any selected room type
-                    if (!voucherRoomType || selectedRoomTypes.includes(voucherRoomType)) {
-                        v.disabled = false;
-                        if (overlay) overlay.classList.add('hidden');
+                    // If date is not ok, hide the voucher completely
+                    if (!dateOk) {
+                        if (container) {
+                            container.style.display = 'none';
+                            radio.checked = false;
+                            radio.disabled = true;
+                        }
+                        return;
                     } else {
-                        v.disabled = true;
-                        if (overlay) overlay.classList.remove('hidden');
+                        // If date is ok, show the voucher
+                        if (container) container.style.display = '';
+                    }
+
+                    // If voucher has no loai_phong_id restriction or matches selected room type
+                    // Treat empty selectedRoomTypes as 'no restriction' so vouchers can be chosen before rooms are picked
+                    const roomOk = (!voucherRoomType || voucherRoomType === 'null' || voucherRoomType === '') || (selectedRoomTypes.length === 0) || selectedRoomTypes.includes(voucherRoomType);
+
+                    // Enable/disable based on room type only (no visible message)
+                    radio.disabled = !roomOk;
+
+                    if (container) {
+                        const label = container.querySelector('.voucher-label');
+                        // remove dimming classes if present (server-rendered or previous state)
+                        if (label) label.classList.remove('opacity-50', 'cursor-not-allowed');
+                        // Remove any overlays (both client-created and server-rendered)
+                        const overlays = container.querySelectorAll('.voucher-overlay-client, .voucher-overlay-server');
+                        overlays.forEach(o => o.remove());
                     }
                 });
             }
-
-
-
-            function updateTotalPrice() {
-                const ngayNhan = document.getElementById('ngay_nhan').value;
-                const ngayTra = document.getElementById('ngay_tra').value;
-
-                if (!ngayNhan || !ngayTra) {
-                    document.getElementById('total_price').textContent = formatCurrency(0);
-                    return;
-                }
-
-                const startDate = new Date(ngayNhan);
-                const endDate = new Date(ngayTra);
-                const nights = Math.max(1, Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)));
-
-                let totalPrice = 0;
-                document.querySelectorAll('.room-type-checkbox:checked').forEach(checkbox => {
-                    const roomTypeId = checkbox.value;
-                    const quantityInput = document.getElementById('quantity_' + roomTypeId);
-                    const quantity = parseInt(quantityInput?.value || 1);
-                    const price = parseFloat(checkbox.dataset.price || 0);
-
-                    if (price > 0 && quantity > 0) {
-                        totalPrice += price * nights * quantity;
-                    }
-                });
-
-                // Apply voucher discount if any
-                const selectedVoucher = document.querySelector('.voucher-radio:checked');
-                let finalTotal = totalPrice;
-
-                if (selectedVoucher) {
-                    const discountValue = parseFloat(selectedVoucher.dataset.value || 0);
-                    let discountAmount = 0;
-
-                    if (discountValue <= 100) {
-                        discountAmount = (totalPrice * discountValue) / 100;
-                    } else {
-                        discountAmount = discountValue;
-                    }
-
-                    finalTotal = totalPrice - discountAmount;
-                    document.getElementById('original_price').textContent = formatCurrency(totalPrice);
-                    document.getElementById('discount_amount').textContent = '-' + formatCurrency(discountAmount);
-                    document.getElementById('discount_info').classList.remove('hidden');
-                } else {
-                    document.getElementById('discount_info').classList.add('hidden');
-                }
-
-                document.getElementById('total_price').textContent = formatCurrency(finalTotal);
-                document.getElementById('tong_tien_input').value = finalTotal;
-            }
-
+            // updateTotalPrice sẽ được override sau (xem dưới)
             function toggleService(checkbox, serviceId) {
                 const quantityContainer = document.getElementById('service_quantity_container_' + serviceId);
                 const hiddenInput = document.getElementById('service_quantity_hidden_' + serviceId);
@@ -779,14 +1040,12 @@
 
                 updateTotalPrice();
             }
-
             function increaseServiceQuantity(serviceId) {
                 const input = document.getElementById('service_quantity_' + serviceId);
                 input.value = parseInt(input.value) + 1;
                 updateServiceQuantityHidden(serviceId);
                 updateTotalPrice();
             }
-
             function decreaseServiceQuantity(serviceId) {
                 const input = document.getElementById('service_quantity_' + serviceId);
                 const newValue = Math.max(1, parseInt(input.value) - 1);
@@ -794,7 +1053,6 @@
                 updateServiceQuantityHidden(serviceId);
                 updateTotalPrice();
             }
-
             function updateServiceQuantityHidden(serviceId) {
                 const displayInput = document.getElementById('service_quantity_' + serviceId);
                 const hiddenInput = document.getElementById('service_quantity_hidden_' + serviceId);
@@ -803,47 +1061,133 @@
                 }
                 updateTotalPrice();
             }
+            // Cập nhật tổng tiền bao gồm cả phòng + voucher + dịch vụ (tính lại từ đầu)
+            var updateTotalPrice = function() {
+                const ngayNhan = document.getElementById('ngay_nhan').value;
+                const ngayTra = document.getElementById('ngay_tra').value;
 
-            // Cập nhật tổng tiền bao gồm dịch vụ
-            const oldUpdateTotalPrice = updateTotalPrice;
-            updateTotalPrice = function() {
-                oldUpdateTotalPrice(); // giữ logic cũ (phòng + voucher)
+                if (!ngayNhan || !ngayTra) {
+                    document.getElementById('total_price').textContent = formatCurrency(0);
+                    return;
+                }
 
+                const startDate = new Date(ngayNhan);
+                const endDate = new Date(ngayTra);
+                const nights = Math.max(1, Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)));
+
+                // 1. Tính tiền phòng theo loại phòng
+                let roomTotalByType = {}; // { loaiPhongId: totalPrice }
+                let roomTotal = 0;
+                document.querySelectorAll('.room-type-checkbox:checked').forEach(checkbox => {
+                    const roomTypeId = checkbox.value;
+                    const quantityInput = document.getElementById('quantity_' + roomTypeId);
+                    const quantity = parseInt(quantityInput?.value || 1);
+                    const price = parseFloat(checkbox.dataset.price || 0);
+
+                    if (price > 0 && quantity > 0) {
+                        const typeTotal = price * nights * quantity;
+                        roomTotalByType[roomTypeId] = typeTotal;
+                        roomTotal += typeTotal;
+                    }
+                });
+
+                // 2. Tính discount từ voucher - chỉ áp dụng cho tiền phòng, respecting loai_phong_id filter
+                const selectedVoucher = document.querySelector('.voucher-radio:checked');
+                let discount = 0;
+                let discountedRoomTotal = roomTotal;
+
+                if (selectedVoucher) {
+                    const discountValue = parseFloat(selectedVoucher.dataset.value || 0);
+                    const voucherLoaiPhongId = selectedVoucher.dataset.loaiPhong;
+                    
+                    let applicableTotal = 0;
+                    if (!voucherLoaiPhongId || voucherLoaiPhongId === 'null') {
+                        // Voucher applies to all room types
+                        applicableTotal = roomTotal;
+                    } else {
+                        // Voucher applies only to specific room type
+                        applicableTotal = roomTotalByType[voucherLoaiPhongId] || 0;
+                    }
+                    
+                    if (discountValue <= 100) {
+                        // Discount is percentage
+                        discount = (applicableTotal * discountValue) / 100;
+                    } else {
+                        // Discount is fixed amount
+                        discount = Math.min(discountValue, applicableTotal);
+                    }
+                    
+                    discountedRoomTotal = roomTotal - discount;
+                }
+
+                let roomNetTotal = discountedRoomTotal;
+
+                // 3. Tính tiền dịch vụ (không bị ảnh hưởng bởi voucher)
                 let totalServicePrice = 0;
-                // For each selected service, sum quantities across all date-entries and multiply by unit price
+                
+                function getTotalBookedRooms() {
+                    let total = 0;
+                    document.querySelectorAll('.room-type-checkbox:checked').forEach(cb => {
+                        const id = cb.value;
+                        const hidden = document.getElementById('quantity_hidden_' + id);
+                        total += parseInt(hidden?.value || 0) || 0;
+                    });
+                    if (total === 0) {
+                        total = document.querySelectorAll('.available-room-checkbox:checked').length || 0;
+                    }
+                    return total;
+                }
+
                 document.querySelectorAll('.service-checkbox:checked').forEach(checkbox => {
                     const serviceId = checkbox.value;
                     const price = parseFloat(checkbox.dataset.price || 0) || 0;
-                    // find all per-entry hidden inputs for this service (so_luong)
-                    let sumQty = 0;
-                    Array.from(document.querySelectorAll('input.entry-hidden[data-service="'+serviceId+'"]')).forEach(inp => {
-                        // entry-hidden can be ngay or so_luong; only consider those with name ending in [so_luong]
-                        const name = inp.getAttribute('name') || '';
-                        if (name.endsWith('[so_luong]')) sumQty += parseInt(inp.value || 0);
+                    const card = document.querySelector('[data-service-id="' + serviceId + '"]');
+                    if (!card) return;
+
+                    const mode = card.querySelector('input[name="service_room_mode_' + serviceId + '"]:checked')?.value || 'global';
+                    const rows = Array.from(card.querySelectorAll('#service_dates_' + serviceId + ' .service-date-row'));
+
+                    rows.forEach(r => {
+                        const qty = parseInt(r.querySelector('input[type=number]')?.value || 1) || 0;
+                        if (qty <= 0) return;
+
+                        if (mode === 'global') {
+                            const roomsCount = getTotalBookedRooms();
+                            totalServicePrice += price * qty * roomsCount;
+                            console.log('service', serviceId, 'global mode, qty=', qty, 'rooms=', roomsCount, 'add=', price * qty * roomsCount);
+                        } else {
+                            const entryRooms = r.querySelectorAll('.entry-room-checkbox:checked').length || 0;
+                            totalServicePrice += price * qty * entryRooms;
+                            console.log('service', serviceId, 'specific mode, qty=', qty, 'checked rooms=', entryRooms, 'add=', price * qty * entryRooms);
+                        }
                     });
-                    // fallback: if no per-entry inputs exist, try summary hidden
-                    if (sumQty === 0) {
-                        const summary = document.getElementById('service_quantity_hidden_' + serviceId);
-                        sumQty = parseInt(summary?.value || 0) || 0;
-                    }
-                    totalServicePrice += price * sumQty;
                 });
 
-                // Cộng dịch vụ vào tổng tiền hiển thị
+                // 4. Cộng tất cả: (phòng - discount) + dịch vụ
+                const finalTotal = roomNetTotal + totalServicePrice;
+
+                // Update UI
                 const totalPriceElement = document.getElementById('total_price');
                 const tongTienInput = document.getElementById('tong_tien_input');
-
-                let currentTotal = parseFloat(tongTienInput.value || 0);
-                const finalTotal = currentTotal + totalServicePrice;
+                const originalPriceElement = document.getElementById('original_price');
+                const discountAmountElement = document.getElementById('discount_amount');
+                const discountInfoElement = document.getElementById('discount_info');
 
                 totalPriceElement.textContent = formatCurrency(finalTotal);
                 tongTienInput.value = finalTotal;
+
+                if (selectedVoucher) {
+                    originalPriceElement.textContent = formatCurrency(roomTotal);
+                    discountAmountElement.textContent = '-' + formatCurrency(discount);
+                    discountInfoElement.classList.remove('hidden');
+                } else {
+                    discountInfoElement.classList.add('hidden');
+                }
+
+                console.log('updateTotalPrice: roomTotal=', roomTotal, 'discount=', discount, 'roomNet=', roomNetTotal, 'services=', totalServicePrice, 'final=', finalTotal);
             };
-
-
             // Form validation is handled by PHP Laravel - no client-side validation needed
             // All validation errors will be displayed by Laravel's error directives
-
             // Initialize Tom Select for services and helper functions
             function loadTomSelectAndInit(cb) {
                 if (window.TomSelect) return cb();
@@ -852,7 +1196,6 @@
                 s.onload = cb;
                 document.head.appendChild(s);
             }
-
             document.addEventListener('DOMContentLoaded', function() {
                 loadTomSelectAndInit(function() {
                     try {
@@ -951,6 +1294,66 @@
                                 header.appendChild(price);
                                 card.appendChild(header);
 
+                                // Room selection section
+                                const roomSection = document.createElement('div');
+                                roomSection.className = 'bg-blue-50 p-3 rounded-lg mt-3 border border-blue-200';
+                                roomSection.id = 'room_selection_' + serviceId;
+                                
+                                const roomToggle = document.createElement('div');
+                                roomToggle.className = 'flex gap-2 mb-2';
+                                
+                                const globalRadio = document.createElement('input');
+                                globalRadio.type = 'radio';
+                                globalRadio.name = 'service_room_mode_' + serviceId;
+                                globalRadio.value = 'global';
+                                globalRadio.checked = true;
+                                globalRadio.id = 'global_' + serviceId;
+                                
+                                const globalLabel = document.createElement('label');
+                                globalLabel.htmlFor = 'global_' + serviceId;
+                                globalLabel.className = 'text-sm flex items-center gap-2 cursor-pointer';
+                                globalLabel.innerHTML = '<span>Áp dụng tất cả phòng</span>';
+                                
+                                const specificRadio = document.createElement('input');
+                                specificRadio.type = 'radio';
+                                specificRadio.name = 'service_room_mode_' + serviceId;
+                                specificRadio.value = 'specific';
+                                specificRadio.id = 'specific_' + serviceId;
+                                
+                                const specificLabel = document.createElement('label');
+                                specificLabel.htmlFor = 'specific_' + serviceId;
+                                specificLabel.className = 'text-sm flex items-center gap-2 cursor-pointer';
+                                specificLabel.innerHTML = '<span>Chọn phòng riêng</span>';
+                                
+                                roomToggle.appendChild(globalRadio);
+                                roomToggle.appendChild(globalLabel);
+                                roomToggle.appendChild(specificRadio);
+                                roomToggle.appendChild(specificLabel);
+                                roomSection.appendChild(roomToggle);
+                                
+                                // Toggle visibility on radio change: show/hide per-entry room containers
+                                globalRadio.onchange = () => {
+                                    // hide all per-entry room containers and uncheck any entry-room-checkboxes
+                                    card.querySelectorAll('.entry-room-container').forEach(c => {
+                                        c.classList.add('hidden');
+                                        Array.from(c.querySelectorAll('input[type=checkbox]')).forEach(cb => cb.checked = false);
+                                    });
+                                    try { updateServiceRoomLists(); } catch(e){}
+                                    syncHiddenEntries(serviceId);
+                                    try { updateTotalPrice(); } catch(e){}
+                                };
+
+                                specificRadio.onchange = () => {
+                                    // show per-entry room containers (they will be populated by updateServiceRoomLists)
+                                    card.querySelectorAll('.entry-room-container').forEach(c => c.classList.remove('hidden'));
+                                    try { updateServiceRoomLists(); } catch(e){}
+                                    syncHiddenEntries(serviceId);
+                                    try { updateTotalPrice(); } catch(e){}
+                                };
+                                
+                                roomSection.appendChild(document.createElement('div')); // spacer placeholder to keep layout
+                                card.appendChild(roomSection);
+
                                 // date rows container
                                 const rows = document.createElement('div');
                                 rows.id = 'service_dates_' + serviceId;
@@ -981,6 +1384,9 @@
                                     const q = document.createElement('input'); q.type = 'number'; q.min = 1; q.value = 1; q.className = 'w-24 border rounded p-1 text-center'; q.onchange = () => syncHiddenEntries(serviceId);
                                     const rem = document.createElement('button'); rem.type='button'; rem.className='service-remove-btn ml-2'; rem.textContent='Xóa'; rem.onclick = ()=>{ r.remove(); syncHiddenEntries(serviceId); };
                                     r.appendChild(d); r.appendChild(q); r.appendChild(rem);
+                                    // container for per-entry room checkboxes (populated by updateServiceRoomLists)
+                                    const entryRoomPlaceholder = document.createElement('div'); entryRoomPlaceholder.className = 'entry-room-container mt-2 pl-2 border-l';
+                                    r.appendChild(entryRoomPlaceholder);
                                     return r;
                                 }
 
@@ -997,7 +1403,11 @@
                                 addBtn.onclick = function(){
                                     const used = Array.from(rows.querySelectorAll('input[type="date"]')).map(i=>i.value);
                                     const avail = getRangeDates().find(d=>!used.includes(d));
-                                    if (avail) { rows.appendChild(buildDateRow(avail)); syncHiddenEntries(serviceId); }
+                                    if (avail) {
+                                        rows.appendChild(buildDateRow(avail));
+                                        try { updateServiceRoomLists(); } catch(e){}
+                                        syncHiddenEntries(serviceId);
+                                    }
                                 };
 
                                 card.appendChild(rows);
@@ -1029,21 +1439,61 @@
 
                                     // remove existing entry-hidden inputs for this id
                                     Array.from(document.querySelectorAll('input.entry-hidden[data-service="'+id+'"]')).forEach(n=>n.remove());
+                                    
+                                    // remove existing phong_ids hidden inputs for this service
+                                    Array.from(document.querySelectorAll('input[name="services_data['+id+'][entries][]][phong_ids][]"]')).forEach(n => {
+                                        n.remove();
+                                    });
+
+                                    // Determine current mode
+                                    const card = document.querySelector('[data-service-id="'+id+'"]');
+                                    const mode = card?.querySelector('input[name="service_room_mode_' + id + '"]:checked')?.value || 'global';
 
                                     let total=0;
                                     rowsNow.forEach((r, idx)=>{
                                         const dateVal = r.querySelector('input[type=date]')?.value || '';
                                         const qty = parseInt(r.querySelector('input[type=number]')?.value || 1);
+                                        
+                                        // Collect per-entry selected rooms (from entry-room-checkboxes inside this row)
+                                        const entryRoomChecks = Array.from(r.querySelectorAll('.entry-room-checkbox:checked'));
+                                        
+                                        // If in specific mode and no rooms checked, skip this entry entirely
+                                        if (mode === 'specific' && entryRoomChecks.length === 0) {
+                                            console.log('syncHiddenEntries service', id, 'entry', idx, 'specific mode but NO rooms checked - SKIP');
+                                            return;
+                                        }
+                                        
                                         total += qty;
+                                        
+                                        // Create hidden inputs for this entry
                                         const hNgay = document.createElement('input'); hNgay.type='hidden'; hNgay.name='services_data['+id+'][entries]['+idx+'][ngay]'; hNgay.value=dateVal; hNgay.className='entry-hidden'; hNgay.setAttribute('data-service', id);
                                         const hSo = document.createElement('input'); hSo.type='hidden'; hSo.name='services_data['+id+'][entries]['+idx+'][so_luong]'; hSo.value=qty; hSo.className='entry-hidden'; hSo.setAttribute('data-service', id);
                                         container.appendChild(hNgay); container.appendChild(hSo);
+
+                                        // Only add phong_ids if in specific mode
+                                        if (mode === 'specific') {
+                                            entryRoomChecks.forEach((erc) => {
+                                                const hRoom = document.createElement('input');
+                                                hRoom.type = 'hidden';
+                                                hRoom.name = 'services_data['+id+'][entries]['+idx+'][phong_ids][]';
+                                                hRoom.value = erc.getAttribute('data-room-id') || erc.value;
+                                                hRoom.className = 'entry-hidden';
+                                                hRoom.setAttribute('data-service', id);
+                                                container.appendChild(hRoom);
+                                            });
+                                            console.log('syncHiddenEntries service', id, 'entry', idx, 'specific mode, checked rooms:', entryRoomChecks.length, entryRoomChecks.map(e => e.value));
+                                        } else {
+                                            console.log('syncHiddenEntries service', id, 'entry', idx, 'global mode - apply to all');
+                                        }
                                     });
                                     const sumEl = document.getElementById('service_quantity_hidden_'+id); if(sumEl) sumEl.value = total;
                                     updateTotalPrice(); updateAddBtnState(id);
                                 }
 
                                 function updateAddBtnState(id){ const rowsNow = document.querySelectorAll('#service_dates_'+id+' .service-date-row'); const used = Array.from(rowsNow).map(r=>r.querySelector('input[type=date]').value); const avail = getRangeDates().find(d=>!used.includes(d)); addBtn.disabled = !avail; addBtn.style.opacity = addBtn.disabled? '0.6':'1'; }
+
+                                // Export to window so it can be called from other closures
+                                window.syncHiddenEntries = syncHiddenEntries;
 
                                 // call sync initially
                                 syncHiddenEntries(serviceId);
@@ -1066,6 +1516,8 @@
 
                         // Render current initial selection if any
                         renderSelectedServices(ts.getValue() || []);
+                        // Ensure service cards know about currently selected rooms
+                        try { updateServiceRoomLists(); } catch(e){}
 
                         // Re-render / normalize service date-rows when global date range changes
                         const ngayNhanEl = document.getElementById('ngay_nhan');
@@ -1074,12 +1526,14 @@
                             ngayNhanEl.addEventListener('change', function(){ normalizeServiceDates(); renderSelectedServices(ts.getValue() || []); });
                             ngayTraEl.addEventListener('change', function(){ normalizeServiceDates(); renderSelectedServices(ts.getValue() || []); });
                         }
+
+                        // Voucher label deselection handled centrally in setupVoucherEventSystem()
+
                     } catch (e) {
                         console.error('TomSelect init error', e);
                     }
                 });
             });
-
             // Initial update
             updateVoucherAvailability();
         </script>

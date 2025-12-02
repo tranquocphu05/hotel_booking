@@ -35,6 +35,14 @@ class Invoice extends Model
         'con_lai' => 'decimal:2',
     ];
 
+    /**
+     * Determine if the invoice is an extra (addon) invoice.
+     */
+    public function isExtra(): bool
+    {
+        return strtoupper($this->invoice_type ?? '') === 'EXTRA';
+    }
+
     public function datPhong()
     {
         return $this->belongsTo(DatPhong::class, 'dat_phong_id');

@@ -33,10 +33,26 @@ class VoucherController extends Controller
             ->values()
             ->all();
 
-        // 3. Lấy danh sách voucher đang hoạt động (để view tự đánh giá điều kiện)
-        $vouchers = Voucher::where('trang_thai', 1)
+        // 3. Lấy danh sách voucher đang hoạt động: must not be exhausted, valid dates
+        $allVouchers = Voucher::where('trang_thai', 'con_han')
+            ->where('so_luong', '>', 0)
+            ->whereDate('ngay_ket_thuc', '>=', now())
             ->with('loaiPhong')
             ->get();
+
+        // Filter: only include vouchers with valid date range (started and not ended)
+        $vouchers = $allVouchers->filter(function ($v) {
+            if (empty($v->ngay_bat_dau) || empty($v->ngay_ket_thuc)) {
+                return false;
+            }
+            try {
+                $vStart = Carbon::parse($v->ngay_bat_dau)->startOfDay();
+                $vEnd = Carbon::parse($v->ngay_ket_thuc)->startOfDay();
+                return $vStart->lte(now()->startOfDay()) && $vEnd->gte(now()->startOfDay());
+            } catch (\Exception $e) {
+                return false;
+            }
+        })->values();
 
         // 4. Truyền dữ liệu sang view
         return view('client.booking.voucher', [
