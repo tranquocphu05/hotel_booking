@@ -1691,5 +1691,27 @@ class DatPhongController extends Controller
             return redirect()->back()->with('error', 'Có lỗi xảy ra khi check-out. Vui lòng thử lại.');
         }
     }
+    public function showChangeRoomForm($bookingId, $phongId)
+    {
+        $booking = DatPhong::with('phongs.loaiPhong')->findOrFail($bookingId);
+
+        // ❗ Chỉ cho đổi phòng khi đã checkin và chưa checkout
+        if (!$booking->thoi_gian_checkin || $booking->thoi_gian_checkout) {
+            return redirect()->route('admin.dat_phong.show', $bookingId)
+                ->with('error', 'Chỉ được đổi phòng cho khách đã check-in và chưa check-out.');
+        }
+    }
+    public function changeRoom(Request $request, $bookingId, $phongId)
+{
+    $booking = DatPhong::with('phongs')->findOrFail($bookingId);
+
+    // ❗ Chỉ cho đổi phòng khi đã checkin và chưa checkout
+    if (!$booking->thoi_gian_checkin || $booking->thoi_gian_checkout) {
+        return redirect()->route('admin.dat_phong.show', $bookingId)
+            ->with('error', 'Chỉ được đổi phòng cho khách đã check-in và chưa check-out.');
+    }
+
+}
+
 }
 

@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\DatPhongController;
 use App\Http\Controllers\Admin\LoaiPhongController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\ServiceController;
+use App\Http\Controllers\Admin\YeuCauDoiPhongController;
 // Client Controllers
 use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
 use App\Http\Controllers\Client\PhongController as ClientPhongController;
@@ -23,6 +24,7 @@ use App\Http\Controllers\Client\ThanhToanController as ClientThanhToanController
 use App\Http\Controllers\Client\CommentController as ClientCommentController;
 use App\Http\Controllers\Client\VoucherController as ClientVoucherController;
 use App\Http\Controllers\Client\NewsletterController as ClientNewsletterController;
+use App\Http\Controllers\Client\YeuCauDoiPhongController as ClientYeuCauDoiPhongController;
 
 //
 
@@ -151,6 +153,16 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin
         Route::put('/{id}', [\App\Http\Controllers\Admin\BookingServiceController::class, 'update'])->name('update');
         Route::delete('/{id}', [\App\Http\Controllers\Admin\BookingServiceController::class, 'destroy'])->name('destroy');
     });
+
+    //YeuCauDoiPhong routes
+    Route::get('/yeu-cau-doi-phong', [YeuCauDoiPhongController::class, 'index'])
+        ->name('yeu_cau_doi_phong.index');
+
+    Route::post('/yeu-cau-doi-phong/{id}/approve', [YeuCauDoiPhongController::class, 'approve'])
+        ->name('yeu_cau_doi_phong.approve');
+
+    Route::post('/yeu-cau-doi-phong/{id}/reject', [YeuCauDoiPhongController::class, 'reject'])
+        ->name('yeu_cau_doi_phong.reject');
 });
 
 // =======================
@@ -186,6 +198,13 @@ Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\Allow
     Route::get('/danh-gia/{id}/edit', [ClientCommentController::class, 'edit'])->name('comment.edit');
     Route::post('/danh-gia/{id}/update', [ClientCommentController::class, 'update'])->name('comment.update');
     Route::delete('/danh-gia/{id}', [ClientCommentController::class, 'destroy'])->name('comment.destroy');
+
+    // YeuCauDoiPhong routes
+    Route::get('/profile/booking/{booking}/doi-phong', [ClientYeuCauDoiPhongController::class, 'create'])
+        ->name('yeu_cau_doi_phong.create');
+
+    Route::post('/profile/booking/{booking}/doi-phong', [ClientYeuCauDoiPhongController::class, 'store'])
+        ->name('yeu_cau_doi_phong.store');
 });
 
 // Public impersonation stop (in case admin is impersonating)
