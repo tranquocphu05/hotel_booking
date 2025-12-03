@@ -259,7 +259,7 @@
                                 @elseif($booking->trang_thai == 'da_huy') border-red-500
                                 @elseif($booking->trang_thai == 'da_tra') border-blue-500
                                 @else border-yellow-500 @endif
-                                rounded-lg shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden"
+                                rounded-lg shadow-sm hover:shadow-lg transition-all duration-300"
                                         data-booking-id="{{ $booking->id }}"
                                         data-room-name="{{ $booking->loaiPhong->ten_loai ?? 'N/A' }}"
                                         data-room-type="{{ $booking->loaiPhong->ten_loai ?? 'N/A' }}"
@@ -341,6 +341,7 @@
                                                             {{ $booking->trang_thai }}
                                                         @endif
                                                     </span>
+                                                    
                                                 </div>
                                             </div>
                                         </div>
@@ -354,6 +355,7 @@
                                                         <div
                                                             class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
                                                             <i class="fas fa-calendar-check text-green-600"></i>
+                                                            {{-- Bỏ overflow-hidden để xổ loại phòng đánh giá --}}
                                                         </div>
                                                         <div>
                                                             <p class="text-xs text-gray-500 mb-1">Nhận phòng</p>
@@ -414,10 +416,55 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                            @endif
+                                            @endif                                        
 
                                             <!-- Action buttons -->
                                             <div class="flex justify-end gap-3">
+                                                {{-- Nút đánh giá --}}
+                                                @if($booking->trang_thai == 'da_tra')
+                                                    @php
+                                                        $roomTypes = $booking->getRoomTypes();
+                                                    @endphp
+                                                    
+                                                    @if(count($roomTypes) > 1)
+                                                        <div class="relative z-20 inline-block text-left">
+                                                            <button type="button" 
+                                                                class="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-2 rounded-lg transition-colors font-medium flex items-center gap-2"
+                                                                onclick="toggleRoomTypeDropdown({{ $booking->id }})">
+                                                                <i class="fas fa-star"></i>
+                                                                Đánh giá
+                                                                <i class="fas fa-chevron-down ml-1 text-xs"></i>
+                                                            </button>
+                                                            
+                                                            <div id="room-type-dropdown-{{ $booking->id }}" 
+                                                                class="room-type-dropdown hidden absolute right-0 z-50 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                                                <div class="py-1" role="none">
+                                                                    @foreach($roomTypes as $roomType)
+                                                                        @php
+                                                                            $loaiPhong = \App\Models\LoaiPhong::find($roomType['loai_phong_id']);
+                                                                        @endphp
+                                                                        @if($loaiPhong)
+                                                                            <a href="{{ route('client.phong.show', $loaiPhong->id) }}#reviews" 
+                                                                            class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">
+                                                                                <div class="flex items-center gap-2">
+                                                                                    <i class="fas fa-door-open text-yellow-500"></i>
+                                                                                    <span>{{ $loaiPhong->ten_loai }}</span>
+                                                                                    <span class="text-xs text-gray-500">({{ $roomType['so_luong'] }} phòng)</span>
+                                                                                </div>
+                                                                            </a>
+                                                                        @endif
+                                                                    @endforeach
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    @else
+                                                        <a href="{{ route('client.phong.show', $booking->loaiPhong->id)}}#reviews"
+                                                        class="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-2 rounded-lg transition-colors font-medium flex items-center gap-2">
+                                                            <i class="fas fa-star"></i>
+                                                            Đánh giá
+                                                        </a>
+                                                    @endif
+                                                @endif
                                                 <!-- Nút xem chi tiết (luôn hiển thị) -->
                                                 <button onclick="showBookingDetail({{ $booking->id }})"
                                                     class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors font-medium flex items-center gap-2">
@@ -931,6 +978,28 @@
                 closeDetailModal();
             }
         }
+
+        // Room type dropdown for reviews
+        function toggleRoomTypeDropdown(bookingId) {
+            const dropdown = document.getElementById(`room-type-dropdown-${bookingId}`);
+            dropdown.classList.toggle('hidden');
+            
+            // Close other dropdowns
+            document.querySelectorAll('.room-type-dropdown').forEach(dropdown => {
+                if (dropdown.id !== `room-type-dropdown-${bookingId}`) {
+                    dropdown.classList.add('hidden');
+                }
+            });
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.relative.inline-block')) {
+                document.querySelectorAll('.room-type-dropdown').forEach(dropdown => {
+                    dropdown.classList.add('hidden');
+                });
+            }
+        });
     </script>
 
 @endsection
