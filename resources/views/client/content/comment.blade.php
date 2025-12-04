@@ -62,7 +62,9 @@ $filterStar = request()->query('star');
 @endif --}}
 
 {{-- 🟢 FORM GỬI ĐÁNH GIÁ (chỉ hiển thị khi đã đặt phòng và chưa đánh giá) --}}
-<form id="newReviewForm" action="{{ route('client.comment.store') }}" method="POST" enctype="multipart/form-data"
+<div id="reviews" class="mt-8">
+    <!-- Reviews content goes here -->
+     <form id="newReviewForm" action="{{ route('client.comment.store') }}" method="POST" enctype="multipart/form-data"
       class="bg-white p-6 rounded-xl shadow-md mb-8" style="display: {{ (auth()->check() && $hasBooking && (!$existing || session('success') || session('error'))) ? 'block' : 'none' }}">
     @csrf
     <input type="hidden" name="loai_phong_id" value="{{ $room->id }}" id="reviewFormRoomId">
@@ -130,6 +132,7 @@ $filterStar = request()->query('star');
     </button>
     @endif
 </form>
+</div>
 
 
 {{-- ⭐ PHÒNG + ĐIỂM TRUNG BÌNH + LỌC SAO --}}
