@@ -341,7 +341,7 @@
                                                             {{ $booking->trang_thai }}
                                                         @endif
                                                     </span>
-                                                    
+
                                                 </div>
                                             </div>
                                         </div>
@@ -416,7 +416,7 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                            @endif                                        
+                                            @endif
 
                                             @php
                                                 $phongDangO = $booking->phongs->first() ?? $booking->phong;
@@ -453,7 +453,52 @@
                                             @endif
 
                                             <!-- Action buttons -->
-                                            <div class="flex justify-end gap-3">
+                                            <div class="flex justify-end gap-3 mt-6">
+                                                {{-- Nút đánh giá: chỉ khi đã trả phòng --}}
+                                                @if($booking->trang_thai == 'da_tra')
+                                                    @php
+                                                        $roomTypes = $booking->getRoomTypes();
+                                                    @endphp
+
+                                                    @if(count($roomTypes) > 1)
+                                                        <div class="relative z-20 inline-block text-left">
+                                                            <button type="button"
+                                                                class="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-2 rounded-lg transition-colors font-medium flex items-center gap-2"
+                                                                onclick="toggleRoomTypeDropdown({{ $booking->id }})">
+                                                                <i class="fas fa-star"></i>
+                                                                Đánh giá
+                                                                <i class="fas fa-chevron-down ml-1 text-xs"></i>
+                                                            </button>
+
+                                                            <div id="room-type-dropdown-{{ $booking->id }}"
+                                                                class="room-type-dropdown hidden absolute right-0 z-50 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                                                <div class="py-1" role="none">
+                                                                    @foreach($roomTypes as $roomType)
+                                                                        @php
+                                                                            $loaiPhong = \App\Models\LoaiPhong::find($roomType['loai_phong_id']);
+                                                                        @endphp
+                                                                        @if($loaiPhong)
+                                                                            <a href="{{ route('client.phong.show', $loaiPhong->id) }}#reviews"
+                                                                            class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">
+                                                                                <div class="flex items-center gap-2">
+                                                                                    <i class="fas fa-door-open text-yellow-500"></i>
+                                                                                    <span>{{ $loaiPhong->ten_loai }}</span>
+                                                                                    <span class="text-xs text-gray-500">({{ $roomType['so_luong'] }} phòng)</span>
+                                                                                </div>
+                                                                            </a>
+                                                                        @endif
+                                                                    @endforeach
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    @else
+                                                        <a href="{{ route('client.phong.show', $booking->loaiPhong->id)}}#reviews"
+                                                        class="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-2 rounded-lg transition-colors font-medium flex items-center gap-2">
+                                                            <i class="fas fa-star"></i>
+                                                            Đánh giá
+                                                        </a>
+                                                    @endif
+                                                @endif
                                                 {{-- Nút xem chi tiết (luôn có) --}}
                                                 <button onclick="showBookingDetail({{ $booking->id }})"
                                                     class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors font-medium flex items-center gap-2">
@@ -1055,7 +1100,7 @@
         function toggleRoomTypeDropdown(bookingId) {
             const dropdown = document.getElementById(`room-type-dropdown-${bookingId}`);
             dropdown.classList.toggle('hidden');
-            
+
             // Close other dropdowns
             document.querySelectorAll('.room-type-dropdown').forEach(dropdown => {
                 if (dropdown.id !== `room-type-dropdown-${bookingId}`) {
