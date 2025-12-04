@@ -32,19 +32,11 @@
     // Get services
     $services = collect();
     if ($booking) {
-        if ($invoice->isExtra()) {
-            $services = \App\Models\BookingService::with('service')
-                ->where('dat_phong_id', $booking->id)
-                ->where('invoice_id', $invoice->id)
-                ->orderBy('used_at')
-                ->get();
-        } else {
-            $services = \App\Models\BookingService::with('service')
-                ->where('dat_phong_id', $booking->id)
-                ->whereNull('invoice_id')
-                ->orderBy('used_at')
-                ->get();
-        }
+        $services = \App\Models\BookingService::with('service')
+            ->where('dat_phong_id', $booking->id)
+            ->where('invoice_id', $invoice->id)
+            ->orderBy('used_at')
+            ->get();
     }
     
     $servicesTotal = $services->reduce(function($carry, $item){

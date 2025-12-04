@@ -636,6 +636,19 @@
                             </div>
                             <div class="p-6 space-y-3">
                                 @if($booking->trang_thai === 'cho_xac_nhan')
+                                    {{-- Quick Confirm --}}
+                                    <form action="{{ route('admin.dat_phong.quick_confirm', $booking->id) }}" method="POST" class="w-full">
+                                        @csrf
+                                        <button type="submit"
+                                            class="w-full inline-flex justify-center items-center px-4 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition shadow-sm"
+                                            onclick="return confirm('Bạn có chắc chắn muốn xác nhận đơn đặt phòng này?')">
+                                            <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                            Xác nhận Booking
+                                        </button>
+                                    </form>
+
                                     <a href="{{ route('admin.dat_phong.edit', $booking->id) }}"
                                         class="w-full inline-flex justify-center items-center px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition shadow-sm">
                                         <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -650,6 +663,22 @@
                                         </svg>
                                         Hủy đặt phòng
                                     </a>
+                                @endif
+
+                                @if($booking->invoice && $booking->invoice->trang_thai === 'cho_thanh_toan')
+                                    {{-- Quick Pay --}}
+                                    <form action="{{ route('admin.dat_phong.mark_paid', $booking->id) }}" method="POST" class="w-full">
+                                        @csrf
+                                        @method('PUT')
+                                        <button type="submit"
+                                            class="w-full inline-flex justify-center items-center px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition shadow-sm"
+                                            onclick="return confirm('Xác nhận đã nhận được thanh toán?')">
+                                            <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                            Xác nhận Thanh toán
+                                        </button>
+                                    </form>
                                 @endif
                             </div>
                         </div>
