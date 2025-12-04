@@ -57,3 +57,9 @@ Route::middleware('auth')->group(function () {
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');
 });
+
+// Admin Quick Actions (Added to bypass gitignore on web.php)
+Route::middleware(['auth', \App\Http\Middleware\IsAdmin::class])->prefix('admin')->name('admin.')->group(function () {
+    Route::post('dat_phong/{id}/quick-confirm', [\App\Http\Controllers\Admin\DatPhongController::class, 'quickConfirm'])->name('dat_phong.quick_confirm');
+    Route::put('dat_phong/{id}/mark-paid', [\App\Http\Controllers\Admin\DatPhongController::class, 'markPaid'])->name('dat_phong.mark_paid');
+});
