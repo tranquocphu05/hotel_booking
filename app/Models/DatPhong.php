@@ -113,6 +113,7 @@ class DatPhong extends Model
     public function phongs()
     {
         return $this->belongsToMany(Phong::class, 'booking_rooms', 'dat_phong_id', 'phong_id')
+            ->withPivot('phu_phi')
             ->withTimestamps();
     }
 
@@ -477,12 +478,8 @@ class DatPhong extends Model
                 if ($booking->phong_id) {
                     $phong = \App\Models\Phong::find($booking->phong_id);
                     if ($phong) {
-                        // Khi booking được confirm -> phòng chuyển sang "đang thuê"
-                        if ($newStatus === 'da_xac_nhan' && $oldStatus !== 'da_xac_nhan') {
-                            $phong->update(['trang_thai' => 'dang_thue']);
-                        }
                         // Khi booking bị hủy/từ chối -> phòng chuyển về "trống"
-                        elseif (in_array($newStatus, ['da_huy', 'tu_choi', 'thanh_toan_that_bai'])
+                        if (in_array($newStatus, ['da_huy', 'tu_choi', 'thanh_toan_that_bai'])
                             && in_array($oldStatus, ['cho_xac_nhan', 'da_xac_nhan'])) {
                             $phong->update(['trang_thai' => 'trong']);
                         }
@@ -490,11 +487,10 @@ class DatPhong extends Model
                         // Logic nghiệp vụ: Sau checkout, phòng không còn được khách sử dụng,
                         // nên không thể giữ ở trạng thái 'dang_thue' (đang thuê)
                         // Phòng cần được dọn dẹp trước khi sử dụng lại (kể cả có booking tương lai)
+                        // Khi booking hoàn thành (check-out) -> phòng chuyển về "trong" (bỏ qua bước dọn dẹp)
                         elseif ($newStatus === 'da_tra' && $oldStatus !== 'da_tra') {
-                            // Sau checkout, phòng luôn về 'dang_don' để dọn dẹp
-                            // Không phụ thuộc vào booking tương lai - trạng thái 'dang_thue' chỉ áp dụng khi khách đang ở
-                            // Hệ thống sẽ tự động chuyển từ 'dang_don' về 'trong' sau khi dọn dẹp xong
-                            $phong->update(['trang_thai' => 'dang_don']);
+                            // Sau checkout, phòng về 'trong' ngay lập tức theo yêu cầu
+                            $phong->update(['trang_thai' => 'trong']);
                             
                             // Recalculate so_luong_trong cho loại phòng
                             $loaiPhongId = $phong->loai_phong_id;
@@ -512,12 +508,8 @@ class DatPhong extends Model
                 // Update Phong status via phong_ids JSON
                 $assignedPhongs = $booking->getAssignedPhongs();
                 foreach ($assignedPhongs as $phong) {
-                    // Khi booking được confirm -> phòng chuyển sang "đang thuê"
-                    if ($newStatus === 'da_xac_nhan' && $oldStatus !== 'da_xac_nhan') {
-                        $phong->update(['trang_thai' => 'dang_thue']);
-                    }
                     // Khi booking bị hủy/từ chối -> phòng chuyển về "trống"
-                    elseif (in_array($newStatus, ['da_huy', 'tu_choi', 'thanh_toan_that_bai'])
+                    if (in_array($newStatus, ['da_huy', 'tu_choi', 'thanh_toan_that_bai'])
                         && in_array($oldStatus, ['cho_xac_nhan', 'da_xac_nhan'])) {
                         // CRITICAL FIX: Kiểm tra xem phòng có đang được đặt cho booking khác không
                         // Sử dụng pivot table thay vì JSON field
@@ -539,10 +531,10 @@ class DatPhong extends Model
                     // Khi booking hoàn thành (check-out) -> phòng chuyển về "dang_don" để dọn dẹp
                     // Logic nghiệp vụ: Sau checkout, phòng không còn được khách sử dụng,
                     // nên không thể giữ ở trạng thái 'dang_thue' (đang thuê)
+                    // Khi booking hoàn thành (check-out) -> phòng chuyển về "trong" (bỏ qua bước dọn dẹp)
                     elseif ($newStatus === 'da_tra' && $oldStatus !== 'da_tra') {
-                        // Sau checkout, phòng luôn về 'dang_don' để dọn dẹp
-                        // Không phụ thuộc vào booking tương lai - trạng thái 'dang_thue' chỉ áp dụng khi khách đang ở
-                        $phong->update(['trang_thai' => 'dang_don']);
+                        // Sau checkout, phòng về 'trong' ngay lập tức theo yêu cầu
+                        $phong->update(['trang_thai' => 'trong']);
                         
                         // Recalculate so_luong_trong cho loại phòng
                         $loaiPhongId = $phong->loai_phong_id;

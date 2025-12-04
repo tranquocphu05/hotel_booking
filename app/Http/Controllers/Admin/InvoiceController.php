@@ -102,10 +102,10 @@ class InvoiceController extends Controller
                 ->where('invoice_id', $invoice->id)
                 ->get();
         } else {
-            // For regular invoices, load booking-level services (invoice_id NULL) to edit booking-scoped services
+            // For regular invoices, load services linked to this invoice
             $bookingServices = BookingService::with('service')
                 ->where('dat_phong_id', $booking->id)
-                ->whereNull('invoice_id')
+                ->where('invoice_id', $invoice->id)
                 ->get();
         }
 
@@ -187,8 +187,10 @@ class InvoiceController extends Controller
                 $invoice->save();
             } else {
                 // Existing behavior for non-EXTRA invoices (booking-scoped services)
-                // Delete old booking-level services BEFORE creating new ones
-                BookingService::where('dat_phong_id', $booking->id)->delete();
+                // Delete old services for THIS invoice
+                BookingService::where('dat_phong_id', $booking->id)
+                    ->where('invoice_id', $invoice->id)
+                    ->delete();
 
                 // Create new service entries
                 foreach ($servicesData as $svcId => $data) {
@@ -203,6 +205,7 @@ class InvoiceController extends Controller
 
                         BookingService::create([
                             'dat_phong_id' => $booking->id,
+                            'invoice_id' => $invoice->id,
                             'service_id' => $service->id,
                             'quantity' => $qty,
                             'unit_price' => $service->price,

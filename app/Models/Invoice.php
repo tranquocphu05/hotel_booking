@@ -64,4 +64,12 @@ class Invoice extends Model
             default          => ['label' => 'Chờ thanh toán', 'bg' => 'bg-yellow-100', 'text' => 'text-yellow-700', 'icon' => 'fa-clock'],
         };
     }
+
+    /**
+     * Check if this is an extra service invoice (for additional services after initial booking)
+     */
+    public function isExtra(): bool
+    {
+        return $this->invoice_type === 'extra';
+    }
 }

@@ -259,7 +259,7 @@
                                 @elseif($booking->trang_thai == 'da_huy') border-red-500
                                 @elseif($booking->trang_thai == 'da_tra') border-blue-500
                                 @else border-yellow-500 @endif
-                                rounded-lg shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden"
+                                rounded-lg shadow-sm hover:shadow-lg transition-all duration-300"
                                         data-booking-id="{{ $booking->id }}"
                                         data-room-name="{{ $booking->loaiPhong->ten_loai ?? 'N/A' }}"
                                         data-room-type="{{ $booking->loaiPhong->ten_loai ?? 'N/A' }}"
@@ -341,6 +341,7 @@
                                                             {{ $booking->trang_thai }}
                                                         @endif
                                                     </span>
+                                                    
                                                 </div>
                                             </div>
                                         </div>
@@ -354,6 +355,7 @@
                                                         <div
                                                             class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
                                                             <i class="fas fa-calendar-check text-green-600"></i>
+                                                            {{-- Bỏ overflow-hidden để xổ loại phòng đánh giá --}}
                                                         </div>
                                                         <div>
                                                             <p class="text-xs text-gray-500 mb-1">Nhận phòng</p>
@@ -414,7 +416,7 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                            @endif
+                                            @endif                                        
 
                                             @php
                                                 $phongDangO = $booking->phongs->first() ?? $booking->phong;
@@ -1048,6 +1050,28 @@
                 closeDetailModal();
             }
         }
+
+        // Room type dropdown for reviews
+        function toggleRoomTypeDropdown(bookingId) {
+            const dropdown = document.getElementById(`room-type-dropdown-${bookingId}`);
+            dropdown.classList.toggle('hidden');
+            
+            // Close other dropdowns
+            document.querySelectorAll('.room-type-dropdown').forEach(dropdown => {
+                if (dropdown.id !== `room-type-dropdown-${bookingId}`) {
+                    dropdown.classList.add('hidden');
+                }
+            });
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.relative.inline-block')) {
+                document.querySelectorAll('.room-type-dropdown').forEach(dropdown => {
+                    dropdown.classList.add('hidden');
+                });
+            }
+        });
     </script>
 
 @endsection

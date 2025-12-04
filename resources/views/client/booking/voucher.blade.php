@@ -52,7 +52,9 @@
                     $cartTotal,
                     $now,
                 ) {
-                    $minCondition = (int) filter_var($voucher->dieu_kien, FILTER_SANITIZE_NUMBER_INT);
+                    // Lấy tất cả các số từ dieu_kien và lấy số lớn nhất
+                    preg_match_all('/\d+/', $voucher->dieu_kien, $matches);
+                    $minCondition = !empty($matches[0]) ? (int) max($matches[0]) : 0;
                     $isApplyToAll = empty($voucher->loai_phong_id) || $voucher->loai_phong_id == 0;
                     $voucherLoaiPhong = $voucher->loaiPhong;
 
@@ -74,7 +76,9 @@
 
             @forelse ($vouchers as $voucher)
                 @php
-                    $minCondition = (int) filter_var($voucher->dieu_kien, FILTER_SANITIZE_NUMBER_INT);
+                    // Lấy tất cả các số từ dieu_kien và lấy số lớn nhất
+                    preg_match_all('/\d+/', $voucher->dieu_kien, $matches);
+                    $minCondition = !empty($matches[0]) ? (int) max($matches[0]) : 0;
 
                     $isApplyToAll = empty($voucher->loai_phong_id) || $voucher->loai_phong_id == 0;
                     $voucherLoaiPhong = $voucher->loaiPhong;

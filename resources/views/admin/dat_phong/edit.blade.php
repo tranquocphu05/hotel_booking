@@ -87,10 +87,13 @@
                                                             required>
                                                             <option value="">-- Chọn loại phòng --</option>
                                                             @foreach($loaiPhongs as $lp)
+                                                                @php
+                                                                    $displayPrice = $lp->gia_khuyen_mai ?? $lp->gia_co_ban ?? 0;
+                                                                @endphp
                                                                 <option value="{{ $lp->id }}" 
                                                                     {{ $roomType['loai_phong_id'] == $lp->id ? 'selected' : '' }}
-                                                                    data-price="{{ $lp->gia_khuyen_mai }}">
-                                                                    {{ $lp->ten_loai }} - {{ number_format($lp->gia_khuyen_mai, 0, ',', '.') }} VNĐ/đêm
+                                                                    data-price="{{ $displayPrice }}">
+                                                                    {{ $lp->ten_loai }} - {{ number_format($displayPrice, 0, ',', '.') }} VNĐ/đêm
                                                                 </option>
                                                             @endforeach
                                                         </select>
@@ -146,10 +149,13 @@
                                                         required>
                                                         <option value="">-- Chọn loại phòng --</option>
                                                         @foreach($loaiPhongs as $lp)
+                                                            @php
+                                                                $displayPrice = $lp->gia_khuyen_mai ?? $lp->gia_co_ban ?? 0;
+                                                            @endphp
                                                             <option value="{{ $lp->id }}" 
                                                                 {{ $booking->loai_phong_id == $lp->id ? 'selected' : '' }}
-                                                                data-price="{{ $lp->gia_khuyen_mai }}">
-                                                                {{ $lp->ten_loai }} - {{ number_format($lp->gia_khuyen_mai, 0, ',', '.') }} VNĐ/đêm
+                                                                data-price="{{ $displayPrice }}">
+                                                                {{ $lp->ten_loai }} - {{ number_format($displayPrice, 0, ',', '.') }} VNĐ/đêm
                                                             </option>
                                                         @endforeach
                                                     </select>
@@ -593,8 +599,11 @@
                                 required>
                                 <option value="">-- Chọn loại phòng --</option>
                                 @foreach($loaiPhongs as $lp)
-                                    <option value="{{ $lp->id }}" data-price="{{ $lp->gia_khuyen_mai }}">
-                                        {{ $lp->ten_loai }} - {{ number_format($lp->gia_khuyen_mai, 0, ',', '.') }} VNĐ/đêm
+                                    @php
+                                        $displayPrice = $lp->gia_khuyen_mai ?? $lp->gia_co_ban ?? 0;
+                                    @endphp
+                                    <option value="{{ $lp->id }}" data-price="{{ $displayPrice }}">
+                                        {{ $lp->ten_loai }} - {{ number_format($displayPrice, 0, ',', '.') }} VNĐ/đêm
                                     </option>
                                 @endforeach
                             </select>
