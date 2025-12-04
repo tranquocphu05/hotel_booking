@@ -4,28 +4,28 @@
 
 @section('admin_content')
     <div class="py-6">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="mb-6 flex justify-between items-center">
-                @php
-                    $roomTypes = $booking->getRoomTypes();
-                @endphp
-                @php
-                    $serviceTotal = isset($bookingServices)
-                        ? $bookingServices->sum(function ($s) {
-                            return $s->unit_price * $s->quantity;
-                        })
-                        : 0;
-                @endphp
-                <h2 class="text-2xl font-semibold text-gray-800">
-                    Chi tiết đặt phòng
-                    @if (count($roomTypes) > 1)
-                        <b>{{ count($roomTypes) }} loại phòng</b>
-                    @else
-                        <b>{{ $booking->loaiPhong->ten_loai ?? 'N/A' }}</b>
-                    @endif
-                </h2>
-                <span
-                    class="px-3 py-1 rounded-full text-sm font-medium
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- Header -->
+            <div class="mb-8 flex justify-between items-start">
+                <div>
+                    @php
+                        $roomTypes = $booking->getRoomTypes();
+                    @endphp
+                    <h1 class="text-3xl font-bold text-gray-900">
+                        Chi tiết đặt phòng #{{ $booking->id }}
+                        @if (count($roomTypes) > 1)
+                            <span class="text-lg text-gray-600">({{ count($roomTypes) }} loại phòng)</span>
+                        @endif
+                    </h1>
+                    <p class="mt-2 text-sm text-gray-600">
+                        @if($booking->loaiPhong && count($roomTypes) == 1)
+                            {{ $booking->loaiPhong->ten_loai }}
+                        @else
+                            Đặt phòng ngày {{ date('d/m/Y', strtotime($booking->ngay_nhan)) }}
+                        @endif
+                    </p>
+                </div>
+                <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold
                     @if ($booking->trang_thai === 'da_xac_nhan') bg-green-100 text-green-800
                     @elseif($booking->trang_thai === 'cho_xac_nhan') bg-yellow-100 text-yellow-800
                     @elseif($booking->trang_thai === 'da_huy') bg-red-100 text-red-800
@@ -42,145 +42,68 @@
                 </span>
             </div>
 
-
             @if ($booking->trang_thai === 'da_xac_nhan' && isset($cancellationPolicy))
-                <div
-                    class="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 rounded-lg shadow-sm overflow-hidden my-3">
-                    <div class="p-6">
-                        <div class="flex items-start">
-                            <div class="flex-shrink-0">
-                                <svg class="h-8 w-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg shadow-sm p-6 mb-8">
+                    <div class="flex items-start gap-4">
+                        <div class="flex-shrink-0">
+                            <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Chính sách hủy phòng</h3>
+                            
+                            <div class="grid md:grid-cols-2 gap-6">
+                                <!-- Time Info -->
+                                <div class="bg-white p-4 rounded-lg border border-blue-200">
+                                    <div class="space-y-3">
+                                        <div class="flex justify-between items-center pb-2 border-b border-gray-200">
+                                            <span class="text-sm font-medium text-gray-600">Ngày nhận phòng</span>
+                                            <span class="text-lg font-semibold text-gray-900">{{ date('d/m/Y', strtotime($booking->ngay_nhan)) }}</span>
+                                        </div>
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-sm font-medium text-gray-600">Thời gian còn lại</span>
+                                            <span class="text-2xl font-bold text-blue-600">{{ number_format($cancellationPolicy['days_until_checkin'], 0) }} ngày</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Refund Policy Grid -->
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div class="text-center p-3 bg-green-50 rounded border border-green-200">
+                                        <p class="text-xs text-gray-600 mb-1">≥ 7 ngày</p>
+                                        <p class="text-lg font-bold text-green-600">100%</p>
+                                    </div>
+                                    <div class="text-center p-3 bg-yellow-50 rounded border border-yellow-200">
+                                        <p class="text-xs text-gray-600 mb-1">3-6 ngày</p>
+                                        <p class="text-lg font-bold text-yellow-600">50%</p>
+                                    </div>
+                                    <div class="text-center p-3 bg-orange-50 rounded border border-orange-200">
+                                        <p class="text-xs text-gray-600 mb-1">1-2 ngày</p>
+                                        <p class="text-lg font-bold text-orange-600">25%</p>
+                                    </div>
+                                    <div class="text-center p-3 bg-red-50 rounded border border-red-200">
+                                        <p class="text-xs text-gray-600 mb-1">Trong ngày</p>
+                                        <p class="text-lg font-bold text-red-600">0%</p>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="ml-4 flex-1">
-                                <h3 class="text-xl font-bold text-gray-900 mb-4">
-                                    <i class="fas fa-info-circle"></i> Chính sách hủy phòng
-                                </h3>
 
-                                <div class="grid md:grid-cols-2 gap-6">
-                                    {{-- Thông tin thời gian --}}
-                                    <div class="bg-white p-5 rounded-lg border border-blue-200 shadow-sm">
-                                        <div class="space-y-3">
-                                            <div class="flex justify-between items-center pb-3 border-b border-gray-200">
-                                                <span class="text-sm font-medium text-gray-600">Ngày nhận phòng</span>
-                                                <span
-                                                    class="text-lg font-bold text-gray-900">{{ date('d/m/Y', strtotime($booking->ngay_nhan)) }}</span>
-                                            </div>
-                                            <div class="flex justify-between items-center">
-                                                <span class="text-sm font-medium text-gray-600">Thời gian còn lại</span>
-                                                <span
-                                                    class="text-2xl font-bold text-blue-600">{{ number_format($cancellationPolicy['days_until_checkin'], 0) }}
-                                                    @php
-                                                        // Prefer stored booking totals when available, then invoice, then compute
-                                                        $invoice = $booking->invoice;
-
-                                                        if (isset($booking->tien_phong) && $booking->tien_phong) {
-                                                            // Use stored booking totals (safer after update)
-                                                            $tienPhong = $booking->tien_phong;
-                                                            $tienDichVu = $booking->tien_dich_vu ?? ($totalServicePrice ?? 0);
-                                                            // Compute discount from voucher if present
-                                                            $giamGia = 0;
-                                                            if ($booking->voucher) {
-                                                                $giamGia = $tienPhong * ($booking->voucher->gia_tri / 100);
-                                                            }
-                                                        } elseif ($invoice && $invoice->tien_phong) {
-                                                            // Fallback: use invoice values if present
-                                                            $tienPhong = $invoice->tien_phong;
-                                                            $tienDichVu = $invoice->tien_dich_vu ?? 0;
-                                                            $giamGia = $invoice->giam_gia ?? 0;
-                                                        } else {
-                                                            // Compute on-the-fly
-                                                            $checkin = new DateTime($booking->ngay_nhan);
-                                                            $checkout = new DateTime($booking->ngay_tra);
-                                                            $nights = max(1, $checkin->diff($checkout)->days);
-
-                                                            $tienPhong = 0;
-                                                            foreach ($booking->getRoomTypes() as $rt) {
-                                                                $loaiPhong = \App\Models\LoaiPhong::find($rt['loai_phong_id']);
-                                                                if ($loaiPhong) {
-                                                                    $giaGoc = $loaiPhong->gia_khuyen_mai ?? $loaiPhong->gia_co_ban;
-                                                                    $tienPhong += $giaGoc * $rt['so_luong'] * $nights;
-                                                                }
-                                                            }
-                                                            $tienDichVu = $totalServicePrice ?? 0;
-                                                            $giamGia = 0;
-                                                            if ($booking->voucher) {
-                                                                $giamGia = $tienPhong * ($booking->voucher->gia_tri / 100);
-                                                            }
-                                                        }
-                                                    @endphp
-                                        </div>
-
-                                        <div class="mt-3 pt-3 border-t border-gray-200">
-                                            <p class="text-xs text-gray-500 italic">
-                                                <i class="fas fa-info-circle"></i>
-                                                Đây là số tiền đề xuất theo chính sách. Admin có thể điều chỉnh khi hủy.
-                                            </p>
-                                        </div>
+                            <!-- Cancel Button -->
+                            <div class="mt-4">
+                                @if ($cancellationPolicy['can_cancel'])
+                                    <a href="{{ route('admin.dat_phong.cancel', $booking->id) }}"
+                                        class="inline-flex items-center px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition">
+                                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                        Hủy đặt phòng
+                                    </a>
+                                @else
+                                    <div class="inline-block p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                                        <strong>{{ $cancellationPolicy['message'] }}</strong>
                                     </div>
-                                </div>
-
-                                {{-- Bảng chính sách chi tiết --}}
-                                <div class="mt-6 bg-white p-5 rounded-lg border border-gray-200">
-                                    <p class="text-sm font-semibold text-gray-700 mb-3">
-                                        <i class="fas fa-list-ul"></i> Bảng chính sách hoàn tiền:
-                                    </p>
-                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                        <div class="text-center p-3 bg-green-50 rounded-lg border border-green-200">
-                                            <p class="text-xs text-gray-600 mb-1">≥ 7 ngày</p>
-                                            <p class="text-lg font-bold text-green-600">100%</p>
-                                        </div>
-                                        <div class="text-center p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                                            <p class="text-xs text-gray-600 mb-1">3-6 ngày</p>
-                                            <p class="text-lg font-bold text-yellow-600">50%</p>
-                                        </div>
-                                        <div class="text-center p-3 bg-orange-50 rounded-lg border border-orange-200">
-                                            <p class="text-xs text-gray-600 mb-1">1-2 ngày</p>
-                                            <p class="text-lg font-bold text-orange-600">25%</p>
-                                        </div>
-                                        <div class="text-center p-3 bg-red-50 rounded-lg border border-red-200">
-                                            <p class="text-xs text-gray-600 mb-1">Trong ngày</p>
-                                            <p class="text-lg font-bold text-red-600">0%</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {{-- Nút hủy phòng --}}
-                                <div class="mt-6">
-                                    @if ($cancellationPolicy['can_cancel'])
-                                        <div class="flex justify-end">
-                                            <a href="{{ route('admin.dat_phong.cancel', $booking->id) }}"
-                                                class="inline-flex items-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white text-base font-semibold rounded-lg shadow-md transition-all hover:shadow-lg">
-                                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor"
-                                                    viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                        d="M6 18L18 6M6 6l12 12" />
-                                                </svg>
-                                                Hủy đặt phòng
-                                            </a>
-                                        </div>
-                                    @else
-                                        <div class="bg-red-50 border-l-4 border-red-400 p-4">
-                                            <div class="flex">
-                                                <div class="flex-shrink-0">
-                                                    <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20"
-                                                        fill="currentColor">
-                                                        <path fill-rule="evenodd"
-                                                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                                                            clip-rule="evenodd" />
-                                                    </svg>
-                                                </div>
-                                                <div class="ml-3">
-                                                    <p class="text-sm text-red-700">
-                                                        <strong>{{ $cancellationPolicy['message'] }}</strong>
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    @endif
-                                </div>
+                                @endif
                             </div>
                         </div>
                     </div>

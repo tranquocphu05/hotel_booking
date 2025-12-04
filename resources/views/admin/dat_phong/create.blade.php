@@ -4,10 +4,13 @@
 
 @section('admin_content')
     <div class="py-6">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm rounded-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200">
+                <div class="border-b border-gray-200 px-6 py-4 bg-gray-50">
+                    <h1 class="text-2xl font-bold text-gray-900">Đặt phòng mới</h1>
+                    <p class="mt-1 text-sm text-gray-600">Tạo một đặt phòng mới cho khách</p>
+                </div>
                 <div class="p-6">
-                    <h2 class="text-2xl font-semibold text-gray-800 mb-6">Đặt phòng mới</h2>
 
                     @if ($errors->any())
                         <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -47,11 +50,11 @@
 
                     <form action="{{ route('admin.dat_phong.store') }}" method="POST" id="bookingForm">
                         @csrf
-                        <div class="space-y-6">
+                        <div class="space-y-8">
                             <!-- Chọn loại phòng -->
-                            <div class="bg-gray-50 p-4 rounded-lg">
-                                <h3 class="text-lg font-medium text-gray-900 mb-4">Chọn loại phòng</h3>
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="roomTypesContainer">
+                            <section>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">Chọn loại phòng</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="roomTypesContainer">
                                     @foreach ($loaiPhongs as $loaiPhong)
                                         <div class="room-type-card relative">
                                             <input type="checkbox" name="room_types[]" id="loai_phong_{{ $loaiPhong->id }}"
@@ -162,12 +165,12 @@
                                 <div id="room_types_error" class="mt-2 text-sm text-red-600 hidden">
                                     Vui lòng chọn ít nhất một loại phòng
                                 </div>
-                            </div>
+                            </section>
 
                             <!-- Thông tin đặt phòng -->
-                            <div class="bg-gray-50 p-4 rounded-lg">
-                                <h3 class="text-lg font-medium text-gray-900 mb-4">Thông tin đặt phòng</h3>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <section>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">Thông tin đặt phòng</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div>
                                         <label for="ngay_nhan" class="block text-sm font-medium text-gray-700">Ngày nhận
                                             phòng</label>
@@ -198,102 +201,100 @@
                                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                         @enderror
                                     </div>
-
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-3">Chọn mã giảm giá (nếu
-                                            có)</label>
-                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                                            @foreach ($vouchers as $voucher)
-                                                @php
-                                                    $isDisabled = $voucher->status !== 'con_han';
-                                                    $overlayText =
-                                                        $voucher->status === 'het_han'
-                                                            ? 'Hết hạn'
-                                                            : ($voucher->status === 'huy'
-                                                                ? 'Đã hủy'
-                                                                : '');
-                                                @endphp
-
-                                                <div class="relative voucher-container" data-voucher-id="{{ $voucher->id }}">
-                                                    <input type="radio" name="voucher_radio"
-                                                        id="voucher_{{ $voucher->id }}"
-                                                        value="{{ $voucher->ma_voucher }}"
-                                                        class="sr-only peer voucher-radio"
-                                                        data-value="{{ $voucher->gia_tri }}"
-                                                        data-loai-phong="{{ $voucher->loai_phong_id }}"
-                                                        data-start="{{ $voucher->ngay_bat_dau ? date('Y-m-d', strtotime($voucher->ngay_bat_dau)) : '' }}"
-                                                        data-end="{{ $voucher->ngay_ket_thuc ? date('Y-m-d', strtotime($voucher->ngay_ket_thuc)) : '' }}"
-                                                        {{ $isDisabled ? 'disabled' : '' }}>
-
-                                                    <label for="voucher_{{ $voucher->id }}"
-                                                        class="block p-4 bg-gray-50 border-2 border-gray-200 rounded-xl cursor-pointer relative transition-all duration-300 ease-in-out
-                                            peer-checked:bg-white peer-checked:border-green-500 peer-checked:ring-2 peer-checked:ring-green-400 peer-checked:shadow-lg
-                                            hover:bg-gray-100 hover:border-gray-300 hover:shadow-md
-                                            z-0 peer-checked:z-10 voucher-label {{ $isDisabled ? 'opacity-50 cursor-not-allowed' : '' }}">
-
-                                                        {{-- Overlay hiển thị trạng thái --}}
-                                                        @if ($isDisabled)
-                                                            <div
-                                                                class="voucher-overlay-server absolute inset-0 bg-opacity-70 flex items-center justify-center rounded-xl pointer-events-none">
-                                                                <span
-                                                                    class="text-gray-700 text-sm font-medium">{{ $overlayText }}</span>
-                                                            </div>
-                                                        @endif
-
-                                                        <div class="space-y-2">
-                                                            <div class="flex items-center justify-between">
-                                                                <p class="text-sm font-bold text-green-600">
-                                                                    {{ $voucher->ma_voucher }}</p>
-                                                                <span
-                                                                    class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                                                                    @if ($voucher->gia_tri <= 100)
-                                                                        {{ $voucher->gia_tri }}%
-                                                                    @else
-                                                                        {{ number_format($voucher->gia_tri, 0, ',', '.') }}₫
-                                                                    @endif
-                                                                </span>
-                                                            </div>
-                                                            <p class="text-xs text-gray-600">
-                                                                @if ($voucher->gia_tri <= 100)
-                                                                    Giảm {{ $voucher->gia_tri }}%
-                                                                @else
-                                                                    Giảm
-                                                                    {{ number_format($voucher->gia_tri, 0, ',', '.') }} VNĐ
-                                                                @endif
-                                                            </p>
-                                                            @if ($voucher->dieu_kien)
-                                                                <p class="text-xs text-gray-500 bg-gray-100 p-2 rounded">
-                                                                    {{ $voucher->dieu_kien }}</p>
-                                                            @endif
-                                                            <div class="flex justify-between text-xs text-gray-500">
-                                                                <span>Còn lại: {{ $voucher->so_luong }}</span>
-                                                                <span>HSD:
-                                                                    {{ date('d/m/Y', strtotime($voucher->ngay_ket_thuc)) }}</span>
-                                                            </div>
-                                                        </div>
-                                                    </label>
-                                                </div>
-                                            @endforeach
-                                        </div>
-                                    </div>
-
-
                                 </div>
+                            </section>
+
+                            <!-- Chọn mã giảm giá -->
+                            <section>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">Chọn mã giảm giá (nếu có)</h3>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                    @foreach ($vouchers as $voucher)
+                                        @php
+                                            $isDisabled = $voucher->status !== 'con_han';
+                                            $overlayText =
+                                                $voucher->status === 'het_han'
+                                                    ? 'Hết hạn'
+                                                    : ($voucher->status === 'huy'
+                                                        ? 'Đã hủy'
+                                                        : '');
+                                        @endphp
+
+                                        <div class="relative voucher-container h-full" data-voucher-id="{{ $voucher->id }}">
+                                            <input type="radio" name="voucher_radio"
+                                                id="voucher_{{ $voucher->id }}"
+                                                value="{{ $voucher->ma_voucher }}"
+                                                class="sr-only peer voucher-radio"
+                                                data-value="{{ $voucher->gia_tri }}"
+                                                data-loai-phong="{{ $voucher->loai_phong_id }}"
+                                                data-start="{{ $voucher->ngay_bat_dau ? date('Y-m-d', strtotime($voucher->ngay_bat_dau)) : '' }}"
+                                                data-end="{{ $voucher->ngay_ket_thuc ? date('Y-m-d', strtotime($voucher->ngay_ket_thuc)) : '' }}"
+                                                {{ $isDisabled ? 'disabled' : '' }}>
+
+                                            <label for="voucher_{{ $voucher->id }}"
+                                                class="flex flex-col h-full p-4 bg-gray-50 border-2 border-gray-200 rounded-lg cursor-pointer relative transition-all duration-300 ease-in-out
+                                        peer-checked:bg-white peer-checked:border-green-500 peer-checked:ring-2 peer-checked:ring-green-400 peer-checked:shadow-md
+                                        hover:bg-gray-100 hover:border-gray-300 hover:shadow-sm
+                                        z-0 peer-checked:z-10 voucher-label {{ $isDisabled ? 'opacity-50 cursor-not-allowed' : '' }}">
+
+                                                {{-- Overlay hiển thị trạng thái --}}
+                                                @if ($isDisabled)
+                                                    <div
+                                                        class="voucher-overlay-server absolute inset-0 bg-opacity-70 flex items-center justify-center rounded-lg pointer-events-none">
+                                                        <span
+                                                            class="text-gray-700 text-sm font-medium">{{ $overlayText }}</span>
+                                                    </div>
+                                                @endif
+
+                                                <div class="space-y-2">
+                                                    <div class="flex items-center justify-between">
+                                                        <p class="text-sm font-bold text-green-600">
+                                                            {{ $voucher->ma_voucher }}</p>
+                                                        <span
+                                                            class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                                                            @if ($voucher->gia_tri <= 100)
+                                                                {{ $voucher->gia_tri }}%
+                                                            @else
+                                                                {{ number_format($voucher->gia_tri, 0, ',', '.') }}₫
+                                                            @endif
+                                                        </span>
+                                                    </div>
+                                                    <p class="text-xs text-gray-600">
+                                                        @if ($voucher->gia_tri <= 100)
+                                                            Giảm {{ $voucher->gia_tri }}%
+                                                        @else
+                                                            Giảm
+                                                            {{ number_format($voucher->gia_tri, 0, ',', '.') }} VNĐ
+                                                        @endif
+                                                    </p>
+                                                    @if ($voucher->dieu_kien)
+                                                        <p class="text-xs text-gray-500 bg-gray-100 p-2 rounded">
+                                                            {{ $voucher->dieu_kien }}</p>
+                                                    @endif
+                                                    <div class="flex justify-between text-xs text-gray-500">
+                                                        <span>Còn lại: {{ $voucher->so_luong }}</span>
+                                                        <span>HSD:
+                                                            {{ date('d/m/Y', strtotime($voucher->ngay_ket_thuc)) }}</span>
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </section>
 
                                 <!-- Chọn dịch vụ -->
                                 
                                 <!-- Tom Select based multi-select for services -->
                                 <link href="https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/css/tom-select.css" rel="stylesheet">
-                                <!-- Styles for service cards: blue theme using Tailwind-friendly colors -->
+                                <!-- Service cards styling -->
                                 <style>
                                     .service-card-custom{
                                         border-radius:10px;
                                         background: linear-gradient(135deg, #e0f2fe 0%, #bfdbfe 100%);
-                                        border:1.5px solid #2563eb; /* blue-600 */
+                                        border:1.5px solid #2563eb;
                                         padding:0.875rem;
-                                        box-shadow: 0 6px 18px rgba(37, 99, 235, 0.06);
+                                        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
                                     }
-                                    /* responsive grid for cards */
                                     .service-card-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:0.75rem}
                                     .service-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;padding-bottom:0.4rem;border-bottom:1.5px solid #bfdbfe}
                                     .service-card-header .service-title{color:#1e40af;font-weight:600;font-size:0.95rem}
@@ -301,59 +302,51 @@
                                     .service-date-row{display:flex;gap:0.5rem;align-items:center;margin-top:0.5rem;padding:0.4rem;background:#ffffff;border-radius:6px;border:1px solid #bfdbfe}
                                     .service-date-row input[type=date]{border:1px solid #93c5fd;padding:0.35rem 0.5rem;border-radius:5px;background:#eff6ff;font-size:0.85rem;flex:1}
                                     .service-date-row input[type=number]{border:1px solid #93c5fd;padding:0.35rem 0.5rem;border-radius:5px;background:#eff6ff;width:64px;text-align:center;font-size:0.85rem}
-                                    .service-add-day{background:linear-gradient(135deg, #93c5fd 0%, #2563eb 100%);color:#08203a;padding:0.4rem 0.6rem;border-radius:6px;border:1.5px solid #60a5fa;cursor:pointer;font-weight:600;font-size:0.85rem}
+                                    .service-add-day{background:linear-gradient(135deg, #93c5fd 0%, #2563eb 100%);color:#08203a;padding:0.4rem 0.6rem;border-radius:6px;border:1.5px solid #60a5fa;cursor:pointer;font-weight:600;font-size:0.85rem;transition:all 0.2s}
                                     .service-add-day:hover{background:linear-gradient(135deg, #2563eb 0%, #1e40af 100%);box-shadow:0 4px 12px rgba(37, 99, 235, 0.12)}
-                                    .service-remove-btn{background:#fee2e2;color:#991b1b;padding:0.3rem 0.5rem;border-radius:5px;border:1px solid #fecaca;cursor:pointer;font-weight:600;font-size:0.8rem}
+                                    .service-remove-btn{background:#fee2e2;color:#991b1b;padding:0.3rem 0.5rem;border-radius:5px;border:1px solid #fecaca;cursor:pointer;font-weight:600;font-size:0.8rem;transition:all 0.2s}
                                     .service-remove-btn:hover{background:#fca5a5;box-shadow:0 3px 10px rgba(185,28,28,0.12)}
-                                    /* Tom Select input spacing */
                                     #services_select + .ts-control{margin-top:.5rem;border-color:#2563eb}
-                                    /* selected list item hover */
-                                    #selected_services_list .service-card-custom{transition:all .18s ease}
-                                    #selected_services_list .service-card-custom:hover{transform:translateY(-4px);box-shadow:0 10px 26px rgba(37, 99, 235, 0.12)}
                                 </style>
-                                <div class="bg-gray-50 p-4 rounded-lg">
+                                <div>
                                     <label for="services_select" class="block text-sm font-medium text-gray-700 mb-2">Chọn dịch vụ kèm theo</label>
                                     <select id="services_select" placeholder="Chọn 1 hoặc nhiều dịch vụ..." multiple>
                                         @foreach ($services as $service)
                                             <option value="{{ $service->id }}" data-price="{{ $service->price }}" data-unit="{{ $service->unit ?? '' }}">{{ $service->name }} - {{ number_format($service->price,0,',','.') }} VNĐ</option>
                                         @endforeach
                                     </select>
-
-                                    <!-- selected services list (rendered by JS) -->
-                                    <div id="selected_services_list" class="service-card-grid grid grid-cols-1 md:grid-cols-3 gap-6 mt-4"></div>
+                                    <div id="selected_services_list" class="service-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4"></div>
                                 </div>
+                            </section>
 
 
                                 <input type="hidden" name="tong_tien" id="tong_tien_input" value="0">
-                                <!-- Hidden voucher mirrors (radios named voucher_radio, backend expects 'voucher' and may use voucher_id) -->
                                 <input type="hidden" name="voucher" id="voucher_input" value="">
                                 <input type="hidden" name="voucher_id" id="voucher_id_input" value="">
+                                
                                 <!-- Hiển thị tổng tiền -->
-                                <div class="col-span-2">
-                                    <div class="bg-gray-100 p-4 rounded-lg">
-                                        <div class="flex justify-between items-center">
-                                            <span class="text-gray-700">Tổng tiền:</span>
-                                            <span id="total_price" class="text-lg font-semibold text-blue-600">0
-                                                VNĐ</span>
+                                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+                                    <div class="flex justify-between items-center mb-3">
+                                        <span class="text-gray-700 font-medium">Tổng tiền:</span>
+                                        <span id="total_price" class="text-2xl font-bold text-blue-700">0 VNĐ</span>
+                                    </div>
+                                    <div id="discount_info" class="text-sm text-gray-700 hidden pt-3 border-t border-blue-200">
+                                        <div class="flex justify-between mb-1">
+                                            <span>Giá gốc:</span>
+                                            <span id="original_price">0 VNĐ</span>
                                         </div>
-                                        <div id="discount_info" class="text-sm text-gray-600 mt-1 hidden">
-                                            <div class="flex justify-between">
-                                                <span>Giá gốc:</span>
-                                                <span id="original_price">0 VNĐ</span>
-                                            </div>
-                                            <div class="flex justify-between">
-                                                <span>Giảm giá:</span>
-                                                <span id="discount_amount" class="text-green-600">-0 VNĐ</span>
-                                            </div>
+                                        <div class="flex justify-between">
+                                            <span>Giảm giá:</span>
+                                            <span id="discount_amount" class="text-green-600 font-medium">-0 VNĐ</span>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </section>
 
                             <!-- Thông tin người đặt -->
-                            <div class="bg-gray-50 p-4 rounded-lg">
-                                <h3 class="text-lg font-medium text-gray-900 mb-4">Thông tin người đặt</h3>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <section>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">Thông tin người đặt</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label for="username" class="block text-sm font-medium text-gray-700 mb-2">Họ và
                                             tên</label>
@@ -401,7 +394,7 @@
 
                                 <!-- Thông báo lỗi validation -->
                                 <div id="validation-errors"
-                                    class="hidden mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                                    class="hidden p-4 bg-red-50 border border-red-200 rounded-lg">
                                     <div class="flex">
                                         <div class="flex-shrink-0">
                                             <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
@@ -419,19 +412,18 @@
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </section>
 
-                            <div class="pt-5">
-                                <div class="flex justify-end space-x-3">
-                                    <a href="{{ route('admin.dat_phong.index') }}"
-                                        class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                                        Hủy bỏ
-                                    </a>
-                                    <button type="submit"
-                                        class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
-                                        Đặt phòng
-                                    </button>
-                                </div>
+                            <!-- Form Actions -->
+                            <div class="flex justify-end gap-3 pt-6 border-t border-gray-200">
+                                <a href="{{ route('admin.dat_phong.index') }}"
+                                    class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition">
+                                    Hủy bỏ
+                                </a>
+                                <button type="submit"
+                                    class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition">
+                                    Đặt phòng
+                                </button>
                             </div>
                         </div>
                     </form>

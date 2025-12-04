@@ -4,27 +4,32 @@
 
 @section('admin_content')
     <div class="py-6">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm rounded-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200">
+                <div class="border-b border-gray-200 px-6 py-4 bg-gray-50">
+                    <h1 class="text-2xl font-bold text-gray-900">Sửa đặt phòng #{{ $booking->id }}</h1>
+                    <p class="mt-1 text-sm text-gray-600">Chỉnh sửa thông tin đặt phòng của khách</p>
+                </div>
                 <div class="p-6">
                     @php
                         $roomTypes = $booking->getRoomTypes();
                     @endphp
-                    <h2 class="text-2xl font-semibold text-gray-800 mb-6">Sửa đặt phòng</h2>
 
                     <form id="bookingForm" method="POST" action="{{ route('admin.dat_phong.update', $booking->id) }}">
                         @csrf
                         @method('PUT')
+                        <div class="space-y-8">
 
                         <!-- Quản lý loại phòng -->
-                        <div class="bg-green-50 p-4 rounded-lg mb-6 border border-green-200">
-                            <div class="flex justify-between items-center mb-4">
+                        <section>
+                            <div class="flex justify-between items-center mb-4 pb-2 border-b border-gray-200">
                                 <h3 class="text-lg font-semibold text-gray-900">Loại phòng được đặt</h3>
                                 <button type="button" onclick="addRoom()"
-                                    class="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700">+ Thêm loại
-                                    phòng</button>
+                                    class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition">
+                                    + Thêm loại phòng
+                                </button>
                             </div>
-                            <div id="roomTypesContainer">
+                            <div id="roomTypesContainer" class="space-y-3">
                                 @foreach ($roomTypes as $rt)
                                     @php
                                         $rtLoaiPhongId = $rt['loai_phong_id'] ?? null;
@@ -33,22 +38,22 @@
                                         $rtTen = $rtLoaiPhong ? $rtLoaiPhong->ten_loai : 'Loại phòng';
                                         $rtGia = $rtLoaiPhong ? $rtLoaiPhong->gia_khuyen_mai : 0;
                                     @endphp
-                                    <div class="room-item border border-gray-200 rounded-lg p-4 bg-white mb-3"
-                                        data-room-index="{{ $loop->index }}">
-                                        <div class="flex justify-between items-start mb-3">
-                                            <h4 class="text-sm font-medium text-gray-700">{{ $rtTen }} - Số lượng:
-                                                {{ $rtSoLuong }}</h4>
+                                    <div class="room-item bg-white border border-gray-200 rounded-lg p-4" data-room-index="{{ $loop->index }}">
+                                        <div class="flex justify-between items-start mb-4">
+                                            <div>
+                                                <h4 class="font-semibold text-gray-900">{{ $rtTen }}</h4>
+                                                <p class="text-sm text-gray-600">{{ $rtSoLuong }} phòng</p>
+                                            </div>
                                             <button type="button" onclick="removeRoom({{ $loop->index }})"
-                                                class="text-red-600 hover:text-red-800 text-sm">
-                                                <i class="fas fa-times"></i> Xóa
+                                                class="text-red-600 hover:text-red-800 text-sm font-medium">
+                                                <i class="fas fa-trash-alt"></i> Xóa
                                             </button>
                                         </div>
                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div>
-                                                <label class="block text-sm font-medium text-gray-700 mb-2">Loại
-                                                    phòng</label>
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">Loại phòng</label>
                                                 <select name="room_types[{{ $loop->index }}][loai_phong_id]"
-                                                    class="room-type-select mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                                    class="room-type-select w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                                                     onchange="handleRoomTypeChange({{ $loop->index }}, this.value)"
                                                     required>
                                                     <option value="">-- Chọn loại phòng --</option>
@@ -56,31 +61,27 @@
                                                         <option value="{{ $lp->id }}"
                                                             data-price="{{ $lp->gia_khuyen_mai }}"
                                                             {{ $rtLoaiPhongId == $lp->id ? 'selected' : '' }}>
-                                                            {{ $lp->ten_loai }} -
-                                                            {{ number_format($lp->gia_khuyen_mai, 0, ',', '.') }} VNĐ/đêm
+                                                            {{ $lp->ten_loai }} - {{ number_format($lp->gia_khuyen_mai, 0, ',', '.') }} VNĐ/đêm
                                                         </option>
                                                     @endforeach
                                                 </select>
-                                                <div id="availability_text_{{ $loop->index }}"
-                                                    class="mt-1 text-xs text-gray-500"></div>
+                                                <div id="availability_text_{{ $loop->index }}" class="mt-1 text-xs text-gray-500"></div>
                                             </div>
                                             <div>
                                                 <label class="block text-sm font-medium text-gray-700 mb-2">Số lượng</label>
                                                 <div class="flex items-center gap-2">
                                                     <button type="button" onclick="decreaseQuantity({{ $loop->index }})"
-                                                        class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50">-</button>
+                                                        class="w-8 h-8 border border-gray-300 rounded-md hover:bg-gray-50 text-gray-700 font-semibold">−</button>
                                                     <input type="number" name="room_types[{{ $loop->index }}][so_luong]"
-                                                        class="room-quantity-input quantity-input w-20 text-center border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                                        class="room-quantity-input quantity-input flex-1 text-center px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                                                         value="{{ $rtSoLuong }}" min="1" max="10"
                                                         data-room-index="{{ $loop->index }}"
                                                         onchange="updateRoomQuantity({{ $loop->index }})" required>
                                                     <button type="button" onclick="increaseQuantity({{ $loop->index }})"
-                                                        class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50">+</button>
+                                                        class="w-8 h-8 border border-gray-300 rounded-md hover:bg-gray-50 text-gray-700 font-semibold">+</button>
                                                 </div>
-                                                <div class="mt-1 text-xs text-gray-600">
-                                                    Giá: <span id="room_price_{{ $loop->index }}"
-                                                        class="font-medium">{{ number_format($rtSoLuong * $rtGia, 0, ',', '.') }}
-                                                        VNĐ</span>
+                                                <div class="mt-2 text-xs text-gray-600">
+                                                    Giá: <span id="room_price_{{ $loop->index }}" class="font-semibold">{{ number_format($rtSoLuong * $rtGia, 0, ',', '.') }} VNĐ</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -89,17 +90,16 @@
                                     </div>
                                 @endforeach
                             </div>
-                        </div>
+                        </section>
 
                         <!-- Ngày nhận, ngày trả, số người -->
-                        <div class="bg-yellow-50 p-4 rounded-lg mb-6 border border-yellow-200">
-                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Thông tin đặt phòng</h3>
+                        <section>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">Thông tin đặt phòng</h3>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
-                                    <label for="ngay_nhan" class="block text-sm font-medium text-gray-700 mb-1">Ngày nhận
-                                        phòng</label>
+                                    <label for="ngay_nhan" class="block text-sm font-medium text-gray-700 mb-2">Ngày nhận phòng</label>
                                     <input type="date" name="ngay_nhan" id="ngay_nhan"
-                                        class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                                         value="{{ old('ngay_nhan', $booking->ngay_nhan ? date('Y-m-d', strtotime($booking->ngay_nhan)) : '') }}"
                                         required>
                                     @error('ngay_nhan')
@@ -107,10 +107,9 @@
                                     @enderror
                                 </div>
                                 <div>
-                                    <label for="ngay_tra" class="block text-sm font-medium text-gray-700 mb-1">Ngày trả
-                                        phòng</label>
+                                    <label for="ngay_tra" class="block text-sm font-medium text-gray-700 mb-2">Ngày trả phòng</label>
                                     <input type="date" name="ngay_tra" id="ngay_tra"
-                                        class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                                         value="{{ old('ngay_tra', $booking->ngay_tra ? date('Y-m-d', strtotime($booking->ngay_tra)) : '') }}"
                                         required>
                                     @error('ngay_tra')
@@ -118,23 +117,20 @@
                                     @enderror
                                 </div>
                                 <div>
-                                    <label for="so_nguoi" class="block text-sm font-medium text-gray-700 mb-1">Số
-                                        người</label>
+                                    <label for="so_nguoi" class="block text-sm font-medium text-gray-700 mb-2">Số người</label>
                                     <input type="number" name="so_nguoi" id="so_nguoi"
-                                        class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                        value="{{ old('so_nguoi', $booking->so_nguoi ?? 1) }}" min="1"
-                                        max="20" required>
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                                        value="{{ old('so_nguoi', $booking->so_nguoi ?? 1) }}" min="1" max="20" required>
                                     @error('so_nguoi')
                                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                     @enderror
                                 </div>
                             </div>
-                        </div>
+                        </section>
 
-                        <!-- Chọn dịch vụ (server-side rendering, minimal JS) -->
-                        <!-- Service selection interface -->
-                        <div class="bg-blue-50 p-4 rounded-lg mb-6 border border-blue-200">
-                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Chọn dịch vụ để thêm vào</h3>
+                        <!-- Chọn dịch vụ -->
+                        <section>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">Chọn dịch vụ</h3>
                             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                                 @foreach ($services as $service)
                                     @php

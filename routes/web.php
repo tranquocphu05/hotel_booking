@@ -99,6 +99,7 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin
     Route::put('phong/{id}/update-status', [\App\Http\Controllers\Admin\PhongController::class, 'updateStatus'])->name('phong.update-status');
     Route::resource('invoices', InvoiceController::class)->names('invoices');
     Route::get('/invoices/{invoice}/export', [InvoiceController::class, 'export'])->name('invoices.export');
+    Route::get('/invoices/{invoice}/export-combined', [InvoiceController::class, 'exportCombined'])->name('invoices.export_combined');
     // Create EXTRA invoice (service-only) from a paid invoice
     // Show form to compose extra invoice (do NOT persist until confirm)
     Route::get('/invoices/{invoice}/create-extra', [InvoiceController::class, 'createExtra'])->name('invoices.create_extra');

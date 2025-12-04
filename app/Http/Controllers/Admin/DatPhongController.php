@@ -50,13 +50,12 @@ class DatPhongController extends Controller
             $query->whereDate('ngay_dat', '<=', $request->to_date);
         }
 
-        $today = Carbon::today();
-
+        // Lấy thống kê tổng số đặt phòng theo từng trạng thái (tất cả các đơn)
         $bookingCounts = [
-            'cho_xac_nhan' => DatPhong::where('trang_thai', 'cho_xac_nhan')->whereDate('ngay_dat', $today)->count(),
-            'da_xac_nhan' => DatPhong::where('trang_thai', 'da_xac_nhan')->whereDate('ngay_dat', $today)->count(),
-            'da_huy' => DatPhong::where('trang_thai', 'da_huy')->whereDate('ngay_dat', $today)->count(),
-            'da_tra' => DatPhong::where('trang_thai', 'da_tra')->whereDate('ngay_dat', $today)->count(),
+            'cho_xac_nhan' => DatPhong::where('trang_thai', 'cho_xac_nhan')->count(),
+            'da_xac_nhan' => DatPhong::where('trang_thai', 'da_xac_nhan')->count(),
+            'da_huy' => DatPhong::where('trang_thai', 'da_huy')->count(),
+            'da_tra' => DatPhong::where('trang_thai', 'da_tra')->count(),
         ];
 
         // Phân trang, mỗi trang 5 đơn

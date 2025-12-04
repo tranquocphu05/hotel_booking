@@ -206,6 +206,17 @@
                         Xuất Excel
                     </a>
 
+                    @if(!$invoice->isExtra() && $invoice->trang_thai === 'da_thanh_toan')
+                        <a href="{{ route('admin.invoices.export_combined', $invoice->id) }}"
+                            class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M3 7v4a1 1 0 001 1h3m10 0h3a1 1 0 001-1V7m-7 10v-4m0 0H8m7 4h2a2 2 0 002-2v-3a2 2 0 00-2-2h-5m-6 0H5a2 2 0 00-2 2v3a2 2 0 002 2h2m6-3v3" />
+                            </svg>
+                            Xuất hóa đơn tổng
+                        </a>
+                    @endif
+
                     <a href="{{ route('admin.invoices.index') }}"
                         class="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50">
                         Quay lại

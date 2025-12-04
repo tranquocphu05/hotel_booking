@@ -84,6 +84,65 @@ class InvoiceController extends Controller
         ]);
     }
 
+    /**
+     * Export a combined/summary printable view that includes the main invoice
+     * and all PAID EXTRA invoices for the same booking (by invoice id).
+     */
+    public function exportCombined(Invoice $invoice)
+    {
+        // Ensure relationships are loaded
+        $invoice->load(['datPhong' => function($q) {
+            $q->with('user', 'loaiPhong');
+        }]);
+
+        // Only allow combined export for the main (non-EXTRA) invoice that is paid
+        if ($invoice->isExtra() || $invoice->trang_thai !== 'da_thanh_toan') {
+            return redirect()->route('admin.invoices.show', $invoice->id)
+                ->with('error', 'Chỉ có thể xuất hóa đơn tổng cho hóa đơn chính đã thanh toán.');
+        }
+
+        // Find PAID EXTRA invoices for the same booking
+        // Only include EXTRA invoices with trang_thai = 'da_thanh_toan'
+        $extras = Invoice::where('dat_phong_id', $invoice->dat_phong_id)
+            ->where('invoice_type', 'EXTRA')
+            ->where('trang_thai', 'da_thanh_toan')
+            ->where('id', '!=', $invoice->id)
+            ->orderBy('ngay_tao', 'asc')
+            ->get();
+
+        // Combined total: main invoice total + sum of paid extras
+        $combinedTotal = $invoice->tong_tien + $extras->sum('tong_tien');
+
+        return view('admin.invoices.combined_print', compact('invoice', 'extras', 'combinedTotal'));
+    }
+
+    /**
+     * Export combined invoice as Excel file
+     */
+    public function exportCombinedExcel(Invoice $invoice)
+    {
+        // Only allow combined export for the main (non-EXTRA) invoice that is paid
+        if ($invoice->isExtra() || $invoice->trang_thai !== 'da_thanh_toan') {
+            return redirect()->route('admin.invoices.show', $invoice->id)
+                ->with('error', 'Chỉ có thể xuất hóa đơn tổng cho hóa đơn chính đã thanh toán.');
+        }
+
+        try {
+            $export = new \App\Exports\CombinedInvoiceExport($invoice);
+            $fileName = 'hoa_don_tong_' . $invoice->id . '_' . date('dmY_His') . '.xlsx';
+
+            return response($export->generate()->save('php://output'), 200, [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Content-Disposition' => "attachment; filename=\"{$fileName}\"",
+                'Pragma' => 'no-cache',
+                'Expires' => '0',
+            ]);
+        } catch (\Throwable $e) {
+            return redirect()->route('admin.invoices.show', $invoice->id)
+                ->with('error', 'Xuất Excel thất bại: ' . $e->getMessage());
+        }
+    }
+
     public function edit($id)
     {
         $invoice = Invoice::findOrFail($id);
