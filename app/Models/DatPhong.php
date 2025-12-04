@@ -4,8 +4,10 @@ namespace App\Models;
 
 use App\Models\Invoice;
 use App\Models\LoaiPhong;
+use App\Models\YeuCauDoiPhong as ModelsYeuCauDoiPhong;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
+use YeuCauDoiPhong;
 
 class DatPhong extends Model
 {
@@ -724,5 +726,8 @@ class DatPhong extends Model
 
     return $map[$this->trang_thai] ?? ucfirst(str_replace('_', ' ', $this->trang_thai));
 }
-
+    public function yeuCauDoiPhongs()
+{
+    return $this->hasMany(ModelsYeuCauDoiPhong::class, 'dat_phong_id');
+}
 }

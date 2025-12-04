@@ -1,0 +1,203 @@
+@extends('layouts.admin')
+
+@section('title', 'Yêu cầu đổi phòng - OZIA Hotel')
+
+@section('admin_content')
+    @php
+        $statusTabs = [
+            'all' => ['label' => 'Tất cả', 'color' => 'text-gray-700', 'bg' => 'bg-gray-100'],
+            'cho_duyet' => ['label' => 'Chờ duyệt', 'color' => 'text-yellow-700', 'bg' => 'bg-yellow-50'],
+            'da_duyet' => ['label' => 'Đã duyệt', 'color' => 'text-green-700', 'bg' => 'bg-green-50'],
+            'bi_tu_choi' => ['label' => 'Từ chối', 'color' => 'text-red-700', 'bg' => 'bg-red-50'],
+        ];
+    @endphp
+
+    <div class="space-y-8">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Yêu cầu đổi phòng</h1>
+                <p class="text-gray-500 mt-1 text-sm">
+                    Kiểm tra các yêu cầu đổi phòng mà khách đã gửi trong quá trình lưu trú.
+                </p>
+            </div>
+
+            <form method="GET" class="w-full lg:w-80">
+                <div class="relative">
+                    <input type="text" name="q" value="{{ $searchTerm }}"
+                        placeholder="Tìm theo mã, khách hàng, phòng..."
+                        class="w-full pl-11 pr-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 bg-white text-sm">
+                    <span class="absolute inset-y-0 left-3 flex items-center text-gray-400">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    @if($activeStatus && $activeStatus !== 'all')
+                        <input type="hidden" name="status" value="{{ $activeStatus }}">
+                    @endif
+                </div>
+            </form>
+        </div>
+
+        <div class="bg-white border border-gray-200 rounded-2xl p-4 lg:p-6 shadow-sm">
+            <div class="flex flex-wrap gap-3 mb-5">
+                @foreach ($statusTabs as $key => $tab)
+                    @php
+                        $isActive = $activeStatus === $key;
+                        $count = $counts[$key] ?? 0;
+                    @endphp
+                    <a href="{{ route('admin.yeu_cau_doi_phong.index', array_filter(['status' => $key !== 'all' ? $key : null, 'q' => $searchTerm])) }}"
+                       class="inline-flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium transition
+                            {{ $isActive ? 'border-indigo-500 text-indigo-600 bg-indigo-50' : 'border-gray-200 text-gray-600 hover:border-indigo-200 hover:text-indigo-600' }}">
+                        <span>{{ $tab['label'] }}</span>
+                        <span class="text-xs font-semibold px-2 py-0.5 rounded-full {{ $tab['bg'] }} {{ $tab['color'] }}">
+                            {{ $count }}
+                        </span>
+                    </a>
+                @endforeach
+            </div>
+
+            <div class="space-y-4">
+                @forelse ($yeuCau as $item)
+                    @php
+                        $statusMeta = [
+                            'cho_duyet' => ['label' => 'Chờ duyệt', 'bg' => 'bg-amber-100 text-amber-700'],
+                            'da_duyet' => ['label' => 'Đã duyệt', 'bg' => 'bg-green-100 text-green-700'],
+                            'bi_tu_choi' => ['label' => 'Bị từ chối', 'bg' => 'bg-red-100 text-red-700'],
+                        ][$item->trang_thai] ?? ['label' => $item->trang_thai, 'bg' => 'bg-gray-100 text-gray-600'];
+                    @endphp
+
+                    <div class="rounded-xl border border-gray-200 bg-white p-4 lg:p-5 shadow-sm hover:border-indigo-200 transition">
+                        <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                            <div class="space-y-2 flex-1">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-xs uppercase tracking-wider text-gray-400">YÊU CẦU</span>
+                                    <span class="text-sm font-semibold text-gray-900">#{{ $item->id }}</span>
+                                    <span class="text-xs text-gray-400">
+                                        {{ optional($item->created_at)->diffForHumans() }}
+                                    </span>
+                                </div>
+                                <div class="flex flex-wrap gap-6 text-sm text-gray-600">
+                                    @php
+                                        $khachHang = optional($item->datPhong)->user;
+                                    @endphp
+                                    <div class="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+                                        <p class="text-xs uppercase tracking-wide text-gray-400 mb-3">Thông tin khách hàng</p>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-2 text-sm">
+                                            <div class="text-gray-500">Họ tên</div>
+                                            <div class="font-semibold text-gray-900">{{ $khachHang->ho_ten ?? 'Không tìm thấy' }}</div>
+
+                                            <div class="text-gray-500">Email</div>
+                                            <div class="text-gray-900">{{ $khachHang->email ?? 'N/A' }}</div>
+
+                                            <div class="text-gray-500">Số điện thoại</div>
+                                            <div class="text-gray-900">{{ $khachHang->sdt ?? 'Chưa cập nhật' }}</div>
+
+                                            <div class="text-gray-500">CCCD/CMND</div>
+                                            <div class="text-gray-900">{{ $khachHang->cccd ?? 'Chưa cập nhật' }}</div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p class="text-gray-400 text-xs uppercase">Đặt phòng</p>
+                                        <p class="font-semibold text-gray-900">#{{ $item->dat_phong_id }}</p>
+                                        <p class="text-xs text-gray-500">
+                                            Nhận:
+                                            {{ optional(optional($item->datPhong)->ngay_nhan)->format('d/m/Y') ?? '--' }}
+                                            · Trả:
+                                            {{ optional(optional($item->datPhong)->ngay_tra)->format('d/m/Y') ?? '--' }}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p class="text-gray-400 text-xs uppercase">Phòng</p>
+                                        <p class="font-semibold text-gray-900">
+                                            {{ $item->phongCu->ten_phong ?? ('Phòng #' . $item->phong_cu_id) }}
+                                            <span class="text-gray-400 mx-1">→</span>
+                                            {{ $item->phongMoi->ten_phong ?? ('Phòng #' . $item->phong_moi_id) }}
+                                        </p>
+                                        <p class="text-xs text-gray-500">
+                                            Loại: {{ optional(optional($item->datPhong)->loaiPhong)->ten_loai ?? 'N/A' }}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="text-sm text-gray-600 bg-gray-50 rounded-lg px-4 py-3 border border-gray-100">
+                                    <p class="text-xs uppercase tracking-wide text-gray-400 mb-1">Lý do</p>
+                                    <p>{{ \Illuminate\Support\Str::limit($item->ly_do, 220) }}</p>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col items-stretch gap-3 w-full md:w-56">
+                                <span class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-semibold rounded-full {{ $statusMeta['bg'] }}">
+                                    {{ $statusMeta['label'] }}
+                                </span>
+
+                                @if($item->trang_thai === 'cho_duyet')
+                                    <form method="POST" action="{{ route('admin.yeu_cau_doi_phong.approve', $item->id) }}" class="w-full">
+                                        @csrf
+                                        <button type="submit"
+                                                class="w-full px-4 py-2 text-sm font-semibold rounded-lg bg-green-500 hover:bg-green-600 text-white border border-green-500 shadow-sm transition">
+                                            <i class="fas fa-check mr-2 text-xs"></i>Duyệt yêu cầu
+                                        </button>
+                                    </form>
+
+                                    <form method="POST" action="{{ route('admin.yeu_cau_doi_phong.reject', $item->id) }}" class="w-full reject-form">
+                                        @csrf
+                                        <input type="hidden" name="ghi_chu_admin" value="">
+                                        <button type="button"
+                                                onclick="handleReject(this.form)"
+                                                class="w-full px-4 py-2 text-sm font-semibold rounded-lg bg-red-500 hover:bg-red-600 text-white border border-red-500 shadow-sm transition">
+                                            <i class="fas fa-ban mr-2 text-xs"></i>Từ chối
+                                        </button>
+                                    </form>
+                                @else
+                                    <button class="w-full px-4 py-2 text-sm font-semibold rounded-lg bg-gray-50 text-gray-500 border border-gray-200 cursor-default">
+                                        <i class="fas fa-check mr-2 text-xs"></i>Duyệt
+                                    </button>
+                                    <button class="w-full px-4 py-2 text-sm font-semibold rounded-lg bg-gray-50 text-gray-400 border border-gray-200 cursor-default">
+                                        <i class="fas fa-ban mr-2 text-xs"></i>Từ chối
+                                    </button>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                @empty
+                    <div class="text-center py-12 border border-dashed border-gray-200 rounded-2xl bg-gray-50">
+                        <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white shadow flex items-center justify-center text-gray-400">
+                            <i class="fas fa-exchange-alt text-2xl"></i>
+                        </div>
+                        <p class="text-gray-600 font-medium">Chưa có yêu cầu đổi phòng nào.</p>
+                        <p class="text-gray-400 text-sm mt-1">Khi khách gửi yêu cầu, thông tin sẽ hiển thị tại đây.</p>
+                    </div>
+                @endforelse
+            </div>
+
+            <div class="pt-4">
+                {{ $yeuCau->links() }}
+            </div>
+        </div>
+    </div>
+
+@endsection
+
+@push('scripts')
+<script>
+    function handleReject(form) {
+        const reason = prompt('Nhập lý do từ chối yêu cầu đổi phòng (tối thiểu 5 ký tự):');
+        if (reason === null) {
+            return;
+        }
+        const trimmed = (reason || '').trim();
+        if (!trimmed) {
+            alert('Vui lòng nhập lý do hợp lệ.');
+            return;
+        }
+        if (trimmed.length < 5) {
+            alert('Lý do từ chối phải có ít nhất 5 ký tự.');
+            return;
+        }
+        if (trimmed.length > 500) {
+            alert('Lý do từ chối không được vượt quá 500 ký tự.');
+            return;
+        }
+        form.querySelector('input[name="ghi_chu_admin"]').value = trimmed;
+        form.submit();
+    }
+</script>
+@endpush

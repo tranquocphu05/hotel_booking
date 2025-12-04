@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\DB;
 use App\Models\Phong;
+use App\Models\YeuCauDoiPhong;
 
 class ProfileController extends Controller
 {
@@ -17,29 +18,35 @@ class ProfileController extends Controller
      * Display the user's profile form.
      */
     public function edit(Request $request): View
-    {
-        $user = $request->user();
+{
+    $user = $request->user();
 
-        // Lấy lịch sử đặt phòng - Mỗi trang hiển thị 3 phòng
-        $bookings = \App\Models\DatPhong::where('nguoi_dung_id', $user->id)
-            ->with(['loaiPhong', 'phong', 'invoice'])
-            ->orderBy('ngay_dat', 'desc')
-            ->paginate(3);
+    // Lấy lịch sử đặt phòng - Mỗi trang hiển thị 3 phòng
+    $bookings = \App\Models\DatPhong::where('nguoi_dung_id', $user->id)
+        ->with(['loaiPhong', 'phong', 'phongs', 'invoice', 'yeuCauDoiPhongs'])
+        ->orderBy('ngay_dat', 'desc')
+        ->paginate(3);
 
-        // Tính toán chính sách hủy cho mỗi booking đã thanh toán (để hiển thị thông tin khi hủy)
-        $cancellationPolicies = [];
-        foreach ($bookings as $booking) {
-            if ($booking->trang_thai === 'da_xac_nhan' && $booking->invoice && $booking->invoice->trang_thai === 'da_thanh_toan') {
-                $cancellationPolicies[$booking->id] = $this->calculateCancellationPolicy($booking);
-            }
+
+    // Tính toán chính sách hủy cho mỗi booking đã thanh toán (để hiển thị thông tin khi hủy)
+    $cancellationPolicies = [];
+    foreach ($bookings as $booking) {
+        if (
+            $booking->trang_thai === 'da_xac_nhan'
+            && $booking->invoice
+            && $booking->invoice->trang_thai === 'da_thanh_toan'
+        ) {
+            $cancellationPolicies[$booking->id] = $this->calculateCancellationPolicy($booking);
         }
-
-        return view('client.profile.index', [
-            'user' => $user,
-            'bookings' => $bookings,
-            'cancellationPolicies' => $cancellationPolicies,
-        ]);
     }
+
+    return view('client.profile.index', [
+        'user'                     => $user,
+        'bookings'                 => $bookings,
+        'cancellationPolicies'     => $cancellationPolicies,
+    ]);
+}
+
 
     /**
      * Update the user's profile information.

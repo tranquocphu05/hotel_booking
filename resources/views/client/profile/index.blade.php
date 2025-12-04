@@ -418,61 +418,50 @@
                                                 </div>
                                             @endif                                        
 
-                                            <!-- Action buttons -->
-                                            <div class="flex justify-end gap-3">
-                                                {{-- Nút đánh giá --}}
-                                                @if($booking->trang_thai == 'da_tra')
-                                                    @php
-                                                        $roomTypes = $booking->getRoomTypes();
-                                                    @endphp
-                                                    
-                                                    @if(count($roomTypes) > 1)
-                                                        <div class="relative z-20 inline-block text-left">
-                                                            <button type="button" 
-                                                                class="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-2 rounded-lg transition-colors font-medium flex items-center gap-2"
-                                                                onclick="toggleRoomTypeDropdown({{ $booking->id }})">
-                                                                <i class="fas fa-star"></i>
-                                                                Đánh giá
-                                                                <i class="fas fa-chevron-down ml-1 text-xs"></i>
-                                                            </button>
-                                                            
-                                                            <div id="room-type-dropdown-{{ $booking->id }}" 
-                                                                class="room-type-dropdown hidden absolute right-0 z-50 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none">
-                                                                <div class="py-1" role="none">
-                                                                    @foreach($roomTypes as $roomType)
-                                                                        @php
-                                                                            $loaiPhong = \App\Models\LoaiPhong::find($roomType['loai_phong_id']);
-                                                                        @endphp
-                                                                        @if($loaiPhong)
-                                                                            <a href="{{ route('client.phong.show', $loaiPhong->id) }}#reviews" 
-                                                                            class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">
-                                                                                <div class="flex items-center gap-2">
-                                                                                    <i class="fas fa-door-open text-yellow-500"></i>
-                                                                                    <span>{{ $loaiPhong->ten_loai }}</span>
-                                                                                    <span class="text-xs text-gray-500">({{ $roomType['so_luong'] }} phòng)</span>
-                                                                                </div>
-                                                                            </a>
-                                                                        @endif
-                                                                    @endforeach
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    @else
-                                                        <a href="{{ route('client.phong.show', $booking->loaiPhong->id)}}#reviews"
-                                                        class="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-2 rounded-lg transition-colors font-medium flex items-center gap-2">
-                                                            <i class="fas fa-star"></i>
-                                                            Đánh giá
+                                            @php
+                                                $phongDangO = $booking->phongs->first() ?? $booking->phong;
+                                                $tenPhongDangO = $phongDangO
+                                                    ? ($phongDangO->ten_phong ?? ('Phòng #' . $phongDangO->id))
+                                                    : null;
+                                                $maPhongDangO = $phongDangO->ma_phong ?? null;
+                                                $phongDetailLink = $booking->loai_phong_id
+                                                    ? route('client.phong.show', $booking->loai_phong_id)
+                                                    : null;
+                                                $latestRoomChangeRequest = optional($booking->yeuCauDoiPhongs)->sortByDesc('created_at')->first();
+                                                $coYeuCauDoiPhongChoDuyet = $latestRoomChangeRequest && $latestRoomChangeRequest->trang_thai === 'cho_duyet';
+                                            @endphp
+
+                                            @if($tenPhongDangO)
+                                                <div class="mt-4 bg-white border border-gray-200 rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm">
+                                                    <div>
+                                                        <p class="text-xs uppercase tracking-wide text-gray-400 mb-1">Phòng hiện tại</p>
+                                                        <p class="text-sm font-semibold text-gray-900">
+                                                            {{ $tenPhongDangO }}
+                                                            @if($maPhongDangO)
+                                                                <span class="text-gray-500 font-normal">(Mã phòng: {{ $maPhongDangO }})</span>
+                                                            @endif
+                                                        </p>
+                                                    </div>
+                                                    @if($phongDetailLink)
+                                                        <a href="{{ $phongDetailLink }}"
+                                                           class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-100 rounded-lg hover:bg-blue-100">
+                                                            <i class="fas fa-door-open text-xs"></i>
+                                                            Xem chi tiết phòng
                                                         </a>
                                                     @endif
-                                                @endif
-                                                <!-- Nút xem chi tiết (luôn hiển thị) -->
+                                                </div>
+                                            @endif
+
+                                            <!-- Action buttons -->
+                                            <div class="flex justify-end gap-3">
+                                                {{-- Nút xem chi tiết (luôn có) --}}
                                                 <button onclick="showBookingDetail({{ $booking->id }})"
                                                     class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors font-medium flex items-center gap-2">
                                                     <i class="fas fa-eye"></i>
                                                     Xem chi tiết
                                                 </button>
 
-                                                <!-- Nút hủy phòng (cho booking chờ xác nhận hoặc đã xác nhận nhưng chưa check-in) -->
+                                                {{-- Hủy đặt phòng: chỉ khi CHƯA checkin (giữ logic cũ) --}}
                                                 @if (in_array($booking->trang_thai, ['cho_xac_nhan', 'da_xac_nhan']) && !$booking->thoi_gian_checkin)
                                                     <button onclick="showCancelModal({{ $booking->id }})"
                                                         class="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg transition-colors font-medium flex items-center gap-2">
@@ -480,7 +469,90 @@
                                                         Hủy đặt phòng
                                                     </button>
                                                 @endif
+
+                                                {{-- ✅ YÊU CẦU ĐỔI PHÒNG:
+                                                    - trạng_thai = da_xac_nhan
+                                                    - đã checkin
+                                                    - chưa checkout
+                                                    - chưa có yêu cầu đổi phòng đang chờ duyệt
+                                                --}}
+                                                @if ($booking->trang_thai === 'da_xac_nhan'
+                                                    && $booking->thoi_gian_checkin
+                                                    && !$booking->thoi_gian_checkout
+                                                    && !$coYeuCauDoiPhongChoDuyet)
+
+                                                    <a href="{{ route('client.yeu_cau_doi_phong.create', $booking->id) }}"
+                                                    class="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg transition-colors font-medium flex items-center gap-2">
+                                                        <i class="fas fa-exchange-alt"></i>
+                                                        Yêu cầu đổi phòng
+                                                    </a>
+
+                                                @endif
                                             </div>
+
+                                            @if($latestRoomChangeRequest)
+                                                @php
+                                                    $statusMeta = [
+                                                        'cho_duyet' => [
+                                                            'bg' => 'bg-yellow-50 border-yellow-200 text-yellow-800',
+                                                            'icon' => 'fas fa-hourglass-half',
+                                                            'title' => 'Yêu cầu đổi phòng đang chờ duyệt',
+                                                            'message' => 'Yêu cầu của bạn đã được gửi tới quản trị viên và sẽ được xử lý trong thời gian sớm nhất.'
+                                                        ],
+                                                        'da_duyet' => [
+                                                            'bg' => 'bg-green-50 border-green-200 text-green-800',
+                                                            'icon' => 'fas fa-check-circle',
+                                                            'title' => 'Yêu cầu đổi phòng đã được duyệt',
+                                                            'message' => 'Bạn sẽ được hỗ trợ chuyển sang phòng mới ngay khi có thể. Vui lòng liên hệ lễ tân để được hướng dẫn chi tiết.'
+                                                        ],
+                                                        'bi_tu_choi' => [
+                                                            'bg' => 'bg-red-50 border-red-200 text-red-800',
+                                                            'icon' => 'fas fa-times-circle',
+                                                            'title' => 'Yêu cầu đổi phòng bị từ chối',
+                                                            'message' => 'Rất tiếc, yêu cầu đổi phòng của bạn chưa thể được đáp ứng ở thời điểm hiện tại.'
+                                                        ],
+                                                    ][$latestRoomChangeRequest->trang_thai] ?? null;
+
+                                                    $phongCuLabel = optional($latestRoomChangeRequest->phongCu)->ten_phong ?? ('Phòng #' . $latestRoomChangeRequest->phong_cu_id);
+                                                    $phongMoiLabel = optional($latestRoomChangeRequest->phongMoi)->ten_phong ?? ('Phòng #' . $latestRoomChangeRequest->phong_moi_id);
+                                                @endphp
+
+                                                @if($statusMeta)
+                                                    <div class="mt-4 border rounded-lg px-4 py-3 {{ $statusMeta['bg'] }}">
+                                                        <div class="flex items-start gap-3">
+                                                            <i class="{{ $statusMeta['icon'] }} mt-1"></i>
+                                                            <div class="flex-1 text-sm">
+                                                                <p class="font-semibold mb-1">{{ $statusMeta['title'] }}</p>
+                                                                <p class="mb-2">{{ $statusMeta['message'] }}</p>
+
+                                                                <div class="text-xs opacity-90">
+                                                                    <p><strong>Chuyển từ:</strong> {{ $phongCuLabel }} → <strong>{{ $phongMoiLabel }}</strong></p>
+                                                                    @if($tenPhongDangO)
+                                                                        <p><strong>Phòng hiện tại:</strong> {{ $tenPhongDangO }}</p>
+                                                                    @endif
+                                                                    @if($phongDetailLink)
+                                                                        <p>
+                                                                            <a href="{{ $phongDetailLink }}"
+                                                                               class="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs font-semibold">
+                                                                                <i class="fas fa-external-link-alt text-[10px]"></i>
+                                                                                Xem chi tiết phòng
+                                                                            </a>
+                                                                        </p>
+                                                                    @endif
+                                                                    <p><strong>Thời gian gửi:</strong> {{ optional($latestRoomChangeRequest->created_at)->format('d/m/Y H:i') }}</p>
+                                                                    @if($latestRoomChangeRequest->trang_thai !== 'cho_duyet')
+                                                                        <p><strong>Cập nhật:</strong> {{ optional($latestRoomChangeRequest->updated_at)->format('d/m/Y H:i') }}</p>
+                                                                    @endif
+                                                                    @if($latestRoomChangeRequest->trang_thai === 'bi_tu_choi')
+                                                                        <p class="mt-1"><strong>Lý do từ chối:</strong> {{ $latestRoomChangeRequest->ghi_chu_admin ?? 'Không có ghi chú.' }}</p>
+                                                                    @endif
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                @endif
+                                            @endif
+
 
                                             @if ($booking->trang_thai === 'da_xac_nhan')
                                                 @if ($booking->thoi_gian_checkin)
