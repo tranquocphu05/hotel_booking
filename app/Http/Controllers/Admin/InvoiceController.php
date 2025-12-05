@@ -116,33 +116,6 @@ class InvoiceController extends Controller
         return view('admin.invoices.combined_print', compact('invoice', 'extras', 'combinedTotal'));
     }
 
-    /**
-     * Export combined invoice as Excel file
-     */
-    public function exportCombinedExcel(Invoice $invoice)
-    {
-        // Only allow combined export for the main (non-EXTRA) invoice that is paid
-        if ($invoice->isExtra() || $invoice->trang_thai !== 'da_thanh_toan') {
-            return redirect()->route('admin.invoices.show', $invoice->id)
-                ->with('error', 'Chỉ có thể xuất hóa đơn tổng cho hóa đơn chính đã thanh toán.');
-        }
-
-        try {
-            $export = new \App\Exports\CombinedInvoiceExport($invoice);
-            $fileName = 'hoa_don_tong_' . $invoice->id . '_' . date('dmY_His') . '.xlsx';
-
-            return response($export->generate()->save('php://output'), 200, [
-                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                'Content-Disposition' => "attachment; filename=\"{$fileName}\"",
-                'Pragma' => 'no-cache',
-                'Expires' => '0',
-            ]);
-        } catch (\Throwable $e) {
-            return redirect()->route('admin.invoices.show', $invoice->id)
-                ->with('error', 'Xuất Excel thất bại: ' . $e->getMessage());
-        }
-    }
-
     public function edit($id)
     {
         $invoice = Invoice::findOrFail($id);
