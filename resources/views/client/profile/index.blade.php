@@ -40,9 +40,28 @@
 
             @if (session('error'))
                 <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
-                    <div class="flex items-center">
-                        <i class="fas fa-exclamation-circle text-red-500 text-xl mr-3"></i>
-                        <p class="text-red-800 font-medium">{{ session('error') }}</p>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <i class="fas fa-exclamation-circle text-red-500 text-xl mr-3"></i>
+                            <p class="text-red-800 font-medium">{{ session('error') }}</p>
+                        </div>
+                        <button onclick="this.parentElement.parentElement.remove()" class="text-red-500 hover:text-red-700">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            @endif
+
+            @if (session('info'))
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <i class="fas fa-info-circle text-blue-500 text-xl mr-3"></i>
+                            <p class="text-blue-800 font-medium">{{ session('info') }}</p>
+                        </div>
+                        <button onclick="this.parentElement.parentElement.remove()" class="text-blue-500 hover:text-blue-700">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
                 </div>
             @endif
@@ -240,7 +259,7 @@
                                 @elseif($booking->trang_thai == 'da_huy') border-red-500
                                 @elseif($booking->trang_thai == 'da_tra') border-blue-500
                                 @else border-yellow-500 @endif
-                                rounded-lg shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden"
+                                rounded-lg shadow-sm hover:shadow-lg transition-all duration-300"
                                         data-booking-id="{{ $booking->id }}"
                                         data-room-name="{{ $booking->loaiPhong->ten_loai ?? 'N/A' }}"
                                         data-room-type="{{ $booking->loaiPhong->ten_loai ?? 'N/A' }}"
@@ -322,6 +341,7 @@
                                                             {{ $booking->trang_thai }}
                                                         @endif
                                                     </span>
+
                                                 </div>
                                             </div>
                                         </div>
@@ -335,6 +355,7 @@
                                                         <div
                                                             class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
                                                             <i class="fas fa-calendar-check text-green-600"></i>
+                                                            {{-- Bỏ overflow-hidden để xổ loại phòng đánh giá --}}
                                                         </div>
                                                         <div>
                                                             <p class="text-xs text-gray-500 mb-1">Nhận phòng</p>
@@ -397,31 +418,233 @@
                                                 </div>
                                             @endif
 
+                                            @php
+                                                $phongDangO = $booking->phongs->first() ?? $booking->phong;
+                                                $tenPhongDangO = $phongDangO
+                                                    ? ($phongDangO->ten_phong ?? ('Phòng #' . $phongDangO->id))
+                                                    : null;
+                                                $maPhongDangO = $phongDangO->ma_phong ?? null;
+                                                $phongDetailLink = $booking->loai_phong_id
+                                                    ? route('client.phong.show', $booking->loai_phong_id)
+                                                    : null;
+                                                $latestRoomChangeRequest = optional($booking->yeuCauDoiPhongs)->sortByDesc('created_at')->first();
+                                                $coYeuCauDoiPhongChoDuyet = $latestRoomChangeRequest && $latestRoomChangeRequest->trang_thai === 'cho_duyet';
+                                            @endphp
+
+                                            @if($tenPhongDangO)
+                                                <div class="mt-4 bg-white border border-gray-200 rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm">
+                                                    <div>
+                                                        <p class="text-xs uppercase tracking-wide text-gray-400 mb-1">Phòng hiện tại</p>
+                                                        <p class="text-sm font-semibold text-gray-900">
+                                                            {{ $tenPhongDangO }}
+                                                            @if($maPhongDangO)
+                                                                <span class="text-gray-500 font-normal">(Mã phòng: {{ $maPhongDangO }})</span>
+                                                            @endif
+                                                        </p>
+                                                    </div>
+                                                    @if($phongDetailLink)
+                                                        <a href="{{ $phongDetailLink }}"
+                                                           class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-100 rounded-lg hover:bg-blue-100">
+                                                            <i class="fas fa-door-open text-xs"></i>
+                                                            Xem chi tiết phòng
+                                                        </a>
+                                                    @endif
+                                                </div>
+                                            @endif
+
                                             <!-- Action buttons -->
-                                            <div class="flex justify-end gap-3">
-                                                <!-- Nút xem chi tiết (luôn hiển thị) -->
+                                            <div class="flex justify-end gap-3 mt-6">
+                                                {{-- Nút đánh giá: chỉ khi đã trả phòng --}}
+                                                @if($booking->trang_thai == 'da_tra')
+                                                    @php
+                                                        $roomTypes = $booking->getRoomTypes();
+                                                    @endphp
+
+                                                    @if(count($roomTypes) > 1)
+                                                        <div class="relative z-20 inline-block text-left">
+                                                            <button type="button"
+                                                                class="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-2 rounded-lg transition-colors font-medium flex items-center gap-2"
+                                                                onclick="toggleRoomTypeDropdown({{ $booking->id }})">
+                                                                <i class="fas fa-star"></i>
+                                                                Đánh giá
+                                                                <i class="fas fa-chevron-down ml-1 text-xs"></i>
+                                                            </button>
+
+                                                            <div id="room-type-dropdown-{{ $booking->id }}"
+                                                                class="room-type-dropdown hidden absolute right-0 z-50 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                                                <div class="py-1" role="none">
+                                                                    @foreach($roomTypes as $roomType)
+                                                                        @php
+                                                                            $loaiPhong = \App\Models\LoaiPhong::find($roomType['loai_phong_id']);
+                                                                        @endphp
+                                                                        @if($loaiPhong)
+                                                                            <a href="{{ route('client.phong.show', $loaiPhong->id) }}#reviews"
+                                                                            class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">
+                                                                                <div class="flex items-center gap-2">
+                                                                                    <i class="fas fa-door-open text-yellow-500"></i>
+                                                                                    <span>{{ $loaiPhong->ten_loai }}</span>
+                                                                                    <span class="text-xs text-gray-500">({{ $roomType['so_luong'] }} phòng)</span>
+                                                                                </div>
+                                                                            </a>
+                                                                        @endif
+                                                                    @endforeach
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    @else
+                                                        <a href="{{ route('client.phong.show', $booking->loaiPhong->id)}}#reviews"
+                                                        class="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-2 rounded-lg transition-colors font-medium flex items-center gap-2">
+                                                            <i class="fas fa-star"></i>
+                                                            Đánh giá
+                                                        </a>
+                                                    @endif
+                                                @endif
+                                                {{-- Nút xem chi tiết (luôn có) --}}
                                                 <button onclick="showBookingDetail({{ $booking->id }})"
                                                     class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors font-medium flex items-center gap-2">
                                                     <i class="fas fa-eye"></i>
                                                     Xem chi tiết
                                                 </button>
 
-                                                <!-- Nút hủy phòng (chỉ cho phòng chờ xác nhận) -->
-                                                @if ($booking->trang_thai === 'cho_xac_nhan')
+                                                {{-- Hủy đặt phòng: chỉ khi CHƯA checkin (giữ logic cũ) --}}
+                                                @if (in_array($booking->trang_thai, ['cho_xac_nhan', 'da_xac_nhan']) && !$booking->thoi_gian_checkin)
                                                     <button onclick="showCancelModal({{ $booking->id }})"
                                                         class="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg transition-colors font-medium flex items-center gap-2">
                                                         <i class="fas fa-times-circle"></i>
                                                         Hủy đặt phòng
                                                     </button>
                                                 @endif
+
+                                                {{-- ✅ YÊU CẦU ĐỔI PHÒNG:
+                                                    - trạng_thai = da_xac_nhan
+                                                    - đã checkin
+                                                    - chưa checkout
+                                                    - chưa có yêu cầu đổi phòng đang chờ duyệt
+                                                --}}
+                                                @if ($booking->trang_thai === 'da_xac_nhan'
+                                                    && $booking->thoi_gian_checkin
+                                                    && !$booking->thoi_gian_checkout
+                                                    && !$coYeuCauDoiPhongChoDuyet)
+
+                                                    <a href="{{ route('client.yeu_cau_doi_phong.create', $booking->id) }}"
+                                                    class="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg transition-colors font-medium flex items-center gap-2">
+                                                        <i class="fas fa-exchange-alt"></i>
+                                                        Yêu cầu đổi phòng
+                                                    </a>
+
+                                                @endif
                                             </div>
 
+                                            @if($latestRoomChangeRequest)
+                                                @php
+                                                    $statusMeta = [
+                                                        'cho_duyet' => [
+                                                            'bg' => 'bg-yellow-50 border-yellow-200 text-yellow-800',
+                                                            'icon' => 'fas fa-hourglass-half',
+                                                            'title' => 'Yêu cầu đổi phòng đang chờ duyệt',
+                                                            'message' => 'Yêu cầu của bạn đã được gửi tới quản trị viên và sẽ được xử lý trong thời gian sớm nhất.'
+                                                        ],
+                                                        'da_duyet' => [
+                                                            'bg' => 'bg-green-50 border-green-200 text-green-800',
+                                                            'icon' => 'fas fa-check-circle',
+                                                            'title' => 'Yêu cầu đổi phòng đã được duyệt',
+                                                            'message' => 'Bạn sẽ được hỗ trợ chuyển sang phòng mới ngay khi có thể. Vui lòng liên hệ lễ tân để được hướng dẫn chi tiết.'
+                                                        ],
+                                                        'bi_tu_choi' => [
+                                                            'bg' => 'bg-red-50 border-red-200 text-red-800',
+                                                            'icon' => 'fas fa-times-circle',
+                                                            'title' => 'Yêu cầu đổi phòng bị từ chối',
+                                                            'message' => 'Rất tiếc, yêu cầu đổi phòng của bạn chưa thể được đáp ứng ở thời điểm hiện tại.'
+                                                        ],
+                                                    ][$latestRoomChangeRequest->trang_thai] ?? null;
+
+                                                    $phongCuLabel = optional($latestRoomChangeRequest->phongCu)->ten_phong ?? ('Phòng #' . $latestRoomChangeRequest->phong_cu_id);
+                                                    $phongMoiLabel = optional($latestRoomChangeRequest->phongMoi)->ten_phong ?? ('Phòng #' . $latestRoomChangeRequest->phong_moi_id);
+                                                @endphp
+
+                                                @if($statusMeta)
+                                                    <div class="mt-4 border rounded-lg px-4 py-3 {{ $statusMeta['bg'] }}">
+                                                        <div class="flex items-start gap-3">
+                                                            <i class="{{ $statusMeta['icon'] }} mt-1"></i>
+                                                            <div class="flex-1 text-sm">
+                                                                <p class="font-semibold mb-1">{{ $statusMeta['title'] }}</p>
+                                                                <p class="mb-2">{{ $statusMeta['message'] }}</p>
+
+                                                                <div class="text-xs opacity-90">
+                                                                    <p><strong>Chuyển từ:</strong> {{ $phongCuLabel }} → <strong>{{ $phongMoiLabel }}</strong></p>
+                                                                    @if($tenPhongDangO)
+                                                                        <p><strong>Phòng hiện tại:</strong> {{ $tenPhongDangO }}</p>
+                                                                    @endif
+                                                                    @if($phongDetailLink)
+                                                                        <p>
+                                                                            <a href="{{ $phongDetailLink }}"
+                                                                               class="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs font-semibold">
+                                                                                <i class="fas fa-external-link-alt text-[10px]"></i>
+                                                                                Xem chi tiết phòng
+                                                                            </a>
+                                                                        </p>
+                                                                    @endif
+                                                                    <p><strong>Thời gian gửi:</strong> {{ optional($latestRoomChangeRequest->created_at)->format('d/m/Y H:i') }}</p>
+                                                                    @if($latestRoomChangeRequest->trang_thai !== 'cho_duyet')
+                                                                        <p><strong>Cập nhật:</strong> {{ optional($latestRoomChangeRequest->updated_at)->format('d/m/Y H:i') }}</p>
+                                                                    @endif
+                                                                    @if($latestRoomChangeRequest->trang_thai === 'bi_tu_choi')
+                                                                        <p class="mt-1"><strong>Lý do từ chối:</strong> {{ $latestRoomChangeRequest->ghi_chu_admin ?? 'Không có ghi chú.' }}</p>
+                                                                    @endif
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                @endif
+                                            @endif
+
+
                                             @if ($booking->trang_thai === 'da_xac_nhan')
-                                                <div
-                                                    class="mt-3 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 text-blue-700 text-sm">
-                                                    <i class="fas fa-info-circle mr-2"></i>
-                                                    Đặt phòng đã được xác nhận, không thể hủy
-                                                </div>
+                                                @if ($booking->thoi_gian_checkin)
+                                                    <div class="mt-3 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-red-800 text-sm">
+                                                        <div class="flex items-start gap-2">
+                                                            <i class="fas fa-exclamation-triangle mt-0.5"></i>
+                                                            <div class="flex-1">
+                                                                <p class="font-semibold mb-1">Không thể hủy:</p>
+                                                                <p>Đặt phòng đã check-in, không thể hủy. Vui lòng liên hệ quản trị viên để check-out.</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                @elseif (isset($cancellationPolicies[$booking->id]))
+                                                    @php
+                                                        $policy = $cancellationPolicies[$booking->id];
+                                                    @endphp
+                                                    <div class="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-3 text-yellow-800 text-sm">
+                                                        <div class="flex items-start gap-2">
+                                                            <i class="fas fa-info-circle mt-0.5"></i>
+                                                            <div class="flex-1">
+                                                                <p class="font-semibold mb-1">Chính sách hủy phòng:</p>
+                                                                @if ($policy['can_cancel'])
+                                                                    <p class="mb-1">
+                                                                        @if ($policy['days_until_checkin'] >= 7)
+                                                                            Hủy trước 7 ngày: Hoàn <strong>100%</strong> tiền đã thanh toán
+                                                                        @elseif ($policy['days_until_checkin'] >= 3)
+                                                                            Hủy trước 3-6 ngày: Hoàn <strong>50%</strong> tiền đã thanh toán (phí hủy 50%)
+                                                                        @elseif ($policy['days_until_checkin'] >= 1)
+                                                                            Hủy trước 1-2 ngày: Hoàn <strong>25%</strong> tiền đã thanh toán (phí hủy 75%)
+                                                                        @else
+                                                                            Hủy trong ngày: <strong>Không hoàn tiền</strong>
+                                                                        @endif
+                                                                    </p>
+                                                                    <p class="text-xs text-gray-600">
+                                                                        @if ($policy['days_until_checkin'] < 0)
+                                                                            Đã qua ngày nhận phòng (chưa check-in)
+                                                                        @else
+                                                                            Còn <strong>{{ max(0, (int)$policy['days_until_checkin']) }}</strong> ngày trước ngày nhận phòng
+                                                                        @endif
+                                                                    </p>
+                                                                @else
+                                                                    <p class="text-red-600 font-semibold">{{ $policy['message'] }}</p>
+                                                                @endif
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                @endif
                                             @endif
                                         </div>
                                     </div>
@@ -540,6 +763,9 @@
                         <i class="fas fa-info-circle text-blue-500 mr-2"></i>
                         Bạn có chắc chắn muốn hủy đặt phòng này không? Vui lòng nhập lý do hủy phòng.
                     </p>
+
+                    <!-- Thông tin chính sách hủy (sẽ được hiển thị động) -->
+                    <div id="cancelPolicyInfo" class="mb-4"></div>
 
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">
@@ -663,12 +889,61 @@
             const modal = document.getElementById('cancelModal');
             const form = document.getElementById('cancelForm');
             const textarea = document.getElementById('ly_do_huy');
+            const policyInfo = document.getElementById('cancelPolicyInfo');
 
             // Set form action
             form.action = `/profile/booking/${bookingId}/cancel`;
 
             // Clear textarea
             textarea.value = '';
+
+            // Tìm booking và hiển thị thông tin chính sách hủy
+            const bookingItem = document.querySelector(`[data-booking-id="${bookingId}"]`);
+            if (bookingItem) {
+                const status = bookingItem.getAttribute('data-status');
+                if (status === 'da_xac_nhan') {
+                    // Hiển thị thông tin chính sách hủy cho booking đã thanh toán
+                    const policy = @json($cancellationPolicies ?? []);
+                    if (policy[bookingId]) {
+                        const p = policy[bookingId];
+                        if (p.can_cancel) {
+                            let policyText = '';
+                            if (p.days_until_checkin >= 7) {
+                                policyText = `Hủy trước 7 ngày: Hoàn <strong>100%</strong> (${new Intl.NumberFormat('vi-VN').format(p.refund_amount)} VNĐ)`;
+                            } else if (p.days_until_checkin >= 3) {
+                                policyText = `Hủy trước 3-6 ngày: Hoàn <strong>50%</strong> (${new Intl.NumberFormat('vi-VN').format(p.refund_amount)} VNĐ), phí hủy 50%`;
+                            } else if (p.days_until_checkin >= 1) {
+                                policyText = `Hủy trước 1-2 ngày: Hoàn <strong>25%</strong> (${new Intl.NumberFormat('vi-VN').format(p.refund_amount)} VNĐ), phí hủy 75%`;
+                            } else {
+                                policyText = `Hủy trong ngày: <strong>Không hoàn tiền</strong>`;
+                            }
+                            policyInfo.innerHTML = `
+                                <div class="bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-3 mb-4 text-yellow-800 text-sm">
+                                    <p class="font-semibold mb-1">Chính sách hủy:</p>
+                                    <p>${policyText}</p>
+                                    <p class="text-xs text-gray-600 mt-1">
+                                        ${p.days_until_checkin < 0
+                                            ? 'Đã qua ngày nhận phòng (chưa check-in)'
+                                            : `Còn <strong>${Math.max(0, Math.floor(p.days_until_checkin))}</strong> ngày trước ngày nhận phòng`}
+                                    </p>
+                                </div>
+                            `;
+                            policyInfo.classList.remove('hidden');
+                        } else {
+                            policyInfo.innerHTML = `
+                                <div class="bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-4 text-red-700 text-sm">
+                                    <p>${p.message}</p>
+                                </div>
+                            `;
+                            policyInfo.classList.remove('hidden');
+                        }
+                    } else {
+                        policyInfo.classList.add('hidden');
+                    }
+                } else {
+                    policyInfo.classList.add('hidden');
+                }
+            }
 
             // Show modal
             modal.classList.remove('hidden');
@@ -820,6 +1095,28 @@
                 closeDetailModal();
             }
         }
+
+        // Room type dropdown for reviews
+        function toggleRoomTypeDropdown(bookingId) {
+            const dropdown = document.getElementById(`room-type-dropdown-${bookingId}`);
+            dropdown.classList.toggle('hidden');
+
+            // Close other dropdowns
+            document.querySelectorAll('.room-type-dropdown').forEach(dropdown => {
+                if (dropdown.id !== `room-type-dropdown-${bookingId}`) {
+                    dropdown.classList.add('hidden');
+                }
+            });
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.relative.inline-block')) {
+                document.querySelectorAll('.room-type-dropdown').forEach(dropdown => {
+                    dropdown.classList.add('hidden');
+                });
+            }
+        });
     </script>
 
 @endsection

@@ -12,9 +12,21 @@ class BookingPriceCalculator
 {
     public static function recalcTotal(DatPhong $booking): void
     {
-        // 1️⃣ Tổng tiền dịch vụ phát sinh
-        $totalServices = $booking->services()
-            ->select(DB::raw('SUM(quantity * unit_price) as total'))
+        // 1️⃣ Tổng tiền dịch vụ phát sinh (Chỉ tính dịch vụ của Main Invoice hoặc chưa gán)
+        $mainInvoice = $booking->invoice;
+        $mainInvoiceId = $mainInvoice ? $mainInvoice->id : null;
+
+        $query = $booking->services();
+        if ($mainInvoiceId) {
+            $query->where(function($q) use ($mainInvoiceId) {
+                $q->where('invoice_id', $mainInvoiceId)
+                  ->orWhereNull('invoice_id');
+            });
+        } else {
+            $query->whereNull('invoice_id');
+        }
+
+        $totalServices = $query->select(DB::raw('SUM(quantity * unit_price) as total'))
             ->value('total') ?? 0;
 
         // 2️⃣ Tính số đêm (đảm bảo ít nhất là 1 đêm)

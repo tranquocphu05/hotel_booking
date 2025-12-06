@@ -11,23 +11,24 @@
             <p class="text-gray-600">Phân tích chi tiết doanh thu theo tháng</p>
         </div>
         
-        <!-- Month/Year Selector -->
+        <!-- Date Range Filter -->
         <div class="flex items-center gap-4">
-            <form method="GET" class="flex items-center gap-2">
-                <select name="month" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
-                    @for($i = 1; $i <= 12; $i++)
-                        <option value="{{ $i }}" {{ $month == $i ? 'selected' : '' }}>
-                            Tháng {{ $i }}
-                        </option>
-                    @endfor
-                </select>
-                <select name="year" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
-                    @for($i = 2020; $i <= date('Y') + 1; $i++)
-                        <option value="{{ $i }}" {{ $year == $i ? 'selected' : '' }}>
-                            {{ $i }}
-                        </option>
-                    @endfor
-                </select>
+            <form method="GET" class="flex flex-wrap items-center gap-2">
+                <!-- Date range filter -->
+                <input
+                    type="date"
+                    name="start_date"
+                    value="{{ $startDate ? \Carbon\Carbon::parse($startDate)->format('Y-m-d') : '' }}"
+                    class="border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                >
+                <span class="text-gray-500 text-sm">đến</span>
+                <input
+                    type="date"
+                    name="end_date"
+                    value="{{ $endDate ? \Carbon\Carbon::parse($endDate)->format('Y-m-d') : '' }}"
+                    class="border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                >
+
                 <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
                     Xem
                 </button>
@@ -203,6 +204,59 @@
                 {{ $paidBookings->links() }}
             </div>
         @endif
+    </div>
+</div>
+
+<!-- Báo cáo doanh thu theo ngày -->
+<div class="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-900">Báo cáo doanh thu theo ngày</h3>
+        <p class="text-sm text-gray-500">Chi tiết doanh thu từng ngày trong khoảng thời gian đã chọn</p>
+    </div>
+    
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="border-b border-gray-200">
+                    <th class="text-left py-3 px-6 font-medium text-gray-600">Ngày</th>
+                    <th class="text-right py-3 px-6 font-medium text-gray-600">Số đơn</th>
+                    <th class="text-right py-3 px-6 font-medium text-gray-600">Doanh thu</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($dailyRevenues as $revenue)
+                <tr class="border-b border-gray-100">
+                    <td class="py-3 px-6 font-medium text-gray-900">
+                        {{ \Carbon\Carbon::parse($revenue->ngay)->format('d/m/Y') }}
+                    </td>
+                    <td class="py-3 px-6 text-right text-gray-600">
+                        {{ $revenue->so_luong }}
+                    </td>
+                    <td class="py-3 px-6 text-right font-medium text-gray-900">
+                        {{ number_format($revenue->tong_tien, 0, ',', '.') }} VNĐ
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="3" class="py-8 text-center text-gray-500">
+                        Không có dữ liệu doanh thu
+                    </td>
+                </tr>
+                @endforelse
+                
+                @if($dailyRevenues->isNotEmpty())
+                <tr class="bg-gray-50 font-semibold">
+                    <td class="py-3 px-6 text-gray-900">Tổng cộng</td>
+                    <td class="py-3 px-6 text-right text-gray-900">
+                        {{ $dailyRevenues->sum('so_luong') }}
+                    </td>
+                    <td class="py-3 px-6 text-right text-gray-900">
+                        {{ number_format($dailyRevenues->sum('tong_tien'), 0, ',', '.') }} VNĐ
+                    </td>
+                </tr>
+                @endif
+            </tbody>
+        </table>
     </div>
 </div>
 

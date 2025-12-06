@@ -83,11 +83,11 @@ class BookingManager {
         // Set up event listeners
         this.setupEventListeners();
 
-        // Initialize calculations
-        this.tinhTongTien();
-
-        // Initialize room card quantities
+        // Initialize room card quantities FIRST (this will render guest rows)
         this.initializeRoomCardQuantities();
+
+        // Then initialize calculations AFTER quantities are set up
+        this.tinhTongTien();
 
         // Update room availability and prices after a short delay
         setTimeout(() => {
@@ -124,21 +124,24 @@ class BookingManager {
     initializeRoomCardQuantities() {
         // Initialize quantity buttons based on current values (don't reset to 0)
         let hasPreselectedRoom = false;
-        
-        document.querySelectorAll('.room-card-quantity').forEach(input => {
+
+        document.querySelectorAll('.room-card-quantity, .room-card-quantity-modern').forEach(input => {
             // Keep the value from HTML (may be 1 if pre-selected from room list)
             const currentValue = parseInt(input.value) || 0;
-            
+            const roomId = input.dataset.roomId;
+
             // Update button states
             this.updateQuantityButtons(input);
-            
-            // If quantity > 0, update the card to show selected state
-            if (currentValue > 0) {
+
+            // If quantity > 0, update the card to show selected state and render guest rows
+            if (currentValue > 0 && roomId) {
                 hasPreselectedRoom = true;
                 const roomCard = input.closest('.room-card');
                 if (roomCard) {
                     roomCard.classList.add('room-card--active');
                 }
+                // Render guest rows for this room type
+                this.renderGuestRows(roomId);
             }
         });
         // Initialize adults selectors to 2
@@ -148,7 +151,7 @@ class BookingManager {
 
         // Initialize hidden inputs
         this.updateRoomCardHiddenInputs();
-        
+
         // If there's a preselected room, recalculate totals
         if (hasPreselectedRoom) {
             this.tinhTongTien();
@@ -191,16 +194,30 @@ class BookingManager {
             const rowId = `room_card_guest_row_adults_${roomId}_${i}`;
             const value = previousValues[rowId] || String(defaultAdults);
             rows.push(`
-                <div class="flex items-center gap-2 mt-3 " data-guest-row>
-                    <span class="text-sm text-gray-700 whitespace-nowrap">Số người phòng ${i}</span>
-                    <select id="${rowId}" class="appearance-none border border-gray-300 rounded-md px-3 pr-8 h-10 text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            data-room-id="${roomId}" onchange="window.bookingManager.onGuestRowChange('${roomId}')">
-                        <option value="0">0 Người lớn</option>
-                        <option value="1">1 Người lớn</option>
-                        <option value="2">2 Người lớn</option>
-                        <option value="3">3 Người lớn</option>
-                        <option value="4">4 Người lớn</option>
-                    </select>
+                <div class="guest-selection-card p-2 transition-all duration-300" data-guest-row>
+                    <div class="flex items-center gap-2">
+                        <label class="flex items-center gap-1.5 text-xs font-semibold text-gray-700 whitespace-nowrap min-w-[100px]">
+                            <div class="flex items-center justify-center w-5 h-5 rounded-md bg-purple-500 text-white shadow-sm">
+                                <i class="fas fa-users text-xs"></i>
+                            </div>
+                            <span>Phòng ${i}:</span>
+                        </label>
+                        <div class="relative flex-1">
+                            <select id="${rowId}"
+                                    class="guest-select-modern appearance-none w-full bg-white border-2 border-purple-300 rounded-md px-2.5 py-1.5 pr-10 text-xs font-semibold text-gray-800 shadow-sm transition-all duration-200 hover:border-purple-500 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-500 cursor-pointer"
+                                    data-room-id="${roomId}"
+                                    onchange="window.bookingManager.onGuestRowChange('${roomId}')">
+                                <option value="0">0 Người</option>
+                                <option value="1">1 Người</option>
+                                <option value="2">2 Người</option>
+                                <option value="3">3 Người</option>
+                                <option value="4">4 Người</option>
+                            </select>
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-2.5 pointer-events-none">
+                                <i class="fas fa-chevron-down text-purple-500 text-xs transition-transform duration-200 dropdown-chevron"></i>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             `);
         }
@@ -255,7 +272,7 @@ class BookingManager {
 
         if (!checkin || !checkout) {
             // Show default availability and ensure dropdown options are correct
-            document.querySelectorAll(".room-card-quantity").forEach((el) => {
+            document.querySelectorAll(".room-card-quantity, .room-card-quantity-modern").forEach((el) => {
                 const roomId = el.dataset.roomId;
                 const maxQuantity = parseInt(el.dataset.maxQuantity) || 0;
                 const availabilityEl = document.getElementById(
@@ -282,7 +299,7 @@ class BookingManager {
         }
 
         // Check availability for each room type
-        document.querySelectorAll(".room-card-quantity").forEach((input) => {
+        document.querySelectorAll(".room-card-quantity, .room-card-quantity-modern").forEach((input) => {
             const roomId = input.dataset.roomId;
             this.checkRoomCardAvailability(roomId, checkin, checkout);
         });
@@ -595,7 +612,7 @@ class BookingManager {
 
         // Tính từ room cards
         document
-            .querySelectorAll(".room-card-quantity")
+            .querySelectorAll(".room-card-quantity, .room-card-quantity-modern")
             .forEach((quantityInput) => {
                 const quantity = parseInt(quantityInput.value) || 0;
                 if (quantity > 0) {
@@ -817,7 +834,7 @@ class BookingManager {
 
         // Collect only from room cards (selected rooms section removed)
         document
-            .querySelectorAll(".room-card-quantity")
+            .querySelectorAll(".room-card-quantity, .room-card-quantity-modern")
             .forEach((quantityInput) => {
                 const quantity = parseInt(quantityInput.value) || 0;
                 if (quantity > 0) {
@@ -1171,7 +1188,7 @@ class BookingManager {
             this.finalBookingForm.addEventListener("submit", (e) => {
                 // Check if any rooms are selected
                 const hasSelectedRooms = Array.from(
-                    document.querySelectorAll(".room-card-quantity")
+                    document.querySelectorAll(".room-card-quantity, .room-card-quantity-modern")
                 ).some((input) => {
                     return parseInt(input.value) > 0;
                 });
@@ -1238,7 +1255,7 @@ class BookingManager {
 
         // Thu thập danh sách các loại phòng đang được chọn từ room cards
         const selectedRoomTypeIds = [];
-        document.querySelectorAll('.room-card-quantity').forEach((input) => {
+        document.querySelectorAll('.room-card-quantity, .room-card-quantity-modern').forEach((input) => {
             const qty = parseInt(input.value) || 0;
             const roomId = input.dataset.roomId;
             if (qty > 0 && roomId) {
@@ -2279,17 +2296,26 @@ class BookingManager {
         const container = document.getElementById("roomCardHiddenInputs");
         if (!container) return;
 
-        // Clear existing hidden inputs
+        // Clear existing hidden inputs FIRST to prevent duplicates
         container.innerHTML = "";
 
         let roomIndex = 0;
         // Create hidden inputs for each room card with quantity > 0
+        // Only process each room type ONCE (no duplicates)
+        const processedRoomIds = new Set();
         document
-            .querySelectorAll(".room-card-quantity")
+            .querySelectorAll(".room-card-quantity, .room-card-quantity-modern")
             .forEach((quantityInput) => {
                 const quantity = parseInt(quantityInput.value) || 0;
-                if (quantity > 0) {
-                    const roomId = quantityInput.dataset.roomId;
+                const roomId = quantityInput.dataset.roomId;
+
+                // Skip if already processed or invalid
+                if (!roomId || processedRoomIds.has(roomId) || quantity <= 0) {
+                    return;
+                }
+
+                // Mark as processed
+                processedRoomIds.add(roomId);
                     // Sum adults from per-room rows if present; else assume max per room
                     let adultsTotal = 0;
                     const rowsContainer = document.getElementById(
@@ -2329,7 +2355,6 @@ class BookingManager {
                     container.appendChild(adultsHiddenInput);
 
                     roomIndex++;
-                }
             });
     }
 
@@ -2477,20 +2502,20 @@ document.addEventListener("DOMContentLoaded", function () {
             modalRoomSize.textContent = roomData.roomSize || "";
             modalRoomImage.src = roomData.roomImage;
             modalRoomDescription.textContent = roomData.roomDescription;
-            
+
             // 2. Cập nhật giá phòng
             const roomPrice = roomData.roomPrice || '0';
             const modalRoomPrice = document.getElementById('modalRoomPrice');
             if (modalRoomPrice) {
                 modalRoomPrice.textContent = formatCurrency(parseFloat(roomPrice)) + '/đêm';
             }
-            
+
             // 3. Load rating và reviews từ data attributes
             loadRoomRatingAndReviewsFromData(detailButton);
-            
+
             // 4. Cập nhật form đánh giá với thông tin phòng hiện tại
             updateReviewForm(roomData.roomId, roomData.roomName);
-            
+
             // 2. BỎ QUA LOGIC ĐIỀN TIỆN ÍCH ĐỘNG (vì đã dùng HTML tĩnh)
 
             // 3. Hiển thị modal
@@ -2521,7 +2546,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // === HELPER FUNCTIONS ===
-    
+
     // Format currency function
     function formatCurrency(number) {
         return Math.round(number).toLocaleString('vi-VN', {
@@ -2529,7 +2554,7 @@ document.addEventListener("DOMContentLoaded", function () {
             maximumFractionDigits: 0
         }) + ' VNĐ';
     }
-    
+
     // Load room rating and reviews từ data attributes
     function loadRoomRatingAndReviewsFromData(buttonElement) {
         try {
@@ -2537,7 +2562,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const averageRating = parseFloat(buttonElement.dataset.averageRating) || 0;
             const totalReviews = parseInt(buttonElement.dataset.totalReviews) || 0;
             const recentReviewsJson = buttonElement.dataset.recentReviews || '[]';
-            
+
             let recentReviews = [];
             try {
                 recentReviews = JSON.parse(recentReviewsJson);
@@ -2545,13 +2570,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 console.warn('Error parsing recent reviews:', e);
                 recentReviews = [];
             }
-            
+
             // Update rating summary
             updateRatingSummary(averageRating, totalReviews);
-            
+
             // Update recent reviews
             updateRecentReviews(recentReviews);
-            
+
         } catch (error) {
             console.error('Error loading reviews from data:', error);
             // Fallback to show no reviews
@@ -2559,7 +2584,7 @@ document.addEventListener("DOMContentLoaded", function () {
             updateRecentReviews([]);
         }
     }
-    
+
     // Cập nhật form đánh giá với thông tin phòng hiện tại
     function updateReviewForm(roomId, roomName) {
         // Cập nhật tên phòng trong form
@@ -2567,28 +2592,28 @@ document.addEventListener("DOMContentLoaded", function () {
         if (reviewFormRoomName && roomName) {
             reviewFormRoomName.textContent = roomName;
         }
-        
+
         // Cập nhật ID phòng trong form
         const reviewFormRoomId = document.getElementById('reviewFormRoomId');
         if (reviewFormRoomId && roomId) {
             reviewFormRoomId.value = roomId;
         }
-        
+
         // Kiểm tra xem phòng này có đánh giá không và quyết định hiển thị gì
         checkRoomReviewStatus(roomId);
     }
-    
+
     // Kiểm tra trạng thái đánh giá của phòng và hiển thị form phù hợp
     function checkRoomReviewStatus(roomId) {
         const existingReviewsSection = document.getElementById('existingReviewsSection');
         const newReviewForm = document.getElementById('newReviewForm');
-        
+
         // Lấy dữ liệu từ data attributes để kiểm tra
         const currentButton = document.querySelector(`[data-room-id="${roomId}"]`);
         if (currentButton) {
             const totalReviews = parseInt(currentButton.dataset.totalReviews) || 0;
             const averageRating = parseFloat(currentButton.dataset.averageRating) || 0;
-            
+
             if (totalReviews > 0) {
                 // Có đánh giá - hiển thị section đánh giá, ẩn form
                 if (existingReviewsSection) {
@@ -2602,7 +2627,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (newReviewForm) {
                     newReviewForm.style.display = 'none';
                 }
-                
+
                 // Cập nhật danh sách đánh giá gần đây
                 updateReviewList(roomId);
             } else {
@@ -2613,7 +2638,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (newReviewForm) {
                     newReviewForm.style.display = 'block';
                 }
-                
+
                 // Hiển thị "Chưa có đánh giá nào" trong danh sách
                 const reviewListContainer = document.getElementById('reviewListContainer');
                 if (reviewListContainer) {
@@ -2622,30 +2647,30 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         }
     }
-    
+
     // Cập nhật danh sách đánh giá gần đây
     function updateReviewList(roomId) {
         const reviewListContainer = document.getElementById('reviewListContainer');
         if (!reviewListContainer || !roomId) return;
-        
+
         // Lấy dữ liệu đánh giá từ data attributes
         const currentButton = document.querySelector(`[data-room-id="${roomId}"]`);
         if (currentButton) {
             const recentReviewsJson = currentButton.dataset.recentReviews || '[]';
-            
+
             try {
                 const recentReviews = JSON.parse(recentReviewsJson);
-                
+
                 if (recentReviews && recentReviews.length > 0) {
                     let reviewsHtml = '';
                     recentReviews.forEach(review => {
                         const stars = generateStars(review.rating);
                         const imageHtml = review.image ? `
-                            <img src="${review.image}" 
+                            <img src="${review.image}"
                                  alt="Ảnh đánh giá"
                                  class="w-32 h-32 object-cover rounded-lg mt-2 border border-gray-200 shadow-sm">
                         ` : '';
-                        
+
                         // Kiểm tra xem có phải đánh giá của user hiện tại không
                         const currentUserId = window.bookingConfig?.userId || null;
                         const isOwner = currentUserId && review.user_id && currentUserId == review.user_id;
@@ -2656,8 +2681,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                         class="text-blue-600 hover:text-blue-800 font-medium text-sm">
                                     ✏️ Chỉnh sửa
                                 </button>
-                                <form action="/client/danh-gia/${review.id || ''}" 
-                                      method="POST" 
+                                <form action="/client/danh-gia/${review.id || ''}"
+                                      method="POST"
                                       onsubmit="return confirm('Bạn có chắc muốn xóa đánh giá này không?')"
                                       style="display: inline;">
                                     <input type="hidden" name="_token" value="${document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''}">
@@ -2669,7 +2694,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 </form>
                             </div>
                         ` : '';
-                        
+
                         reviewsHtml += `
                             <div x-data="{ editing: false }" class="bg-gray-50 p-4 rounded-lg shadow mb-3 flex justify-between items-start">
                                 <div class="flex-1">
@@ -2697,26 +2722,26 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         }
     }
-    
+
     // Update rating summary
     function updateRatingSummary(averageRating, totalReviews) {
         const starsContainer = document.getElementById('modalRatingStars');
         const scoreElement = document.getElementById('modalRatingScore');
         const countElement = document.getElementById('modalRatingCount');
-        
+
         if (starsContainer) {
             starsContainer.innerHTML = generateStars(averageRating);
         }
-        
+
         if (scoreElement) {
             scoreElement.textContent = `${averageRating.toFixed(1)}/5`;
         }
-        
+
         if (countElement) {
             countElement.textContent = `(${totalReviews} đánh giá)`;
         }
     }
-    
+
     // Generate stars HTML
     function generateStars(rating) {
         let starsHtml = '';
@@ -2729,19 +2754,19 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         return starsHtml;
     }
-    
+
     // Update recent reviews
     function updateRecentReviews(reviews) {
         const container = document.getElementById('modalRecentReviews');
         if (!container) return;
-        
+
         if (reviews && reviews.length > 0) {
             let reviewsHtml = '';
             reviews.slice(0, 2).forEach(review => { // Chỉ hiển thị 2 review gần nhất
                 const userName = review.user_name || 'Anonymous';
                 const firstLetter = userName.charAt(0).toUpperCase();
                 const avatarUrl = `https://ui-avatars.com/api/?name=${firstLetter}&background=3b82f6&color=fff`;
-                
+
                 reviewsHtml += `
                     <div class="recent-review-item">
                         <div class="review-avatar">
@@ -2764,12 +2789,12 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // === JAVASCRIPT CHO TOGGLE FUNCTIONS ===
-    
+
     // Toggle description function
     window.toggleDescription = function() {
         const description = document.getElementById('modalRoomDescription');
         const toggleBtn = document.querySelector('.description-toggle');
-        
+
         if (description.style.webkitLineClamp === 'none') {
             description.style.webkitLineClamp = '3';
             description.style.lineClamp = '3';
@@ -2780,13 +2805,13 @@ document.addEventListener("DOMContentLoaded", function () {
             toggleBtn.textContent = 'Thu gọn';
         }
     };
-    
+
     // Toggle review form function
     window.toggleReviewForm = function() {
         const container = document.querySelector('.review-form-container');
         const toggleBtn = document.querySelector('.review-form-toggle');
         const icon = toggleBtn.querySelector('.toggle-icon');
-        
+
         if (container.style.display === 'none') {
             container.style.display = 'block';
             toggleBtn.classList.add('expanded');
@@ -2800,7 +2825,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
     // === JAVASCRIPT CHO PHẦN COMMENT VÀ ĐÁNH GIÁ ===
-    
+
     // Toggle review form
     const toggleReviewFormBtn = document.getElementById('toggleReviewForm');
     const reviewFormContainer = document.getElementById('reviewFormContainer');
@@ -2810,7 +2835,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if (toggleReviewFormBtn && reviewFormContainer) {
         toggleReviewFormBtn.addEventListener('click', function() {
             reviewFormContainer.classList.toggle('hidden');
-            
+
             if (!reviewFormContainer.classList.contains('hidden')) {
                 toggleReviewFormBtn.innerHTML = '<i class="fas fa-times"></i><span>Hủy viết đánh giá</span>';
                 // Focus vào form đầu tiên
@@ -2826,7 +2851,7 @@ document.addEventListener("DOMContentLoaded", function () {
         cancelReviewBtn.addEventListener('click', function() {
             reviewFormContainer.classList.add('hidden');
             toggleReviewFormBtn.innerHTML = '<i class="fas fa-edit"></i><span>Viết đánh giá của bạn</span>';
-            
+
             // Reset form
             if (roomReviewForm) {
                 roomReviewForm.reset();
@@ -2839,11 +2864,11 @@ document.addEventListener("DOMContentLoaded", function () {
     function updateStarRating() {
         const starInputs = document.querySelectorAll('.star-rating input[type="radio"]');
         const starLabels = document.querySelectorAll('.star-rating .star');
-        
+
         starInputs.forEach((input, index) => {
             input.addEventListener('change', function() {
                 const rating = parseInt(this.value);
-                
+
                 starLabels.forEach((star, starIndex) => {
                     const starValue = 5 - starIndex; // Reverse order
                     if (starValue <= rating) {
@@ -2859,7 +2884,7 @@ document.addEventListener("DOMContentLoaded", function () {
         starLabels.forEach((star, index) => {
             star.addEventListener('mouseenter', function() {
                 const rating = 5 - index; // Reverse order
-                
+
                 starLabels.forEach((s, sIndex) => {
                     const sValue = 5 - sIndex;
                     if (sValue <= rating) {
@@ -2897,12 +2922,12 @@ document.addEventListener("DOMContentLoaded", function () {
     function addNewReviewToList(rating, title, content) {
         const reviewsContainer = document.getElementById('reviewsContainer');
         const noReviewsMessage = reviewsContainer.querySelector('.no-reviews-message');
-        
+
         // Ẩn thông báo "chưa có đánh giá" nếu có
         if (noReviewsMessage) {
             noReviewsMessage.style.display = 'none';
         }
-        
+
         // Tạo HTML cho đánh giá mới
         const newReviewHtml = `
             <div class="review-item new-review" style="animation: slideInFromTop 0.5s ease;">
@@ -2934,22 +2959,22 @@ document.addEventListener("DOMContentLoaded", function () {
                 </div>
             </div>
         `;
-        
+
         // Thêm đánh giá mới vào đầu danh sách
         reviewsContainer.insertAdjacentHTML('afterbegin', newReviewHtml);
-        
+
         // Cập nhật số lượng đánh giá
         updateReviewCount();
-        
+
         // Scroll đến đánh giá mới
         const newReview = reviewsContainer.querySelector('.review-item');
         newReview.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        
+
         // Xóa highlight sau 3 giây
         setTimeout(() => {
             newReview.classList.remove('new-review');
         }, 3000);
-        
+
         // Thêm event listener cho nút like của đánh giá mới
         const newActionBtn = newReview.querySelector('.action-btn');
         if (newActionBtn) {
@@ -2957,7 +2982,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 const icon = this.querySelector('i');
                 const countSpan = this.querySelector('span');
                 let currentCount = parseInt(countSpan.textContent);
-                
+
                 if (icon.classList.contains('fa-thumbs-up')) {
                     // Toggle like
                     if (this.classList.contains('liked')) {
@@ -2975,7 +3000,7 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         }
     }
-    
+
     // Function to generate star rating HTML
     function generateStarRating(rating) {
         let starsHtml = '';
@@ -2988,33 +3013,33 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         return starsHtml;
     }
-    
+
     // Function to update review count
     function updateReviewCount() {
         const reviewItems = document.querySelectorAll('.review-item');
         const totalReviewsDisplay = document.getElementById('totalReviewsDisplay');
         const averageRatingDisplay = document.getElementById('averageRatingDisplay');
         const averageStarsDisplay = document.getElementById('averageStarsDisplay');
-        
+
         if (reviewItems.length > 0) {
             // Cập nhật số lượng đánh giá
             if (totalReviewsDisplay) {
                 totalReviewsDisplay.textContent = `Dựa trên ${reviewItems.length} đánh giá`;
             }
-            
+
             // Tính điểm trung bình (giả lập - trong thực tế bạn sẽ tính từ database)
             let totalRating = 0;
             reviewItems.forEach(item => {
                 const stars = item.querySelectorAll('.review-rating .fas.fa-star');
                 totalRating += stars.length;
             });
-            
+
             const averageRating = (totalRating / reviewItems.length).toFixed(1);
-            
+
             if (averageRatingDisplay) {
                 averageRatingDisplay.textContent = averageRating;
             }
-            
+
             // Cập nhật sao trung bình
             if (averageStarsDisplay) {
                 const avgRating = Math.round(parseFloat(averageRating));

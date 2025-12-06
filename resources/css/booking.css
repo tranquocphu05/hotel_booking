@@ -573,7 +573,7 @@
     gap: 12px;
     position: sticky; /* Giữ cột phải dính khi cuộn */
     top: 20px;
-    
+
     /* Đảm bảo khối không bị tràn ra ngoài nếu nội dung quá dài */
     min-width: 0;
 }
@@ -600,7 +600,7 @@
     background: #ffffff;
     border-radius: 16px;
     padding: 32px;
-    margin-bottom: 32px; 
+    margin-bottom: 32px;
     box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
 }
 
@@ -609,7 +609,7 @@
 
     .block-list-room {
         grid-template-columns: 1fr;
-        grid-template-areas: "rooms" "right-col"; 
+        grid-template-areas: "rooms" "right-col";
         gap: 24px;
     }
 
@@ -678,8 +678,17 @@ border: 1px solid #f1f5f9;
 box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
 overflow: hidden;
 transition: transform 0.2s ease, box-shadow 0.2s ease;
-min-height: 170px;
-padding: 12px;
+min-height: 200px;
+padding: 16px;
+gap: 16px;
+align-items: flex-start;
+}
+
+.room-card__left {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex-shrink: 0;
 }
 
 .room-card--active {
@@ -689,13 +698,34 @@ transform: translateY(-4px);
 }
 
 .room-card__media {
-width: 180px;
-flex-shrink: 0;
-border-radius: 12px;
-overflow: hidden;
+    width: 240px;
+    min-width: 240px;
+    aspect-ratio: 4 / 3;
     flex-shrink: 0;
     border-radius: 12px;
     overflow: hidden;
+    position: relative;
+    background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.room-card__selection-area {
+    width: 240px;
+    min-width: 240px;
+    display: flex;
+    flex-direction: column;
+}
+
+.room-card__media::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.1) 100%);
+    z-index: 1;
+    pointer-events: none;
 }
 
 .room-card__media img {
@@ -703,14 +733,55 @@ overflow: hidden;
     height: 100%;
     object-fit: cover;
     display: block;
+    transition: transform 0.3s ease;
+}
+
+.room-card:hover .room-card__media img {
+    transform: scale(1.05);
+}
+
+/* Responsive styles for room card image */
+@media (max-width: 768px) {
+    .room-card {
+        flex-direction: column;
+        padding: 16px;
+        gap: 12px;
+    }
+
+    .room-card__media {
+        width: 100%;
+        min-width: 100%;
+        aspect-ratio: 16 / 9;
+        margin-bottom: 0;
+    }
+
+    .room-card__content {
+        padding: 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .room-card {
+        padding: 12px;
+    }
+
+    .room-card__media {
+        aspect-ratio: 4 / 3;
+    }
+
+    .room-selection-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
 }
 
 .room-card__content {
-    padding: 8px 0 8px 16px;
+    padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
     flex: 1;
+    min-width: 0;
 }
 
 .room-card__header {
@@ -760,17 +831,32 @@ overflow: hidden;
 
 .room-card__footer {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
     margin-top: auto;
-    gap: 12px;
+    gap: 0;
 }
 
-.room-card__actions {
+.room-card__footer-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+}
+
+.room-availability-info {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid #f1f5f9;
+}
+
+.room-price-section {
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
-    gap: 8px;
+    align-items: flex-start;
+    min-width: 140px;
 }
 
 .room-quantity-control {
@@ -815,6 +901,125 @@ overflow: hidden;
     font-size: 0.9rem;
     background: white;
     outline: none;
+}
+
+/* Modern dropdown styles - Redesigned */
+.room-selection-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 150px;
+}
+
+.room-quantity-card {
+    position: relative;
+}
+
+.room-card-quantity-modern {
+    width: 100%;
+    max-width: 150px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.room-card-quantity-modern:hover {
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+    transform: translateY(-1px);
+}
+
+.room-card-quantity-modern:focus {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15), 0 4px 12px rgba(59, 130, 246, 0.2);
+    transform: translateY(-1px);
+}
+
+.room-card-quantity-modern option {
+    padding: 12px;
+    font-weight: 500;
+}
+
+/* Guest selection card styles */
+.guest-selection-card {
+    position: relative;
+    animation: slideIn 0.3s ease-out;
+    width: 100%;
+    max-width: 250px;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.guest-select-modern {
+    width: 100%;
+    min-width: 120px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.guest-select-modern:hover {
+    box-shadow: 0 4px 12px rgba(168, 85, 247, 0.2);
+    transform: translateY(-1px);
+}
+
+.guest-select-modern:focus {
+    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.15), 0 4px 12px rgba(168, 85, 247, 0.2);
+    transform: translateY(-1px);
+}
+
+.guest-select-modern option {
+    padding: 12px;
+    font-weight: 500;
+}
+
+/* Custom dropdown arrow animation */
+.room-card-quantity-modern:focus ~ div .dropdown-chevron,
+.guest-select-modern:focus ~ div .dropdown-chevron {
+    transform: rotate(180deg);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.room-card-quantity-modern:hover ~ div .dropdown-chevron,
+.guest-select-modern:hover ~ div .dropdown-chevron {
+    transform: translateY(2px);
+    transition: transform 0.2s ease;
+}
+
+/* Fix chevron icon - ensure single clean icon */
+.dropdown-chevron {
+    display: inline-block;
+    text-shadow: none !important;
+    filter: none !important;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.dropdown-chevron::before,
+.dropdown-chevron::after {
+    display: none !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .room-selection-wrapper {
+        min-width: 100%;
+    }
+
+    .room-quantity-card,
+    .guest-selection-card {
+        padding: 12px;
+    }
+
+    .room-card-quantity-modern,
+    .guest-select-modern {
+        padding: 10px 12px;
+        font-size: 0.875rem;
+    }
 }
 
 .room-availability-info {
@@ -1862,14 +2067,14 @@ body.modal-open {
     background: none;
     border: none;
     padding: 0;
-    margin-top: 5px; 
+    margin-top: 5px;
     color: #4c51bf;
-    text-decoration: underline; 
+    text-decoration: underline;
     font-size: 0.85rem;
     font-weight: 500;
     cursor: pointer;
     text-align: left;
-    display: block; 
+    display: block;
     transition: color 0.2s;
 }
 
@@ -1926,36 +2131,36 @@ body.modal-open {
     .modal-overlay {
         padding: 10px;
     }
-    
+
     .modal-container {
         width: 95%;
         height: 90vh;
     }
-    
+
     .modal-body-wrapper {
         flex-direction: column;
         gap: 16px;
         padding: 16px;
     }
-    
+
     .modal-left-column {
         min-width: 100%;
         gap: 12px;
     }
-    
+
     .modal-right-column {
         gap: 16px;
         max-height: none;
     }
-    
+
     .modal-media img {
         height: 180px;
     }
-    
+
     .modal-amenities-grid {
         grid-template-columns: 1fr 1fr;
     }
-    
+
     .room-meta {
         flex-direction: column;
         align-items: flex-start;
@@ -1967,33 +2172,33 @@ body.modal-open {
     .modal-overlay {
         padding: 5px;
     }
-    
+
     .modal-container {
         width: 98%;
         height: 95vh;
     }
-    
+
     .modal-body-wrapper {
         padding: 12px;
         gap: 12px;
     }
-    
+
     .modal-amenities-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .modal-media img {
         height: 160px;
     }
-    
+
     .modal-header-details {
         padding: 16px;
     }
-    
+
     .modal-header-details h3 {
         font-size: 1.4rem;
     }
-    
+
     .room-price {
         font-size: 1.1rem;
     }
@@ -2525,11 +2730,11 @@ body.modal-open {
     .modal-comments-section .flex-col {
         flex-direction: column !important;
     }
-    
+
     .modal-comments-section .md\\:flex-row {
         flex-direction: column !important;
     }
-    
+
     .modal-comments-section .md\\:justify-between {
         justify-content: flex-start !important;
     }

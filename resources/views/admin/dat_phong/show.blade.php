@@ -3,6 +3,7 @@
 @section('title', 'Chi tiết đặt phòng')
 
 @section('admin_content')
+
     <div class="py-6">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <!-- Header -->
@@ -88,7 +89,14 @@
                                     </div>
                                 </div>
                             </div>
-
+                            <p class="text-sm font-semibold {{ $step3Complete ? 'text-purple-600' : 'text-gray-400' }} mb-1">Check-in</p>
+                            @if($step3Complete && $step3Date)
+                                <p class="text-xs text-gray-500">{{ $step3Date->format('d/m/Y H:i') }}</p>
+                                @if($booking->nguoi_checkin)
+                                    <p class="text-xs text-gray-400">{{ $booking->nguoi_checkin }}</p>
+                                @endif
+                            @endif
+                        </div>
                             <!-- Cancel Button -->
                             <div class="mt-4">
                                 @if ($cancellationPolicy['can_cancel'])
@@ -102,6 +110,7 @@
                                 @else
                                     <div class="inline-block p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
                                         <strong>{{ $cancellationPolicy['message'] }}</strong>
+
                                     </div>
                                 @endif
                             </div>
@@ -109,6 +118,7 @@
                     </div>
                 </div>
             @endif
+
 
             {{-- CHECK-IN / CHECK-OUT SECTION --}}
             @include('admin.dat_phong._checkin_checkout')
@@ -176,6 +186,7 @@
                                                         $subtotal = $lpUnit * $nights * $soLuong;
                                                     @endphp
 
+
                                                     {{-- Giá/đêm --}}
                                                     <div class="text-xs text-gray-600 mb-1">
                                                         Giá/đêm:
@@ -197,11 +208,13 @@
                                                             class="font-semibold text-gray-900">{{ number_format($subtotal, 0, ',', '.') }}
                                                             VNĐ</span>
                                                     </p>
+
                                                 </div>
                                             </div>
                                         @endif
                                     @endforeach
                                 </div>
+
 
                                 <p class="text-sm text-gray-600">
                                     Tổng số phòng:
@@ -243,6 +256,7 @@
                                                 @else
                                                     <p class="text-lg font-semibold text-gray-900">
                                                         {{ number_format($giaCoBan, 0, ',', '.') }} VNĐ</p>
+
                                                 @endif
                                             </div>
                                         </div>
@@ -250,12 +264,14 @@
                                 </div>
                             @endif
 
+
                             {{-- DANH SÁCH PHÒNG ĐÃ GÁN --}}
                             @php
                                 $assignedPhongs = $booking->getAssignedPhongs();
                                 $assignedCount = $assignedPhongs->count();
                                 $remainingCount = max(0, ($booking->so_luong_da_dat ?? 0) - $assignedCount);
                             @endphp
+
 
                             @if ($assignedCount > 0)
                                 <div class="pt-3 border-t">
@@ -288,12 +304,14 @@
                                                                 : ($phong->trang_thai === 'dang_don'
                                                                     ? 'Đang dọn'
                                                                     : 'Bảo trì')) }}
+
                                                     </span>
                                                 </p>
                                             </div>
                                         @endforeach
                                     </div>
                                 </div>
+
                             @elseif ($booking->phong)
                                 {{-- Legacy --}}
                                 <div class="pt-3 border-t">
@@ -733,6 +751,7 @@
                         </div>
                     </div>
                 </div>
+
             </div>
         </div>
     </div>

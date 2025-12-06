@@ -23,29 +23,29 @@ class ThanhToanController extends Controller
 
         // Eager load relationships for efficiency
         $datPhong->load('voucher', 'loaiPhong', 'user', 'phong', 'services');
-        
+
         // Get available rooms for assignment if needed
         $availableRooms = null;
         if ($datPhong->ngay_nhan && $datPhong->ngay_tra) {
             $roomTypes = $datPhong->getRoomTypes();
             $assignedPhongIds = $datPhong->getPhongIds();
-            $totalRooms = array_sum(array_column($roomTypes, 'so_luong')) ?: ($datPhong->so_luong_da_dat ?? 1);
+            $totalRooms = $roomTypes->sum('so_luong') ?: ($datPhong->so_luong_da_dat ?? 1);
             $assignedCount = count($assignedPhongIds);
             $remainingCount = $totalRooms - $assignedCount;
-            
+
             // If rooms are missing, get available rooms for all room types
             if ($remainingCount > 0) {
                 $availableRooms = collect();
                 foreach ($roomTypes as $roomType) {
                     $rooms = \App\Models\Phong::findAvailableRooms(
                         $roomType['loai_phong_id'],
-                        $datPhong->ngay_nhan->format('Y-m-d'),
-                        $datPhong->ngay_tra->format('Y-m-d'),
+                        $datPhong->ngay_nhan,
+                        $datPhong->ngay_tra,
                         20
                     );
                     // Filter out already assigned rooms
                     $rooms = $rooms->reject(function($room) use ($assignedPhongIds) {
-                        return in_array($room->id, $assignedPhongIds);
+                        return $room instanceof \App\Models\Phong && in_array($room->id, $assignedPhongIds);
                     });
                     $availableRooms = $availableRooms->merge($rooms);
                 }
@@ -58,7 +58,7 @@ class ThanhToanController extends Controller
 
         // Get room types from JSON or fallback to single room type
         $roomTypes = $datPhong->getRoomTypes();
-        
+
         // Tính giá gốc và phụ phí
         // originalPrice: tổng theo từng loại phòng đã lưu (gia_rieng pivot - đã bao gồm phụ phí)
         // basePrice: tổng giá "chuẩn" theo LoaiPhong (chưa tính phụ phí)
@@ -369,7 +369,11 @@ class ThanhToanController extends Controller
         $invoice->update(['trang_thai' => 'da_thanh_toan']);
 
         // Bug #5 Fix: Update booking status
-        $invoice->datPhong()->update(['trang_thai' => 'da_xac_nhan']);
+        $booking = $invoice->datPhong;
+        if ($booking && $booking->trang_thai === 'cho_xac_nhan') {
+            $booking->validateStatusTransition('da_xac_nhan');
+            $booking->update(['trang_thai' => 'da_xac_nhan']);
+        }
 
         // Create payment record
         ThanhToan::create([

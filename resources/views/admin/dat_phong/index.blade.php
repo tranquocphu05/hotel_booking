@@ -195,6 +195,7 @@
                                             <div class="font-semibold text-blue-700 text-sm">
                                                 {{ number_format($booking->tong_tien, 0, ',', '.') }} VNĐ
                                             </div>
+
                                             @if ($booking->voucher_id)
                                                 <div class="text-xs text-green-600 font-medium">
                                                     {{ $booking->voucher ? $booking->voucher->ma_voucher : 'Voucher' }}

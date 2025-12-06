@@ -20,6 +20,7 @@
                         @method('PUT')
                         <div class="space-y-8">
 
+
                         <!-- Quản lý loại phòng -->
                         <section>
                             <div class="flex justify-between items-center mb-4 pb-2 border-b border-gray-200">
@@ -1200,6 +1201,7 @@
                                 onchange="handleRoomTypeChange(${roomIndex}, this.value)"
                                 required>
                                 <option value="">-- Chọn loại phòng --</option>
+
                                 @foreach ($loaiPhongs as $lp)
                                     <option value="{{ $lp->id }}" data-price="{{ $lp->gia_khuyen_mai }}">
                                         {{ $lp->ten_loai }} - {{ number_format($lp->gia_khuyen_mai, 0, ',', '.') }} VNĐ/đêm

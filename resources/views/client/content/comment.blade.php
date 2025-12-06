@@ -11,7 +11,7 @@ if (auth()->check()) {
     // ✅ Kiểm tra xem user đã có đơn đặt phòng của loại phòng này chưa
     $hasBooking = DatPhong::where('nguoi_dung_id', $user->id)
         ->where('loai_phong_id', $room->id)
-        ->whereIn('trang_thai', ['da_xac_nhan', 'da_tra']) // trạng thái đã hoàn tất
+        ->whereIn('trang_thai', ['da_tra']) // trạng thái đã hoàn tất
         ->exists();
 
     // ✅ Kiểm tra user đã đánh giá chưa
@@ -41,7 +41,7 @@ $filterStar = request()->query('star');
 
 
 {{-- 🔴 THÔNG BÁO KHI CHƯA ĐẶT PHÒNG --}}
-@if(auth()->check() && !$hasBooking)
+{{-- @if(auth()->check() && !$hasBooking)
 <div class="bg-yellow-50 border border-yellow-200 p-6 rounded-xl shadow-md mb-8">
     <div class="flex items-center">
         <div class="flex-shrink-0">
@@ -59,10 +59,12 @@ $filterStar = request()->query('star');
         </div>
     </div>
 </div>
-@endif
+@endif --}}
 
 {{-- 🟢 FORM GỬI ĐÁNH GIÁ (chỉ hiển thị khi đã đặt phòng và chưa đánh giá) --}}
-<form id="newReviewForm" action="{{ route('client.comment.store') }}" method="POST" enctype="multipart/form-data"
+<div id="reviews" class="mt-8">
+    <!-- Reviews content goes here -->
+     <form id="newReviewForm" action="{{ route('client.comment.store') }}" method="POST" enctype="multipart/form-data"
       class="bg-white p-6 rounded-xl shadow-md mb-8" style="display: {{ (auth()->check() && $hasBooking && (!$existing || session('success') || session('error'))) ? 'block' : 'none' }}">
     @csrf
     <input type="hidden" name="loai_phong_id" value="{{ $room->id }}" id="reviewFormRoomId">
@@ -130,6 +132,7 @@ $filterStar = request()->query('star');
     </button>
     @endif
 </form>
+</div>
 
 
 {{-- ⭐ PHÒNG + ĐIỂM TRUNG BÌNH + LỌC SAO --}}
@@ -185,14 +188,14 @@ $filterStar = request()->query('star');
 {{-- 🔹 DANH SÁCH ĐÁNH GIÁ --}}
 <h3 class="text-2xl font-bold text-gray-800 mb-4">Đánh giá gần đây</h3>
 
-<div id="reviewListContainer">
 @php
-$commentsQuery = Comment::where('loai_phong_id', $room->id)
-    ->where('trang_thai', 'hien_thi');
-if ($filterStar && in_array($filterStar, [1,2,3,4,5])) {
-    $commentsQuery->where('so_sao', $filterStar);
-}
-$comments = $commentsQuery->latest('ngay_danh_gia')->get();
+$comments = Comment::where('loai_phong_id', $room->id)
+    ->where('trang_thai', 'hien_thi')
+    ->when($filterStar && in_array($filterStar, [1,2,3,4,5]), function($q) use ($filterStar) {
+        $q->where('so_sao', $filterStar);
+    })
+    ->latest('ngay_danh_gia')
+    ->get();
 @endphp
 
 @forelse ($comments as $comment)
@@ -310,6 +313,28 @@ $comments = $commentsQuery->latest('ngay_danh_gia')->get();
         @endfor
     </div>
 </div>
+
+@if($comment->reply)
+<div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-400 mb-3 ml-8">
+    <div class="flex items-start">
+        <div class="flex-shrink-0 mr-3">
+            <svg class="h-5 w-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h.01a1 1 0 100-2H10V9z" clip-rule="evenodd" />
+            </svg>
+        </div>
+        <div>
+            <div class="font-medium text-blue-800 text-sm">Phản hồi từ quản trị viên</div>
+            <p class="text-gray-700 text-sm mt-1">{{ $comment->reply }}</p>
+            @if($comment->reply_at)
+                <div class="text-xs text-gray-500 mt-1">
+                    {{ is_string($comment->reply_at) ? \Carbon\Carbon::parse($comment->reply_at)->format('d/m/Y H:i') : $comment->reply_at->format('d/m/Y H:i') }}
+                </div>
+            @endif
+        </div>
+    </div>
+</div>
+@endif
+
 @empty
 <p class="text-gray-500 italic">Chưa có đánh giá nào.</p>
 @endforelse

@@ -304,6 +304,7 @@
                                     <div class="col-span-2 text-center">Giá/đêm</div>
                                     <div class="col-span-2 text-center">Số đêm</div>
                                     <div class="col-span-3 text-right">Thành tiền</div>
+
                                 </div>
                                 @foreach ($roomLines as $line)
                                     <div class="px-4 py-3 grid grid-cols-12 text-sm border-t">
@@ -441,8 +442,6 @@
                                     (Đã lưu trong hệ thống: {{ number_format((float)$invoice->tong_tien, 0, ',', '.') }}₫)
                                 </p>
                             @endif
-                        </div>
-
                         <div class="bg-white border rounded-xl p-5 shadow-sm space-y-4">
                             <h3 class="text-base font-bold text-gray-900 mb-4">Chi tiết hóa đơn</h3>
                             
@@ -492,3 +491,4 @@
         </div>
     </div>
 @endsection
+

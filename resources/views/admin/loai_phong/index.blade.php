@@ -59,6 +59,7 @@
                         <th class="px-6 py-3 text-center border-b">Tên loại phòng</th>
                         {{-- ✅ Thêm whitespace-nowrap cho tiêu đề --}}
                         <th class="px-6 py-3 text-center border-b whitespace-nowrap">Số lượng phòng</th>
+                        <th class="px-6 py-3 text-center border-b whitespace-nowrap">Phòng trống</th>
                         <th class="px-6 py-3 text-center border-b whitespace-nowrap">Giá cơ bản</th>
                         {{-- ✅ Thêm whitespace-nowrap cho tiêu đề --}}
                         <th class="px-6 py-3 text-center border-b whitespace-nowrap">Trạng thái</th>
@@ -94,6 +95,12 @@
 
                             <td class="px-6 py-4 text-center font-semibold text-gray-700 whitespace-nowrap">
                                 {{ $loai->so_luong_phong ?? 0 }}
+                            </td>
+
+                            <td class="px-6 py-4 text-center whitespace-nowrap">
+                                <span class="font-semibold {{ ($loai->so_luong_trong ?? 0) > 0 ? 'text-green-600' : 'text-red-600' }}">
+                                    {{ $loai->so_luong_trong ?? 0 }}
+                                </span>
                             </td>
 
                             <td class="px-6 py-4 text-blue-600 font-semibold text-center whitespace-nowrap">
@@ -142,7 +149,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-6 py-12 text-center">
+                            <td colspan="8" class="px-6 py-12 text-center">
                                 <div class="flex flex-col items-center justify-center">
                                     <i class="bi bi-door-open text-4xl text-gray-300 mb-4"></i>
                                     <p class="text-gray-500 text-lg mb-2">Chưa có loại phòng nào</p>

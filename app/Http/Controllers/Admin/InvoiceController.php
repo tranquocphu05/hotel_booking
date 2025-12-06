@@ -47,7 +47,7 @@ class InvoiceController extends Controller
 
         // Get paginated results
         $invoices = $query->latest()->paginate(5);
-        
+
         // Force reload each invoice from database to get latest tong_tien and clear any cached accessors
         $invoices->getCollection()->transform(function($inv) {
             $fresh = $inv->fresh();
@@ -57,7 +57,7 @@ class InvoiceController extends Controller
             }]);
             return $fresh;
         });
-        
+
         $users = User::where('vai_tro', 'khach_hang')->get();
 
         return view('admin.invoices.index', compact('invoices', 'users'));
@@ -75,7 +75,7 @@ class InvoiceController extends Controller
     {
         $export = new InvoiceExport($invoice);
         $fileName = 'hoa_don_' . $invoice->id . '_' . date('dmY_His') . '.xlsx';
-        
+
         return response($export->generate(), 200, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'Content-Disposition' => "attachment; filename=\"{$fileName}\"",
@@ -195,12 +195,12 @@ class InvoiceController extends Controller
         
         // Assigned room ids for this booking (phong_ids JSON or legacy phong_id)
         $assignedPhongIds = $booking->phong_ids ?? $booking->getPhongIds();
-        
+
         // Pre-load all LoaiPhong objects used in room_types for efficient calculation in view
         $roomTypes = $booking->getRoomTypes();
-        $loaiPhongIds = array_column($roomTypes, 'loai_phong_id');
+        $loaiPhongIds = $roomTypes->pluck('loai_phong_id')->toArray();
         $loaiPhongs = \App\Models\LoaiPhong::whereIn('id', $loaiPhongIds)->get()->keyBy('id');
-        
+
         // use the same status value as other controllers ('hoat_dong')
         $services = Service::where('status', 'hoat_dong')->get();
         
@@ -364,6 +364,7 @@ class InvoiceController extends Controller
                           ->orWhere('invoice_id', $invoice->id);
                     })->delete();
 
+
                 // Create new booking-scoped service entries. Support per-entry room selection
                 foreach ($servicesData as $svcId => $data) {
                     $service = Service::find($svcId);
@@ -374,6 +375,7 @@ class InvoiceController extends Controller
                         $ngay = $entry['ngay'] ?? '';
                         $qty = $entry['so_luong'] ?? 0;
                         if (!$ngay || $qty <= 0) continue;
+
 
                         // Support per-entry room selection (phong_ids or phong_id)
                         $entryPhongIds = [];
@@ -408,6 +410,7 @@ class InvoiceController extends Controller
                                 'invoice_id' => $invoice->id,
                             ]);
                         }
+
                     }
                 }
             }
@@ -451,6 +454,7 @@ class InvoiceController extends Controller
         // Đồng bộ trạng thái đặt phòng khi hóa đơn đã thanh toán
         if ($invoice->trang_thai === 'da_thanh_toan' && $invoice->datPhong) {
             if ($invoice->datPhong->trang_thai === 'cho_xac_nhan') {
+                $invoice->datPhong->validateStatusTransition('da_xac_nhan');
                 $invoice->datPhong->trang_thai = 'da_xac_nhan';
                 $invoice->datPhong->save();
             }
@@ -458,7 +462,7 @@ class InvoiceController extends Controller
 
         return redirect()->route('admin.invoices.index')->with('success', 'Cập nhật hóa đơn thành công.');
     }
-    
+
     /**
      * Show form to create an EXTRA invoice (do not persist until user confirms)
      */

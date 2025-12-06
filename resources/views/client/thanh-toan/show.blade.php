@@ -176,7 +176,7 @@
                                 @php
                                     $assignedPhongs = $datPhong->getAssignedPhongs();
                                     $assignedCount = $assignedPhongs->count();
-                                    $totalRooms = array_sum(array_column($roomTypes, 'so_luong')) ?: ($datPhong->so_luong_da_dat ?? 1);
+                                    $totalRooms = $roomTypes->sum('so_luong') ?: ($datPhong->so_luong_da_dat ?? 1);
                                 @endphp
 
                                 @if($assignedCount > 0)
@@ -446,7 +446,7 @@
 
                         @php
                             $roomTypes = $datPhong->getRoomTypes();
-                            $totalRooms = array_sum(array_column($roomTypes, 'so_luong')) ?: ($datPhong->so_luong_da_dat ?? 1);
+                            $totalRooms = $roomTypes->sum('so_luong') ?: ($datPhong->so_luong_da_dat ?? 1);
                         @endphp
 
                         <!-- Room Type Policies -->

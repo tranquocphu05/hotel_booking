@@ -35,14 +35,6 @@ class Invoice extends Model
         'con_lai' => 'decimal:2',
     ];
 
-    /**
-     * Determine if the invoice is an extra (addon) invoice.
-     */
-    public function isExtra(): bool
-    {
-        return strtoupper($this->invoice_type ?? '') === 'EXTRA';
-    }
-
     public function datPhong()
     {
         return $this->belongsTo(DatPhong::class, 'dat_phong_id');
@@ -71,5 +63,13 @@ class Invoice extends Model
             'hoan_tien'      => ['label' => 'Hoàn tiền',      'bg' => 'bg-red-100',    'text' => 'text-red-700',    'icon' => 'fa-rotate-left'],
             default          => ['label' => 'Chờ thanh toán', 'bg' => 'bg-yellow-100', 'text' => 'text-yellow-700', 'icon' => 'fa-clock'],
         };
+    }
+
+    /**
+     * Check if this is an extra service invoice (for additional services after initial booking)
+     */
+    public function isExtra(): bool
+    {
+        return $this->invoice_type === 'extra';
     }
 }
