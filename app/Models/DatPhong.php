@@ -4,11 +4,13 @@ namespace App\Models;
 
 use App\Models\Invoice;
 use App\Models\LoaiPhong;
+
 use App\Models\Phong;
 use App\Models\YeuCauDoiPhong as ModelsYeuCauDoiPhong;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
+
 use YeuCauDoiPhong;
 
 class DatPhong extends Model
@@ -144,6 +146,7 @@ class DatPhong extends Model
      */
     public function getPhongIds()
     {
+
         // Get from pivot table (booking_rooms) - use correct relationship
         $phongIds = $this->phongs()->pluck('phong.id')->toArray();
 
@@ -202,7 +205,6 @@ class DatPhong extends Model
 
     /**
      * Get all room types in this booking from pivot table
-     * Returns array with loai_phong_id, so_luong, gia_rieng, phong_ids
      */
     public function getRoomTypes()
     {
@@ -227,6 +229,7 @@ class DatPhong extends Model
                 'gia_rieng' => $roomType->pivot->gia_rieng,
             ];
         });
+
     }
     /**
      * Add room type to booking via pivot table
@@ -245,6 +248,7 @@ class DatPhong extends Model
      */
     public function syncRoomTypes(array $roomTypesData)
     {
+
         $this->roomTypes()->sync($roomTypesData);
         return $this;
     }

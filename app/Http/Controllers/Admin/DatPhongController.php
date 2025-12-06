@@ -98,6 +98,10 @@ class DatPhongController extends Controller
         }
         
         $booking = DatPhong::findOrFail($id);
+        // Keep the original status so we only auto-confirm bookings that were
+        // originally pending ('cho_xac_nhan'). This prevents accidental
+        // confirmation if the status was changed as part of the update payload.
+        $originalStatus = $booking->trang_thai;
 
         // Validate
         $request->validate([
@@ -1118,6 +1122,13 @@ class DatPhongController extends Controller
             
             $booking->update($updateData);
         });
+
+        // If admin chose to confirm after saving, invoke quickConfirm flow
+        if ($request->input('confirm_and_save')) {
+            // Refresh booking to ensure latest values
+            $booking = $booking->fresh();
+            return $this->quickConfirm($booking->id);
+        }
 
         return redirect()->route('admin.dat_phong.show', $booking->id)
             ->with('success', 'Cập nhật thông tin đặt phòng thành công');
@@ -2188,7 +2199,17 @@ class DatPhongController extends Controller
             }
 
             try {
-                \App\Models\Invoice::create($invoiceData);
+                $invoice = \App\Models\Invoice::create($invoiceData);
+                // Link any existing booking-level services (invoice_id == NULL) to this new invoice
+                if ($invoice && $invoice->id) {
+                    try {
+                        \App\Models\BookingService::where('dat_phong_id', $booking->id)
+                            ->whereNull('invoice_id')
+                            ->update(['invoice_id' => $invoice->id]);
+                    } catch (\Throwable $e) {
+                        Log::warning('Failed to link booking services to new invoice on confirmation: ' . $e->getMessage());
+                    }
+                }
             } catch (\Exception $e) {
                 Log::warning('Failed to create invoice on confirmation: ' . $e->getMessage());
             }
@@ -2244,10 +2265,26 @@ class DatPhongController extends Controller
             }
 
             $invoice = \App\Models\Invoice::create($invoiceData);
+            // Link booking-level services to this newly created invoice
+            try {
+                \App\Models\BookingService::where('dat_phong_id', $booking->id)
+                    ->whereNull('invoice_id')
+                    ->update(['invoice_id' => $invoice->id]);
+            } catch (\Throwable $e) {
+                Log::warning('Failed to link booking services to new invoice on markPaid: ' . $e->getMessage());
+            }
         } else {
             $invoice->update([
                 'trang_thai' => 'da_thanh_toan',
             ]);
+            // Ensure any booking-level services are assigned to this invoice
+            try {
+                \App\Models\BookingService::where('dat_phong_id', $booking->id)
+                    ->whereNull('invoice_id')
+                    ->update(['invoice_id' => $invoice->id]);
+            } catch (\Throwable $e) {
+                Log::warning('Failed to link booking services to existing invoice on markPaid: ' . $e->getMessage());
+            }
         }
 
         // Optionally confirm booking if still pending

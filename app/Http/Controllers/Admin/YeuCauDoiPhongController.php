@@ -11,6 +11,7 @@ use App\Models\YeuCauDoiPhong;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+
 use App\Traits\HasRolePermissions;
 
 class YeuCauDoiPhongController extends Controller
@@ -87,7 +88,7 @@ class YeuCauDoiPhongController extends Controller
     {
         // Nhân viên: xử lý yêu cầu đổi phòng
         $this->authorizePermission('room_change.process');
-        
+
         $yeuCau = YeuCauDoiPhong::with(['datPhong', 'phongCu', 'phongMoi'])->findOrFail($id);
 
         if ($yeuCau->trang_thai !== 'cho_duyet') {
