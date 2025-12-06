@@ -68,6 +68,18 @@
         @endif
 
             <div class="max-w-6xl mx-auto">
+                @if(isset($remainingSeconds) && $remainingSeconds > 0)
+                    <div id="payment-countdown" class="mb-6 max-w-md mx-auto bg-red-50 border border-red-200 rounded-lg px-4 py-3 flex items-center justify-between shadow-sm">
+                        <div class="text-sm text-red-800">
+                            <span class="font-semibold">Lưu ý:</span>
+                            <span class="ml-1">
+                                Biên lai chỉ có hiệu lực trong <strong>5 phút</strong>. <br>
+                                Vui lòng tiến hành thanh toán để hoàn tất đặt phòng.
+                            </span>
+                        </div>
+                        <div id="countdown-timer" class="ml-4 text-lg font-bold text-red-600 whitespace-nowrap"></div>
+                    </div>
+                @endif
                 <div class="flex flex-col lg:flex-row gap-8 lg:items-stretch">
                     <!-- Booking Details - Enhanced Card -->
                     <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-200 h-full flex-1">
@@ -517,7 +529,7 @@
                                 </div>
                             @endif
                         </div>
-      
+
                             <!-- Simple Policy Text -->
                             <div class="mt-6 space-y-2 text-sm text-gray-700">
                                 <p><strong>Hủy:</strong> Nếu hủy, thay đổi hoặc không đến, khách sẽ trả toàn bộ giá trị tiền đặt phòng.</p>
@@ -596,16 +608,45 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            var remaining = {{ isset($remainingSeconds) ? (int) $remainingSeconds : 0 }};
+            var timerElement = document.getElementById('countdown-timer');
 
-            // Show success modal on booking success
+            if (remaining > 0 && timerElement) {
+                var countdownContainer = document.getElementById('payment-countdown');
+
+                var formatTime = function(seconds) {
+                    var m = Math.floor(seconds / 60);
+                    var s = seconds % 60;
+                    var mm = m < 10 ? '0' + m : '' + m;
+                    var ss = s < 10 ? '0' + s : '' + s;
+                    return mm + ':' + ss;
+                };
+
+                var updateCountdown = function() {
+                    if (remaining <= 0) {
+                        timerElement.textContent = '00:00';
+                        if (countdownContainer) {
+                            countdownContainer.classList.add('opacity-60');
+                        }
+                        alert('Bạn đã quá thời gian thanh toán. Đơn đặt phòng của bạn đã bị hủy. Vui lòng đặt phòng lại.');
+                        window.location.href = "{{ url('/booking') }}";
+                        return;
+                    }
+
+                    timerElement.textContent = formatTime(remaining);
+                    remaining -= 1;
+                };
+
+                updateCountdown();
+                setInterval(updateCountdown, 1000);
+            }
+
             @if(session('booking_success'))
-                // Auto-scroll to success message
                 setTimeout(() => {
                     const successAlert = document.querySelector('.bg-gradient-to-r.from-green-50');
                     if (successAlert) {
                         successAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-                        // Add attention animation
                         successAlert.classList.add('animate-bounce-once');
                         setTimeout(() => {
                             successAlert.classList.remove('animate-bounce-once');
