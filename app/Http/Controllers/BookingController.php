@@ -22,7 +22,7 @@ class BookingController extends Controller
     /**
      * Show booking form for a room type using route model binding
      */
-    public function showForm($loaiPhongId = null, Request $request)
+    public function showForm(Request $request, $loaiPhongId = null)
     {
         // Accept query params from the client detail page (checkin, checkout, guests)
         $checkin = $request->query('checkin');

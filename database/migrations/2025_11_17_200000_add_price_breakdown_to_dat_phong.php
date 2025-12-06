@@ -9,8 +9,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('dat_phong', function (Blueprint $table) {
-            $table->decimal('tien_phong', 15, 2)->default(0)->after('tong_tien')->comment('Room total');
-            $table->decimal('tong_tien_dich_vu', 15, 2)->default(0)->after('tien_phong')->comment('Service total');
+            if (!Schema::hasColumn('dat_phong', 'tien_phong')) {
+                $table->decimal('tien_phong', 15, 2)->default(0)->after('tong_tien')->comment('Room total');
+            }
+            if (!Schema::hasColumn('dat_phong', 'tong_tien_dich_vu')) {
+                $table->decimal('tong_tien_dich_vu', 15, 2)->default(0)->after('tien_phong')->comment('Service total');
+            }
         });
     }
 

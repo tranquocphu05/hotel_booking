@@ -33,6 +33,8 @@ class DatPhong extends Model
     protected $fillable = [
         'nguoi_dung_id',
         'loai_phong_id',  // Book by room type (primary/legacy support)
+        'room_types',
+        'phong_ids',
         'so_luong_da_dat',  // Number of rooms booked in this booking
         'phong_id',  // Specific room assigned (nullable, legacy support)
         'ngay_dat',
@@ -40,6 +42,8 @@ class DatPhong extends Model
         'ngay_tra',
         'so_nguoi',
         'trang_thai',
+        'tien_phong',
+        'tien_dich_vu',
         'tong_tien',
         'voucher_id',
         'ly_do_huy',
@@ -72,6 +76,9 @@ class DatPhong extends Model
         'phi_phat_sinh' => 'decimal:2',
         'thoi_gian_checkin' => 'datetime',
         'thoi_gian_checkout' => 'datetime',
+        // JSON fields for room assignments
+        'room_types' => 'array',
+        'phong_ids' => 'array',
     ];
 
     /**
@@ -193,15 +200,17 @@ class DatPhong extends Model
 
         // If no room types in pivot, fallback to legacy single room type
         if ($roomTypes->isEmpty() && $this->loai_phong_id) {
-            return collect([[
-                'loai_phong_id' => $this->loai_phong_id,
-                'so_luong' => $this->so_luong_da_dat ?? 1,
-                'gia_rieng' => $this->tong_tien ?? 0,
-            ]]);
+            return collect([
+                [
+                    'loai_phong_id' => $this->loai_phong_id,
+                    'so_luong' => $this->so_luong_da_dat ?? 1,
+                    'gia_rieng' => $this->tong_tien ?? 0,
+                ]
+            ]);
         }
 
         // Transform to array format for compatibility
-        return $roomTypes->map(function($roomType) {
+        return $roomTypes->map(function ($roomType) {
             return [
                 'loai_phong_id' => $roomType->id,
                 'so_luong' => $roomType->pivot->so_luong,
@@ -479,8 +488,10 @@ class DatPhong extends Model
                     $phong = \App\Models\Phong::find($booking->phong_id);
                     if ($phong) {
                         // Khi booking bị hủy/từ chối -> phòng chuyển về "trống"
-                        if (in_array($newStatus, ['da_huy', 'tu_choi', 'thanh_toan_that_bai'])
-                            && in_array($oldStatus, ['cho_xac_nhan', 'da_xac_nhan'])) {
+                        if (
+                            in_array($newStatus, ['da_huy', 'tu_choi', 'thanh_toan_that_bai'])
+                            && in_array($oldStatus, ['cho_xac_nhan', 'da_xac_nhan'])
+                        ) {
                             $phong->update(['trang_thai' => 'trong']);
                         }
                         // Khi booking hoàn thành (check-out) -> phòng chuyển về "dang_don" để dọn dẹp
@@ -491,7 +502,7 @@ class DatPhong extends Model
                         elseif ($newStatus === 'da_tra' && $oldStatus !== 'da_tra') {
                             // Sau checkout, phòng về 'trong' ngay lập tức theo yêu cầu
                             $phong->update(['trang_thai' => 'trong']);
-                            
+
                             // Recalculate so_luong_trong cho loại phòng
                             $loaiPhongId = $phong->loai_phong_id;
                             if ($loaiPhongId) {
@@ -509,20 +520,22 @@ class DatPhong extends Model
                 $assignedPhongs = $booking->getAssignedPhongs();
                 foreach ($assignedPhongs as $phong) {
                     // Khi booking bị hủy/từ chối -> phòng chuyển về "trống"
-                    if (in_array($newStatus, ['da_huy', 'tu_choi', 'thanh_toan_that_bai'])
-                        && in_array($oldStatus, ['cho_xac_nhan', 'da_xac_nhan'])) {
+                    if (
+                        in_array($newStatus, ['da_huy', 'tu_choi', 'thanh_toan_that_bai'])
+                        && in_array($oldStatus, ['cho_xac_nhan', 'da_xac_nhan'])
+                    ) {
                         // CRITICAL FIX: Kiểm tra xem phòng có đang được đặt cho booking khác không
                         // Sử dụng pivot table thay vì JSON field
-                                        $hasOtherBooking = \App\Models\DatPhong::where('id', '!=', $booking->id)
-                                                        ->whereHas('phongs', function($q) use ($phong) {
-                                                                $q->where('phong_id', $phong->id);
-                                                        })
-                                                        ->where(function($q) use ($booking) {
-                                                                $q->where('ngay_tra', '>', $booking->ngay_nhan)
-                                                                    ->where('ngay_nhan', '<', $booking->ngay_tra);
-                                                        })
-                                                        ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
-                                                        ->exists();
+                        $hasOtherBooking = \App\Models\DatPhong::where('id', '!=', $booking->id)
+                            ->whereHas('phongs', function ($q) use ($phong) {
+                                $q->where('phong_id', $phong->id);
+                            })
+                            ->where(function ($q) use ($booking) {
+                                $q->where('ngay_tra', '>', $booking->ngay_nhan)
+                                    ->where('ngay_nhan', '<', $booking->ngay_tra);
+                            })
+                            ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
+                            ->exists();
 
                         if (!$hasOtherBooking) {
                             $phong->update(['trang_thai' => 'trong']);
@@ -535,7 +548,7 @@ class DatPhong extends Model
                     elseif ($newStatus === 'da_tra' && $oldStatus !== 'da_tra') {
                         // Sau checkout, phòng về 'trong' ngay lập tức theo yêu cầu
                         $phong->update(['trang_thai' => 'trong']);
-                        
+
                         // Recalculate so_luong_trong cho loại phòng
                         $loaiPhongId = $phong->loai_phong_id;
                         if ($loaiPhongId) {
@@ -564,15 +577,15 @@ class DatPhong extends Model
                         $dangDonAvailable = \App\Models\Phong::where('loai_phong_id', $loaiPhongId)
                             ->where('trang_thai', 'dang_don')
                             ->get()
-                            ->filter(function($phong) use ($today, $futureDate) {
+                            ->filter(function ($phong) use ($today, $futureDate) {
                                 // Kiểm tra xem phòng có booking conflict trong 7 ngày tới không
-                                $hasConflict = \App\Models\DatPhong::whereHas('phongs', function($q) use ($phong) {
-                                        $q->where('phong_id', $phong->id);
-                                    })
-                                    ->where(function($q) use ($today, $futureDate) {
-                                        $q->where('ngay_tra', '>', $today)
-                                          ->where('ngay_nhan', '<', $futureDate);
-                                    })
+                                $hasConflict = \App\Models\DatPhong::whereHas('phongs', function ($q) use ($phong) {
+                                    $q->where('phong_id', $phong->id);
+                                })
+                                    ->where(function ($q) use ($today, $futureDate) {
+                                    $q->where('ngay_tra', '>', $today)
+                                        ->where('ngay_nhan', '<', $futureDate);
+                                })
                                     ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
                                     ->exists();
 
@@ -619,13 +632,13 @@ class DatPhong extends Model
                 $dangDonAvailable = \App\Models\Phong::where('loai_phong_id', $loaiPhongId)
                     ->where('trang_thai', 'dang_don')
                     ->get()
-                    ->filter(function($phong) use ($today, $futureDate) {
-                        $hasConflict = \App\Models\DatPhong::whereHas('phongs', function($q) use ($phong) {
-                                $q->where('phong_id', $phong->id);
-                            })
-                            ->where(function($q) use ($today, $futureDate) {
+                    ->filter(function ($phong) use ($today, $futureDate) {
+                        $hasConflict = \App\Models\DatPhong::whereHas('phongs', function ($q) use ($phong) {
+                            $q->where('phong_id', $phong->id);
+                        })
+                            ->where(function ($q) use ($today, $futureDate) {
                                 $q->where('ngay_tra', '>', $today)
-                                  ->where('ngay_nhan', '<', $futureDate);
+                                    ->where('ngay_nhan', '<', $futureDate);
                             })
                             ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
                             ->exists();
@@ -691,13 +704,13 @@ class DatPhong extends Model
         $dangDonAvailable = \App\Models\Phong::where('loai_phong_id', $loaiPhongId)
             ->where('trang_thai', 'dang_don')
             ->get()
-            ->filter(function($phong) use ($today, $futureDate) {
-                $hasConflict = \App\Models\DatPhong::whereHas('phongs', function($q) use ($phong) {
-                        $q->where('phong_id', $phong->id);
-                    })
-                    ->where(function($q) use ($today, $futureDate) {
+            ->filter(function ($phong) use ($today, $futureDate) {
+                $hasConflict = \App\Models\DatPhong::whereHas('phongs', function ($q) use ($phong) {
+                    $q->where('phong_id', $phong->id);
+                })
+                    ->where(function ($q) use ($today, $futureDate) {
                         $q->where('ngay_tra', '>', $today)
-                          ->where('ngay_nhan', '<', $futureDate);
+                            ->where('ngay_nhan', '<', $futureDate);
                     })
                     ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
                     ->exists();
@@ -713,21 +726,21 @@ class DatPhong extends Model
             ->update(['so_luong_trong' => $totalAvailable]);
     }
     public function getTrangThaiLabelAttribute()
-{
-    $map = [
-        'cho_xac_nhan'        => 'Chờ xác nhận',
-        'da_xac_nhan'         => 'Đã xác nhận',
-        'da_huy'              => 'Đã hủy',
-        'da_tra'              => 'Đã trả',
-        'tu_choi'             => 'Từ chối',
-        'thanh_toan_that_bai' => 'Thanh toán thất bại',
-        'da_chong'            => 'Đã chồng phòng',
-    ];
+    {
+        $map = [
+            'cho_xac_nhan' => 'Chờ xác nhận',
+            'da_xac_nhan' => 'Đã xác nhận',
+            'da_huy' => 'Đã hủy',
+            'da_tra' => 'Đã trả',
+            'tu_choi' => 'Từ chối',
+            'thanh_toan_that_bai' => 'Thanh toán thất bại',
+            'da_chong' => 'Đã chồng phòng',
+        ];
 
-    return $map[$this->trang_thai] ?? ucfirst(str_replace('_', ' ', $this->trang_thai));
-}
+        return $map[$this->trang_thai] ?? ucfirst(str_replace('_', ' ', $this->trang_thai));
+    }
     public function yeuCauDoiPhongs()
-{
-    return $this->hasMany(ModelsYeuCauDoiPhong::class, 'dat_phong_id');
-}
+    {
+        return $this->hasMany(ModelsYeuCauDoiPhong::class, 'dat_phong_id');
+    }
 }

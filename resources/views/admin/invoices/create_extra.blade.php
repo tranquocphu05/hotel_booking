@@ -68,34 +68,124 @@
 
                     <!-- Inline services picker -->
                     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/css/tom-select.css" rel="stylesheet">
+                    
                     <style>
-                        .service-card-custom{border-radius:12px;background:linear-gradient(135deg, #e0f2fe 0%, #bfdbfe 100%);border:2px solid #2563eb;padding:1.25rem;box-shadow:0 10px 25px rgba(37, 99, 235, 0.08);} 
-                        .service-card-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1.25rem}
-                        .service-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;padding-bottom:.5rem;border-bottom:2px solid #bfdbfe}
-                        .service-card-header .service-title{color:#1e40af;font-weight:700;font-size:1.1rem}
-                        .service-card-header .service-price{color:#1e3a8a;font-weight:600;font-size:0.95rem}
-                        .service-date-row{display:flex;gap:.75rem;align-items:center;margin-top:.75rem;padding:.5rem;background:#ffffff;border-radius:8px;border:1px solid #bfdbfe}
-                        .service-date-row input[type=date]{border:1px solid #93c5fd;padding:.45rem .6rem;border-radius:6px;background:#eff6ff;font-size:0.9rem;flex:1}
-                        .service-date-row input[type=number]{border:1px solid #93c5fd;padding:.45rem .6rem;border-radius:6px;background:#eff6ff;width:80px;text-align:center}
-                        .service-add-day{background:linear-gradient(135deg, #93c5fd 0%, #2563eb 100%);color:#07316a;padding:.5rem .75rem;border-radius:8px;border:1.5px solid #60a5fa;cursor:pointer;font-weight:600;font-size:0.9rem}
-                        .service-add-day:hover{background:linear-gradient(135deg, #2563eb 0%, #1e40af 100%);box-shadow:0 4px 12px rgba(37, 99, 235, 0.15)}
-                        .service-remove-btn{background:#fee2e2;color:#991b1b;padding:.4rem .6rem;border-radius:6px;border:1px solid #fecaca;cursor:pointer;font-weight:600;font-size:0.85rem}
-                        .service-remove-btn:hover{background:#fca5a5;box-shadow:0 4px 12px rgba(185, 28, 28, 0.15)}
-                        #services_select + .ts-control{margin-top:.5rem;border-color:#2563eb}
-                        #selected_services_list .service-card-custom{transition:all .2s ease}
-                        #selected_services_list .service-card-custom:hover{transform:translateY(-6px);box-shadow:0 15px 35px rgba(37, 99, 235, 0.15)}
+                        .service-card-custom {
+                            border-radius: 10px;
+                            background: linear-gradient(135deg, #e0f2fe 0%, #bfdbfe 100%);
+                            border: 1.5px solid #2563eb;
+                            padding: 0.875rem;
+                            box-shadow: 0 6px 18px rgba(37, 99, 235, 0.06);
+                        }
+                        .service-card-grid {
+                            display: grid;
+                            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+                            gap: 0.75rem;
+                        }
+                        .service-card-header {
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            margin-bottom: 0.5rem;
+                            padding-bottom: 0.4rem;
+                            border-bottom: 1.5px solid #bfdbfe;
+                        }
+                        .service-card-header .service-title {
+                            color: #1e40af;
+                            font-weight: 600;
+                            font-size: 0.95rem;
+                        }
+                        .service-card-header .service-price {
+                            color: #1e3a8a;
+                            font-weight: 600;
+                            font-size: 0.85rem;
+                        }
+                        .service-date-row {
+                            display: flex;
+                            gap: 0.5rem;
+                            align-items: center;
+                            margin-top: 0.5rem;
+                            padding: 0.4rem;
+                            background: #ffffff;
+                            border-radius: 6px;
+                            border: 1px solid #bfdbfe;
+                        }
+                        .service-date-row input[type=date] {
+                            border: 1px solid #93c5fd;
+                            padding: 0.35rem 0.5rem;
+                            border-radius: 5px;
+                            background: #eff6ff;
+                            font-size: 0.85rem;
+                            flex: 1;
+                        }
+                        .service-date-row input[type=number] {
+                            border: 1px solid #93c5fd;
+                            padding: 0.35rem 0.5rem;
+                            border-radius: 5px;
+                            background: #eff6ff;
+                            width: 64px;
+                            text-align: center;
+                            font-size: 0.85rem;
+                        }
+                        .service-add-day {
+                            background: linear-gradient(135deg, #93c5fd 0%, #2563eb 100%);
+                            color: #08203a;
+                            padding: 0.4rem 0.6rem;
+                            border-radius: 6px;
+                            border: 1.5px solid #60a5fa;
+                            cursor: pointer;
+                            font-weight: 600;
+                            font-size: 0.85rem;
+                        }
+                        .service-add-day:hover {
+                            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+                            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
+                        }
+                        .service-remove-btn {
+                            background: #fee2e2;
+                            color: #991b1b;
+                            padding: 0.3rem 0.5rem;
+                            border-radius: 5px;
+                            border: 1px solid #fecaca;
+                            cursor: pointer;
+                            font-weight: 600;
+                            font-size: 0.8rem;
+                        }
+                        .service-remove-btn:hover {
+                            background: #fca5a5;
+                            box-shadow: 0 3px 10px rgba(185, 28, 28, 0.12);
+                        }
+                        .entry-room-container {
+                            display: flex;
+                            gap: 0.5rem;
+                            flex-wrap: wrap;
+                            align-items: center;
+                        }
+                        #services_select + .ts-control {
+                            margin-top: 0.5rem;
+                            border-color: #2563eb;
+                        }
+                        #selected_services_list .service-card-custom {
+                            transition: all 0.18s ease;
+                        }
+                        #selected_services_list .service-card-custom:hover {
+                            transform: translateY(-4px);
+                            box-shadow: 0 10px 26px rgba(37, 99, 235, 0.12);
+                        }
                     </style>
-                    <div class="bg-purple-50 p-4 rounded-lg mb-4">
+
+                    <div class="bg-gray-50 p-4 rounded-lg mb-4">
                         <label for="services_select" class="block text-sm font-medium text-gray-700 mb-2">Chọn dịch vụ phát sinh (chỉ tính tiền dịch vụ)</label>
                         <select id="services_select" placeholder="Chọn 1 hoặc nhiều dịch vụ..." multiple>
                             @foreach ($services as $service)
-                                <option value="{{ $service->id }}" data-price="{{ $service->price }}" data-unit="{{ $service->unit ?? 'cái' }}">{{ $service->name }} - {{ number_format($service->price,0,',','.') }} VNĐ</option>
+                                <option value="{{ $service->id }}" data-price="{{ $service->price }}" data-unit="{{ $service->unit ?? '' }}">{{ $service->name }} - {{ number_format($service->price,0,',','.') }} VNĐ</option>
                             @endforeach
                         </select>
+
+                        <!-- selected services list (rendered by JS) -->
                         <div id="selected_services_list" class="service-card-grid grid grid-cols-1 md:grid-cols-3 gap-6 mt-4"></div>
                     </div>
 
-                    {{-- Show dynamic service total ONLY (no room price) --}}
                     <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                         <p><strong>Ngày nhận:</strong> {{ optional($booking)->ngay_nhan ? date('d/m/Y', strtotime($booking->ngay_nhan)) : 'N/A' }} | <strong>Ngày trả:</strong> {{ optional($booking)->ngay_tra ? date('d/m/Y', strtotime($booking->ngay_tra)) : 'N/A' }}</p>
                         <p class="mt-2"><strong>⚠️ Lưu ý:</strong> Hóa đơn phát sinh chỉ tính tiền dịch vụ, không bao gồm tiền phòng</p>
@@ -120,14 +210,25 @@
 
 @push('scripts')
     <script>
-        // Disable server-side prefill by default so "add new service" starts clean.
         const PREFILL_BOOKING_SERVICES = false;
         const bookingServicesServer = PREFILL_BOOKING_SERVICES ? {!! json_encode($bookingServices ?? []) !!} : {};
 
         function loadTomSelectAndInit(cb) {
             if (window.TomSelect) return cb();
+            
+            // Ensure CSS is loaded
+            if (!document.querySelector('link[href*="tom-select"]')) {
+                var link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = 'https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/css/tom-select.css';
+                document.head.appendChild(link);
+            }
+            
             var s = document.createElement('script');
             s.src = 'https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/js/tom-select.complete.min.js';
+            s.onerror = function() {
+                console.error('Failed to load Tom Select');
+            };
             s.onload = cb;
             document.head.appendChild(s);
         }
@@ -140,10 +241,22 @@
             loadTomSelectAndInit(function() {
                 try {
                     const selectEl = document.getElementById('services_select');
-                    if (!selectEl) return;
-                    const ts = new TomSelect(selectEl, {plugins:['remove_button'], persist:false, create:false});
+                    if (!selectEl) {
+                        console.error('services_select element not found');
+                        return;
+                    }
+                    if (!window.TomSelect) {
+                        console.error('TomSelect not loaded');
+                        return;
+                    }
+                    const ts = new TomSelect(selectEl, {
+                        plugins: ['remove_button'],
+                        persist: false,
+                        create: false,
+                        placeholder: 'Chọn 1 hoặc nhiều dịch vụ...'
+                    });
 
-                    function getBookingRangeDates() {
+                    function getRangeDates() {
                         const start = '{{ optional($booking)->ngay_nhan ? date('Y-m-d', strtotime($booking->ngay_nhan)) : '' }}';
                         const end = '{{ optional($booking)->ngay_tra ? date('Y-m-d', strtotime($booking->ngay_tra)) : '' }}';
                         if (!start || !end) return [];
@@ -154,108 +267,346 @@
                         return a;
                     }
 
-                    function updateTotalsFromHidden() {
+                    function updateTotalPrice() {
+                        const ngayNhan = '{{ optional($booking)->ngay_nhan ? date('Y-m-d', strtotime($booking->ngay_nhan)) : '' }}';
+                        const ngayTra = '{{ optional($booking)->ngay_tra ? date('Y-m-d', strtotime($booking->ngay_tra)) : '' }}';
+                        
+                        const assignedRooms = {!! json_encode($assignedRooms ?? []) !!};
+                        const roomCount = (assignedRooms && assignedRooms.length) ? assignedRooms.length : 1;
+                        
                         let servicesTotal = 0;
                         const container = document.getElementById('selected_services_list');
                         if (!container) return;
+                        
                         const cards = container.querySelectorAll('[data-service-id]');
                         cards.forEach(card => {
                             const sid = card.getAttribute('data-service-id');
-                            const price = parseFloat((document.querySelector('#services_select option[value="'+sid+'"]')?.dataset.price) || 0);
-                            const hiddenQtys = Array.from(document.querySelectorAll('input[name^="services_data['+sid+'][entries]["][name$="[so_luong]"]'));
-                            let svcTotal = 0;
-                            hiddenQtys.forEach(h => { svcTotal += (parseFloat(h.value||0)); });
-                            servicesTotal += (svcTotal * price);
+                            const price = parseFloat(document.querySelector('#services_select option[value="'+sid+'"]')?.dataset.price || 0);
+                            const mode = card.querySelector('input[name="service_room_mode_' + sid + '"]:checked')?.value || 'global';
+                            const rows = Array.from(card.querySelectorAll('#service_dates_'+sid+' .service-date-row'));
+                            
+                            rows.forEach(r => {
+                                const qty = parseInt(r.querySelector('input[type=number]')?.value || 1) || 0;
+                                if (qty <= 0) return;
+                                
+                                if (mode === 'global') {
+                                    // Global: áp dụng tất cả phòng = price × roomCount × qty
+                                    servicesTotal += (price * roomCount * qty);
+                                } else {
+                                    // Specific: chỉ phòng được chọn = price × selectedRoomCount × qty
+                                    const entryRoomChecks = r.querySelectorAll('.entry-room-checkbox:checked').length || 0;
+                                    servicesTotal += (price * entryRoomChecks * qty);
+                                }
+                            });
                         });
+                        
                         document.getElementById('service_total_text').textContent = formatCurrency(servicesTotal);
                         document.getElementById('final_total').textContent = formatCurrency(servicesTotal);
                         const tInput = document.getElementById('tong_tien_input');
                         if (tInput) tInput.value = Math.round(servicesTotal);
                     }
 
-                    const renderedServiceIds = new Set();
-
                     function renderSelectedServices(values) {
                         const container = document.getElementById('selected_services_list');
-                        while (container.firstChild) {
-                            container.removeChild(container.firstChild);
-                        }
-                        const range = getBookingRangeDates();
+                        const prevCounts = {};
+                        
+                        Array.from(container.querySelectorAll('[data-service-id]')).forEach(card => {
+                            const id = card.getAttribute('data-service-id');
+                            prevCounts[id] = card.querySelectorAll('.service-date-row')?.length || 0;
+                        });
 
-                        (values||[]).forEach(val => {
-                            const option = selectEl.querySelector('option[value="'+val+'"]'); if(!option) return;
-                            const id = val;
+                        container.innerHTML = '';
+                        const range = getRangeDates();
+
+                        (values || []).forEach(val => {
+                            const option = selectEl.querySelector('option[value="' + val + '"]');
+                            if (!option) return;
+                            const serviceId = val;
                             const serviceName = option.textContent?.split(' - ')[0] || option.innerText;
-                            const price = parseFloat(option.dataset.price||0)||0;
+                            const servicePrice = parseFloat(option.dataset.price || 0);
                             const unit = option.dataset.unit || 'cái';
 
-                            const card = document.createElement('div'); card.className='service-card-custom'; card.setAttribute('data-service-id', id);
-                            const header = document.createElement('div'); header.className='service-card-header';
-                            const titleDiv = document.createElement('div'); titleDiv.className='service-title'; titleDiv.textContent = serviceName;
-                            const priceDiv = document.createElement('div'); priceDiv.className='service-price'; priceDiv.textContent = `${new Intl.NumberFormat('vi-VN').format(price)}/${unit}`;
-                            header.appendChild(titleDiv); header.appendChild(priceDiv); card.appendChild(header);
+                            const card = document.createElement('div');
+                            card.className = 'service-card-custom';
+                            card.setAttribute('data-service-id', serviceId);
 
-                            const rows = document.createElement('div'); rows.id = 'service_dates_'+id;
-                            function buildRow(dv, qty){
-                                const r=document.createElement('div'); r.className='service-date-row';
-                                const di=document.createElement('input'); di.type='date'; di.value=dv||'';
-                                const rg=range; if(rg.length){ di.min=rg[0]; di.max=rg[rg.length-1]; }
-                                di.addEventListener('focus', function(){ this.dataset.prev = this.value || ''; });
-                                di.addEventListener('change', function(){ const val = this.value || ''; if(!val) { syncHidden(id); return; } const others = Array.from(document.querySelectorAll('#service_dates_'+id+' input[type=date]')).filter(i=>i!==this).map(i=>i.value); if (others.includes(val)){ this.value = this.dataset.prev || ''; alert('Ngày này đã được chọn cho dịch vụ này. Vui lòng chọn ngày khác.'); return; } syncHidden(id); });
-                                const qi=document.createElement('input'); qi.type='number'; qi.min=1; qi.value=(qty && qty>0)?qty:1; qi.className='w-24'; qi.onchange = ()=>syncHidden(id);
-                                const rem=document.createElement('button'); rem.type='button'; rem.className='service-remove-btn ml-2'; rem.textContent='Xóa'; rem.onclick=()=>{ r.remove(); syncHidden(id); };
-                                r.appendChild(di); r.appendChild(qi); r.appendChild(rem); return r;
-                            }
+                            const header = document.createElement('div');
+                            header.className = 'service-card-header';
+                            const title = document.createElement('div');
+                            title.className = 'service-title';
+                            title.textContent = serviceName;
+                            const price = document.createElement('div');
+                            price.className = 'service-price';
+                            price.textContent = `${new Intl.NumberFormat('vi-VN').format(servicePrice)}/${unit}`;
+                            header.appendChild(title);
+                            header.appendChild(price);
+                            card.appendChild(header);
 
-                            const existing = (PREFILL_BOOKING_SERVICES && bookingServicesServer && bookingServicesServer[id]) ? bookingServicesServer[id] : null;
-                            if (existing && existing.length && !renderedServiceIds.has(id)) {
-                                existing.forEach(e => { rows.appendChild(buildRow(e.ngay || (range.length? range[0] : ''), e.so_luong || 1)); });
-                            } else {
-                                // Default to a single entry when adding a new service
-                                rows.appendChild(buildRow((range.length? range[0] : ''), 1));
-                            }
+                            // Room selection section
+                            const roomSection = document.createElement('div');
+                            roomSection.className = 'bg-blue-50 p-3 rounded-lg mt-3 border border-blue-200';
+                            roomSection.id = 'room_selection_' + serviceId;
+                            
+                            const roomToggle = document.createElement('div');
+                            roomToggle.className = 'flex gap-2 mb-2';
+                            
+                            const globalRadio = document.createElement('input');
+                            globalRadio.type = 'radio';
+                            globalRadio.name = 'service_room_mode_' + serviceId;
+                            globalRadio.value = 'global';
+                            globalRadio.checked = true;
+                            globalRadio.id = 'global_' + serviceId;
+                            
+                            const globalLabel = document.createElement('label');
+                            globalLabel.htmlFor = 'global_' + serviceId;
+                            globalLabel.className = 'text-sm flex items-center gap-2 cursor-pointer';
+                            globalLabel.innerHTML = '<span>Áp dụng tất cả phòng</span>';
+                            
+                            const specificRadio = document.createElement('input');
+                            specificRadio.type = 'radio';
+                            specificRadio.name = 'service_room_mode_' + serviceId;
+                            specificRadio.value = 'specific';
+                            specificRadio.id = 'specific_' + serviceId;
+                            
+                            const specificLabel = document.createElement('label');
+                            specificLabel.htmlFor = 'specific_' + serviceId;
+                            specificLabel.className = 'text-sm flex items-center gap-2 cursor-pointer';
+                            specificLabel.innerHTML = '<span>Chọn phòng riêng</span>';
+                            
+                            roomToggle.appendChild(globalRadio);
+                            roomToggle.appendChild(globalLabel);
+                            roomToggle.appendChild(specificRadio);
+                            roomToggle.appendChild(specificLabel);
+                            roomSection.appendChild(roomToggle);
+                            card.appendChild(roomSection);
 
-                            const addBtn = document.createElement('button'); addBtn.type='button'; addBtn.className='service-add-day mt-2'; addBtn.textContent='Thêm ngày'; addBtn.onclick=function(){ const used=Array.from(rows.querySelectorAll('input[type=date]')).map(i=>i.value); const avail=getBookingRangeDates().find(d=>!used.includes(d)); if(avail) { rows.appendChild(buildRow(avail)); syncHidden(id); } };
+                            const rows = document.createElement('div');
+                            rows.id = 'service_dates_' + serviceId;
 
-                            card.appendChild(rows); card.appendChild(addBtn);
-
-                            const cb = document.createElement('input'); cb.type='checkbox'; cb.name='services[]'; cb.value=id; cb.className='service-checkbox'; cb.style.display='none'; cb.checked=true;
-                            const sum = document.createElement('input'); sum.type='hidden'; sum.name='services_data['+id+'][so_luong]'; sum.id='service_quantity_hidden_'+id; sum.value='1';
-                            const dv = document.createElement('input'); dv.type='hidden'; dv.name='services_data['+id+'][dich_vu_id]'; dv.value=id;
-
-                            container.appendChild(card); container.appendChild(cb); container.appendChild(sum); container.appendChild(dv);
-
-                            function syncHidden(id){
-                                Array.from(document.querySelectorAll('input.entry-hidden[data-service="'+id+'"]')).forEach(n=>n.remove());
-                                const rowsNow = Array.from(document.querySelectorAll('#service_dates_'+id+' .service-date-row'));
-                                if(rowsNow.length===0){
-                                    // If no rows left, remove from rendered set so re-adding is fresh
-                                    try{ ts.removeItem(id); }catch(e){ const el=document.querySelector('[data-service-id="'+id+'"]'); if(el) el.remove(); }
-                                    renderedServiceIds.delete(id);
-                                    updateTotalsFromHidden();
-                                    return;
+                            function buildDateRow(dateVal) {
+                                const r = document.createElement('div');
+                                r.className = 'service-date-row';
+                                const dateInput = document.createElement('input');
+                                dateInput.type = 'date';
+                                dateInput.value = dateVal || '';
+                                if (range.length) {
+                                    dateInput.min = range[0];
+                                    dateInput.max = range[range.length - 1];
                                 }
-                                let total=0; rowsNow.forEach((r,idx)=>{
-                                    const dateVal = r.querySelector('input[type=date]')?.value||'';
-                                    const qty = parseInt(r.querySelector('input[type=number]')?.value||1);
-                                    total += qty;
-                                    const h1=document.createElement('input'); h1.type='hidden'; h1.name='services_data['+id+'][entries]['+idx+'][ngay]'; h1.value=dateVal; h1.className='entry-hidden'; h1.setAttribute('data-service', id);
-                                    const h2=document.createElement('input'); h2.type='hidden'; h2.name='services_data['+id+'][entries]['+idx+'][so_luong]'; h2.value=qty; h2.className='entry-hidden'; h2.setAttribute('data-service', id);
-                                    container.appendChild(h1); container.appendChild(h2);
-                                });
-                                const sumEl = document.getElementById('service_quantity_hidden_'+id); if(sumEl) sumEl.value = total;
-                                // mark this service as rendered while it has rows
-                                if (total > 0) renderedServiceIds.add(id);
-                                updateTotalsFromHidden();
+                                dateInput.addEventListener('change', () => syncHiddenEntries(serviceId));
+                                
+                                const qtyInput = document.createElement('input');
+                                qtyInput.type = 'number';
+                                qtyInput.min = 1;
+                                qtyInput.value = 1;
+                                qtyInput.className = 'w-24';
+                                qtyInput.addEventListener('change', () => syncHiddenEntries(serviceId));
+                                
+                                const removeBtn = document.createElement('button');
+                                removeBtn.type = 'button';
+                                removeBtn.className = 'service-remove-btn ml-2';
+                                removeBtn.textContent = 'Xóa';
+                                removeBtn.onclick = () => {
+                                    r.remove();
+                                    syncHiddenEntries(serviceId);
+                                };
+                                
+                                r.appendChild(dateInput);
+                                r.appendChild(qtyInput);
+                                r.appendChild(removeBtn);
+                                
+                                const entryRoomContainer = document.createElement('div');
+                                entryRoomContainer.className = 'entry-room-container mt-2 pl-2 border-l hidden';
+                                r.appendChild(entryRoomContainer);
+                                
+                                return r;
                             }
-                            syncHidden(id);
+
+                            if (range.length) {
+                                rows.appendChild(buildDateRow(range[0]));
+                            } else {
+                                rows.appendChild(buildDateRow(''));
+                            }
+
+                            const addBtn = document.createElement('button');
+                            addBtn.type = 'button';
+                            addBtn.className = 'service-add-day mt-2';
+                            addBtn.textContent = 'Thêm ngày';
+                            addBtn.onclick = function() {
+                                const used = Array.from(rows.querySelectorAll('input[type=date]')).map(i => i.value);
+                                const avail = getRangeDates().find(d => !used.includes(d));
+                                if (avail) {
+                                    rows.appendChild(buildDateRow(avail));
+                                    syncHiddenEntries(serviceId);
+                                }
+                            };
+                            
+                            card.appendChild(rows);
+                            card.appendChild(addBtn);
+                            
+                            globalRadio.onchange = () => {
+                                Array.from(card.querySelectorAll('.entry-room-container')).forEach(c => c.classList.add('hidden'));
+                                updateServiceRoomLists();
+                                syncHiddenEntries(serviceId);
+                            };
+                            
+                            specificRadio.onchange = () => {
+                                updateServiceRoomLists();
+                                syncHiddenEntries(serviceId);
+                            };
+                            
+                            container.appendChild(card);
+                            window.syncHiddenEntries = syncHiddenEntries;
+                            syncHiddenEntries(serviceId);
                         });
-                        updateTotalsFromHidden();
+
+                        // Update room lists to show checkboxes for each entry
+                        try { updateServiceRoomLists(); } catch(e) { console.error('Error updating room lists:', e); }
+                        
+                        updateTotalPrice();
                     }
 
-                    ts.on('change', function(values){ renderSelectedServices(values || []); });
-                    renderSelectedServices([]);
-                } catch(e){ console.error('Services init error', e); }
+                    // Build per-entry room checkboxes based on assigned rooms
+                    function updateServiceRoomLists() {
+                        const assignedRooms = {!! json_encode($assignedRooms ?? []) !!};
+                        
+                        if (!assignedRooms || assignedRooms.length === 0) {
+                            console.warn('No assigned rooms available');
+                            return;
+                        }
+                        
+                        document.querySelectorAll('[data-service-id]').forEach(card => {
+                            const serviceId = card.getAttribute('data-service-id');
+                            const rows = card.querySelectorAll('.service-date-row');
+                            const modeRadios = card.querySelectorAll('input[name="service_room_mode_' + serviceId + '"]');
+                            const mode = Array.from(modeRadios).find(r => r.checked)?.value || 'global';
+                            
+                            rows.forEach((r, idx) => {
+                                let entryRoomContainer = r.querySelector('.entry-room-container');
+                                if (!entryRoomContainer) {
+                                    entryRoomContainer = document.createElement('div');
+                                    entryRoomContainer.className = 'entry-room-container mt-2 pl-2 border-l hidden';
+                                    r.appendChild(entryRoomContainer);
+                                }
+                                entryRoomContainer.innerHTML = '';
+                                
+                                if (mode === 'specific') {
+                                    entryRoomContainer.classList.remove('hidden');
+                                    // Create checkbox for each assigned room
+                                    assignedRooms.forEach(room => {
+                                        const wrap = document.createElement('label');
+                                        wrap.className = 'flex items-center gap-1 text-xs cursor-pointer mb-1';
+                                        
+                                        const cb = document.createElement('input');
+                                        cb.type = 'checkbox';
+                                        cb.className = 'entry-room-checkbox';
+                                        cb.setAttribute('data-room-id', room.id);
+                                        cb.value = room.id;
+                                        cb.onchange = () => syncHiddenEntries(serviceId);
+                                        
+                                        wrap.appendChild(cb);
+                                        wrap.appendChild(document.createTextNode(room.so_phong + ' (' + room.ten_loai + ')'));
+                                        entryRoomContainer.appendChild(wrap);
+                                    });
+                                } else {
+                                    entryRoomContainer.classList.add('hidden');
+                                }
+                            });
+                        });
+                    }
+
+                    function syncHiddenEntries(id) {
+                        const card = document.querySelector('[data-service-id="'+id+'"]');
+                        if (!card) return;
+                        
+                        const container = document.getElementById('selected_services_list');
+                        if (!container) return;
+                        
+                        const rowsNow = Array.from(document.querySelectorAll('#service_dates_'+id+' .service-date-row'));
+                        if (rowsNow.length === 0) {
+                            try { ts.removeItem(id); } catch(e){
+                                if(card) card.remove();
+                            }
+                            updateTotalPrice();
+                            return;
+                        }
+
+                        Array.from(document.querySelectorAll('input.entry-hidden[data-service="'+id+'"]')).forEach(n=>n.remove());
+
+                        const mode = card.querySelector('input[name="service_room_mode_' + id + '"]:checked')?.value || 'global';
+                        const assignedRooms = {!! json_encode($assignedRooms ?? []) !!};
+
+                        let total=0;
+                        rowsNow.forEach((r, idx)=>{
+                            const dateVal = r.querySelector('input[type=date]')?.value || '';
+                            const qty = parseInt(r.querySelector('input[type=number]')?.value || 1);
+                            
+                            const entryRoomChecks = Array.from(r.querySelectorAll('.entry-room-checkbox:checked'));
+                            
+                            if (mode === 'specific' && entryRoomChecks.length === 0) {
+                                return;
+                            }
+                            
+                            total += qty;
+                            
+                            const hNgay = document.createElement('input');
+                            hNgay.type='hidden';
+                            hNgay.name='services_data['+id+'][entries]['+idx+'][ngay]';
+                            hNgay.value=dateVal;
+                            hNgay.className='entry-hidden';
+                            hNgay.setAttribute('data-service', id);
+                            const hSo = document.createElement('input');
+                            hSo.type='hidden';
+                            hSo.name='services_data['+id+'][entries]['+idx+'][so_luong]';
+                            hSo.value=qty;
+                            hSo.className='entry-hidden';
+                            hSo.setAttribute('data-service', id);
+                            container.appendChild(hNgay);
+                            container.appendChild(hSo);
+
+                            if (mode === 'specific') {
+                                entryRoomChecks.forEach((erc) => {
+                                    const hRoom = document.createElement('input');
+                                    hRoom.type = 'hidden';
+                                    hRoom.name = 'services_data['+id+'][entries]['+idx+'][phong_ids][]';
+                                    hRoom.value = erc.getAttribute('data-room-id') || erc.value;
+                                    hRoom.className = 'entry-hidden';
+                                    hRoom.setAttribute('data-service', id);
+                                    container.appendChild(hRoom);
+                                });
+                            } else if (mode === 'global') {
+                                // When global mode, still create phong_ids for all assigned rooms
+                                // so the controller creates per-room BookingService entries
+                                if (assignedRooms && assignedRooms.length > 0) {
+                                    assignedRooms.forEach(room => {
+                                        const hRoom = document.createElement('input');
+                                        hRoom.type = 'hidden';
+                                        hRoom.name = 'services_data['+id+'][entries]['+idx+'][phong_ids][]';
+                                        hRoom.value = room.id;
+                                        hRoom.className = 'entry-hidden';
+                                        hRoom.setAttribute('data-service', id);
+                                        container.appendChild(hRoom);
+                                    });
+                                }
+                            }
+                        });
+                        const sumEl = document.getElementById('service_quantity_hidden_'+id);
+                        if(sumEl) sumEl.value = total;
+                        updateTotalPrice();
+                    }
+
+                    renderSelectedServices(ts.getValue() || []);
+                    try { updateServiceRoomLists(); } catch(e){}
+
+                    ts.on('change', function(values){ 
+                        renderSelectedServices(values || []); 
+                        try { updateServiceRoomLists(); } catch(e){}
+                    });
+
+                    console.log('✓ Extra invoice form initialized successfully');
+                } catch(e) { 
+                    console.error('Services init error', e); 
+                }
             });
         });
     </script>

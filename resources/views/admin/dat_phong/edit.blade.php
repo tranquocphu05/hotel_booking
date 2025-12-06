@@ -3,585 +3,1188 @@
 @section('title', 'Sửa đặt phòng')
 
 @section('admin_content')
-    <div class="py-6"> 
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm rounded-lg">
+    <div class="py-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200">
+                <div class="border-b border-gray-200 px-6 py-4 bg-gray-50">
+                    <h1 class="text-2xl font-bold text-gray-900">Sửa đặt phòng #{{ $booking->id }}</h1>
+                    <p class="mt-1 text-sm text-gray-600">Chỉnh sửa thông tin đặt phòng của khách</p>
+                </div>
                 <div class="p-6">
                     @php
                         $roomTypes = $booking->getRoomTypes();
                     @endphp
-                    <h2 class="text-2xl font-semibold text-gray-800 mb-6">
-                        Sửa thông tin đặt phòng 
-                        @if(count($roomTypes) > 1)
-                            <b>{{ count($roomTypes) }} loại phòng</b>
-                        @else
-                            <b>{{ $booking->loaiPhong->ten_loai ?? 'N/A' }}</b>
-                        @endif
-                    </h2>
 
-                    @if (isset($errors) && is_object($errors) && method_exists($errors, 'any') && $errors->any())
-                        <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                            <div class="flex">
-                                <div class="flex-shrink-0">
-                                    <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                                    </svg>
-                                </div>
-                                <div class="ml-3">
-                                    <h3 class="text-sm font-medium text-red-800">Có lỗi xảy ra:</h3>
-                                    <div class="mt-2 text-sm text-red-700">
-                                        <ul class="list-disc list-inside space-y-1">
-                                            @foreach ((isset($errors) && is_object($errors) && method_exists($errors, 'all')) ? $errors->all() : [] as $error)
-                                                <li>{{ $error }}</li>
-                                            @endforeach
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    @endif
-
-                    @if (session('success'))
-                        <div class="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                            <p class="text-sm text-green-800">{{ session('success') }}</p>
-                        </div>
-                    @endif
-
-                    @if (session('error'))
-                        <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                            <p class="text-sm text-red-800">{{ session('error') }}</p>
-                        </div>
-                    @endif
-
-                    <form id="bookingForm" action="{{ route('admin.dat_phong.update', $booking->id) }}" method="POST">
+                    <form id="bookingForm" method="POST" action="{{ route('admin.dat_phong.update', $booking->id) }}">
                         @csrf
                         @method('PUT')
+                        <div class="space-y-8">
 
-                        <div class="space-y-6">
-                            <!-- Thông tin phòng -->
-                            <div class="bg-gray-50 p-4 rounded-lg">
-                                <h3 class="text-lg font-medium text-gray-900 mb-4">Thông tin phòng</h3>
-                                
-                                <div id="roomTypesContainer" class="space-y-4">
-                                    @if(count($roomTypes) > 0)
-                                        @foreach($roomTypes as $index => $roomType)
-                                            @php
-                                                $loaiPhong = \App\Models\LoaiPhong::find($roomType['loai_phong_id']);
-                                            @endphp
-                                            <div class="room-item border border-gray-200 rounded-lg p-4 bg-white" data-room-index="{{ $index }}">
-                                                <div class="flex justify-between items-start mb-3">
-                                                    <h4 class="text-sm font-medium text-gray-700">Loại phòng {{ $index + 1 }}</h4>
-                                                    @if(count($roomTypes) > 1)
-                                                        <button type="button" onclick="removeRoom({{ $index }})" 
-                                                            class="text-red-600 hover:text-red-800 text-sm">
-                                                            <i class="fas fa-times"></i> Xóa
-                                                        </button>
-                                                    @endif
-                                                </div>
-                                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <div>
-                                                        
-                                                        <select name="room_types[{{ $index }}][loai_phong_id]" 
-                                                            class="room-type-select mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                                            onchange="handleRoomTypeChange({{ $index }}, this.value)"
-                                                            required>
-                                                            <option value="">-- Chọn loại phòng --</option>
-                                                            @foreach($loaiPhongs as $lp)
-                                                                @php
-                                                                    $displayPrice = $lp->gia_khuyen_mai ?? $lp->gia_co_ban ?? 0;
-                                                                @endphp
-                                                                <option value="{{ $lp->id }}" 
-                                                                    {{ $roomType['loai_phong_id'] == $lp->id ? 'selected' : '' }}
-                                                                    data-price="{{ $displayPrice }}">
-                                                                    {{ $lp->ten_loai }} - {{ number_format($displayPrice, 0, ',', '.') }} VNĐ/đêm
-                                                                </option>
-                                                            @endforeach
-                                                        </select>
-                                                        <div id="availability_text_{{ $index }}" class="mt-1 text-xs text-gray-500"></div>
-                                                    </div>
-                                                    <div>
-                                                        <label class="block text-sm font-medium text-gray-700 mb-2">Số lượng</label>
-                                                        <div class="flex items-center gap-2">
-                                                            <button type="button" onclick="decreaseQuantity({{ $index }})" 
-                                                                class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50">-</button>
-                                                            <input type="number" 
-                                                                name="room_types[{{ $index }}][so_luong]" 
-                                                                class="room-quantity-input quantity-input w-20 text-center border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                                                value="{{ $roomType['so_luong'] ?? 1 }}" 
-                                                                min="1"
-                                                                max="10"
-                                                                data-room-index="{{ $index }}"
-                                                                onchange="updateRoomQuantity({{ $index }})"
-                                                                required>
-                                                            <button type="button" onclick="increaseQuantity({{ $index }})" 
-                                                                class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50">+</button>
-                                                        </div>
-                                                        @php
-                                                            $soLuongVal = $roomType['so_luong'] ?? 1;
-                                                            $nightsForCalc = 1;
-                                                            if($booking && $booking->ngay_nhan && $booking->ngay_tra) {
-                                                                $nightsForCalc = \Carbon\Carbon::parse($booking->ngay_nhan)->diffInDays(\Carbon\Carbon::parse($booking->ngay_tra));
-                                                                $nightsForCalc = max(1, $nightsForCalc);
-                                                            }
-                                                            $unitPerNight = $loaiPhong ? ($loaiPhong->gia_khuyen_mai ?? $loaiPhong->gia_co_ban ?? 0) : 0;
-                                                            $subtotal = $unitPerNight * $nightsForCalc * $soLuongVal;
-                                                        @endphp
-                                                        <div class="mt-1 text-xs text-gray-600">
-                                                            Giá: <span id="room_price_{{ $index }}" class="font-medium">{{ number_format($subtotal, 0, ',', '.') }} VNĐ</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <input type="hidden" name="room_types[{{ $index }}][gia_rieng]" 
-                                                    id="room_gia_rieng_{{ $index }}" 
-                                                    data-unit-per-night="{{ $unitPerNight }}"
-                                                    value="{{ $subtotal }}">
-                                            </div>
-                                        @endforeach
-                                    @else
-                                        {{-- Fallback cho booking cũ không có room_types --}}
-                                        <div class="room-item border border-gray-200 rounded-lg p-4 bg-white" data-room-index="0">
-                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div>
-                                                    <label class="block text-sm font-medium text-gray-700 mb-2">Loại phòng</label>
-                                                    <select name="room_types[0][loai_phong_id]" 
-                                                        class="room-type-select mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                                        onchange="handleRoomTypeChange(0, this.value)"
-                                                        required>
-                                                        <option value="">-- Chọn loại phòng --</option>
-                                                        @foreach($loaiPhongs as $lp)
-                                                            @php
-                                                                $displayPrice = $lp->gia_khuyen_mai ?? $lp->gia_co_ban ?? 0;
-                                                            @endphp
-                                                            <option value="{{ $lp->id }}" 
-                                                                {{ $booking->loai_phong_id == $lp->id ? 'selected' : '' }}
-                                                                data-price="{{ $displayPrice }}">
-                                                                {{ $lp->ten_loai }} - {{ number_format($displayPrice, 0, ',', '.') }} VNĐ/đêm
-                                                            </option>
-                                                        @endforeach
-                                                    </select>
-                                                    <div id="availability_text_0" class="mt-1 text-xs text-gray-500"></div>
-                                                </div>
-                                                <div>
-                                                    <label class="block text-sm font-medium text-gray-700 mb-2">Số lượng</label>
-                                                    <div class="flex items-center gap-2">
-                                                        <button type="button" onclick="decreaseQuantity(0)" 
-                                                            class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50">-</button>
-                                                        <input type="number" 
-                                                            name="room_types[0][so_luong]" 
-                                                            class="room-quantity-input quantity-input w-20 text-center border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                                            value="{{ $booking->so_luong_da_dat ?? 1 }}" 
-                                                            min="1"
-                                                            max="10"
-                                                            data-room-index="0"
-                                                            onchange="updateRoomQuantity(0)"
-                                                            required>
-                                                        <button type="button" onclick="increaseQuantity(0)" 
-                                                            class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50">+</button>
-                                                    </div>
-                                                    <div class="mt-1 text-xs text-gray-600">
-                                                        Giá: <span id="room_price_0" class="font-medium">0 VNĐ</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            @php
-                                                $fallbackUnit = $booking->loaiPhong ? ($booking->loaiPhong->gia_khuyen_mai ?? $booking->loaiPhong->gia_co_ban ?? 0) : 0;
-                                                $fallbackQty = $booking->so_luong_da_dat ?? 1;
-                                                $fallbackNights = 1;
-                                                if($booking && $booking->ngay_nhan && $booking->ngay_tra) {
-                                                    $fallbackNights = \Carbon\Carbon::parse($booking->ngay_nhan)->diffInDays(\Carbon\Carbon::parse($booking->ngay_tra));
-                                                    $fallbackNights = max(1, $fallbackNights);
-                                                }
-                                                $fallbackSubtotal = $fallbackUnit * $fallbackNights * $fallbackQty;
-                                            @endphp
-                                            <input type="hidden" name="room_types[0][gia_rieng]" 
-                                                id="room_gia_rieng_0" data-unit-per-night="{{ $fallbackUnit }}"
-                                                value="{{ $fallbackSubtotal }}">
-                                        </div>
-                                    @endif
-                                </div>
 
-                                <div class="mt-4">
-                                    <button type="button" onclick="addRoom()" 
-                                        class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                                        <i class="fas fa-plus mr-2"></i> Thêm loại phòng khác
-                                    </button>
-                                </div>
-
-                                <!-- Phòng được gán -->
-                                <div class="mt-6 pt-6 border-t border-gray-200">
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Phòng được gán</label>
-                                    
+                        <!-- Quản lý loại phòng -->
+                        <section>
+                            <div class="flex justify-between items-center mb-4 pb-2 border-b border-gray-200">
+                                <h3 class="text-lg font-semibold text-gray-900">Loại phòng được đặt</h3>
+                                <button type="button" onclick="addRoom()"
+                                    class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition">
+                                    + Thêm loại phòng
+                                </button>
+                            </div>
+                            <div id="roomTypesContainer" class="space-y-3">
+                                @foreach ($roomTypes as $rt)
                                     @php
-                                        $assignedPhongs = $booking->getAssignedPhongs();
-                                        $assignedCount = $assignedPhongs->count();
-                                        $totalRooms = $roomTypes->sum('so_luong') ?: ($booking->so_luong_da_dat ?? 0);
-                                        $remainingCount = $totalRooms - $assignedCount;
+                                        $rtLoaiPhongId = $rt['loai_phong_id'] ?? null;
+                                        $rtSoLuong = $rt['so_luong'] ?? 1;
+                                        $rtLoaiPhong = $loaiPhongs->firstWhere('id', $rtLoaiPhongId);
+                                        $rtTen = $rtLoaiPhong ? $rtLoaiPhong->ten_loai : 'Loại phòng';
+                                        $rtGia = $rtLoaiPhong ? $rtLoaiPhong->gia_khuyen_mai : 0;
                                     @endphp
-
-                                    @if($assignedCount > 0)
-                                        <div class="mt-2 mb-3">
-                                            <p class="text-sm font-medium text-gray-700 mb-2">
-                                                Phòng đã gán ({{ $assignedCount }}/{{ $totalRooms }}):
-                                            </p>
-                                            <div class="space-y-2">
-                                                @foreach($assignedPhongs as $phong)
-                                                    <div class="p-3 bg-blue-50 border border-blue-200 rounded-md">
-                                                        <p class="text-sm font-medium text-blue-900">
-                                                            Phòng: {{ $phong->so_phong }}
-                                                            @if($phong->ten_phong)
-                                                                ({{ $phong->ten_phong }})
-                                                            @endif
-                                                        </p>
-                                                        <p class="text-xs text-blue-700 mt-1">
-                                                            Tầng: {{ $phong->tang ?? 'N/A' }} | 
-                                                            Trạng thái: 
-                                                            <span class="
-                                                                @if($phong->trang_thai === 'trong') text-green-600
-                                                                @elseif($phong->trang_thai === 'dang_thue') text-blue-600
-                                                                @elseif($phong->trang_thai === 'dang_don') text-yellow-600
-                                                                @else text-red-600 @endif
-                                                            ">
-                                                                {{ $phong->trang_thai === 'trong' ? 'Trống' : 
-                                                                   ($phong->trang_thai === 'dang_thue' ? 'Đang thuê' : 
-                                                                   ($phong->trang_thai === 'dang_don' ? 'Đang dọn' : 'Bảo trì')) }}
-                                                            </span>
-                                                        </p>
-                                                    </div>
-                                                @endforeach
+                                    <div class="room-item bg-white border border-gray-200 rounded-lg p-4" data-room-index="{{ $loop->index }}">
+                                        <div class="flex justify-between items-start mb-4">
+                                            <div>
+                                                <h4 class="font-semibold text-gray-900">{{ $rtTen }}</h4>
+                                                <p class="text-sm text-gray-600">{{ $rtSoLuong }} phòng</p>
                                             </div>
+                                            <button type="button" onclick="removeRoom({{ $loop->index }})"
+                                                class="text-red-600 hover:text-red-800 text-sm font-medium">
+                                                <i class="fas fa-trash-alt"></i> Xóa
+                                            </button>
                                         </div>
-                                    @elseif($booking->phong)
-                                        {{-- Legacy support: Hiển thị phòng từ phong_id --}}
-                                        <div class="mt-1 p-3 bg-blue-50 border border-blue-200 rounded-md mb-3">
-                                            <p class="text-sm font-medium text-blue-900">
-                                                Phòng: {{ $booking->phong->so_phong }}
-                                                @if($booking->phong->ten_phong)
-                                                    ({{ $booking->phong->ten_phong }})
-                                                @endif
-                                            </p>
-                                            <p class="text-xs text-blue-700 mt-1">
-                                                Tầng: {{ $booking->phong->tang ?? 'N/A' }} | 
-                                                Trạng thái: 
-                                                <span class="
-                                                    @if($booking->phong->trang_thai === 'trong') text-green-600
-                                                    @elseif($booking->phong->trang_thai === 'dang_thue') text-blue-600
-                                                    @elseif($booking->phong->trang_thai === 'dang_don') text-yellow-600
-                                                    @else text-red-600 @endif
-                                                ">
-                                                    {{ $booking->phong->trang_thai === 'trong' ? 'Trống' : 
-                                                       ($booking->phong->trang_thai === 'dang_thue' ? 'Đang thuê' : 
-                                                       ($booking->phong->trang_thai === 'dang_don' ? 'Đang dọn' : 'Bảo trì')) }}
-                                                </span>
-                                            </p>
-                                        </div>
-                                    @else
-                                        <p class="text-sm text-yellow-600 mb-2">
-                                            <i class="fas fa-exclamation-triangle text-xs mr-1"></i>
-                                            Chưa gán phòng cụ thể
-                                        </p>
-                                    @endif
-
-                                    @if($remainingCount > 0 && isset($availableRooms) && $availableRooms->count() > 0)
-                                        <div class="mt-3 pt-3 border-t border-gray-200">
-                                            <label for="phong_id_assign" class="block text-xs text-gray-600 mb-1">
-                                                <i class="fas fa-info-circle mr-1"></i>
-                                                Còn thiếu {{ $remainingCount }} phòng. Chọn phòng để gán:
-                                            </label>
-                                            <form action="{{ route('admin.dat_phong.assign_room', $booking->id) }}" method="POST" class="mt-2">
-                                                @csrf
-                                                @method('PUT')
-                                                <select name="phong_id" id="phong_id_assign" 
-                                                    class="mt-1 w-full text-sm border-gray-300 rounded-md">
-                                                    <option value="">-- Chọn phòng --</option>
-                                                    @foreach($availableRooms as $room)
-                                                        <option value="{{ $room->id }}">
-                                                            {{ $room->so_phong }} 
-                                                            @if($room->tang) (Tầng {{ $room->tang }}) @endif
-                                                            @if($room->co_view_dep) - View đẹp @endif
-                                                            @if($room->gia_rieng) - Giá riêng: {{ number_format($room->gia_rieng, 0, ',', '.') }} VNĐ @endif
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">Loại phòng</label>
+                                                <select name="room_types[{{ $loop->index }}][loai_phong_id]"
+                                                    class="room-type-select w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                                                    onchange="handleRoomTypeChange({{ $loop->index }}, this.value)"
+                                                    required>
+                                                    <option value="">-- Chọn loại phòng --</option>
+                                                    @foreach ($loaiPhongs as $lp)
+                                                        <option value="{{ $lp->id }}"
+                                                            data-price="{{ $lp->gia_khuyen_mai }}"
+                                                            {{ $rtLoaiPhongId == $lp->id ? 'selected' : '' }}>
+                                                            {{ $lp->ten_loai }} - {{ number_format($lp->gia_khuyen_mai, 0, ',', '.') }} VNĐ/đêm
                                                         </option>
                                                     @endforeach
                                                 </select>
-                                                <button type="submit" 
-                                                    class="mt-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                                    Gán phòng
-                                                </button>
-                                            </form>
+                                                <div id="availability_text_{{ $loop->index }}" class="mt-1 text-xs text-gray-500"></div>
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">Số lượng</label>
+                                                <div class="flex items-center gap-2">
+                                                    <button type="button" onclick="decreaseQuantity({{ $loop->index }})"
+                                                        class="w-8 h-8 border border-gray-300 rounded-md hover:bg-gray-50 text-gray-700 font-semibold">−</button>
+                                                    <input type="number" name="room_types[{{ $loop->index }}][so_luong]"
+                                                        class="room-quantity-input quantity-input flex-1 text-center px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                                                        value="{{ $rtSoLuong }}" min="1" max="10"
+                                                        data-room-index="{{ $loop->index }}"
+                                                        onchange="updateRoomQuantity({{ $loop->index }})" required>
+                                                    <button type="button" onclick="increaseQuantity({{ $loop->index }})"
+                                                        class="w-8 h-8 border border-gray-300 rounded-md hover:bg-gray-50 text-gray-700 font-semibold">+</button>
+                                                </div>
+                                                <div class="mt-2 text-xs text-gray-600">
+                                                    Giá: <span id="room_price_{{ $loop->index }}" class="font-semibold">{{ number_format($rtSoLuong * $rtGia, 0, ',', '.') }} VNĐ</span>
+                                                </div>
+                                            </div>
                                         </div>
-                                    @elseif($remainingCount > 0)
-                                        <p class="text-xs text-gray-500 mt-2">
-                                            <i class="fas fa-info-circle mr-1"></i>
-                                            Còn thiếu {{ $remainingCount }} phòng. Không có phòng trống trong khoảng thời gian từ {{ date('d/m/Y', strtotime($booking->ngay_nhan)) }} đến {{ date('d/m/Y', strtotime($booking->ngay_tra)) }}
-                                        </p>
-                                    @endif
-                                    @error('phong_id')
+                                        <input type="hidden" name="room_types[{{ $loop->index }}][gia_rieng]"
+                                            id="room_gia_rieng_{{ $loop->index }}" value="{{ $rtSoLuong * $rtGia }}">
+                                    </div>
+                                @endforeach
+                            </div>
+                        </section>
+
+                        <!-- Ngày nhận, ngày trả, số người -->
+                        <section>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">Thông tin đặt phòng</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label for="ngay_nhan" class="block text-sm font-medium text-gray-700 mb-2">Ngày nhận phòng</label>
+                                    <input type="date" name="ngay_nhan" id="ngay_nhan"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                                        value="{{ old('ngay_nhan', $booking->ngay_nhan ? date('Y-m-d', strtotime($booking->ngay_nhan)) : '') }}"
+                                        required>
+                                    @error('ngay_nhan')
+                                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                                <div>
+                                    <label for="ngay_tra" class="block text-sm font-medium text-gray-700 mb-2">Ngày trả phòng</label>
+                                    <input type="date" name="ngay_tra" id="ngay_tra"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                                        value="{{ old('ngay_tra', $booking->ngay_tra ? date('Y-m-d', strtotime($booking->ngay_tra)) : '') }}"
+                                        required>
+                                    @error('ngay_tra')
+                                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                                <div>
+                                    <label for="so_nguoi" class="block text-sm font-medium text-gray-700 mb-2">Số người</label>
+                                    <input type="number" name="so_nguoi" id="so_nguoi"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                                        value="{{ old('so_nguoi', $booking->so_nguoi ?? 1) }}" min="1" max="20" required>
+                                    @error('so_nguoi')
+                                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Chọn dịch vụ -->
+                        <section>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">Chọn dịch vụ</h3>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+                                @foreach ($services as $service)
+                                    @php
+                                        $sid = $service->id;
+                                        $isIncluded = isset($bookingServicesServer[$sid]);
+                                    @endphp
+                                    <div
+                                        class="flex flex-col items-start gap-1 p-2 bg-white rounded border border-blue-100">
+                                        <input type="checkbox" id="service_select_{{ $sid }}"
+                                            name="services_select[]" value="{{ $sid }}"
+                                            {{ $isIncluded ? 'checked' : '' }} class="cursor-pointer" />
+                                        <label for="service_select_{{ $sid }}" class="cursor-pointer">
+                                            <div class="font-medium text-gray-900 text-xs">{{ $service->name }}</div>
+                                            <div class="text-xs text-gray-600">
+                                                {{ number_format($service->price, 0, ',', '.') }} VNĐ</div>
+                                        </label>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        <style>
+                            .service-card-custom {
+                                border-radius: 10px;
+                                background: linear-gradient(135deg, #e0f2fe 0%, #bfdbfe 100%);
+                                border: 1.5px solid #2563eb;
+                                /* blue-600 */
+                                padding: 0.875rem;
+                                box-shadow: 0 6px 18px rgba(37, 99, 235, 0.06);
+                            }
+
+                            /* responsive grid for cards */
+                            .service-card-grid {
+                                display: grid;
+                                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+                                gap: 0.75rem
+                            }
+
+                            .service-card-header {
+                                display: flex;
+                                justify-content: space-between;
+                                align-items: center;
+                                margin-bottom: 0.5rem;
+                                padding-bottom: 0.4rem;
+                                border-bottom: 1.5px solid #bfdbfe
+                            }
+
+                            .service-card-header .service-title {
+                                color: #1e40af;
+                                font-weight: 600;
+                                font-size: 0.95rem
+                            }
+
+                            .service-card-header .service-price {
+                                color: #1e3a8a;
+                                font-weight: 600;
+                                font-size: 0.85rem
+                            }
+
+                            .service-date-row {
+                                display: flex;
+                                gap: 0.5rem;
+                                align-items: center;
+                                margin-top: 0.5rem;
+                                padding: 0.4rem;
+                                background: #ffffff;
+                                border-radius: 6px;
+                                border: 1px solid #bfdbfe
+                            }
+
+                            .service-date-row input[type=date] {
+                                border: 1px solid #93c5fd;
+                                padding: 0.35rem 0.5rem;
+                                border-radius: 5px;
+                                background: #eff6ff;
+                                font-size: 0.85rem;
+                                flex: 1
+                            }
+
+                            .service-date-row input[type=number] {
+                                border: 1px solid #93c5fd;
+                                padding: 0.35rem 0.5rem;
+                                border-radius: 5px;
+                                background: #eff6ff;
+                                width: 64px;
+                                text-align: center;
+                                font-size: 0.85rem
+                            }
+
+                            .service-add-day {
+                                background: linear-gradient(135deg, #93c5fd 0%, #2563eb 100%);
+                                color: #08203a;
+                                padding: 0.4rem 0.6rem;
+                                border-radius: 6px;
+                                border: 1.5px solid #60a5fa;
+                                cursor: pointer;
+                                font-weight: 600;
+                                font-size: 0.85rem
+                            }
+
+                            .service-add-day:hover {
+                                background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+                                box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12)
+                            }
+
+                            .service-remove-btn {
+                                background: #fee2e2;
+                                color: #991b1b;
+                                padding: 0.3rem 0.5rem;
+                                border-radius: 5px;
+                                border: 1px solid #fecaca;
+                                cursor: pointer;
+                                font-weight: 600;
+                                font-size: 0.8rem
+                            }
+
+                            .service-remove-btn:hover {
+                                background: #fca5a5;
+                                box-shadow: 0 3px 10px rgba(185, 28, 28, 0.12)
+                            }
+
+                            /* selected list item hover */
+                            #selected_services_list .service-card-custom {
+                                transition: all .18s ease
+                            }
+
+                            #selected_services_list .service-card-custom:hover {
+                                transform: translateY(-4px);
+                                box-shadow: 0 10px 26px rgba(37, 99, 235, 0.12)
+                            }
+
+                            /* Room mode selection */
+                            .service-room-mode {
+                                display: flex;
+                                gap: 0.75rem;
+                                margin-top: 0.75rem;
+                                padding: 0.75rem;
+                                background: #f0fdf4;
+                                border: 1.5px solid #86efac;
+                                border-radius: 8px
+                            }
+
+                            .service-room-mode label {
+                                display: flex;
+                                align-items: center;
+                                gap: 0.4rem;
+                                font-size: 0.85rem;
+                                color: #166534;
+                                font-weight: 600;
+                                cursor: pointer
+                            }
+
+                            .service-room-mode input[type=radio] {
+                                cursor: pointer
+                            }
+
+                            /* Room container for per-entry selection */
+                            .entry-room-container {
+                                margin-top: 0.75rem;
+                                padding: 0.75rem;
+                                background: #f8f4ff;
+                                border: 1.5px solid #d8b4fe;
+                                border-radius: 6px
+                            }
+
+                            .entry-room-container .checkbox-group {
+                                display: flex;
+                                flex-wrap: wrap;
+                                gap: 0.5rem
+                            }
+
+                            .entry-room-container .checkbox-group label {
+                                display: flex;
+                                align-items: center;
+                                gap: 0.35rem;
+                                background: white;
+                                padding: 0.3rem 0.5rem;
+                                border: 1px solid #d8b4fe;
+                                border-radius: 5px;
+                                font-size: 0.8rem;
+                                cursor: pointer;
+                                transition: all 0.15s ease
+                            }
+
+                            .entry-room-container .checkbox-group label:hover {
+                                background: #faf5ff;
+                                border-color: #c084fc
+                            }
+
+                            .entry-room-container .checkbox-group input[type=checkbox] {
+                                cursor: pointer;
+                                width: 14px;
+                                height: 14px
+                            }
+
+                            .entry-room-container .checkbox-group input[type=checkbox]:checked+span {
+                                color: #7e22ce;
+                                font-weight: 600
+                            }
+
+                            .entry-room-container .checkbox-group span {
+                                color: #6b21a8;
+                                font-size: 0.8rem;
+                                font-weight: 500
+                            }
+                        </style>
+
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Chi tiết dịch vụ đã chọn</label>
+                            <div class="service-card-grid grid grid-cols-1 md:grid-cols-3 gap-6 mt-4"
+                                id="services_details_container">
+                                {{-- Service cards will be rendered here by JavaScript based on selected services --}}
+                            </div>
+                        </div>
+
+                        @if ($bookingServices->count() > 0)
+                            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                                <h4 class="text-base font-semibold text-gray-900 mb-3 flex items-center">
+                                    <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 17v-2h6v2m-7 4h8a2 2 0 002-2v-4a2 2 0 00-2-2H8a2 2 0 00-2 2v4a2 2 0 002 2zm3-13h4l1 2h3a1 1 0 011 1v3h-2v-2h-3.382l-.724-1.447A1 1 0 0013.943 8H12v2H9V8h3z" />
+                                    </svg>
+                                    Dịch vụ hiện có
+                                </h4>
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full divide-y divide-gray-200 text-sm">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-4 py-2 text-left font-medium text-gray-600">Dịch vụ</th>
+                                                <th class="px-4 py-2 text-center font-medium text-gray-600">Ngày dùng</th>
+                                                <th class="px-4 py-2 text-center font-medium text-gray-600">Số phòng</th>
+                                                <th class="px-4 py-2 text-center font-medium text-gray-600">Số lượng</th>
+                                                <th class="px-4 py-2 text-center font-medium text-gray-600">Đơn giá</th>
+                                                <th class="px-4 py-2 text-right font-medium text-gray-600">Thành tiền</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-gray-100">
+                                            @php
+                                                // Reload booking services từ DB để lấy dữ liệu mới nhất (không phải cached data)
+                                                $freshBookingServices = \App\Models\BookingService::with([
+                                                    'service',
+                                                    'phong',
+                                                ])
+                                                    ->where('dat_phong_id', $booking->id)
+                                                    ->orderBy('used_at', 'asc')
+                                                    ->get();
+                                            @endphp
+                                            @forelse ($freshBookingServices as $serviceLine)
+                                                @php
+                                                    $name =
+                                                        $serviceLine->service->name ??
+                                                        ($serviceLine->service_name ?? 'Dịch vụ');
+                                                    $usedAt = $serviceLine->used_at
+                                                        ? \Carbon\Carbon::parse($serviceLine->used_at)->format('d/m/Y')
+                                                        : '-';
+                                                    $phongNum = $serviceLine->phong
+                                                        ? $serviceLine->phong->so_phong ?? $serviceLine->phong->id
+                                                        : '-';
+                                                    $qty = $serviceLine->quantity ?? 0;
+                                                    $unit = $serviceLine->unit_price ?? 0;
+                                                    $subtotal = $qty * $unit;
+                                                @endphp
+                                                <tr class="hover:bg-gray-50">
+                                                    <td class="px-4 py-2 text-gray-900">{{ $name }}</td>
+                                                    <td class="px-4 py-2 text-center text-gray-600">{{ $usedAt }}
+                                                    </td>
+                                                    <td class="px-4 py-2 text-center text-gray-600">{{ $phongNum }}
+                                                    </td>
+                                                    <td class="px-4 py-2 text-center text-gray-600">{{ $qty }}
+                                                    </td>
+                                                    <td class="px-4 py-2 text-center text-gray-600">
+                                                        {{ number_format($unit, 0, ',', '.') }} VNĐ</td>
+                                                    <td class="px-4 py-2 text-right font-semibold text-gray-900">
+                                                        {{ number_format($subtotal, 0, ',', '.') }} VNĐ</td>
+                                                </tr>
+                                            @empty
+                                                <tr>
+                                                    <td colspan="6" class="px-4 py-2 text-center text-gray-500">Chưa có
+                                                        dịch vụ nào</td>
+                                                </tr>
+                                            @endforelse
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="mt-3 pt-3 border-t border-gray-200 flex justify-between text-sm font-medium">
+                                    <span class="text-gray-700">Tổng tiền dịch vụ hiện tại</span>
+                                    <span class="text-purple-600">
+                                        {{ number_format($bookingServices->sum(function ($s) {return ($s->quantity ?? 0) * ($s->unit_price ?? 0);}),0,',','.') }}
+                                        VNĐ
+                                    </span>
+                                </div>
+                            </div>
+                        @endif
+
+                        <!-- Voucher Selection -->
+                        <div class="bg-purple-50 p-4 rounded-lg my-6 border border-purple-200">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-lg font-semibold text-gray-900">Chọn mã giảm giá (nếu có)</h3>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                                @foreach ($vouchers as $voucher)
+                                    @php
+                                        $isDisabled = $voucher->status !== 'con_han';
+                                        $overlayText =
+                                            $voucher->status === 'het_han'
+                                                ? 'Hết hạn'
+                                                : ($voucher->status === 'huy'
+                                                    ? 'Đã hủy'
+                                                    : '');
+                                    @endphp
+
+                                    <div class="relative voucher-container" data-voucher-id="{{ $voucher->id }}">
+                                        <input type="radio" name="voucher_radio" id="voucher_{{ $voucher->id }}"
+                                            value="{{ $voucher->ma_voucher }}" class="sr-only peer voucher-radio"
+                                            data-value="{{ $voucher->gia_tri }}"
+                                            data-loai-phong="{{ $voucher->loai_phong_id }}"
+                                            data-start="{{ $voucher->ngay_bat_dau ? date('Y-m-d', strtotime($voucher->ngay_bat_dau)) : '' }}"
+                                            data-end="{{ $voucher->ngay_ket_thuc ? date('Y-m-d', strtotime($voucher->ngay_ket_thuc)) : '' }}"
+                                            {{ $booking->voucher_id === $voucher->id ? 'checked' : '' }}> <label
+                                            for="voucher_{{ $voucher->id }}"
+                                            class="block p-4 bg-gray-50 border-2 border-gray-200 rounded-xl cursor-pointer relative transition-all duration-300 ease-in-out
+                                            peer-checked:bg-white peer-checked:border-green-500 peer-checked:ring-2 peer-checked:ring-green-400 peer-checked:shadow-lg
+                                            hover:bg-gray-100 hover:border-gray-300 hover:shadow-md
+                                            z-0 peer-checked:z-10 voucher-label {{ $isDisabled ? 'opacity-50 cursor-not-allowed' : '' }}">
+
+                                            {{-- Overlay hiển thị trạng thái --}}
+                                            @if ($isDisabled)
+                                                <div
+                                                    class="voucher-overlay-server absolute inset-0 bg-opacity-70 flex items-center justify-center rounded-xl pointer-events-none">
+                                                    <span
+                                                        class="text-gray-700 text-sm font-medium">{{ $overlayText }}</span>
+                                                </div>
+                                            @endif
+
+                                            <div class="space-y-2">
+                                                <div class="flex items-center justify-between">
+                                                    <p class="text-sm font-bold text-green-600">
+                                                        {{ $voucher->ma_voucher }}</p>
+                                                    <span
+                                                        class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                                                        @if ($voucher->gia_tri <= 100)
+                                                            {{ $voucher->gia_tri }}%
+                                                        @else
+                                                            {{ number_format($voucher->gia_tri, 0, ',', '.') }}₫
+                                                        @endif
+                                                    </span>
+                                                </div>
+                                                <p class="text-xs text-gray-600">
+                                                    @if ($voucher->gia_tri <= 100)
+                                                        Giảm {{ $voucher->gia_tri }}%
+                                                    @else
+                                                        Giảm
+                                                        {{ number_format($voucher->gia_tri, 0, ',', '.') }}₫
+                                                    @endif
+                                                </p>
+                                            </div>
+                                        </label>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        <!-- Tổng tiền dịch vụ & tổng thanh toán -->
+                        <div class="bg-gray-50 p-4 rounded-lg mt-4">
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">Tổng tiền</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="text-sm text-gray-700">Tổng giá phòng (đã nhân số đêm)</div>
+                                <div class="text-sm font-medium text-right text-gray-900" id="total_room_price">0 VNĐ
+                                </div>
+
+                                <div class="text-sm text-gray-700">Mã giảm giá</div>
+                                <div class="text-sm font-medium text-right text-red-600" id="discount_amount">0 VNĐ</div>
+
+                                <div class="text-sm text-gray-700">Tổng phòng (sau giảm)</div>
+                                <div class="text-sm font-medium text-right text-gray-900" id="room_after_discount">0 VNĐ
+                                </div>
+
+                                <div class="text-sm text-gray-700">Tổng giá dịch vụ</div>
+                                <div class="text-sm font-medium text-right text-gray-900" id="total_service_price">0 VNĐ
+                                </div>
+
+                                <div class="border-t-2 border-gray-300 pt-2 text-base font-semibold text-gray-900">Tổng
+                                    thanh toán</div>
+                                <div class="border-t-2 border-gray-300 pt-2 text-lg font-semibold text-right text-blue-600"
+                                    id="total_price">0 VNĐ</div>
+                            </div>
+                            <input type="hidden" name="tong_tien" id="tong_tien_input"
+                                value="{{ old('tong_tien', $booking->tong_tien ?? 0) }}">
+                            <input type="hidden" name="voucher_id" id="voucher_id_input"
+                                value="{{ old('voucher_id', $booking->voucher_id ?? '') }}">
+                            <!-- Mirror field name expected by backend: 'voucher' -->
+                            <input type="hidden" name="voucher" id="voucher_input"
+                                value="{{ old('voucher', optional($booking->voucher)->ma_voucher ?? '') }}">
+                        </div>
+
+                        <!-- Thông tin khách hàng -->
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">Thông tin khách hàng</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="username" class="block text-sm font-medium text-gray-700">Tên khách
+                                        hàng</label>
+                                    <input type="text" name="username" id="username"
+                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                        value="{{ old('username', $booking->username) }}" required>
+                                    @error('username')
                                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                     @enderror
                                 </div>
 
-                                <div class="mt-4">
-                                    <div class="flex items-center gap-4">
-                                        <label class="text-sm font-medium text-gray-700">Trạng thái hiện tại:</label>
-                                        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold
-                                            @if ($booking->trang_thai === 'da_xac_nhan') bg-green-100 text-green-800
-                                            @elseif($booking->trang_thai === 'cho_xac_nhan') bg-yellow-100 text-yellow-800
-                                            @elseif($booking->trang_thai === 'da_huy') bg-red-100 text-red-800
-                                            @else bg-blue-100 text-blue-800 @endif">
-                                            {{ $booking->trang_thai === 'cho_xac_nhan' ? 'Chờ xác nhận' : 
-                                               ($booking->trang_thai === 'da_xac_nhan' ? 'Đã xác nhận' : 
-                                               ($booking->trang_thai === 'da_huy' ? 'Đã hủy' : 'Đã trả phòng')) }}
-                                        </span>
-                                        
-                                        @if($booking->trang_thai === 'cho_xac_nhan')
-                                            <button type="button" onclick="confirmBooking()"
-                                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                                </svg>
-                                                Xác nhận đặt phòng
-                                            </button>
-                                            <a href="{{ route('admin.dat_phong.cancel', $booking->id) }}"
-                                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                                </svg>
-                                                Hủy đặt phòng
-                                            </a>
-                                        @elseif($booking->trang_thai === 'da_xac_nhan')
-                                            <button type="button" onclick="completeBooking()"
-                                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                </svg>
-                                                Xác nhận trả phòng
-                                            </button>
-                                        @endif
-                                    </div>
-                                    <input type="hidden" name="trang_thai" id="trang_thai_input" value="{{ $booking->trang_thai }}">
-                                    @error('trang_thai')
-                                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                                <div>
+                                    <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+                                    <input type="email" name="email" id="email"
+                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                        value="{{ old('email', $booking->email) }}" required>
+                                    @error('email')
+                                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                     @enderror
                                 </div>
-                            </div>
 
-                            <!-- Thông tin đặt phòng -->
-                            <div class="bg-gray-50 p-4 rounded-lg">
-                                <h3 class="text-lg font-medium text-gray-900 mb-4">Thông tin đặt phòng</h3>
-                                <div class="space-y-4">
+                                <div class="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label for="so_nguoi" class="block text-sm font-medium text-gray-700">Số người</label>
-                                        <input type="number" name="so_nguoi" id="so_nguoi" 
+                                        <label for="sdt" class="block text-sm font-medium text-gray-700">Số điện
+                                            thoại</label>
+                                        <input type="text" name="sdt" id="sdt"
                                             class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                            value="{{ old('so_nguoi', $booking->so_nguoi) }}" required>
-                                        @error('so_nguoi')
-                                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                                        @enderror
-                                    </div>
-
-                                    <div class="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label for="ngay_nhan" class="block text-sm font-medium text-gray-700">Ngày nhận phòng</label>
-                                            <input type="date" name="ngay_nhan" id="ngay_nhan" 
-                                                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                                value="{{ old('ngay_nhan', date('Y-m-d', strtotime($booking->ngay_nhan))) }}" required>
-                                            @error('ngay_nhan')
-                                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                                            @enderror
-                                        </div>
-
-                                        <div>
-                                            <label for="ngay_tra" class="block text-sm font-medium text-gray-700">Ngày trả phòng</label>
-                                            <input type="date" name="ngay_tra" id="ngay_tra" 
-                                                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                                value="{{ old('ngay_tra', date('Y-m-d', strtotime($booking->ngay_tra))) }}" required>
-                                            @error('ngay_tra')
-                                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Chọn dịch vụ (giống trang tạo) -->
-                            <!-- Tom Select based multi-select for services -->
-                            <link href="https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/css/tom-select.css" rel="stylesheet">
-                            <style>
-                                .service-card-custom{border-radius:12px;background:linear-gradient(135deg, #f0fdfc 0%, #ccfbf1 100%);border:2px solid #99f6e4;padding:1.25rem;box-shadow:0 10px 25px rgba(16, 185, 129, 0.08);}
-                                .service-card-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1.25rem}
-                                .service-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;padding-bottom:.5rem;border-bottom:2px solid #d1fae5}
-                                .service-card-header .service-title{color:#0d9488;font-weight:700;font-size:1.1rem}
-                                .service-card-header .service-price{color:#0f766e;font-weight:600;font-size:0.95rem}
-                                .service-date-row{display:flex;gap:.75rem;align-items:center;margin-top:.75rem;padding:.5rem;background:#ffffff;border-radius:8px;border:1px solid #d1fae5}
-                                .service-date-row input[type=date]{border:1px solid #a7f3d0;padding:.45rem .6rem;border-radius:6px;background:#f0fdfc;font-size:0.9rem;flex:1}
-                                .service-date-row input[type=number]{border:1px solid #a7f3d0;padding:.45rem .6rem;border-radius:6px;background:#f0fdfc;width:80px;text-align:center}
-                                .service-add-day{background:linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);color:#0d7377;padding:.5rem .75rem;border-radius:8px;border:1.5px solid #6ee7b7;cursor:pointer;font-weight:600;font-size:0.9rem}
-                                .service-add-day:hover{background:linear-gradient(135deg, #a7f3d0 0%, #6ee7b7 100%);box-shadow:0 4px 12px rgba(13, 148, 136, 0.2)}
-                                .service-remove-btn{background:#fecaca;color:#991b1b;padding:.4rem .6rem;border-radius:6px;border:1px solid #fca5a5;cursor:pointer;font-weight:600;font-size:0.85rem}
-                                .service-remove-btn:hover{background:#f87171;box-shadow:0 4px 12px rgba(185, 28, 28, 0.15)}
-                                #services_select + .ts-control{margin-top:.5rem;border-color:#99f6e4}
-                                #selected_services_list .service-card-custom{transition:all .2s ease}
-                                #selected_services_list .service-card-custom:hover{transform:translateY(-6px);box-shadow:0 15px 35px rgba(16, 185, 129, 0.15)}
-                            </style>
-                            </style>
-                            <div class="bg-gray-50 p-4 rounded-lg">
-                                <label for="services_select" class="block text-sm font-medium text-gray-700 mb-2">Chọn dịch vụ kèm theo</label>
-                                <select id="services_select" placeholder="Chọn 1 hoặc nhiều dịch vụ..." multiple>
-                                    @foreach ($services as $service)
-                                        <option value="{{ $service->id }}" data-price="{{ $service->price }}" data-unit="{{ $service->unit ?? 'cái' }}">{{ $service->name }} - {{ number_format($service->price,0,',','.') }} VNĐ</option>
-                                    @endforeach
-                                </select>
-                                <div id="selected_services_list" class="service-card-grid grid grid-cols-1 md:grid-cols-3 gap-6 mt-4"></div>
-                            </div>
-
-                            <!-- Tổng tiền dịch vụ & tổng thanh toán -->
-                            <div class="bg-gray-50 p-4 rounded-lg mt-4">
-                                <h3 class="text-lg font-medium text-gray-900 mb-4">Tổng tiền</h3>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div class="text-sm text-gray-700">Tổng giá dịch vụ</div>
-                                    <div class="text-sm font-medium text-right text-gray-900" id="total_service_price">0 VNĐ</div>
-
-                                    <div class="text-sm text-gray-700">Tổng giá phòng (đã nhân số đêm)</div>
-                                    <div class="text-sm font-medium text-right text-gray-900" id="total_room_price">0 VNĐ</div>
-
-                                    <div class="text-sm text-gray-700">Tổng thanh toán</div>
-                                    <div class="text-lg font-semibold text-right text-blue-600" id="total_price">0 VNĐ</div>
-                                </div>
-                                <input type="hidden" name="tong_tien" id="tong_tien_input" value="{{ old('tong_tien', $booking->tong_tien ?? 0) }}">
-                            </div>
-
-                            <!-- Thông tin khách hàng -->
-                            <div class="bg-gray-50 p-4 rounded-lg">
-                                <h3 class="text-lg font-medium text-gray-900 mb-4">Thông tin khách hàng</h3>
-                                <div class="space-y-4">
-                                    <div>
-                                        <label for="username" class="block text-sm font-medium text-gray-700">Tên khách hàng</label>
-                                        <input type="text" name="username" id="username" 
-                                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                            value="{{ old('username', $booking->username) }}" required>
-                                        @error('username')
+                                            value="{{ old('sdt', $booking->sdt) }}" required>
+                                        @error('sdt')
                                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                         @enderror
                                     </div>
 
                                     <div>
-                                        <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
-                                        <input type="email" name="email" id="email" 
+                                        <label for="cccd"
+                                            class="block text-sm font-medium text-gray-700">CCCD/CMND</label>
+                                        <input type="text" name="cccd" id="cccd"
                                             class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                            value="{{ old('email', $booking->email) }}" required>
-                                        @error('email')
+                                            value="{{ old('cccd', $booking->cccd) }}"
+                                            placeholder="{{ $booking->cccd ? '' : 'Chưa cập nhật CCCD' }}" required>
+                                        @if (!$booking->cccd)
+                                            <p class="mt-1 text-xs text-yellow-600">
+                                                <i class="fas fa-exclamation-triangle mr-1"></i>
+                                                Đặt phòng cũ chưa có CCCD, vui lòng cập nhật
+                                            </p>
+                                        @endif
+                                        @error('cccd')
                                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                         @enderror
                                     </div>
-
-                                    <div class="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label for="sdt" class="block text-sm font-medium text-gray-700">Số điện thoại</label>
-                                            <input type="text" name="sdt" id="sdt" 
-                                                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                                value="{{ old('sdt', $booking->sdt) }}" required>
-                                            @error('sdt')
-                                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                                            @enderror
-                                        </div>
-
-                                        <div>
-                                            <label for="cccd" class="block text-sm font-medium text-gray-700">CCCD/CMND</label>
-                                            <input type="text" name="cccd" id="cccd" 
-                                                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                                value="{{ old('cccd', $booking->cccd) }}" 
-                                                placeholder="{{ $booking->cccd ? '' : 'Chưa cập nhật CCCD' }}"
-                                                required>
-                                            @if(!$booking->cccd)
-                                                <p class="mt-1 text-xs text-yellow-600">
-                                                    <i class="fas fa-exclamation-triangle mr-1"></i>
-                                                    Đặt phòng cũ chưa có CCCD, vui lòng cập nhật
-                                                </p>
-                                            @endif
-                                            @error('cccd')
-                                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            @if($booking->voucher_id)
-                                <div class="bg-gray-50 p-4 rounded-lg">
-                                    <h3 class="text-lg font-medium text-gray-900 mb-4">Thông tin voucher</h3>
-                                    <p class="text-sm text-gray-600">Mã voucher: <span class="font-medium">{{ $booking->voucher->ma_voucher }}</span></p>
-                                    <p class="text-sm text-gray-600">Giảm giá: <span class="font-medium">{{ $booking->voucher->giam_gia }}%</span></p>
-                                </div>
-                            @endif
-
-                            <div class="pt-5">
-                                <div class="flex justify-between">
-                                    <a href="{{ route('admin.dat_phong.index') }}" 
-                                        class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                                        </svg>
-                                        Quay lại
-                                    </a>
-                                    <button type="submit"
-                                        class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                        </svg>
-                                        Cập nhật
-                                    </button>
                                 </div>
                             </div>
                         </div>
-                    </form>
+
+
+
+                        <input type="hidden" name="trang_thai" id="trang_thai_input" value="{{ old('trang_thai', $booking->trang_thai ?? '') }}">
+
+                        <div class="pt-5">
+    <div class="flex justify-between items-center gap-3">
+        <div class="flex items-center gap-2">
+            <a href="{{ route('admin.dat_phong.index') }}"
+                class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Quay lại
+            </a>
+        </div>
+
+        <!-- Group buttons -->
+        <div class="flex items-center">
+            
+            <!-- Confirm -->
+            <form action="{{ route('admin.dat_phong.confirm', $booking->id) }}" 
+                  method="POST" class="inline mx-1"
+                  onsubmit="return confirm('Xác nhận đặt phòng #{{ $booking->id }}?')">
+                @csrf
+                @method('PUT')
+                <button type="submit" title="Xác nhận"
+                    class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Xác nhận
+                </button>
+            </form>
+
+            <!-- Cancel -->
+            <a href="{{ route('admin.dat_phong.cancel', $booking->id) }}" title="Hủy"
+                class="inline-flex items-center px-4 py-2 mx-1 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
+                onclick="if(!confirm('Bạn có chắc chắn muốn hủy đặt phòng #{{ $booking->id }}?')) return false;">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Hủy đặt phòng
+            </a>
+
+            <!-- Update -->
+            <button type="submit"
+                class="inline-flex items-center px-4 py-2 mx-1 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M5 13l4 4L19 7" />
+                </svg>
+                Cập nhật
+            </button>
+
+        </div>
+    </div>
+</div>
+
                 </div>
+                </form>
             </div>
         </div>
     </div>
+    </div>
 
     @push('scripts')
-    <script>
-        // Existing booking services passed from server (grouped by service_id)
-        const bookingServicesServer = {!! json_encode($bookingServices->map(function($b) use($booking) { return ['service_id' => $b->service_id, 'quantity' => $b->quantity, 'used_at' => $b->used_at ? date('Y-m-d', strtotime($b->used_at)) : date('Y-m-d', strtotime($booking->ngay_nhan))]; })->groupBy('service_id')->map(function($group){ return $group->map(function($item){ return ['ngay'=>$item['used_at'],'so_luong'=>$item['quantity']]; })->values(); })->toArray()) !!};
-    const allLoaiPhongs = @json($loaiPhongs);
-    const currentBookingId = {{ $booking->id ?? 'null' }};
-    let roomIndex = {{ count($roomTypes) > 0 ? count($roomTypes) : 1 }};
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const ngayNhanInput = document.getElementById('ngay_nhan');
-            const ngayTraInput = document.getElementById('ngay_tra');
-
-            const today = new Date().toISOString().split('T')[0];
-            ngayNhanInput.setAttribute('min', today);
-
-            ngayNhanInput.addEventListener('change', function() {
-                ngayTraInput.setAttribute('min', this.value);
-                if (ngayTraInput.value && ngayTraInput.value < this.value) {
-                    ngayTraInput.value = this.value;
+        <script>
+            // Get booking dates
+            function getRangeDates() {
+                const start = document.getElementById('ngay_nhan')?.value;
+                const end = document.getElementById('ngay_tra')?.value;
+                if (!start || !end) return [];
+                const dates = [];
+                const s = new Date(start);
+                const e = new Date(end);
+                for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+                    dates.push(new Date(d).toISOString().split('T')[0]);
                 }
-                updateAllRoomAvailability();
+                return dates;
+            }
+
+            // Initialize service rendering
+            const allServices = @json($services ?? []);
+            const bookingServicesData = @json($bookingServicesServer ?? []);
+            const assignedPhongIds = @json($assignedPhongIds ?? []);
+            const roomMapData = @json($roomMap ?? []);
+
+            function buildDateRow(serviceId, dateVal = '') {
+                const idx = 'new_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                const r = document.createElement('div');
+                r.className = 'service-date-row';
+
+                const d = document.createElement('input');
+                d.type = 'date';
+                d.className = 'border rounded p-1';
+                d.value = dateVal || '';
+                const rg = getRangeDates();
+                if (rg.length) {
+                    d.min = rg[0];
+                    d.max = rg[rg.length - 1];
+                }
+                d.addEventListener('focus', function() {
+                    this.dataset.prev = this.value || '';
+                });
+                d.addEventListener('change', function() {
+                    const val = this.value || '';
+                    if (!val) {
+                        syncHiddenEntries(serviceId);
+                        return;
+                    }
+                    const others = Array.from(document.querySelectorAll('#service_dates_' + serviceId +
+                            ' input[type=date]'))
+                        .filter(i => i !== this)
+                        .map(i => i.value);
+                    if (others.includes(val)) {
+                        const prev = this.dataset.prev || '';
+                        this.value = prev;
+                        alert('Ngày này đã được chọn cho dịch vụ này. Vui lòng chọn ngày khác.');
+                        return;
+                    }
+                    syncHiddenEntries(serviceId);
+                });
+
+                const q = document.createElement('input');
+                q.type = 'number';
+                q.min = 1;
+                q.value = 1;
+                q.className = 'w-24 border rounded p-1 text-center';
+                q.onchange = () => syncHiddenEntries(serviceId);
+
+                const rem = document.createElement('button');
+                rem.type = 'button';
+                rem.className = 'service-remove-btn ml-2';
+                rem.textContent = 'Xóa';
+                rem.onclick = () => {
+                    r.remove();
+                    syncHiddenEntries(serviceId);
+                    window.computeTotals && window.computeTotals();
+                };
+
+                r.appendChild(d);
+                r.appendChild(q);
+                r.appendChild(rem);
+
+                // Entry room container for per-room selection - INLINE
+                const entryRoomContainer = document.createElement('div');
+                entryRoomContainer.className = 'entry-room-container';
+                entryRoomContainer.style.display = 'none';
+                r.appendChild(entryRoomContainer);
+
+                return r;
+            }
+
+            // Update room lists in service cards - render room checkboxes inline
+            function updateServiceRoomLists(filterServiceId) {
+                const selectedRoomInputs = Array.from(document.querySelectorAll('.available-room-checkbox:checked'));
+
+                document.querySelectorAll('[data-service-id]').forEach(card => {
+                    const serviceId = card.getAttribute('data-service-id');
+
+                    // If filterServiceId is provided, only update that service
+                    if (filterServiceId && parseInt(serviceId) !== parseInt(filterServiceId)) {
+                        return;
+                    }
+
+                    const specificRadio = card.querySelector('input[name="service_room_mode_' + serviceId +
+                        '"][value="specific"]');
+                    const isSpecific = specificRadio ? specificRadio.checked : false;
+                    console.log('updateServiceRoomLists: service', serviceId, 'isSpecific=', isSpecific,
+                        'assignedPhongIds=', assignedPhongIds);
+
+                    const rows = card.querySelectorAll('.service-date-row');
+                    rows.forEach((r) => {
+                        const dateValRow = r.querySelector('input[type=date]')?.value || '';
+                        let entryRoomContainer = r.querySelector('.entry-room-container');
+                        if (!entryRoomContainer) {
+                            entryRoomContainer = document.createElement('div');
+                            entryRoomContainer.className = 'entry-room-container';
+                            r.appendChild(entryRoomContainer);
+                        }
+                        entryRoomContainer.innerHTML = '';
+
+                        if (!isSpecific) {
+                            entryRoomContainer.style.display = 'none';
+                            return;
+                        } else {
+                            entryRoomContainer.style.display = '';
+                        }
+
+                        // Get union of assigned rooms + all rooms from service data (to show even unassigned rooms that have service data)
+                        const roomsToShow = new Set(assignedPhongIds);
+
+                        // Build entriesByDate for this service so we can pre-check boxes per row date
+                        const entriesByDate = {};
+                        if (bookingServicesData[serviceId]) {
+                            bookingServicesData[serviceId]['entries'].forEach(entry => {
+                                const day = entry['ngay'] || '';
+                                if (!entriesByDate[day]) entriesByDate[day] = {
+                                    phong_ids: []
+                                };
+                                if (entry['phong_ids'] && Array.isArray(entry['phong_ids'])) {
+                                    entriesByDate[day].phong_ids = Array.from(new Set([
+                                        ...entriesByDate[day].phong_ids,
+                                        ...entry['phong_ids']
+                                    ]));
+                                    entry['phong_ids'].forEach(pid => roomsToShow.add(pid));
+                                }
+                            });
+                        }
+
+                        // Sort room IDs for consistent display
+                        const roomsArray = Array.from(roomsToShow).sort((a, b) => a - b);
+                        console.log('updateServiceRoomLists: service', serviceId, 'roomsArray=', roomsArray,
+                            'rowDate=', dateValRow);
+
+                        roomsArray.forEach(pid => {
+                            const pidInt = parseInt(pid);
+                            const label = roomMapData[pid] || pid;
+                            const ewrap = document.createElement('div');
+                            ewrap.className = 'inline-flex items-center gap-1 mr-2';
+
+                            const ecb = document.createElement('input');
+                            ecb.type = 'checkbox';
+                            ecb.className = 'entry-room-checkbox';
+                            ecb.setAttribute('data-room-id', pid);
+                            ecb.value = pid;
+
+                            ecb.onchange = () => {
+                                syncHiddenEntries(serviceId);
+                                window.computeTotals && window.computeTotals();
+                            };
+
+                            // Pre-check if bookingServicesData has this room for this row date
+                            try {
+                                const phongIdsForDate = (entriesByDate[dateValRow]?.phong_ids || [])
+                                    .map(p => parseInt(p));
+                                if (phongIdsForDate.includes(pidInt)) {
+                                    ecb.checked = true;
+                                    console.log('Pre-checked service', serviceId, 'date', dateValRow,
+                                        'room', pidInt);
+                                }
+                            } catch (e) {
+                                // ignore parsing issues
+                            }
+
+                            const elbl = document.createElement('label');
+                            elbl.className = 'text-xs cursor-pointer';
+                            elbl.textContent = label;
+
+                            ewrap.appendChild(ecb);
+                            ewrap.appendChild(elbl);
+                            entryRoomContainer.appendChild(ewrap);
+                            // debug marker
+                            //console.log('Appended checkbox for service', serviceId, 'room', pid, 'row date', r.querySelector('input[type=date]')?.value);
+                        });
+                    });
+                });
+            }
+
+            function renderServiceCard(service) {
+                const sid = service.id;
+                const existing = bookingServicesData[sid] ? bookingServicesData[sid]['entries'] || [] : [];
+                const hasSpecific = existing.some(e => e['phong_ids'] && e['phong_ids'].length > 0);
+
+                // Card wrapper
+                const card = document.createElement('div');
+                card.className = 'service-card-custom';
+                card.setAttribute('data-service-id', sid);
+
+                // Header
+                const header = document.createElement('div');
+                header.className = 'service-card-header';
+                const title = document.createElement('div');
+                title.innerHTML = `<div class="service-title">${service.name}</div>`;
+                const price = document.createElement('div');
+                price.className = 'service-price';
+                price.innerHTML = `${new Intl.NumberFormat('vi-VN').format(service.price)}/${service.unit || 'cái'}`;
+                header.appendChild(title);
+                header.appendChild(price);
+                card.appendChild(header);
+
+                // Room selection radios
+                const roomSection = document.createElement('div');
+                roomSection.className = 'service-room-mode';
+
+                const globalRadio = document.createElement('input');
+                globalRadio.type = 'radio';
+                globalRadio.name = 'service_room_mode_' + sid;
+                globalRadio.value = 'global';
+                globalRadio.checked = !hasSpecific;
+                globalRadio.id = 'global_' + sid;
+
+                const globalLabel = document.createElement('label');
+                globalLabel.htmlFor = 'global_' + sid;
+                globalLabel.className = 'text-sm flex items-center gap-2 cursor-pointer';
+                globalLabel.innerHTML = '<span>Áp dụng tất cả phòng</span>';
+
+                const specificRadio = document.createElement('input');
+                specificRadio.type = 'radio';
+                specificRadio.name = 'service_room_mode_' + sid;
+                specificRadio.value = 'specific';
+                specificRadio.checked = hasSpecific;
+                specificRadio.id = 'specific_' + sid;
+
+                const specificLabel = document.createElement('label');
+                specificLabel.htmlFor = 'specific_' + sid;
+                specificLabel.className = 'text-sm flex items-center gap-2 cursor-pointer';
+                specificLabel.innerHTML = '<span>Chọn phòng riêng</span>';
+
+                roomSection.appendChild(globalRadio);
+                roomSection.appendChild(globalLabel);
+                roomSection.appendChild(specificRadio);
+                roomSection.appendChild(specificLabel);
+
+                globalRadio.onchange = () => {
+                    card.querySelectorAll('.entry-room-container').forEach(c => {
+                        c.style.display = 'none';
+                        Array.from(c.querySelectorAll('input[type=checkbox]')).forEach(cb => cb.checked = false);
+                    });
+                    updateServiceRoomLists();
+                    syncHiddenEntries(sid);
+                    window.computeTotals && window.computeTotals();
+                };
+
+                specificRadio.onchange = () => {
+                    updateServiceRoomLists();
+                    syncHiddenEntries(sid);
+                    window.computeTotals && window.computeTotals();
+                };
+
+                card.appendChild(roomSection);
+
+                // Date rows container
+                const rows = document.createElement('div');
+                rows.id = 'service_dates_' + sid;
+
+                // Render existing entries - GROUP BY DATE to avoid duplicates
+                if (existing.length > 0) {
+                    const entriesByDate = {};
+                    existing.forEach((entry, idx) => {
+                        const day = entry['ngay'] || '';
+                        if (!entriesByDate[day]) {
+                            entriesByDate[day] = {
+                                so_luong: entry['so_luong'] || 1,
+                                phong_ids: entry['phong_ids'] || [],
+                                first_idx: idx
+                            };
+                        } else {
+                            // Merge phong_ids if multiple entries for same date
+                            entriesByDate[day].phong_ids = Array.from(new Set([
+                                ...entriesByDate[day].phong_ids,
+                                ...(entry['phong_ids'] || [])
+                            ]));
+                        }
+                    });
+
+                    Object.entries(entriesByDate).forEach(([day, data]) => {
+                        const row = buildDateRow(sid, day);
+                        // Set quantity
+                        row.querySelector('input[type=number]').value = data.so_luong || 1;
+                        rows.appendChild(row);
+                    });
+                }
+
+                card.appendChild(rows);
+
+                // Populate checkboxes and let updateServiceRoomLists handle pre-checking
+                updateServiceRoomLists();
+
+                // Add day button
+                const addBtn = document.createElement('button');
+                addBtn.type = 'button';
+                addBtn.className = 'service-add-day mt-3';
+                addBtn.textContent = '+ Thêm ngày';
+                addBtn.onclick = () => {
+                    const used = Array.from(rows.querySelectorAll('input[type="date"]')).map(i => i.value);
+                    const avail = getRangeDates().find(d => !used.includes(d));
+                    if (avail) {
+                        const newRow = buildDateRow(sid, avail);
+                        rows.appendChild(newRow);
+                        updateServiceRoomLists();
+                        syncHiddenEntries(sid);
+                        updateAddBtnState();
+                        window.computeTotals && window.computeTotals();
+                    } else {
+                        alert('Đã chọn đủ ngày. Không thể thêm ngày nữa.');
+                    }
+                };
+
+                card.appendChild(addBtn);
+
+                // Hidden service marker
+                const hcb = document.createElement('input');
+                hcb.type = 'checkbox';
+                hcb.className = 'service-checkbox';
+                hcb.name = 'services[]';
+                hcb.value = sid;
+                hcb.setAttribute('data-price', service.price);
+                hcb.style.display = 'none';
+                hcb.checked = true;
+                card.appendChild(hcb);
+
+                // Hidden total quantity
+                const hsum = document.createElement('input');
+                hsum.type = 'hidden';
+                hsum.name = 'services_data[' + sid + '][so_luong]';
+                hsum.id = 'service_quantity_hidden_' + sid;
+                hsum.value = '1';
+                card.appendChild(hsum);
+
+                // Hidden service ID
+                const hdv = document.createElement('input');
+                hdv.type = 'hidden';
+                hdv.name = 'services_data[' + sid + '][dich_vu_id]';
+                hdv.value = sid;
+                card.appendChild(hdv);
+
+                return card;
+            }
+
+            function syncHiddenEntries(serviceId) {
+                const container = document.getElementById('services_details_container');
+
+                // Get all entry rows
+                const rowsNow = Array.from(document.querySelectorAll('#service_dates_' + serviceId + ' .service-date-row'));
+
+                // Remove existing hidden entry inputs for this service
+                Array.from(document.querySelectorAll('input.entry-hidden[data-service="' + serviceId + '"]')).forEach(n => {
+                    n.remove();
+                });
+
+                // Determine current mode
+                const card = document.querySelector('[data-service-id="' + serviceId + '"]');
+                const mode = card?.querySelector('input[name="service_room_mode_' + serviceId + '"]:checked')?.value ||
+                    'global';
+
+                let total = 0;
+                rowsNow.forEach((r, idx) => {
+                    const dateVal = r.querySelector('input[type=date]')?.value || '';
+                    const qty = parseInt(r.querySelector('input[type=number]')?.value || 1);
+
+                    // Collect per-entry selected rooms
+                    const entryRoomChecks = Array.from(r.querySelectorAll('.entry-room-checkbox:checked'));
+
+                    // If specific mode but no rooms checked, skip this entry
+                    if (mode === 'specific' && entryRoomChecks.length === 0) {
+                        return;
+                    }
+
+                    total += qty;
+
+                    // Create hidden inputs for this entry
+                    const hNgay = document.createElement('input');
+                    hNgay.type = 'hidden';
+                    hNgay.name = 'services_data[' + serviceId + '][entries][' + idx + '][ngay]';
+                    hNgay.value = dateVal;
+                    hNgay.className = 'entry-hidden';
+                    hNgay.setAttribute('data-service', serviceId);
+                    container.appendChild(hNgay);
+
+                    const hSo = document.createElement('input');
+                    hSo.type = 'hidden';
+                    hSo.name = 'services_data[' + serviceId + '][entries][' + idx + '][so_luong]';
+                    hSo.value = qty;
+                    hSo.className = 'entry-hidden';
+                    hSo.setAttribute('data-service', serviceId);
+                    container.appendChild(hSo);
+
+                    // Add room IDs if specific mode
+                    if (mode === 'specific') {
+                        entryRoomChecks.forEach((erc) => {
+                            const hRoom = document.createElement('input');
+                            hRoom.type = 'hidden';
+                            hRoom.name = 'services_data[' + serviceId + '][entries][' + idx + '][phong_ids][]';
+                            hRoom.value = erc.getAttribute('data-room-id') || erc.value;
+                            hRoom.className = 'entry-hidden';
+                            hRoom.setAttribute('data-service', serviceId);
+                            container.appendChild(hRoom);
+                        });
+                    }
+                });
+
+                const sumEl = document.getElementById('service_quantity_hidden_' + serviceId);
+                if (sumEl) sumEl.value = total;
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                const container = document.getElementById('services_details_container');
+                const serviceSelects = document.querySelectorAll('input[name="services_select[]"]');
+
+                function updateServiceCards() {
+                    const selectedServiceIds = Array.from(serviceSelects)
+                        .filter(cb => cb.checked)
+                        .map(cb => cb.value);
+
+                    // Remove cards for unselected services
+                    container.querySelectorAll('.service-card-container').forEach(card => {
+                        const sid = card.getAttribute('data-service-id');
+                        if (!selectedServiceIds.includes(sid)) {
+                            card.remove();
+                        }
+                    });
+
+                    // Add cards for newly selected services
+                    selectedServiceIds.forEach(sid => {
+                        if (!container.querySelector(`[data-service-id="${sid}"]`)) {
+                            const service = allServices.find(s => s.id == sid);
+                            if (service) {
+                                const card = renderServiceCard(service);
+                                card.className = 'service-card-custom service-card-container';
+                                container.appendChild(card);
+                                syncHiddenEntries(sid);
+                                updateServiceRoomLists();
+                            }
+                        }
+                    });
+
+                    window.computeTotals && window.computeTotals();
+                }
+
+                serviceSelects.forEach(checkbox => {
+                    checkbox.addEventListener('change', updateServiceCards);
+                });
+
+                // Initial render
+                updateServiceCards();
+                updateServiceRoomLists();
+            });
+            @if (config('app.debug'))
+                // Debug: print booking services data on load
+                console.log('DEBUG bookingServicesServer:', @json($bookingServicesServer ?? []));
+                console.log('DEBUG assignedPhongIds:', @json($assignedPhongIds ?? []));
+                console.log('DEBUG roomMap:', @json($roomMap ?? []));
+                console.log('DEBUG booking.room_types:', @json($booking->room_types ?? []));
+                console.log('DEBUG booking.phong_ids:', @json($booking->phong_ids ?? []));
+            @endif
+            // Per-night booking calculations
+            const allLoaiPhongs = @json($loaiPhongs);
+            const currentBookingId = {{ $booking->id ?? 'null' }};
+            let roomIndex = {{ count($roomTypes) > 0 ? count($roomTypes) : 1 }};
+
+            document.addEventListener('DOMContentLoaded', function() {
+                const ngayNhanInput = document.getElementById('ngay_nhan');
+                const ngayTraInput = document.getElementById('ngay_tra');
+
+                // Only set up date listeners if inputs exist
+                if (ngayNhanInput && ngayTraInput) {
+                    const today = new Date().toISOString().split('T')[0];
+                    ngayNhanInput.setAttribute('min', today);
+
+                    ngayNhanInput.addEventListener('change', function() {
+                        ngayTraInput.setAttribute('min', this.value);
+                        if (ngayTraInput.value && ngayTraInput.value < this.value) {
+                            ngayTraInput.value = this.value;
+                        }
+                        updateAllRoomAvailability();
+                    });
+
+                    ngayTraInput.addEventListener('change', function() {
+                        updateAllRoomAvailability();
+                    });
+
+                    // Initialize prices and availability for existing rooms
+                    updateAllRoomAvailability();
+                }
+                // derive per-night unit prices for existing rows (edit page stores totals)
+                initializeRoomUnitPrices();
+
+                // Setup unified voucher event system
+                setupVoucherEventSystem();
+                updateVoucherAvailability();
+
+                if (window.computeTotals) window.computeTotals();
             });
 
-            ngayTraInput.addEventListener('change', function() {
-                updateAllRoomAvailability();
-            });
+            function formatCurrency(amount) {
+                return new Intl.NumberFormat('vi-VN', {
+                    style: 'currency',
+                    currency: 'VND'
+                }).format(amount).replace('₫', 'VNĐ');
+            }
 
-            // Initialize prices and availability for existing rooms
-            updateAllRoomAvailability();
-            // derive per-night unit prices for existing rows (edit page stores totals)
-            initializeRoomUnitPrices();
-            if (window.computeTotals) window.computeTotals();
-        });
+            function addRoom() {
+                // Check if no room type is selected before adding - prevent adding empty room rows
+                const selects = document.querySelectorAll('.room-type-select');
+                let hasEmpty = false;
+                selects.forEach(sel => {
+                    if (!sel.value) hasEmpty = true;
+                });
+                if (hasEmpty) {
+                    alert('Vui lòng chọn loại phòng cho các dòng trống trước khi thêm dòng mới');
+                    return;
+                }
 
-        function formatCurrency(amount) {
-            return new Intl.NumberFormat('vi-VN', {
-                style: 'currency',
-                currency: 'VND'
-            }).format(amount).replace('₫', 'VNĐ');
-        }
-
-        function addRoom() {
-            const container = document.getElementById('roomTypesContainer');
-            const newRoomHtml = `
+                const container = document.getElementById('roomTypesContainer');
+                const newRoomHtml = `
                 <div class="room-item border border-gray-200 rounded-lg p-4 bg-white" data-room-index="${roomIndex}">
                     <div class="flex justify-between items-start mb-3">
                         <h4 class="text-sm font-medium text-gray-700">Loại phòng ${roomIndex + 1}</h4>
@@ -598,12 +1201,10 @@
                                 onchange="handleRoomTypeChange(${roomIndex}, this.value)"
                                 required>
                                 <option value="">-- Chọn loại phòng --</option>
-                                @foreach($loaiPhongs as $lp)
-                                    @php
-                                        $displayPrice = $lp->gia_khuyen_mai ?? $lp->gia_co_ban ?? 0;
-                                    @endphp
-                                    <option value="{{ $lp->id }}" data-price="{{ $displayPrice }}">
-                                        {{ $lp->ten_loai }} - {{ number_format($displayPrice, 0, ',', '.') }} VNĐ/đêm
+
+                                @foreach ($loaiPhongs as $lp)
+                                    <option value="{{ $lp->id }}" data-price="{{ $lp->gia_khuyen_mai }}">
+                                        {{ $lp->ten_loai }} - {{ number_format($lp->gia_khuyen_mai, 0, ',', '.') }} VNĐ/đêm
                                     </option>
                                 @endforeach
                             </select>
@@ -636,388 +1237,746 @@
                         value="0">
                 </div>
             `;
-            container.insertAdjacentHTML('beforeend', newRoomHtml);
-            roomIndex++;
-            if (window.computeTotals) window.computeTotals();
-        }
-
-        function removeRoom(index) {
-            const roomItem = document.querySelector(`[data-room-index="${index}"]`);
-            if (roomItem) {
-                roomItem.remove();
+                container.insertAdjacentHTML('beforeend', newRoomHtml);
+                roomIndex++;
+                updateAllRoomAvailability();
                 if (window.computeTotals) window.computeTotals();
             }
-        }
 
-        function handleRoomTypeChange(index, loaiPhongId) {
-            const loaiPhong = allLoaiPhongs.find(lp => lp.id == loaiPhongId);
-            if (loaiPhong) {
+            function removeRoom(index) {
+                const roomItem = document.querySelector(`[data-room-index="${index}"]`);
+                if (roomItem) {
+                    roomItem.remove();
+                    if (window.computeTotals) window.computeTotals();
+                }
+            }
+
+            function handleRoomTypeChange(index, loaiPhongId) {
+                // Check for duplicate room types
+                if (loaiPhongId) {
+                    const allSelects = document.querySelectorAll('.room-type-select');
+                    let duplicateCount = 0;
+                    allSelects.forEach(sel => {
+                        if (sel.value === loaiPhongId) duplicateCount++;
+                    });
+                    if (duplicateCount > 1) {
+                        alert('Loại phòng này đã được chọn. Vui lòng không chọn trùng lặp.');
+                        event.target.value = '';
+                        return;
+                    }
+
+                    // expose for external callers (e.g. voucher change handler)
+                    window.updateServiceCards = updateServiceCards;
+                }
+
+                const loaiPhong = allLoaiPhongs.find(lp => lp.id == loaiPhongId);
+                if (loaiPhong) {
+                    const priceInput = document.getElementById(`room_gia_rieng_${index}`);
+                    const priceDisplay = document.getElementById(`room_price_${index}`);
+                    const qtyInput = document.querySelector(`input[data-room-index="${index}"]`);
+                    const inputQty = qtyInput ? parseInt(qtyInput.value) || 1 : 1;
+                    if (priceInput && priceDisplay) {
+                        // derive unitPerNight from dataset or option price
+                        let unitPerNight = parseFloat(priceInput.dataset.unitPerNight) || 0;
+                        const sel = document.querySelector(`.room-item[data-room-index="${index}"] .room-type-select`);
+                        if (sel) {
+                            const opt = sel.options[sel.selectedIndex];
+                            const optPrice = opt ? parseFloat(opt.dataset.price || 0) : 0;
+                            if (optPrice && optPrice > 0) unitPerNight = optPrice;
+                        }
+                        const nights = getNights();
+                        const subtotal = unitPerNight * nights * inputQty;
+                        priceInput.dataset.unitPerNight = unitPerNight;
+                        priceInput.value = subtotal;
+                        priceDisplay.textContent = formatCurrency(subtotal);
+                        if (window.computeTotals) window.computeTotals();
+                        // Re-render service room lists so they reflect current selection
+                        document.querySelectorAll('[data-service-id]').forEach(card => {
+                            const sid = card.getAttribute('data-service-id');
+                            if (sid) window.updateServiceRoomLists && window.updateServiceRoomLists(sid);
+                        });
+                        // Update voucher availability based on new room type selection
+                        updateVoucherAvailability();
+                    }
+                }
+
+                // fetch availability for this room type and update UI
+                fetch('{{ route('admin.dat_phong.available_count') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({
+                            loai_phong_id: loaiPhongId,
+                            ngay_nhan: document.getElementById('ngay_nhan')?.value,
+                            ngay_tra: document.getElementById('ngay_tra')?.value,
+                            booking_id: currentBookingId
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        const availabilityText = document.getElementById(`availability_text_${index}`);
+                        if (availabilityText) {
+                            const availableCount = data.available_count || 0;
+                            // determine requested qty for this room row
+                            const rowEl = document.querySelector(`[data-room-index="${index}"]`);
+                            const qtyInput = rowEl ? rowEl.querySelector('input[data-room-index]') : null;
+                            const requested = qtyInput ? (parseInt(qtyInput.value) || 1) : 1;
+
+                            let msg = '';
+                            let colorClass = 'text-gray-500';
+                            if (availableCount <= 0) {
+                                msg = 'Hết phòng';
+                                colorClass = 'text-red-600';
+                            } else if (availableCount < requested) {
+                                msg = `Còn ${availableCount} phòng trống (yêu cầu ${requested})`;
+                                colorClass = 'text-red-600';
+                            } else {
+                                msg = `Còn ${availableCount} phòng trống`;
+                                colorClass = 'text-green-600';
+                            }
+
+                            availabilityText.textContent = msg;
+                            availabilityText.className = `mt-1 text-xs ${colorClass}`;
+                        }
+
+                        // If controller returned specific room list, update assign select so admin can pick
+                        if (data.rooms && Array.isArray(data.rooms) && data.rooms.length) {
+                            const assignSelect = document.getElementById('phong_id_assign');
+                            if (assignSelect) {
+                                // clear existing options except placeholder
+                                const placeholder = assignSelect.querySelector('option[value=""]');
+                                assignSelect.innerHTML = '';
+                                if (placeholder) assignSelect.appendChild(placeholder);
+                                data.rooms.forEach(r => {
+                                    const opt = document.createElement('option');
+                                    opt.value = r.id;
+                                    opt.textContent = r.so_phong + (r.ten_phong ? (' (' + r.ten_phong + ')') : '');
+                                    assignSelect.appendChild(opt);
+                                });
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+            }
+
+            // Fetch availability and rooms for a room row
+            function updateRoomAvailability(index, loaiPhongId) {
+                if (!loaiPhongId) return;
+                const ngay_nhan = document.getElementById('ngay_nhan')?.value;
+                const ngay_tra = document.getElementById('ngay_tra')?.value;
+                const availabilityText = document.getElementById(`availability_text_${index}`);
+                if (!ngay_nhan || !ngay_tra) {
+                    if (availabilityText) {
+                        availabilityText.textContent = 'Vui lòng chọn ngày nhận/trả để kiểm tra phòng trống';
+                        availabilityText.className = 'mt-1 text-xs text-gray-500';
+                    }
+                    return;
+                }
+
+                fetch('{{ route('admin.dat_phong.available_count') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({
+                            loai_phong_id: loaiPhongId,
+                            ngay_nhan: ngay_nhan,
+                            ngay_tra: ngay_tra,
+                            booking_id: currentBookingId,
+                            include_rooms: true
+                        })
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (availabilityText) {
+                            const availableCount = data.available_count || 0;
+                            availabilityText.textContent = availableCount > 0 ? `Còn ${availableCount} phòng trống` :
+                                'Hết phòng';
+                            availabilityText.className =
+                                `mt-1 text-xs ${availableCount > 0 ? 'text-green-600' : 'text-red-600'}`;
+                        }
+
+                        if (data.rooms && Array.isArray(data.rooms)) {
+                            const assignSelect = document.getElementById('phong_id_assign');
+                            if (assignSelect) {
+                                // preserve placeholder option if present
+                                const placeholder = document.createElement('option');
+                                placeholder.value = '';
+                                placeholder.textContent = '-- Chọn phòng --';
+                                assignSelect.innerHTML = '';
+                                assignSelect.appendChild(placeholder);
+                                data.rooms.forEach(r => {
+                                    const opt = document.createElement('option');
+                                    opt.value = r.id;
+                                    opt.textContent = r.so_phong + (r.ten_phong ? (' (' + r.ten_phong + ')') : '');
+                                    assignSelect.appendChild(opt);
+                                });
+                            }
+                        }
+                    })
+                    .catch(e => console.error('availability error', e));
+            }
+
+            function updateAllRoomAvailability() {
+                const roomItems = document.querySelectorAll('.room-item');
+                roomItems.forEach(item => {
+                    const index = item.getAttribute('data-room-index');
+                    const select = item.querySelector('.room-type-select');
+                    if (select && select.value) {
+                        updateRoomAvailability(index, select.value);
+                    }
+                });
+                // Update voucher availability when room selection changes
+                updateVoucherAvailability();
+            }
+
+            function increaseQuantity(index) {
+                const input = document.querySelector(`input[data-room-index="${index}"]`);
+                if (input) {
+                    const currentValue = parseInt(input.value) || 1;
+                    const maxValue = parseInt(input.getAttribute('max')) || 10;
+                    if (currentValue < maxValue) {
+                        input.value = currentValue + 1;
+                        updateRoomQuantity(index);
+                        // refresh availability and room list for this row
+                        const select = document.querySelector(`.room-item[data-room-index="${index}"] .room-type-select`);
+                        if (select && select.value) updateRoomAvailability(index, select.value);
+                    }
+                }
+            }
+
+            function decreaseQuantity(index) {
+                const input = document.querySelector(`input[data-room-index="${index}"]`);
+                if (input) {
+                    const currentValue = parseInt(input.value) || 1;
+                    if (currentValue > 1) {
+                        input.value = currentValue - 1;
+                        updateRoomQuantity(index);
+                        const select = document.querySelector(`.room-item[data-room-index="${index}"] .room-type-select`);
+                        if (select && select.value) updateRoomAvailability(index, select.value);
+                    }
+                }
+            }
+
+            function updateRoomQuantity(index) {
+                const input = document.querySelector(`input[data-room-index="${index}"]`);
                 const priceInput = document.getElementById(`room_gia_rieng_${index}`);
                 const priceDisplay = document.getElementById(`room_price_${index}`);
-                if (priceInput && priceDisplay) {
-                    // set per-night unit price (prefer promotional price if available)
-                    const unitPerNight = loaiPhong.gia_khuyen_mai ?? loaiPhong.gia_co_ban ?? 0;
-                    priceInput.dataset.unitPerNight = unitPerNight;
+
+                if (input && priceInput && priceDisplay) {
+                    const quantity = parseInt(input.value) || 1;
                     const nights = getNights();
-                    const qtyInput = document.querySelector(`input[data-room-index="${index}"]`);
-                    const qty = qtyInput ? parseInt(qtyInput.value) || 1 : 1;
-                    const subtotal = unitPerNight * nights * qty;
+                    // use per-night unit stored on dataset (derived on load or set when room type changes)
+                    const unitPerNight = parseFloat(priceInput.dataset.unitPerNight) || 0;
+                    const subtotal = unitPerNight * nights * quantity;
+                    // update hidden stored total for this row
                     priceInput.value = subtotal;
                     priceDisplay.textContent = formatCurrency(subtotal);
-                }
-                updateRoomAvailability(index, loaiPhongId);
-                if (window.computeTotals) window.computeTotals();
-            }
-        }
-
-        function updateRoomAvailability(index, loaiPhongId) {
-            const ngayNhan = document.getElementById('ngay_nhan').value;
-            const ngayTra = document.getElementById('ngay_tra').value;
-            const availabilityText = document.getElementById(`availability_text_${index}`);
-
-            if (!ngayNhan || !ngayTra || !loaiPhongId) {
-                if (availabilityText) availabilityText.textContent = '';
-                return;
-            }
-
-            fetch('{{ route("admin.dat_phong.available_count") }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                body: JSON.stringify({
-                    loai_phong_id: loaiPhongId,
-                    ngay_nhan: ngayNhan,
-                    ngay_tra: ngayTra,
-                    booking_id: currentBookingId
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (availabilityText) {
-                    const availableCount = data.available_count || 0;
-                    // determine requested qty for this room row
-                    const rowEl = document.querySelector(`[data-room-index="${index}"]`);
-                    const qtyInput = rowEl ? rowEl.querySelector('input[data-room-index]') : null;
-                    const requested = qtyInput ? (parseInt(qtyInput.value) || 1) : 1;
-
-                    let msg = '';
-                    let colorClass = 'text-gray-500';
-                    if (availableCount <= 0) {
-                        msg = 'Hết phòng';
-                        colorClass = 'text-red-600';
-                    } else if (availableCount < requested) {
-                        msg = `Còn ${availableCount} phòng trống (yêu cầu ${requested})`;
-                        colorClass = 'text-red-600';
-                    } else {
-                        msg = `Còn ${availableCount} phòng trống`;
-                        colorClass = 'text-green-600';
+                    // recalc global totals
+                    if (window.computeTotals) window.computeTotals();
+                    // Khi thay đổi số lượng phòng, cập nhật lại selectedRoomsByLoaiPhong
+                    // Tìm loai_phong_id
+                    const roomItem = input.closest('.room-item');
+                    const select = roomItem ? roomItem.querySelector('.room-type-select') : null;
+                    const loaiPhongId = select ? select.value : null;
+                    // Lấy danh sách phòng đang chọn cho loại phòng này
+                    let phongIds = [];
+                    // Nếu có checkbox phòng, lấy các phòng đang được tích
+                    // (nếu có logic chọn phòng riêng)
+                    // Nếu không, chỉ cập nhật số lượng (giả sử phòng sẽ được chọn tự động)
+                    if (loaiPhongId) {
+                        // Cập nhật số lượng và refresh availability
+                        updateRoomAvailability(index, loaiPhongId);
                     }
-
-                    availabilityText.textContent = msg;
-                    availabilityText.className = `mt-1 text-xs ${colorClass}`;
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-        }
-
-        function updateAllRoomAvailability() {
-            const roomItems = document.querySelectorAll('.room-item');
-            roomItems.forEach(item => {
-                const index = item.getAttribute('data-room-index');
-                const select = item.querySelector('.room-type-select');
-                if (select && select.value) {
-                    updateRoomAvailability(index, select.value);
-                }
-            });
-        }
-
-        function increaseQuantity(index) {
-            const input = document.querySelector(`input[data-room-index="${index}"]`);
-            if (input) {
-                const currentValue = parseInt(input.value) || 1;
-                const maxValue = parseInt(input.getAttribute('max')) || 10;
-                if (currentValue < maxValue) {
-                    input.value = currentValue + 1;
-                    updateRoomQuantity(index);
                 }
             }
-        }
 
-        function decreaseQuantity(index) {
-            const input = document.querySelector(`input[data-room-index="${index}"]`);
-            if (input) {
-                const currentValue = parseInt(input.value) || 1;
-                if (currentValue > 1) {
-                    input.value = currentValue - 1;
-                    updateRoomQuantity(index);
-                }
-            }
-        }
-
-        function updateRoomQuantity(index) {
-            const input = document.querySelector(`input[data-room-index="${index}"]`);
-            const priceInput = document.getElementById(`room_gia_rieng_${index}`);
-            const priceDisplay = document.getElementById(`room_price_${index}`);
-            
-            if (input && priceInput && priceDisplay) {
-                const quantity = parseInt(input.value) || 1;
+            function initializeRoomUnitPrices() {
                 const nights = getNights();
-                // use per-night unit stored on dataset (derived on load or set when room type changes)
-                const unitPerNight = parseFloat(priceInput.dataset.unitPerNight) || 0;
-                const subtotal = unitPerNight * nights * quantity;
-                // update hidden stored total for this row
-                priceInput.value = subtotal;
-                priceDisplay.textContent = formatCurrency(subtotal);
-                // recalc global totals
-                if (window.computeTotals) window.computeTotals();
-            }
-        }
-
-        function initializeRoomUnitPrices() {
-            const nights = getNights();
-            document.querySelectorAll('.room-item').forEach(item => {
-                const idx = item.getAttribute('data-room-index');
-                const priceInput = document.getElementById(`room_gia_rieng_${idx}`);
-                const qtyInput = item.querySelector('input[data-room-index]');
-                const priceDisplay = document.getElementById(`room_price_${idx}`);
-                const qty = qtyInput ? parseInt(qtyInput.value) || 1 : 1;
-                if (priceInput) {
-                    // Prefer explicit unit set on dataset or selected loai_phong option price (promotional price)
-                    let unitPerNight = parseFloat(priceInput.dataset.unitPerNight) || 0;
-                    const selectEl = item.querySelector('.room-type-select');
-                    if (selectEl) {
-                        const opt = selectEl.options[selectEl.selectedIndex];
-                        const optPrice = opt ? parseFloat(opt.dataset.price || 0) : 0;
-                        if (optPrice && optPrice > 0) unitPerNight = optPrice;
-                    }
-                    if (!unitPerNight || unitPerNight <= 0) {
-                        const storedTotal = parseFloat(priceInput.value) || 0;
-                        unitPerNight = (qty > 0 && nights > 0) ? (storedTotal / (qty * nights)) : 0;
-                    }
-                    priceInput.dataset.unitPerNight = unitPerNight;
-                    const subtotal = unitPerNight * nights * qty;
-                    if (priceDisplay) priceDisplay.textContent = formatCurrency(subtotal);
-                    priceInput.value = subtotal;
-                }
-            });
-        }
-
-        function getNights() {
-            const start = document.getElementById('ngay_nhan')?.value;
-            const end = document.getElementById('ngay_tra')?.value;
-            if (!start || !end) return 1;
-            const s = new Date(start);
-            const e = new Date(end);
-            const diff = Math.ceil((e - s) / (1000 * 60 * 60 * 24));
-            return Math.max(1, diff);
-        }
-
-        // compute totals: rooms (per-night * nights * qty) + services
-        window.computeTotals = function() {
-            // rooms
-            const nights = getNights();
-            let roomTotal = 0;
-            document.querySelectorAll('.room-item').forEach(item => {
-                const idx = item.getAttribute('data-room-index');
-                const priceInput = document.getElementById(`room_gia_rieng_${idx}`);
-                const qtyInput = item.querySelector('input[data-room-index]');
-                const qty = qtyInput ? parseInt(qtyInput.value) || 0 : 0;
-                let unitPerNight = 0;
-                if (priceInput) {
-                    // prefer explicit dataset unitPerNight (set on load or when changing type)
-                    unitPerNight = parseFloat(priceInput.dataset.unitPerNight);
-                    if (!unitPerNight || isNaN(unitPerNight) || unitPerNight <= 0) {
-                        // fallback: if value looks like a stored subtotal, derive unit per night
-                        const stored = parseFloat(priceInput.value) || 0;
-                        unitPerNight = (qty > 0 && nights > 0) ? (stored / (qty * nights)) : 0;
-                        // persist derived unit for future calculations
-                        priceInput.dataset.unitPerNight = unitPerNight;
-                    }
-                }
-                roomTotal += unitPerNight * qty * nights;
-            });
-
-            // services: sum all entry hidden so_luong * service price
-            let serviceTotal = 0;
-            // find all service cards
-            document.querySelectorAll('#selected_services_list [data-service-id]').forEach(card => {
-                const sid = card.getAttribute('data-service-id');
-                const option = document.querySelector(`#services_select option[value="${sid}"]`);
-                const price = option ? (parseFloat(option.dataset.price) || 0) : 0;
-                // sum quantities for this service
-                const qtyInputs = Array.from(document.querySelectorAll(`#service_dates_${sid} .service-date-row input[type=number]`));
-                qtyInputs.forEach(qi => {
-                    const q = parseInt(qi.value) || 0;
-                    serviceTotal += q * price;
-                });
-            });
-
-            const total = roomTotal + serviceTotal;
-            const roomEl = document.getElementById('total_room_price');
-            const svcEl = document.getElementById('total_service_price');
-            const totalEl = document.getElementById('total_price');
-            const hidden = document.getElementById('tong_tien_input');
-            if (roomEl) roomEl.textContent = formatCurrency(roomTotal);
-            if (svcEl) svcEl.textContent = formatCurrency(serviceTotal);
-            if (totalEl) totalEl.textContent = formatCurrency(total);
-            if (hidden) hidden.value = total;
-        }
-
-        function confirmBooking() {
-            if (confirm('Bạn có chắc chắn muốn xác nhận đặt phòng này không?')) {
-                const form = document.getElementById('bookingForm');
-                const statusInput = document.getElementById('trang_thai_input');
-                if (form && statusInput) {
-                    statusInput.value = 'da_xac_nhan';
-                    form.submit();
-                } else {
-                    alert('Có lỗi xảy ra. Vui lòng thử lại!');
-                }
-            }
-        }
-        
-        function completeBooking() {
-            if (confirm('Bạn có chắc chắn muốn xác nhận trả phòng này không?')) {
-                const form = document.getElementById('bookingForm');
-                const statusInput = document.getElementById('trang_thai_input');
-                if (form && statusInput) {
-                    statusInput.value = 'da_tra';
-                    form.submit();
-                } else {
-                    alert('Có lỗi xảy ra. Vui lòng thử lại!');
-                }
-            }
-        }
-        // --- Services Tom Select (init and rendering) ---
-        function loadTomSelectAndInit(cb) {
-            if (window.TomSelect) return cb();
-            var s = document.createElement('script');
-            s.src = 'https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/js/tom-select.complete.min.js';
-            s.onload = cb;
-            document.head.appendChild(s);
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            loadTomSelectAndInit(function() {
-                try {
-                    const selectEl = document.getElementById('services_select');
-                    if (!selectEl) return;
-                    const ts = new TomSelect(selectEl, {plugins:['remove_button'], persist:false, create:false,});
-                    // If booking has existing services, pre-select them
-                    try {
-                        const initialServiceIds = Object.keys(bookingServicesServer || {});
-                        if (initialServiceIds && initialServiceIds.length) {
-                            ts.setValue(initialServiceIds);
+                document.querySelectorAll('.room-item').forEach(item => {
+                    const idx = item.getAttribute('data-room-index');
+                    const priceInput = document.getElementById(`room_gia_rieng_${idx}`);
+                    const qtyInput = item.querySelector('input[data-room-index]');
+                    const priceDisplay = document.getElementById(`room_price_${idx}`);
+                    const qty = qtyInput ? parseInt(qtyInput.value) || 1 : 1;
+                    if (priceInput) {
+                        // Prefer explicit unit set on dataset or selected loai_phong option price (promotional price)
+                        let unitPerNight = parseFloat(priceInput.dataset.unitPerNight) || 0;
+                        const selectEl = item.querySelector('.room-type-select');
+                        if (selectEl) {
+                            const opt = selectEl.options[selectEl.selectedIndex];
+                            const optPrice = opt ? parseFloat(opt.dataset.price || 0) : 0;
+                            if (optPrice && optPrice > 0) unitPerNight = optPrice;
                         }
-                    } catch(e) { console.warn('Error preselecting services', e); }
+                        if (!unitPerNight || unitPerNight <= 0) {
+                            const storedTotal = parseFloat(priceInput.value) || 0;
+                            unitPerNight = (qty > 0 && nights > 0) ? (storedTotal / (qty * nights)) : 0;
+                        }
+                        priceInput.dataset.unitPerNight = unitPerNight;
+                        const subtotal = unitPerNight * nights * qty;
+                        if (priceDisplay) priceDisplay.textContent = formatCurrency(subtotal);
+                        priceInput.value = subtotal;
+                    }
+                });
+            }
 
-                    function getRangeDates() {
-                        const start = document.getElementById('ngay_nhan')?.value;
-                        const end = document.getElementById('ngay_tra')?.value;
-                        if (!start || !end) return [];
-                        const a = [];
-                        const s = new Date(start);
-                        const e = new Date(end);
-                        for (let d = new Date(s); d <= e; d.setDate(d.getDate()+1)) a.push(new Date(d).toISOString().split('T')[0]);
-                        return a;
+            function getNights() {
+                const start = document.getElementById('ngay_nhan')?.value;
+                const end = document.getElementById('ngay_tra')?.value;
+                if (!start || !end) return 1;
+                const s = new Date(start);
+                const e = new Date(end);
+                const diff = Math.ceil((e - s) / (1000 * 60 * 60 * 24));
+                return Math.max(1, diff);
+            }
+
+            // ========================================
+            // VOUCHER SYSTEM - UNIFIED EVENT HANDLER
+            // ========================================
+
+            function updateVoucherAvailability() {
+                const selectedRoomTypes = Array.from(document.querySelectorAll('.room-type-select')).map(s => s.value).filter(v => v);
+                const voucherInputs = document.querySelectorAll('.voucher-radio');
+
+                // Get check-in and check-out dates for date range filtering
+                const checkinDate = document.getElementById('ngay_nhan')?.value || '';
+                const checkoutDate = document.getElementById('ngay_tra')?.value || '';
+
+                // If either date is missing, hide all voucher UI and clear selection
+                if (!checkinDate || !checkoutDate) {
+                    document.querySelectorAll('.voucher-container').forEach(container => {
+                        container.style.display = 'none';
+                        const radio = container.querySelector('.voucher-radio');
+                        if (radio) {
+                            radio.checked = false;
+                            radio.disabled = true;
+                        }
+                    });
+                    const voucherMirror = document.getElementById('voucher_input');
+                    const voucherIdInput = document.getElementById('voucher_id_input');
+                    if (voucherMirror) voucherMirror.value = '';
+                    if (voucherIdInput) voucherIdInput.value = '';
+                    return;
+                }
+
+                // show voucher containers when dates are set
+                document.querySelectorAll('.voucher-container').forEach(container => container.style.display = '');
+
+                // Disable all vouchers first
+                voucherInputs.forEach(v => v.disabled = true);
+
+                // Enable/disable vouchers based on room type compatibility AND date range
+                voucherInputs.forEach(radio => {
+                    const voucherRoomType = radio.dataset.loaiPhong;
+                    const vStart = radio.dataset.start || '';
+                    const vEnd = radio.dataset.end || '';
+                    const container = radio.closest('.voucher-container');
+
+                    // Date check: check-in date must be within [start, end] inclusive
+                    let dateOk = true;
+                    if (checkinDate && vStart && vEnd) {
+                        const checkin = new Date(checkinDate + 'T00:00:00Z');
+                        const start = new Date(vStart + 'T00:00:00Z');
+                        const end = new Date(vEnd + 'T00:00:00Z');
+                        if (checkin < start || checkin > end) dateOk = false;
                     }
 
-                    function renderSelectedServices(values) {
-                        const container = document.getElementById('selected_services_list');
-                        container.innerHTML = '';
-                        const range = getRangeDates();
-                        (values||[]).forEach(val=>{
-                            const option = selectEl.querySelector('option[value="'+val+'"]'); if(!option) return;
-                            const id = val;
-                            const serviceName = option.textContent?.split(' - ')[0] || option.innerText;
-                            const price = parseFloat(option.dataset.price||0)||0;
-                            const unit = option.dataset.unit || 'cái';
+                    // If date is not ok, hide the voucher completely
+                    if (!dateOk) {
+                        if (container) {
+                            container.style.display = 'none';
+                            radio.checked = false;
+                            radio.disabled = true;
+                        }
+                        return;
+                    } else {
+                        if (container) container.style.display = '';
+                    }
 
-                            const card = document.createElement('div'); card.className='service-card-custom'; card.setAttribute('data-service-id', id);
-                            const header = document.createElement('div'); header.className='service-card-header';
-                            const titleDiv = document.createElement('div');
-                            titleDiv.className='service-title';
-                            titleDiv.textContent = serviceName;
-                            const priceDiv = document.createElement('div');
-                            priceDiv.className='service-price';
-                            priceDiv.textContent = `${new Intl.NumberFormat('vi-VN').format(price)}/${unit}`;
-                            header.appendChild(titleDiv);
-                            header.appendChild(priceDiv);
-                            card.appendChild(header);
+                    // If voucher has no loai_phong_id restriction or matches selected room type
+                    const roomOk = (!voucherRoomType || voucherRoomType === 'null' || voucherRoomType === '') || (selectedRoomTypes.length === 0) || selectedRoomTypes.includes(voucherRoomType);
 
-                            const rows = document.createElement('div'); rows.id = 'service_dates_'+id;
-                            function buildRow(dv, qty){ 
-                                const r=document.createElement('div'); r.className='service-date-row'; 
-                                const di=document.createElement('input'); di.type='date'; di.value=dv||''; 
-                                const rg=getRangeDates(); if(rg.length){ di.min=rg[0]; di.max=rg[rg.length-1]; } 
-                                // store previous on focus
-                                di.addEventListener('focus', function(){ this.dataset.prev = this.value || ''; });
-                                // prevent duplicate dates for same service
-                                di.addEventListener('change', function(){
-                                    const val = this.value || '';
-                                    if (!val) { syncHidden(id); return; }
-                                    const others = Array.from(document.querySelectorAll('#service_dates_'+id+' input[type=date]')).filter(i=>i!==this).map(i=>i.value);
-                                    if (others.includes(val)){
-                                        this.value = this.dataset.prev || '';
-                                        alert('Ngày này đã được chọn cho dịch vụ này. Vui lòng chọn ngày khác.');
-                                        return;
+                    // Enable/disable based on room type only (no visible message)
+                    radio.disabled = !roomOk;
+
+                    if (container) {
+                        const label = container.querySelector('.voucher-label');
+                        if (label) label.classList.remove('opacity-50', 'cursor-not-allowed');
+                        const overlays = container.querySelectorAll('.voucher-overlay-client, .voucher-overlay-server');
+                        overlays.forEach(o => o.remove());
+                    }
+                });
+            }
+
+            // Setup unified voucher event system (DOMContentLoaded)
+            function setupVoucherEventSystem() {
+                // Attach change handler to radios so 'change' triggers totals update immediately
+                document.querySelectorAll('.voucher-radio').forEach(radio => {
+                    radio.addEventListener('change', handleVoucherChange);
+                });
+
+                // Label click handler (toggle behavior: select/deselect)
+                document.querySelectorAll('.voucher-label').forEach(label => {
+                    label.addEventListener('click', function(e) {
+                        // Prevent native label toggle to avoid double-change events
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const radio = this.closest('.voucher-container').querySelector('.voucher-radio');
+                        if (!radio) return;
+
+                        // Don't allow interaction on disabled radios
+                        if (radio.disabled) {
+                            e.preventDefault();
+                            return;
+                        }
+
+                        // Toggle selected state and dispatch change so handler runs
+                        const newState = !radio.checked;
+                        radio.checked = newState;
+                        radio.dispatchEvent(new Event('change', { bubbles: true }));
+                    });
+                });
+            }
+
+            // Unified handler for all voucher changes
+            function handleVoucherChange() {
+                const voucherIdInput = document.getElementById('voucher_id_input');
+                const voucherMirror = document.getElementById('voucher_input');
+
+                if (this.checked) {
+                    // Voucher selected: update hidden input with voucher ID
+                    const container = this.closest('.voucher-container');
+                    const voucherId = container?.getAttribute('data-voucher-id') || this.value;
+                        if (voucherIdInput) voucherIdInput.value = voucherId;
+                        // Mirror the voucher code expected by backend (radio.value is ma_voucher)
+                        if (voucherMirror) voucherMirror.value = this.value || voucherId;
+                    console.log('Voucher selected:', voucherId);
+                } else {
+                    // Voucher deselected: clear hidden inputs
+                    if (voucherIdInput) voucherIdInput.value = '';
+                    if (voucherMirror) voucherMirror.value = '';
+                    console.log('Voucher deselected');
+                }
+
+                // Recalculate totals immediately
+                updateTotalPrice();
+
+                // Also refresh service UI and hidden inputs so services remain consistent
+                try {
+                    if (typeof updateServiceRoomLists === 'function') {
+                        updateServiceRoomLists();
+                    }
+                } catch (e) {
+                    console.error('Error running updateServiceRoomLists after voucher change', e);
+                }
+
+                // Recreate hidden inputs for all service cards
+                try {
+                    document.querySelectorAll('#services_details_container [data-service-id]').forEach(card => {
+                        const sid = card.getAttribute('data-service-id');
+                        if (sid && typeof syncHiddenEntries === 'function') {
+                            try { syncHiddenEntries(sid); } catch (er) { console.error('syncHiddenEntries error', er); }
+                        }
+                    });
+                } catch (e) {
+                    console.error('Error syncing hidden service entries after voucher change', e);
+                }
+
+                // Re-run service card update (safe no-op if not present)
+                if (typeof window.updateServiceCards === 'function') {
+                    try { window.updateServiceCards(); } catch (e) { console.error('updateServiceCards error', e); }
+                }
+            }
+
+            // Cập nhật tổng tiền bao gồm cả phòng + voucher + dịch vụ (tính lại từ đầu)
+            var updateTotalPrice = function() {
+                const ngayNhan = document.getElementById('ngay_nhan').value;
+                const ngayTra = document.getElementById('ngay_tra').value;
+
+                if (!ngayNhan || !ngayTra) {
+                    document.getElementById('total_price').textContent = formatCurrency(0);
+                    return;
+                }
+
+                const startDate = new Date(ngayNhan);
+                const endDate = new Date(ngayTra);
+                const nights = Math.max(1, Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)));
+
+                // 1. Tính tiền phòng theo loại phòng
+                let roomTotalByType = {}; // { loaiPhongId: totalPrice }
+                let roomTotal = 0;
+                document.querySelectorAll('.room-item').forEach(item => {
+                    const idx = item.getAttribute('data-room-index');
+                    const select = item.querySelector('.room-type-select');
+                    const qtyInput = item.querySelector('input[data-room-index]');
+
+                    if (!select || !select.value) return;
+
+                    const roomTypeId = select.value;
+                    const quantity = parseInt(qtyInput?.value || 1);
+
+                    // Get price from price input (already calculated as total for this row)
+                    const priceInput = document.getElementById(`room_gia_rieng_${idx}`);
+                    let price = 0;
+
+                    if (priceInput) {
+                        // priceInput stores total price (already multiplied by nights * qty)
+                        price = parseFloat(priceInput.value || 0);
+                        // But we need per-night price for recalculation, stored in dataset
+                        const unitPerNight = parseFloat(priceInput.dataset.unitPerNight || 0);
+                        if (unitPerNight > 0) {
+                            price = unitPerNight * nights * quantity;
+                        }
+                    }
+
+                    if (price > 0 && quantity > 0) {
+                        roomTotalByType[roomTypeId] = price;
+                        roomTotal += price;
+                    }
+                });
+
+                // 2. Tính discount từ voucher - chỉ áp dụng cho tiền phòng, respecting loai_phong_id filter
+                const selectedVoucher = document.querySelector('.voucher-radio:checked');
+                let discount = 0;
+                let discountedRoomTotal = roomTotal;
+
+                if (selectedVoucher) {
+                    const discountValue = parseFloat(selectedVoucher.dataset.value || 0);
+                    const voucherLoaiPhongId = selectedVoucher.dataset.loaiPhong;
+
+                    let applicableTotal = 0;
+                    if (!voucherLoaiPhongId || voucherLoaiPhongId === 'null' || voucherLoaiPhongId === '') {
+                        // Voucher applies to all room types
+                        applicableTotal = roomTotal;
+                    } else {
+                        // Voucher applies only to specific room type
+                        applicableTotal = roomTotalByType[voucherLoaiPhongId] || 0;
+                    }
+
+                    if (discountValue <= 100) {
+                        // Discount is percentage
+                        discount = (applicableTotal * discountValue) / 100;
+                    } else {
+                        // Discount is fixed amount
+                        discount = Math.min(discountValue, applicableTotal);
+                    }
+
+                    discountedRoomTotal = roomTotal - discount;
+                }
+
+                let roomNetTotal = discountedRoomTotal;
+
+                // 3. Tính tiền dịch vụ (không bị ảnh hưởng bởi voucher)
+                let totalServicePrice = 0;
+
+                function getTotalBookedRooms() {
+                    let total = 0;
+                    document.querySelectorAll('.room-item').forEach(item => {
+                        const idx = item.getAttribute('data-room-index');
+                        const qtyInput = item.querySelector('input[data-room-index]');
+                        total += parseInt(qtyInput?.value || 0) || 0;
+                    });
+                    if (total === 0) {
+                        total = Array.isArray(assignedPhongIds) ? assignedPhongIds.length : 0;
+                    }
+                    return total;
+                }
+
+                document.querySelectorAll('#services_details_container .service-card-custom').forEach(card => {
+                    const serviceId = card.getAttribute('data-service-id');
+                    const priceElem = card.querySelector('.service-price');
+                    let price = 0;
+                    if (priceElem) {
+                        const priceText = priceElem.textContent || '';
+                        const match = priceText.match(/[\d,.]+/);
+                        if (match) {
+                            price = parseFloat(match[0].replace(/[,.]/g, '')) || 0;
+                        }
+                    }
+
+                    const mode = card.querySelector(`input[name="service_room_mode_${serviceId}"]:checked`)
+                        ?.value || 'global';
+                    const rows = Array.from(card.querySelectorAll(`.service-date-row`));
+
+                    rows.forEach(r => {
+                        const qty = parseInt(r.querySelector('input[type=number]')?.value || 1) || 0;
+                        if (qty <= 0) return;
+
+                        if (mode === 'global') {
+                            const roomsCount = getTotalBookedRooms();
+                            totalServicePrice += price * qty * roomsCount;
+                            console.log('service', serviceId, 'global mode, qty=', qty, 'rooms=',
+                                roomsCount, 'add=', price * qty * roomsCount);
+                        } else {
+                            const entryRooms = r.querySelectorAll('.entry-room-checkbox:checked').length ||
+                                0;
+                            totalServicePrice += price * qty * entryRooms;
+                            console.log('service', serviceId, 'specific mode, qty=', qty, 'checked rooms=',
+                                entryRooms, 'add=', price * qty * entryRooms);
+                        }
+                    });
+                });
+
+                // 4. Cộng tất cả: (phòng - discount) + dịch vụ
+                const finalTotal = roomNetTotal + totalServicePrice;
+
+                // Update UI
+                const totalPriceElement = document.getElementById('total_price');
+                const tongTienInput = document.getElementById('tong_tien_input');
+                const roomPriceElement = document.getElementById('total_room_price');
+                const discountAmountElement = document.getElementById('discount_amount');
+                const roomAfterElement = document.getElementById('room_after_discount');
+                const servicePriceElement = document.getElementById('total_service_price');
+
+                if (roomPriceElement) roomPriceElement.textContent = formatCurrency(roomTotal);
+                if (discountAmountElement) discountAmountElement.textContent = formatCurrency(discount);
+                if (roomAfterElement) roomAfterElement.textContent = formatCurrency(roomNetTotal);
+                if (servicePriceElement) servicePriceElement.textContent = formatCurrency(totalServicePrice);
+                totalPriceElement.textContent = formatCurrency(finalTotal);
+                tongTienInput.value = finalTotal;
+            };
+
+            // Window alias for compatibility
+            window.computeTotals = updateTotalPrice;
+            window.updateServiceRoomLists = updateServiceRoomLists;
+
+            // Note: Confirm/Cancel actions use dedicated routes (form/link) like the index page.
+
+            function completeBooking() {
+                if (confirm('Bạn có chắc chắn muốn xác nhận trả phòng này không?')) {
+                    const form = document.getElementById('bookingForm');
+                    const statusInput = document.getElementById('trang_thai_input');
+                    if (form && statusInput) {
+                        statusInput.value = 'da_tra';
+                        form.submit();
+                    } else {
+                        alert('Có lỗi xảy ra. Vui lòng thử lại!');
+                    }
+                }
+            }
+            // Services are fully server-rendered as of this refactor.
+            // Per-service checkboxes and date rows are rendered by Blade templates with proper form names.
+            // Form submission automatically captures all service_data[serviceId][entries][idx][...] inputs.
+            // Minimal client-side behavior: only date validation and room mode radio toggle effects.
+
+            // Enhanced diagnostic: intercept form submit, capture the request, log the response
+            document.addEventListener('DOMContentLoaded', function() {
+                try {
+                    const form = document.getElementById('bookingForm');
+                    const submitBtn = form ? form.querySelector('button[type="submit"]') : null;
+
+                    if (form && submitBtn) {
+                        // Override form submission to intercept with fetch
+                        form.addEventListener('submit', function(ev) {
+                            console.log('DEBUG [submit event]: form submit triggered for bookingForm');
+
+                            // Create a temporary message div
+                            const statusMsg = document.createElement('div');
+                            statusMsg.style.position = 'fixed';
+                            statusMsg.style.top = '20px';
+                            statusMsg.style.right = '20px';
+                            statusMsg.style.zIndex = '9999';
+                            statusMsg.style.padding = '12px 16px';
+                            statusMsg.style.backgroundColor = '#fbbf24';
+                            statusMsg.style.color = '#1f2937';
+                            statusMsg.style.borderRadius = '6px';
+                            statusMsg.style.fontSize = '14px';
+                            statusMsg.style.fontWeight = 'bold';
+                            statusMsg.textContent = 'Đang gửi yêu cầu...';
+                            document.body.appendChild(statusMsg);
+
+                            // Prevent default form submission
+                            ev.preventDefault();
+
+                            // Collect form data
+                            const formData = new FormData(form);
+                            const action = form.getAttribute('action');
+                            const method = form.getAttribute('method') || 'POST';
+
+                            console.log('DEBUG [form data]: ', {
+                                action: action,
+                                method: method,
+                                formDataEntries: Array.from(formData.entries()).slice(0,
+                                    5) // log first 5 entries
+                            });
+
+                            // Send via fetch
+                            fetch(action, {
+                                    method: method,
+                                    body: formData,
+                                    headers: {
+                                        'X-Requested-With': 'XMLHttpRequest'
                                     }
-                                    syncHidden(id);
+                                })
+                                .then(async response => {
+                                    console.log('DEBUG [fetch response]:', {
+                                        status: response.status,
+                                        statusText: response.statusText,
+                                        headers: Object.fromEntries(response.headers.entries())
+                                    });
+
+                                    const text = await response.text();
+                                    console.log('DEBUG [fetch response body (first 500 chars)]:', text
+                                        .substring(0, 500));
+
+                                    statusMsg.textContent =
+                                        `Response: ${response.status} ${response.statusText}`;
+                                    statusMsg.style.backgroundColor = response.ok ? '#86efac' :
+                                        '#f87171';
+
+                                    // If successful, redirect after a short delay
+                                    if (response.ok) {
+                                        setTimeout(() => {
+                                            window.location.href = response.url || window
+                                                .location.href;
+                                        }, 1500);
+                                    } else {
+                                        // If error, show the response for inspection
+                                        console.error('DEBUG [error response body]:', text);
+                                        setTimeout(() => statusMsg.remove(), 5000);
+                                    }
+                                })
+                                .catch(err => {
+                                    console.error('DEBUG [fetch error]:', err);
+                                    statusMsg.textContent = `Error: ${err.message}`;
+                                    statusMsg.style.backgroundColor = '#f87171';
+                                    setTimeout(() => statusMsg.remove(), 5000);
                                 });
-                                const qi=document.createElement('input'); qi.type='number'; qi.min=1; qi.value=(qty && qty>0)?qty:1; qi.className='w-24'; 
-                                const rem=document.createElement('button'); rem.type='button'; rem.className='service-remove-btn ml-2'; rem.textContent='Xóa'; rem.onclick=()=>{ r.remove(); syncHidden(id); };
-                                qi.onchange = ()=>syncHidden(id);
-                                r.appendChild(di); r.appendChild(qi); r.appendChild(rem); return r; 
-                            }
+                        }, false);
 
-                            // If server has existing entries for this service, render them
-                            const existing = bookingServicesServer && bookingServicesServer[id] ? bookingServicesServer[id] : null;
-                            if (existing && existing.length) {
-                                existing.forEach(e => {
-                                    rows.appendChild(buildRow(e.ngay || (range.length? range[0] : ''), e.so_luong || 1));
-                                });
-                            } else {
-                                // at least one row
-                                const initialDate = (range.length? range[0] : '');
-                                rows.appendChild(buildRow(initialDate, 1));
-                            }
-
-                            const addBtn = document.createElement('button'); addBtn.type='button'; addBtn.className='service-add-day mt-2'; addBtn.textContent='Thêm ngày'; addBtn.onclick=function(){ const used=Array.from(rows.querySelectorAll('input[type=date]')).map(i=>i.value); const avail=getRangeDates().find(d=>!used.includes(d)); if(avail) { rows.appendChild(buildRow(avail)); syncHidden(id); } };
-
-                            card.appendChild(rows); card.appendChild(addBtn);
-
-                            // hidden inputs
-                            const cb = document.createElement('input'); cb.type='checkbox'; cb.name='services[]'; cb.value=id; cb.className='service-checkbox'; cb.style.display='none'; cb.checked=true;
-                            const sum = document.createElement('input'); sum.type='hidden'; sum.name='services_data['+id+'][so_luong]'; sum.id='service_quantity_hidden_'+id; sum.value='1';
-                            const dv = document.createElement('input'); dv.type='hidden'; dv.name='services_data['+id+'][dich_vu_id]'; dv.value=id;
-
-                            container.appendChild(card); container.appendChild(cb); container.appendChild(sum); container.appendChild(dv);
-
-                            function syncHidden(id){ const containerEl = document.getElementById('selected_services_list'); Array.from(containerEl.querySelectorAll('input.entry-hidden[data-service="'+id+'"]')).forEach(n=>n.remove()); const rowsNow = Array.from(document.querySelectorAll('#service_dates_'+id+' .service-date-row')); if(rowsNow.length===0){ try{ ts.removeItem(id); }catch(e){ const el=document.querySelector('[data-service-id="'+id+'"]'); if(el) el.remove(); } return; } let total=0; rowsNow.forEach((r,idx)=>{ const dateVal = r.querySelector('input[type=date]')?.value||''; const qty = parseInt(r.querySelector('input[type=number]')?.value||1); total += qty; const h1=document.createElement('input'); h1.type='hidden'; h1.name='services_data['+id+'][entries]['+idx+'][ngay]'; h1.value=dateVal; h1.className='entry-hidden'; h1.setAttribute('data-service', id); const h2=document.createElement('input'); h2.type='hidden'; h2.name='services_data['+id+'][entries]['+idx+'][so_luong]'; h2.value=qty; h2.className='entry-hidden'; h2.setAttribute('data-service', id); container.appendChild(h1); container.appendChild(h2); }); const sumEl = document.getElementById('service_quantity_hidden_'+id); if(sumEl) sumEl.value = total; if(window.computeTotals) window.computeTotals(); }
-
-                            // Ensure hidden inputs match rendered rows
-                            syncHidden(id);
-
-                        });
+                        // Also log click on submit button
+                        submitBtn.addEventListener('click', function(ev) {
+                            console.log('DEBUG [submit click]:', {
+                                disabled: submitBtn.disabled,
+                                eventType: ev.type
+                            });
+                        }, false);
                     }
-
-                    ts.on('change', function(values){ renderSelectedServices(values || []); if(window.computeTotals) window.computeTotals(); });
-
-                    // render initial
-                    renderSelectedServices(ts.getValue() || []);
-                    if(window.computeTotals) window.computeTotals();
-
-                    // normalize on date change
-                    const ngayNhanEl = document.getElementById('ngay_nhan');
-                    const ngayTraEl = document.getElementById('ngay_tra');
-                    if(ngayNhanEl && ngayTraEl){ ngayNhanEl.addEventListener('change', ()=>{ renderSelectedServices(ts.getValue()||[]); }); ngayTraEl.addEventListener('change', ()=>{ renderSelectedServices(ts.getValue()||[]); }); }
-                } catch(e){ console.error('Services init error', e); }
+                } catch (e) {
+                    console.error('DEBUG [setup error]:', e);
+                }
             });
-        });
-    </script>
+
+            // Function to submit confirm form (separate from bookingForm)
+            window.submitConfirmForm = function(event) {
+                event.preventDefault();
+                
+                // Show confirmation dialog
+                if (!confirm('Xác nhận đặt phòng #{{ $booking->id }}?')) {
+                    return false;
+                }
+                
+                // If user confirms, submit form using standard form.submit()
+                const form = document.getElementById('confirmForm');
+                if (form) {
+                    form.submit();
+                }
+            };
+        </script>
     @endpush
 @endsection
