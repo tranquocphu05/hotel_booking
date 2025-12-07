@@ -48,25 +48,21 @@ class PhongController extends Controller
             return LoaiPhong::where('trang_thai', 'hoat_dong')->get();
         });
 
-        // Tính availability theo khoảng thời gian (nếu có) - cache theo checkin/checkout
+        // Tính availability theo khoảng thời gian (nếu có)
+        // KHÔNG cache vì dữ liệu availability cần real-time chính xác
         $checkin = $request->get('checkin');
         $checkout = $request->get('checkout');
         $availabilityMap = [];
         
         if ($checkin && $checkout) {
-            $cacheKey = "availability_{$checkin}_{$checkout}";
-            $availabilityMap = Cache::remember($cacheKey, 300, function () use ($phongs, $checkin, $checkout) {
-                $map = [];
-                foreach ($phongs as $phong) {
-                    try {
-                        $availableCount = Phong::countAvailableRooms($phong->id, $checkin, $checkout);
-                        $map[$phong->id] = $availableCount;
-                    } catch (\Exception $e) {
-                        $map[$phong->id] = null;
-                    }
+            foreach ($phongs as $phong) {
+                try {
+                    $availableCount = Phong::countAvailableRooms($phong->id, $checkin, $checkout);
+                    $availabilityMap[$phong->id] = $availableCount;
+                } catch (\Exception $e) {
+                    $availabilityMap[$phong->id] = null;
                 }
-                return $map;
-            });
+            }
         }
 
         return view('client.content.phong', compact('phongs', 'allLoaiPhongs', 'checkin', 'checkout', 'availabilityMap'));
@@ -104,20 +100,18 @@ class PhongController extends Controller
         // Biến tương thích với view cũ
         $reviewRoom = $loaiPhong;
 
-        // Tính availability theo khoảng thời gian (nếu có) - cache 5 phút
+        // Tính availability theo khoảng thời gian (nếu có)
+        // KHÔNG cache vì dữ liệu availability cần real-time chính xác
         $checkin = $request->get('checkin');
         $checkout = $request->get('checkout');
         $availableCount = null;
         
         if ($checkin && $checkout) {
-            $cacheKey = "available_count_{$id}_{$checkin}_{$checkout}";
-            $availableCount = Cache::remember($cacheKey, 300, function () use ($loaiPhong, $checkin, $checkout) {
-                try {
-                    return Phong::countAvailableRooms($loaiPhong->id, $checkin, $checkout);
-                } catch (\Exception $e) {
-                    return null;
-                }
-            });
+            try {
+                $availableCount = Phong::countAvailableRooms($loaiPhong->id, $checkin, $checkout);
+            } catch (\Exception $e) {
+                $availableCount = null;
+            }
         }
 
         return view('client.content.show', compact('loaiPhong', 'relatedLoaiPhongs', 'comments', 'reviewRoom', 'checkin', 'checkout', 'availableCount'));
