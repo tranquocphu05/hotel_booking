@@ -115,7 +115,22 @@ class ThanhToanController extends Controller
             ]
         );
 
-        return view('client.thanh-toan.show', compact('datPhong', 'invoice', 'originalPrice', 'discountAmount', 'surchargeAmount', 'nights', 'roomTypes', 'availableRooms', 'surchargeMap'));
+        // Tính thời gian còn lại trước khi booking bị auto hủy (5 phút kể từ lúc đặt)
+        // Nếu booking đã quá 5 phút hoặc đã bị hủy/xác nhận thì remainingSeconds sẽ = 0
+        $remainingSeconds = 0;
+        if ($datPhong->ngay_dat) {
+            $bookingTime = Carbon::parse($datPhong->ngay_dat);
+            $expireTime = $bookingTime->copy()->addSeconds(300); // 5 phút = 300 giây
+            $now = Carbon::now();
+
+            if ($now->lessThan($expireTime)
+                && $datPhong->trang_thai === 'cho_xac_nhan'
+                && $invoice->trang_thai === 'cho_thanh_toan') {
+                $remainingSeconds = $now->diffInSeconds($expireTime);
+            }
+        }
+
+        return view('client.thanh-toan.show', compact('datPhong', 'invoice', 'originalPrice', 'discountAmount', 'surchargeAmount', 'nights', 'roomTypes', 'availableRooms', 'surchargeMap', 'remainingSeconds'));
     }
 
     /**
