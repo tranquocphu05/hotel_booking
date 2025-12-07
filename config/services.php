@@ -47,4 +47,15 @@ return [
         'url' => env('VNPAY_URL', 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html'),
     ],
 
+    'sepay' => [
+        'merchant_id' => env('SEPAY_MERCHANT_ID'),
+        'secret_key' => env('SEPAY_SECRET_KEY'),
+        'webhook_token' => env('SEPAY_WEBHOOK_TOKEN'),
+        'base_url' => env('SEPAY_BASE_URL', 'https://my.sepay.vn/userapi'),
+        'bank_account_number' => env('SEPAY_BANK_ACCOUNT'),
+        'bank_code' => env('SEPAY_BANK_CODE', 'MB'),
+        'account_name' => env('SEPAY_ACCOUNT_NAME', 'HOTEL BOOKING'),
+        'pattern' => env('SEPAY_PATTERN', 'SE'),
+    ],
+
 ];
