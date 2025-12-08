@@ -4,94 +4,58 @@
 
 @section('admin_content')
     <div class="py-6">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <!-- Header -->
-            <div class="mb-8 flex justify-between items-center">
-                <div>
-                    <h1 class="text-3xl font-bold text-gray-900">Danh sách đặt phòng</h1>
-                    <p class="mt-1 text-sm text-gray-600">Quản lý tất cả các đặt phòng của bạn</p>
-                </div>
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <div class="mb-6 flex justify-between items-center">
+                <h2 class="text-2xl font-semibold text-gray-800">Danh sách đặt phòng của bạn</h2>
+                {{-- Nút để tạo đặt phòng mới --}}
                 <a href="{{ route('admin.dat_phong.create') }}"
-                    class="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                     </svg>
                     Đặt phòng mới
                 </a>
             </div>
             
-            <!-- Statistics Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <svg class="h-6 w-6 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-600">Chờ xác nhận</p>
-                            <p class="text-2xl font-bold text-gray-900">{{ $bookingCounts['cho_xac_nhan'] }}</p>
-                        </div>
-                    </div>
+            {{-- Thống kê số phòng --}}
+            <span class="bg-yellow-500 text-white text-sm px-2 py-1 rounded-full inline-block mb-4 font-medium">Thống kê hôm nay</span>
+            <div class="flex space-x-4 mb-8">
+                <div class="bg-white border border-gray-200 p-4 rounded-lg shadow-sm w-1/4">
+                    <h3 class="text-sm font-medium text-gray-600">Chờ xác nhận</h3>
+                    <p class="text-xl font-semibold text-gray-800">{{ $bookingCounts['cho_xac_nhan'] }}</p>
                 </div>
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <svg class="h-6 w-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-600">Đã xác nhận</p>
-                            <p class="text-2xl font-bold text-gray-900">{{ $bookingCounts['da_xac_nhan'] }}</p>
-                        </div>
-                    </div>
+                <div class="bg-white border border-gray-200 p-4 rounded-lg shadow-sm w-1/4">
+                    <h3 class="text-sm font-medium text-gray-600">Đã xác nhận</h3>
+                    <p class="text-xl font-semibold text-gray-800">{{ $bookingCounts['da_xac_nhan'] }}</p>
                 </div>
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <svg class="h-6 w-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-600">Đã hủy</p>
-                            <p class="text-2xl font-bold text-gray-900">{{ $bookingCounts['da_huy'] }}</p>
-                        </div>
-                    </div>
+                <div class="bg-white border border-gray-200 p-4 rounded-lg shadow-sm w-1/4">
+                    <h3 class="text-sm font-medium text-gray-600">Đã hủy</h3>
+                    <p class="text-xl font-semibold text-gray-800">{{ $bookingCounts['da_huy'] }}</p>
                 </div>
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <svg class="h-6 w-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-600">Đã trả phòng</p>
-                            <p class="text-2xl font-bold text-gray-900">{{ $bookingCounts['da_tra'] }}</p>
-                        </div>
-                    </div>
+                <div class="bg-white border border-gray-200 p-4 rounded-lg shadow-sm w-1/4">
+                    <h3 class="text-sm font-medium text-gray-600">Đã trả phòng</h3>
+                    <p class="text-xl font-semibold text-gray-800">{{ $bookingCounts['da_tra'] }}</p>
                 </div>
             </div>
 
-            <!-- Filter Section -->
-            <div class="mb-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Bộ lọc</h3>
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {{-- Bộ lọc cho danh sách đặt phòng --}}
+            <div class="mb-6 bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                <h3 class="text-lg font-medium text-gray-800 mb-3">Bộ lọc</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
-                        <label for="search" class="block text-sm font-medium text-gray-700 mb-2">Tìm theo tên/mã</label>
+                        <label for="search" class="block text-sm font-medium text-gray-700">Tìm theo tên/mã</label>
                         <input type="text" id="search" 
-                            class="filter-input w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            class="filter-input mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             placeholder="Nhập tên phòng, mã đặt..."
                             value="{{ request('search') }}">
                     </div>
                     <div>
-                        <label for="status" class="block text-sm font-medium text-gray-700 mb-2">Trạng thái</label>
+                        <label for="status" class="block text-sm font-medium text-gray-700">Trạng thái</label>
                         <select id="status"
-                            class="filter-input w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
-                            <option value="">Tất cả trạng thái</option>
+                            class="filter-input mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                            <option value="">Tất cả</option>
                             <option value="cho_xac_nhan" {{ request('status') == 'cho_xac_nhan' ? 'selected' : '' }}>Chờ xác nhận</option>
                             <option value="da_xac_nhan" {{ request('status') == 'da_xac_nhan' ? 'selected' : '' }}>Đã xác nhận</option>
                             <option value="da_huy" {{ request('status') == 'da_huy' ? 'selected' : '' }}>Đã hủy</option>
@@ -100,112 +64,113 @@
                         </select>
                     </div>
                     <div>
-                        <label for="from_date" class="block text-sm font-medium text-gray-700 mb-2">Từ ngày nhận</label>
+                        <label for="from_date" class="block text-sm font-medium text-gray-700">Từ ngày nhận</label>
                         <input type="date" id="from_date"
-                            class="filter-input w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            class="filter-input mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             value="{{ request('from_date') }}">
                     </div>
                     <div>
-                        <label for="to_date" class="block text-sm font-medium text-gray-700 mb-2">Đến ngày trả</label>
+                        <label for="to_date" class="block text-sm font-medium text-gray-700">Đến ngày trả</label>
                         <input type="date" id="to_date"
-                            class="filter-input w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            class="filter-input mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             value="{{ request('to_date') }}">
                     </div>
                 </div>
             </div>
 
-            <div data-content-container class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div data-content-container class="bg-white rounded-lg shadow-md overflow-hidden">
                 @if ($bookings->isEmpty() && !request()->hasAny(['search', 'status', 'from_date', 'to_date']))
-                    <div class="p-12 text-center">
+                    <div class="p-6 text-center">
                         <div class="mb-4">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-16 w-16 text-gray-300" fill="none"
+                            <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-gray-400" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                    d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                             </svg>
                         </div>
-                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Chưa có đặt phòng nào</h3>
-                        <p class="text-gray-600 mb-6">Hãy tạo một đặt phòng mới để bắt đầu quản lý</p>
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">Chưa có đặt phòng nào</h3>
+                        <p class="text-gray-500 mb-4">Hãy tạo một đặt phòng mới để bắt đầu quản lý.</p>
                         <a href="{{ route('admin.dat_phong.create') }}"
-                            class="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                             </svg>
                             Đặt phòng mới
                         </a>
                     </div>
                 @elseif ($bookings->isEmpty() && request()->hasAny(['search', 'status', 'from_date', 'to_date']))
-                    <div class="p-12 text-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                        <p class="text-gray-600 font-medium">Không tìm thấy đặt phòng nào phù hợp với điều kiện lọc</p>
+                    <div class="p-6 text-center text-gray-500">
+                        Không tìm thấy đặt phòng nào phù hợp với điều kiện lọc.
                     </div>
                 @else
                     <div class="overflow-x-auto">
-                        <table class="w-full text-sm">
-                            <thead class="bg-gray-50 border-b border-gray-200">
+                        <table class="min-w-full divide-y divide-gray-200 text-sm">
+                            <thead class="bg-gray-50 text-gray-700 uppercase">
                                 <tr>
-                                    <th class="px-4 py-3 text-left font-semibold text-gray-700 text-sm">Mã Đặt</th>
-                                    <th class="px-4 py-3 text-left font-semibold text-gray-700 text-sm">Loại Phòng & SL</th>
-                                    <th class="px-4 py-3 text-center font-semibold text-gray-700 text-sm">Check-in</th>
-                                    <th class="px-4 py-3 text-center font-semibold text-gray-700 text-sm">Check-out</th>
-                                    <th class="px-4 py-3 text-center font-semibold text-gray-700 text-sm">Số người</th>
-                                    <th class="px-4 py-3 text-right font-semibold text-gray-700 text-sm">Tổng tiền</th>
-                                    <th class="px-4 py-3 text-center font-semibold text-gray-700 text-sm">Ngày đặt</th>
-                                    <th class="px-4 py-3 text-center font-semibold text-gray-700 text-sm">Trạng thái</th>
-                                    <th class="px-4 py-3 text-center font-semibold text-gray-700 text-sm">Thao tác</th>
+                                    <th class="px-6 py-3 text-center whitespace-nowrap">Mã Đặt</th>
+                                    <th class="px-6 py-3 text-left whitespace-nowrap">Loại Phòng & SL</th>
+                                    <th class="px-6 py-3 text-center whitespace-nowrap">Check-in</th>
+                                    <th class="px-6 py-3 text-center whitespace-nowrap">Check-out</th>
+                                    <th class="px-6 py-3 text-center whitespace-nowrap">Số người</th>
+                                    <th class="px-6 py-3 text-center whitespace-nowrap">Tổng tiền</th>
+                                    <th class="px-6 py-3 text-center whitespace-nowrap">Ngày đặt</th>
+                                    <th class="px-6 py-3 text-center whitespace-nowrap">Trạng thái</th>
+                                    <th class="px-6 py-3 text-center whitespace-nowrap">Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-200">
                                 @foreach ($bookings as $booking)
-                                    <tr class="hover:bg-gray-50 transition-colors">
-                                        <td class="px-4 py-3 text-left whitespace-nowrap">
-                                            <span class="font-semibold text-blue-600">#{{ $booking->id }}</span>
-                                        </td>
-                                        <td class="px-4 py-3 text-left whitespace-nowrap">
+                                    <tr class="hover:bg-gray-50 transition">
+                                        <td class="px-6 py-4 text-center font-semibold text-blue-600 whitespace-nowrap">#{{ $booking->id }}</td>
+                                        <td class="px-6 py-4 text-left">
                                             @php
                                                 $roomTypes = $booking->getRoomTypes();
                                             @endphp
                                             @if(count($roomTypes) > 0)
-                                                <div class="flex flex-wrap gap-1">
-                                                    @foreach($roomTypes as $roomType)
-                                                        @php
-                                                            $loaiPhong = \App\Models\LoaiPhong::find($roomType['loai_phong_id']);
-                                                        @endphp
-                                                        @if($loaiPhong)
-                                                            <span class="inline-block text-xs font-medium text-gray-900 bg-gray-100 px-2 py-1 rounded">
-                                                                {{ substr($loaiPhong->ten_loai, 0, 10) }} ({{ $roomType['so_luong'] }}P)
-                                                            </span>
-                                                        @endif
-                                                    @endforeach
-                                                </div>
+                                                @foreach($roomTypes as $roomType)
+                                                    @php
+                                                        $loaiPhong = \App\Models\LoaiPhong::find($roomType['loai_phong_id']);
+                                                    @endphp
+                                                    @if($loaiPhong)
+                                                        <p class="text-gray-700 whitespace-nowrap">
+                                                            <span class="font-medium">{{ $loaiPhong->ten_loai }}</span>
+                                                            <span class="text-gray-500 text-xs">({{ $roomType['so_luong'] }} P)</span>
+                                                        </p>
+                                                    @endif
+                                                @endforeach
+                                                <p class="text-xs text-gray-500 mt-1">Tổng: {{ $booking->so_luong_da_dat ?? 1 }} phòng</p>
                                             @else
-                                                <span class="text-gray-500">-</span>
+                                                 <p class="text-gray-500">-</p>
                                             @endif
                                         </td>
-                                        <td class="px-4 py-3 text-center text-gray-700 whitespace-nowrap text-sm">
+                                        <td class="px-6 py-4 text-center whitespace-nowrap">
                                             {{ date('d/m/Y', strtotime($booking->ngay_nhan)) }}
                                         </td>
-                                        <td class="px-4 py-3 text-center text-gray-700 whitespace-nowrap text-sm">
+                                        <td class="px-6 py-4 text-center whitespace-nowrap">
                                             {{ date('d/m/Y', strtotime($booking->ngay_tra)) }}
                                         </td>
-                                        <td class="px-4 py-3 text-center text-gray-700 whitespace-nowrap">{{ $booking->so_nguoi }}</td>
-                                        <td class="px-4 py-3 text-right whitespace-nowrap">
-                                            <div class="font-semibold text-blue-700 text-sm">
-                                                {{ number_format($booking->tong_tien, 0, ',', '.') }} VNĐ
-                                            </div>
-
+                                        <td class="px-6 py-4 text-center whitespace-nowrap">{{ $booking->so_nguoi }}</td>
+                                        <td class="px-6 py-4 text-right font-medium text-blue-700 whitespace-nowrap">
+                                            @php
+                                                // Ưu tiên hiển thị từ invoice vì invoice luôn có tổng tiền chính xác nhất
+                                                // (bao gồm cả phụ phí checkout nếu có)
+                                                $tongTienHienThi = $booking->invoice && $booking->invoice->tong_tien 
+                                                    ? $booking->invoice->tong_tien 
+                                                    : $booking->tong_tien;
+                                            @endphp
+                                            {{ number_format($tongTienHienThi, 0, ',', '.') }} VNĐ
                                             @if ($booking->voucher_id)
-                                                <div class="text-xs text-green-600 font-medium">
-                                                    {{ $booking->voucher ? $booking->voucher->ma_voucher : 'Voucher' }}
-                                                </div>
+                                                <p class="text-xs text-green-500 mt-1">
+                                                    ({{ $booking->voucher ? $booking->voucher->ma_voucher : 'Voucher' }})
+                                                </p>
                                             @endif
                                         </td>
-                                        <td class="px-4 py-3 text-center text-sm text-gray-600 whitespace-nowrap">
-                                            {{ date('d/m/Y', strtotime($booking->ngay_dat)) }}
+                                        <td class="px-6 py-4 text-center text-gray-500 whitespace-nowrap">
+                                            {{ date('d/m/Y H:i', strtotime($booking->ngay_dat)) }}
                                         </td>
-                                        <td class="px-4 py-3 text-center">
+                                        <td class="px-6 py-4 text-center whitespace-nowrap">
                                             @php
                                                 $status = $booking->trang_thai;
                                                 $statusMap = [
@@ -217,52 +182,68 @@
                                                 ];
                                                 $statusInfo = $statusMap[$status] ?? ['label' => $status, 'class' => 'bg-gray-100 text-gray-800'];
                                             @endphp
-                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold whitespace-nowrap {{ $statusInfo['class'] }}">
+                                            <span class="px-3 py-1 rounded-full text-xs font-medium {{ $statusInfo['class'] }}">
                                                 {{ $statusInfo['label'] }}
                                             </span>
                                             @if($booking->invoice && $booking->invoice->trang_thai === 'da_thanh_toan')
-                                                <div class="text-xs text-green-700 font-medium">✓ Đã TT</div>
+                                                <p class="text-xs text-green-600 font-medium mt-1">Đã TT</p>
                                             @endif
                                         </td>
-                                        <td class="px-4 py-3">
+                                        <td class="px-6 py-4 text-center whitespace-nowrap">
                                             <div class="flex items-center justify-center space-x-2">
                                                 <a href="{{ route('admin.dat_phong.show', $booking->id) }}" title="Xem chi tiết"
-                                                    class="inline-flex items-center justify-center w-7 h-7 rounded hover:bg-blue-50 text-blue-600 hover:text-blue-700 transition text-xs">
+                                                    class="text-blue-600 hover:text-blue-700 transition">
                                                     <i class="fas fa-eye"></i>
                                                 </a>
                                                 
                                                 @if ($booking->trang_thai === 'cho_xac_nhan')
                                                     <a href="{{ route('admin.dat_phong.edit', $booking->id) }}" title="Sửa"
-                                                        class="inline-flex items-center justify-center w-7 h-7 rounded hover:bg-amber-50 text-amber-600 hover:text-amber-700 transition text-xs">
+                                                        class="text-gray-500 hover:text-amber-600 transition">
                                                         <i class="fas fa-edit"></i>
                                                     </a>
                                                     
+                                                    {{-- Nút Xác nhận --}}
                                                     <form action="{{ route('admin.dat_phong.confirm', $booking->id) }}" method="POST" class="inline"
                                                         onsubmit="return confirm('Xác nhận đặt phòng #{{ $booking->id }}?')">
                                                         @csrf
                                                         @method('PUT')
-                                                        <button type="submit" title="Xác nhận"
-                                                            class="inline-flex items-center justify-center w-7 h-7 rounded hover:bg-green-50 text-green-600 hover:text-green-700 transition text-xs">
+                                                        <button type="submit" title="Xác nhận" class="text-green-600 hover:text-green-700 transition">
                                                             <i class="fas fa-check-circle"></i>
                                                         </button>
                                                     </form>
 
+                                                    {{-- Nút Hủy --}}
                                                     <a href="{{ route('admin.dat_phong.cancel', $booking->id) }}" title="Hủy"
-                                                        class="inline-flex items-center justify-center w-7 h-7 rounded hover:bg-red-50 text-red-600 hover:text-red-700 transition text-xs"
-                                                        onclick="if(!confirm('Bạn có chắc chắn muốn hủy đặt phòng #{{ $booking->id }}?')) return false;">
+                                                        class="text-red-600 hover:text-red-700 transition"
+                                                        onclick="event.preventDefault(); if(confirm('Bạn có chắc chắn muốn hủy đặt phòng #{{ $booking->id }}?')) { document.getElementById('cancel-form-{{ $booking->id }}').submit(); }">
                                                         <i class="fas fa-times-circle"></i>
                                                     </a>
-                                                
-                                                @elseif ($booking->trang_thai === 'da_xac_nhan' && (!$booking->invoice || $booking->invoice->trang_thai !== 'da_thanh_toan'))
-                                                    <form action="{{ route('admin.dat_phong.mark_paid', $booking->id) }}" method="POST" class="inline"
-                                                        onsubmit="return confirm('Đánh dấu đặt phòng #{{ $booking->id }} đã thanh toán?')">
+                                                    <form id="cancel-form-{{ $booking->id }}" action="{{ route('admin.dat_phong.cancel', $booking->id) }}" method="POST" style="display: none;">
                                                         @csrf
                                                         @method('PUT')
-                                                        <button type="submit" title="Đánh dấu đã thanh toán"
-                                                            class="inline-flex items-center justify-center w-7 h-7 rounded hover:bg-blue-50 text-blue-600 hover:text-blue-700 transition text-xs">
-                                                            <i class="fas fa-money-bill-wave"></i>
-                                                        </button>
                                                     </form>
+                                                
+                                                @elseif ($booking->trang_thai === 'da_xac_nhan')
+                                                    {{-- Nút Hủy cho booking đã xác nhận nhưng chưa check-in --}}
+                                                    @if (!$booking->thoi_gian_checkin)
+                                                        <a href="{{ route('admin.dat_phong.cancel', $booking->id) }}" title="Hủy"
+                                                            class="text-red-600 hover:text-red-700 transition"
+                                                            onclick="event.preventDefault(); if(confirm('Bạn có chắc chắn muốn hủy đặt phòng #{{ $booking->id }}? Booking đã xác nhận sẽ được xử lý hoàn tiền theo chính sách.')) { window.location.href='{{ route('admin.dat_phong.cancel', $booking->id) }}'; }">
+                                                            <i class="fas fa-times-circle"></i>
+                                                        </a>
+                                                    @endif
+                                                    
+                                                    @if (!$booking->invoice || $booking->invoice->trang_thai !== 'da_thanh_toan')
+                                                        {{-- Nút Đánh dấu đã thanh toán (chỉ khi đã xác nhận và chưa thanh toán) --}}
+                                                        <form action="{{ route('admin.dat_phong.mark_paid', $booking->id) }}" method="POST" class="inline"
+                                                            onsubmit="return confirm('Đánh dấu đặt phòng #{{ $booking->id }} đã thanh toán?')">
+                                                            @csrf
+                                                            @method('PUT')
+                                                            <button type="submit" title="Đánh dấu đã TT" class="text-blue-600 hover:text-blue-700 transition">
+                                                                <i class="fas fa-money-bill-wave"></i>
+                                                            </button>
+                                                        </form>
+                                                    @endif
                                                 @endif
                                             </div>
                                         </td>
@@ -271,7 +252,7 @@
                             </tbody>
                         </table>
                     </div>
-                    <div class="border-t border-gray-200 px-6 py-4">
+                    <div class="mt-6 p-4">
                         {{ $bookings->links() }}
                     </div>
                 @endif

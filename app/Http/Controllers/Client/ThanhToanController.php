@@ -152,10 +152,10 @@ class ThanhToanController extends Controller
     public function store(Request $request, DatPhong $datPhong)
     {
         $request->validate([
-            'phuong_thuc' => 'required|string|in:vnpay',
+            'phuong_thuc' => 'required|string|in:vnpay,sepay',
         ], [
             'phuong_thuc.required' => 'Vui lòng chọn phương thức thanh toán.',
-            'phuong_thuc.in' => 'Phương thức thanh toán không hợp lệ. Chỉ hỗ trợ thanh toán qua VNPay.',
+            'phuong_thuc.in' => 'Phương thức thanh toán không hợp lệ. Chỉ hỗ trợ VNPay hoặc SePay.',
         ]);
 
         $invoice = $datPhong->invoice;
@@ -167,6 +167,10 @@ class ThanhToanController extends Controller
 
         if ($request->phuong_thuc === 'vnpay') {
             return redirect()->route('client.vnpay_payment', ['datPhong' => $datPhong->id]);
+        }
+
+        if ($request->phuong_thuc === 'sepay') {
+            return redirect()->route('client.sepay.qr', ['datPhong' => $datPhong->id]);
         }
 
         // Hiển thị thông báo đặt phòng thành công sau khi xác nhận thanh toán

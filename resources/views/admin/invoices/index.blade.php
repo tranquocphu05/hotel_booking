@@ -18,45 +18,44 @@
   @endif
 
   {{-- Filter --}}
-  <div class="mb-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Bộ lọc</h3>
-            <form action="{{ route('admin.invoices.index') }}" method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Khách hàng</label>
-                    <select name="user_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white">
-                        <option value="">Tất cả Khách hàng</option>
-                        @foreach($users as $u)
-                            <option value="{{ $u->id }}" @selected(request('user_id')==$u->id)>{{ $u->ho_ten ?? $u->username }}</option>
-                        @endforeach
-                    </select>
-                </div>
+  <div class="mb-6 bg-gray-50 p-4 rounded-lg">
+    <form action="{{ route('admin.invoices.index') }}" method="GET" class="flex flex-col sm:flex-row gap-4">
+      <div class="flex-1">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Khách hàng</label>
+        <select name="user_id" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-700">
+          <option value="">Tất cả Khách hàng</option>
+          @foreach($users as $u)
+            <option value="{{ $u->id }}" @selected(request('user_id')==$u->id)>{{ $u->ho_ten ?? $u->username }}</option>
+          @endforeach
+        </select>
+      </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Trạng thái</label>
-                    <select name="status" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white">
-                        <option value="">Tất cả Trạng thái</option>
-                        <option value="cho_thanh_toan" @selected(request('status')=='cho_thanh_toan')>Chờ thanh toán</option>
-                        <option value="da_thanh_toan" @selected(request('status')=='da_thanh_toan')>Đã thanh toán</option>
-                        <option value="hoan_tien" @selected(request('status')=='hoan_tien')>Hoàn tiền</option>
-                    </select>
-                </div>
+      <div class="flex-1">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Trạng thái</label>
+        <select name="status" class="w-full px-3 py-2 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-700 text-sm">
+          <option value="">Tất cả Trạng thái</option>
+          <option value="cho_thanh_toan"  @selected(request('status')=='cho_thanh_toan')>Chờ thanh toán</option>
+          <option value="da_thanh_toan"   @selected(request('status')=='da_thanh_toan')>Đã thanh toán</option>
+          <option value="hoan_tien"       @selected(request('status')=='hoan_tien')>Hoàn tiền</option>
+        </select>
+      </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Loại HĐ</label>
-                    <select name="invoice_type" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white">
-                        <option value="">Tất cả loại</option>
-                        <option value="EXTRA" @selected(request('invoice_type')=='EXTRA')>Phát sinh</option>
-                        <option value="PREPAID" @selected(request('invoice_type')=='PREPAID')>Hóa đơn chính</option>
-                    </select>
-                </div>
+      <div class="flex-1">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Loại HĐ</label>
+        <select name="invoice_type" class="w-full px-3 py-2 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-700 text-sm">
+          <option value="">Tất cả loại</option>
+          <option value="EXTRA" @selected(request('invoice_type')=='EXTRA')>PHÁT SINH</option>
+          <option value="PREPAID" @selected(request('invoice_type')=='PREPAID')>Hóa đơn chính</option>
+        </select>
+      </div>
 
-                <div class="flex items-end">
-                    <button type="submit" class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-colors">
-                        <i class="fas fa-search mr-2"></i>Tìm kiếm
-                    </button>
-                </div>
-            </form>
-        </div>
+      <div class="flex items-end">
+        <button type="submit" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-all hover:scale-105 shadow-sm">
+          <i class="fas fa-filter mr-2"></i>Lọc
+        </button>
+      </div>
+    </form>
+  </div>
 
   {{-- Table --}}
   <div class="overflow-x-auto w-full">
