@@ -51,20 +51,10 @@ class AutoCancelExpiredBookings
             // Tính chính xác: booking quá 5 phút (300 giây) sẽ bị hủy
             $expiredDate = Carbon::now()->subSeconds(300); // 5 phút = 300 giây
 
-            // Find bookings pending confirmation older than threshold.
-            // Previously this required an invoice in status 'cho_thanh_toan' which
-            // prevented bookings without invoices from being auto-cancelled.
-            // New rule: cancel bookings that are pending and older than threshold
-            // regardless of whether they have an invoice; if an invoice exists
-            // it will still be considered if its status is 'cho_thanh_toan'.
             $expiredBookings = DatPhong::where('trang_thai', 'cho_xac_nhan')
                 ->where('ngay_dat', '<=', $expiredDate)
-                ->where(function($q) {
-                    // include bookings without invoice OR with invoice waiting for payment
-                    $q->whereDoesntHave('invoice')
-                      ->orWhereHas('invoice', function ($query) {
-                          $query->where('trang_thai', 'cho_thanh_toan');
-                      });
+                ->whereHas('invoice', function ($query) {
+                    $query->where('trang_thai', 'cho_thanh_toan');
                 })
                 ->with(['invoice', 'loaiPhong', 'voucher'])
                 ->get();
