@@ -4,9 +4,11 @@ namespace App\Models;
 
 use App\Models\Invoice;
 use App\Models\LoaiPhong;
+use App\Models\Phong;
 use App\Models\YeuCauDoiPhong as ModelsYeuCauDoiPhong;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 use YeuCauDoiPhong;
 
 class DatPhong extends Model
@@ -20,6 +22,7 @@ class DatPhong extends Model
 
     /**
      * Indicates if the model should be timestamped.
+     * DatPhong table doesn't have created_at/updated_at columns.
      *
      * @var bool
      */
@@ -32,27 +35,37 @@ class DatPhong extends Model
      */
     protected $fillable = [
         'nguoi_dung_id',
-        'loai_phong_id',  // Book by room type (primary/legacy support)
-        'room_types',
-        'phong_ids',
-        'so_luong_da_dat',  // Number of rooms booked in this booking
-        'phong_id',  // Specific room assigned (nullable, legacy support)
+        'loai_phong_id',
+        'phong_id',
         'ngay_dat',
         'ngay_nhan',
         'ngay_tra',
-        'so_nguoi',
-        'trang_thai',
-        'tien_phong',
-        'tien_dich_vu',
         'tong_tien',
-        'voucher_id',
-        'ly_do_huy',
-        'ngay_huy',
-        'ghi_chu_hoan_tien',
-        'username',
-        'email',
-        'sdt',
-        'cccd',
+        'tong_tien_phong',
+        'ghi_chu',
+        'trang_thai',
+        'phi_phat_sinh',
+        'thoi_gian_checkin',
+        'thoi_gian_checkout',
+        'nguoi_checkin',
+        'nguoi_checkout',
+        'ghi_chu_checkin',
+        'ghi_chu_checkout',
+        'room_types',
+        'phong_ids',
+    ];
+
+    /**
+        // Return the collection of Phong models attached via pivot table (booking_rooms).
+        $phongs = $this->phongs()->get();
+
+        // Fallback: if pivot empty but legacy single phong_id exists, return that Phong
+        if ($phongs->isEmpty() && $this->phong_id) {
+            $single = Phong::find($this->phong_id);
+            return $single ? collect([$single]) : collect();
+        }
+
+        return $phongs;
         // Check-in/Check-out fields
         'thoi_gian_checkin',
         'thoi_gian_checkout',
@@ -72,7 +85,9 @@ class DatPhong extends Model
         'ngay_dat' => 'datetime',
         'ngay_nhan' => 'date',
         'ngay_tra' => 'date',
-        'tong_tien' => 'decimal:2',
+        'tong_tien' => 'decimal:0',
+        'tien_phong' => 'decimal:0',
+        'tien_dich_vu' => 'decimal:0',
         'phi_phat_sinh' => 'decimal:2',
         'thoi_gian_checkin' => 'datetime',
         'thoi_gian_checkout' => 'datetime',
@@ -157,46 +172,28 @@ class DatPhong extends Model
      */
     public function getAssignedPhongs()
     {
-        return $this->phongs;
-    }
+        // Return the collection of Phong models attached via pivot table (booking_rooms).
+        $phongs = $this->phongs()->get();
 
-    /**
-     * Add a room to booking via pivot table
-     */
-    public function addPhong($phongId)
-    {
-        // Check if already attached
-        if (!$this->phongs()->where('phong_id', $phongId)->exists()) {
-            $this->phongs()->attach($phongId);
+        // Fallback: if pivot empty but legacy single phong_id exists, return that Phong as a collection
+        if ($phongs->isEmpty() && $this->phong_id) {
+            $single = Phong::find($this->phong_id);
+            return $single ? collect([$single]) : collect();
         }
-        return $this;
-    }
 
-    /**
-     * Remove a room from booking via pivot table
-     */
-    public function removePhong($phongId)
-    {
-        $this->phongs()->detach($phongId);
-        return $this;
-    }
-
-    /**
-     * Sync rooms with booking (replace all rooms)
-     */
-    public function syncPhongs(array $phongIds)
-    {
-        $this->phongs()->sync($phongIds);
-        return $this;
+        return $phongs;
     }
 
     /**
      * Get all room types in this booking from pivot table
-     * Returns collection with loai_phong_id, so_luong, gia_rieng
+     * Returns array with loai_phong_id, so_luong, gia_rieng, phong_ids
      */
     public function getRoomTypes()
     {
         $roomTypes = $this->roomTypes()->get();
+        
+        // DEBUG
+        // Log::info('getRoomTypes for booking ' . $this->id . ': roomTypes_count=' . $roomTypes->count() . ', loai_phong_id=' . $this->loai_phong_id . ', so_luong_da_dat=' . $this->so_luong_da_dat);
 
         // If no room types in pivot, fallback to legacy single room type
         if ($roomTypes->isEmpty() && $this->loai_phong_id) {
@@ -205,21 +202,31 @@ class DatPhong extends Model
                     'loai_phong_id' => $this->loai_phong_id,
                     'so_luong' => $this->so_luong_da_dat ?? 1,
                     'gia_rieng' => $this->tong_tien ?? 0,
+                    'phong_ids' => $this->getPhongIds(),
                 ]
             ]);
         }
 
+        
+        // Get all assigned room ids for this booking from pivot table
+        $allAssignedRoomIds = $this->phongs()->pluck('phong.id')->toArray();
+        
         // Transform to array format for compatibility
-        return $roomTypes->map(function ($roomType) {
+        return $roomTypes->map(function ($roomType) use ($allAssignedRoomIds) {
+            // Filter rooms to only those of this room type
+            $phongIdsForThisType = Phong::whereIn('id', $allAssignedRoomIds)
+                ->where('loai_phong_id', $roomType->id)
+                ->pluck('id')
+                ->toArray();
+            
             return [
                 'loai_phong_id' => $roomType->id,
                 'so_luong' => $roomType->pivot->so_luong,
                 'gia_rieng' => $roomType->pivot->gia_rieng,
+                'phong_ids' => $phongIdsForThisType, // Room IDs for this specific room type
             ];
-        });
-    }
-
-    /**
+        })->toArray();  // Convert Collection to Array
+    }    /**
      * Add room type to booking via pivot table
      */
     public function addRoomType($loaiPhongId, $soLuong, $giaRieng)
@@ -310,41 +317,6 @@ class DatPhong extends Model
     public function isDaXacNhan()
     {
         return $this->trang_thai === 'da_xac_nhan';
-    }
-
-    /**
-     * Check if booking is cancelled
-     */
-    public function isDaHuy()
-    {
-        return $this->trang_thai === 'da_huy';
-    }
-
-    /**
-     * Check if booking is completed
-     */
-    public function isDaTra()
-    {
-        return $this->trang_thai === 'da_tra';
-    }
-
-    /**
-     * Check if guest can request services (checked in but not checked out)
-     */
-    public function canRequestService()
-    {
-        return $this->thoi_gian_checkin
-            && !$this->thoi_gian_checkout
-            && $this->trang_thai === 'da_xac_nhan';
-    }
-
-    /**
-     * Check if booking can be checked in
-     */
-    public function canCheckin()
-    {
-        return $this->trang_thai === 'da_xac_nhan'
-            && !$this->thoi_gian_checkin;
     }
 
     /**

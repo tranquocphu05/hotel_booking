@@ -193,36 +193,127 @@ class InvoiceController extends Controller
             }
         }
         
-        // Assigned room ids for this booking (phong_ids JSON or legacy phong_id)
-        $assignedPhongIds = $booking->phong_ids ?? $booking->getPhongIds();
+        // Assigned room ids for this booking (use pivot helper)
+        $assignedPhongIds = $booking ? $booking->getPhongIds() : [];
 
         // Pre-load all LoaiPhong objects used in room_types for efficient calculation in view
-        $roomTypes = $booking->getRoomTypes();
-        $loaiPhongIds = $roomTypes->pluck('loai_phong_id')->toArray();
-        $loaiPhongs = \App\Models\LoaiPhong::whereIn('id', $loaiPhongIds)->get()->keyBy('id');
+        $roomTypes = $booking->getRoomTypes(); // Returns array of room types
+        $loaiPhongIds = array_column($roomTypes, 'loai_phong_id');
+        $loaiPhongs = !empty($loaiPhongIds) ? \App\Models\LoaiPhong::whereIn('id', $loaiPhongIds)->get()->keyBy('id') : collect();
 
         // use the same status value as other controllers ('hoat_dong')
         $services = Service::where('status', 'hoat_dong')->get();
         
         // Get assigned rooms list with loaiPhong info for the JS
+        // Use the booking pivot helper so we correctly read booking_rooms (or legacy phong_ids)
         $assignedRooms = [];
-        if ($booking && $booking->phong_ids) {
-            $phongIds = $booking->phong_ids;
-            if (is_string($phongIds)) {
-                $phongIds = json_decode($phongIds, true);
+        $phongIds = $booking ? $booking->getPhongIds() : [];
+        if (is_string($phongIds)) {
+            $phongIds = json_decode($phongIds, true);
+        }
+        if (is_array($phongIds) && !empty($phongIds)) {
+            $assignedRooms = Phong::whereIn('id', $phongIds)
+                ->with('loaiPhong:id,ten_loai')
+                ->get()
+                ->map(function($room) {
+                    return [
+                        'id' => $room->id,
+                        'so_phong' => $room->so_phong,
+                        'ten_loai' => $room->loaiPhong ? $room->loaiPhong->ten_loai : 'N/A',
+                    ];
+                })
+                ->toArray();
+        }
+
+        // Also include any rooms referenced directly by booking services (phong_id)
+        // so the UI can render checkboxes for rooms that may not be attached via pivot.
+        try {
+            $bsRoomIds = $bookingServices->pluck('phong_id')->filter()->unique()->toArray();
+            $existingIds = array_column($assignedRooms, 'id') ?: [];
+            $missing = array_diff($bsRoomIds, $existingIds);
+            if (!empty($missing)) {
+                $more = Phong::whereIn('id', $missing)->with('loaiPhong:id,ten_loai')->get()->map(function($room) {
+                    return [
+                        'id' => $room->id,
+                        'so_phong' => $room->so_phong,
+                        'ten_loai' => $room->loaiPhong ? $room->loaiPhong->ten_loai : 'N/A',
+                    ];
+                })->toArray();
+                $assignedRooms = array_merge($assignedRooms, $more);
             }
-            if (is_array($phongIds) && !empty($phongIds)) {
-                $assignedRooms = Phong::whereIn('id', $phongIds)
-                    ->with('loaiPhong:id,ten_loai')
-                    ->get()
-                    ->map(function($room) {
-                        return [
-                            'id' => $room->id,
-                            'so_phong' => $room->so_phong,
-                            'ten_loai' => $room->loaiPhong ? $room->loaiPhong->ten_loai : 'N/A',
-                        ];
-                    })
-                    ->toArray();
+        } catch (\Throwable $e) {
+            // ignore if bookingServices is not a collection or other issues
+        }
+
+        // Calculate room total properly from booking data (same as show.blade.php)
+        $nights = 1;
+        $roomTotalCalculated = 0;
+        if ($invoice->isExtra()) {
+            // For EXTRA invoices, do not include room price
+            $roomTotalCalculated = 0;
+        } else if ($booking && $booking->ngay_nhan && $booking->ngay_tra) {
+            $checkin = \Carbon\Carbon::parse($booking->ngay_nhan);
+            $checkout = \Carbon\Carbon::parse($booking->ngay_tra);
+            $nights = max(1, $checkin->diffInDays($checkout));
+            
+            // Get room types and calculate room total using LoaiPhong promotional price
+            $roomTypes = $booking->getRoomTypes();
+            foreach ($roomTypes as $rt) {
+                $soLuong = $rt['so_luong'] ?? 1;
+                $loaiPhongId = $rt['loai_phong_id'] ?? null;
+                $unit = 0;
+                if ($loaiPhongId && isset($loaiPhongs[$loaiPhongId])) {
+                    $lp = $loaiPhongs[$loaiPhongId];
+                    $unit = $lp->gia_khuyen_mai ?? $lp->gia_co_ban ?? 0;
+                }
+                $roomTotalCalculated += $unit * $nights * $soLuong;
+            }
+        }
+        
+        // Get current service total from database
+        $currentServiceTotal = 0;
+        foreach ($bookingServices as $bs) {
+            $currentServiceTotal += ($bs->quantity ?? 0) * ($bs->unit_price ?? 0);
+        }
+
+        // Calculate voucher discount on room subtotal (if invoice is not EXTRA)
+        $voucherDiscount = 0;
+        if (!$invoice->isExtra() && $booking && $booking->voucher) {
+            $voucher = $booking->voucher;
+            $voucherPercent = floatval($voucher->gia_tri ?? 0);
+            $voucherLoaiPhongId = $voucher->loai_phong_id ?? null;
+
+            if ($voucherPercent > 0) {
+                // If voucher applies to a specific room type, compute subtotal only for that type
+                $applicableTotal = 0;
+                if ($voucherLoaiPhongId) {
+                    $roomTypes = $booking->getRoomTypes();
+                    foreach ($roomTypes as $rt) {
+                        $lpId = $rt['loai_phong_id'] ?? null;
+                        if ($lpId && $lpId == $voucherLoaiPhongId) {
+                            $soLuong = $rt['so_luong'] ?? 1;
+                            $unit = 0;
+                            if ($lpId && isset($loaiPhongs[$lpId])) {
+                                $lp = $loaiPhongs[$lpId];
+                                $unit = $lp->gia_khuyen_mai ?? $lp->gia_co_ban ?? 0;
+                            }
+                            $applicableTotal += $unit * $soLuong * $nights;
+                        }
+                    }
+                } else {
+                    // Voucher applies to all rooms
+                    $applicableTotal = $roomTotalCalculated;
+                }
+
+                if ($applicableTotal > 0) {
+                    if ($voucherPercent <= 100) {
+                        // Percentage discount
+                        $voucherDiscount = intval(round($applicableTotal * ($voucherPercent / 100)));
+                    } else {
+                        // Fixed amount discount (cap at applicable total)
+                        $voucherDiscount = intval(min(round($voucherPercent), $applicableTotal));
+                    }
+                }
             }
         }
         
@@ -235,7 +326,11 @@ class InvoiceController extends Controller
             'loaiPhongs',
             'assignedPhongIds',
             'roomMap',
-            'assignedRooms'
+            'assignedRooms',
+            'nights',
+            'roomTotalCalculated',
+            'currentServiceTotal',
+            'voucherDiscount'
         ));
     }
 
@@ -323,30 +418,66 @@ class InvoiceController extends Controller
                                 $totalServices += ($qty * ($service->price ?? 0));
                             }
                         } else {
-                            // No specific rooms: create or accumulate aggregate record (phong_id = NULL)
-                            $existing = BookingService::where('invoice_id', $invoice->id)
-                                ->where('dat_phong_id', $booking->id)
-                                ->where('service_id', $service->id)
-                                ->where('used_at', $ngay)
-                                ->whereNull('phong_id')
-                                ->first();
-
-                            if ($existing) {
-                                $existing->quantity = ($existing->quantity ?? 0) + $qty;
-                                $existing->unit_price = $service->price ?? $existing->unit_price;
-                                $existing->save();
-                            } else {
-                                BookingService::create([
-                                    'invoice_id' => $invoice->id,
-                                    'dat_phong_id' => $booking->id,
-                                    'service_id' => $service->id,
-                                    'quantity' => $qty,
-                                    'unit_price' => $service->price ?? 0,
-                                    'used_at' => $ngay,
-                                    'phong_id' => null,
-                                ]);
+                            // No specific rooms: apply to all assigned rooms (create one row per room)
+                            $assigned = $booking ? $booking->getPhongIds() : [];
+                            if (is_string($assigned)) {
+                                $assigned = json_decode($assigned, true) ?: [];
                             }
-                            $totalServices += ($qty * ($service->price ?? 0));
+                            $assigned = is_array($assigned) ? array_filter($assigned) : [];
+
+                            if (!empty($assigned)) {
+                                // Create one record per assigned room
+                                foreach ($assigned as $phongId) {
+                                    $existing = BookingService::where('invoice_id', $invoice->id)
+                                        ->where('dat_phong_id', $booking->id)
+                                        ->where('service_id', $service->id)
+                                        ->where('used_at', $ngay)
+                                        ->where('phong_id', $phongId)
+                                        ->first();
+
+                                    if ($existing) {
+                                        $existing->quantity = ($existing->quantity ?? 0) + $qty;
+                                        $existing->unit_price = $service->price ?? $existing->unit_price;
+                                        $existing->save();
+                                    } else {
+                                        BookingService::create([
+                                            'invoice_id' => $invoice->id,
+                                            'dat_phong_id' => $booking->id,
+                                            'service_id' => $service->id,
+                                            'quantity' => $qty,
+                                            'unit_price' => $service->price ?? 0,
+                                            'used_at' => $ngay,
+                                            'phong_id' => $phongId,
+                                        ]);
+                                    }
+                                    $totalServices += ($qty * ($service->price ?? 0));
+                                }
+                            } else {
+                                // No assigned rooms: still create one aggregate record with phong_id = NULL
+                                $existing = BookingService::where('invoice_id', $invoice->id)
+                                    ->where('dat_phong_id', $booking->id)
+                                    ->where('service_id', $service->id)
+                                    ->where('used_at', $ngay)
+                                    ->whereNull('phong_id')
+                                    ->first();
+
+                                if ($existing) {
+                                    $existing->quantity = ($existing->quantity ?? 0) + $qty;
+                                    $existing->unit_price = $service->price ?? $existing->unit_price;
+                                    $existing->save();
+                                } else {
+                                    BookingService::create([
+                                        'invoice_id' => $invoice->id,
+                                        'dat_phong_id' => $booking->id,
+                                        'service_id' => $service->id,
+                                        'quantity' => $qty,
+                                        'unit_price' => $service->price ?? 0,
+                                        'used_at' => $ngay,
+                                        'phong_id' => null,
+                                    ]);
+                                }
+                                $totalServices += ($qty * ($service->price ?? 0));
+                            }
                         }
                     }
                 }
@@ -358,13 +489,15 @@ class InvoiceController extends Controller
                 // Existing behavior for non-EXTRA invoices (booking-scoped services)
                 // Delete old booking-level and any existing invoice-scoped entries for this booking
                 // to avoid duplicate rows when re-saving the invoice.
-                BookingService::where('dat_phong_id', $booking->id)
+                $deletedCount = BookingService::where('dat_phong_id', $booking->id)
                     ->where(function($q) use ($invoice) {
                         $q->whereNull('invoice_id')
                           ->orWhere('invoice_id', $invoice->id);
                     })->delete();
+                
+                Log::info('InvoiceController:update - Deleted services', ['booking_id' => $booking->id, 'invoice_id' => $invoice->id, 'count' => $deletedCount]);
 
-
+                $totalServices = 0;
                 // Create new booking-scoped service entries. Support per-entry room selection
                 foreach ($servicesData as $svcId => $data) {
                     $service = Service::find($svcId);
@@ -385,34 +518,117 @@ class InvoiceController extends Controller
                             $entryPhongIds = array_filter([$entry['phong_id']]);
                         }
 
+                        Log::info('InvoiceController:update - Processing service entry', [
+                            'service_id' => $svcId,
+                            'service_price' => $service->price,
+                            'ngay' => $ngay,
+                            'qty' => $qty,
+                            'entryPhongIds' => $entryPhongIds,
+                        ]);
+
+                        // Create rows based on room selection:
+                        // - If specific rooms selected: one row per room
+                        // - Otherwise: one row per assigned room (or NULL if none)
+                        // Always check for existing (same date, room, service) and accumulate quantity
                         if (!empty($entryPhongIds)) {
-                            // Create one BookingService row per selected room (phong_id set), linked to this invoice
+                            // Specific rooms selected: create one row per room
                             foreach ($entryPhongIds as $phongId) {
-                                BookingService::create([
-                                    'dat_phong_id' => $booking->id,
-                                    'phong_id' => $phongId,
-                                    'service_id' => $service->id,
-                                    'quantity' => $qty,
-                                    'unit_price' => $service->price,
-                                    'used_at' => $ngay,
-                                    'invoice_id' => $invoice->id,
-                                ]);
+                                $existing = BookingService::where('dat_phong_id', $booking->id)
+                                    ->where('service_id', $service->id)
+                                    ->where('used_at', $ngay)
+                                    ->where('invoice_id', $invoice->id)
+                                    ->where('phong_id', $phongId)
+                                    ->first();
+
+                                if ($existing) {
+                                    $existing->quantity = ($existing->quantity ?? 0) + $qty;
+                                    $existing->unit_price = $service->price ?? $existing->unit_price;
+                                    $existing->save();
+                                } else {
+                                    BookingService::create([
+                                        'dat_phong_id' => $booking->id,
+                                        'service_id' => $service->id,
+                                        'used_at' => $ngay,
+                                        'invoice_id' => $invoice->id,
+                                        'phong_id' => $phongId,
+                                        'quantity' => $qty,
+                                        'unit_price' => $service->price ?? 0,
+                                    ]);
+                                }
+                                $totalServices += ($qty * ($service->price ?? 0));
                             }
                         } else {
-                            // No specific rooms: create aggregate booking-scoped record linked to this invoice
-                            BookingService::create([
-                                'dat_phong_id' => $booking->id,
-                                'service_id' => $service->id,
-                                'quantity' => $qty,
-                                'unit_price' => $service->price,
-                                'used_at' => $ngay,
-                                'phong_id' => null,
-                                'invoice_id' => $invoice->id,
-                            ]);
-                        }
+                            // No specific rooms: apply to all assigned rooms
+                            $assigned = $booking ? $booking->getPhongIds() : [];
+                            if (is_string($assigned)) {
+                                $assigned = json_decode($assigned, true) ?: [];
+                            }
+                            $assigned = is_array($assigned) ? array_filter($assigned) : [];
 
+                            Log::info('InvoiceController:update - Global mode assigned rooms', ['booking_id' => $booking->id, 'assigned' => $assigned]);
+
+                            if (!empty($assigned)) {
+                                // Create one row per assigned room
+                                foreach ($assigned as $phongId) {
+                                    $existing = BookingService::where('dat_phong_id', $booking->id)
+                                        ->where('service_id', $service->id)
+                                        ->where('used_at', $ngay)
+                                        ->where('invoice_id', $invoice->id)
+                                        ->where('phong_id', $phongId)
+                                        ->first();
+
+                                    if ($existing) {
+                                        $existing->quantity = ($existing->quantity ?? 0) + $qty;
+                                        $existing->unit_price = $service->price ?? $existing->unit_price;
+                                        $existing->save();
+                                    } else {
+                                        BookingService::create([
+                                            'dat_phong_id' => $booking->id,
+                                            'service_id' => $service->id,
+                                            'used_at' => $ngay,
+                                            'invoice_id' => $invoice->id,
+                                            'phong_id' => $phongId,
+                                            'quantity' => $qty,
+                                            'unit_price' => $service->price ?? 0,
+                                        ]);
+                                    }
+                                    $totalServices += ($qty * ($service->price ?? 0));
+                                }
+                            } else {
+                                // No assigned rooms: create aggregate (phong_id = NULL)
+                                $existing = BookingService::where('dat_phong_id', $booking->id)
+                                    ->where('service_id', $service->id)
+                                    ->where('used_at', $ngay)
+                                    ->where('invoice_id', $invoice->id)
+                                    ->whereNull('phong_id')
+                                    ->first();
+
+                                if ($existing) {
+                                    $existing->quantity = ($existing->quantity ?? 0) + $qty;
+                                    $existing->unit_price = $service->price ?? $existing->unit_price;
+                                    $existing->save();
+                                } else {
+                                    BookingService::create([
+                                        'dat_phong_id' => $booking->id,
+                                        'service_id' => $service->id,
+                                        'used_at' => $ngay,
+                                        'invoice_id' => $invoice->id,
+                                        'phong_id' => null,
+                                        'quantity' => $qty,
+                                        'unit_price' => $service->price ?? 0,
+                                    ]);
+                                }
+                                $totalServices += ($qty * ($service->price ?? 0));
+                            }
+                        }
                     }
                 }
+                
+                Log::info('InvoiceController:update - Total services calculated', [
+                    'booking_id' => $booking->id,
+                    'invoice_id' => $invoice->id,
+                    'totalServices' => $totalServices,
+                ]);
             }
         }
 
@@ -430,21 +646,17 @@ class InvoiceController extends Controller
                 $invoice->tong_tien = $totalServices;
                 $invoice->save();
             }
+            // For EXTRA invoices, no need to update booking - they don't affect it
         } else {
-            // Recalculate booking totals using central service (will include services we just saved)
+            // For regular (non-EXTRA) invoices, recalculate the booking totals
+            // This will update booking tien_phong, tien_dich_vu, giam_gia, tong_tien
+            // And also sync the invoice with the same values via recalcTotal
             $booking = $booking->fresh();
             try {
                 BookingPriceCalculator::recalcTotal($booking);
                 // Reload both $booking and $invoice from DB to get the updated values
                 $booking = $booking->fresh();
                 $invoice = $invoice->fresh();
-                // Get the latest tong_tien from booking (which was updated by recalcTotal)
-                if ($booking->tong_tien !== $invoice->tong_tien) {
-                    $invoice->tong_tien = $booking->tong_tien;
-                    $invoice->save();
-                    // Debug: Log the values for verification
-                    Log::info('Invoice ' . $invoice->id . ' updated: tong_tien=' . $invoice->tong_tien . ', booking tong_tien=' . $booking->tong_tien);
-                }
             } catch (\Throwable $e) {
                 // Log and continue — do not block status update because of calc error
                 Log::warning('Recalc booking total failed in InvoiceController:update: ' . $e->getMessage());
@@ -490,26 +702,24 @@ class InvoiceController extends Controller
                 })->values()->toArray();
             })->toArray();
 
-        // Get assigned rooms for this booking with their types
+        // Get assigned rooms for this booking with their types (use pivot helper)
         $assignedRooms = [];
-        if ($booking && $booking->phong_ids) {
-            $phongIds = $booking->phong_ids;
-            if (is_string($phongIds)) {
-                $phongIds = json_decode($phongIds, true);
-            }
-            if (is_array($phongIds) && !empty($phongIds)) {
-                $assignedRooms = Phong::whereIn('id', $phongIds)
-                    ->with('loaiPhong:id,ten_loai')
-                    ->get()
-                    ->map(function($room) {
-                        return [
-                            'id' => $room->id,
-                            'so_phong' => $room->so_phong,
-                            'ten_loai' => $room->loaiPhong ? $room->loaiPhong->ten_loai : 'N/A'
-                        ];
-                    })
-                    ->toArray();
-            }
+        $phongIds = $booking ? $booking->getPhongIds() : [];
+        if (is_string($phongIds)) {
+            $phongIds = json_decode($phongIds, true);
+        }
+        if (is_array($phongIds) && !empty($phongIds)) {
+            $assignedRooms = Phong::whereIn('id', $phongIds)
+                ->with('loaiPhong:id,ten_loai')
+                ->get()
+                ->map(function($room) {
+                    return [
+                        'id' => $room->id,
+                        'so_phong' => $room->so_phong,
+                        'ten_loai' => $room->loaiPhong ? $room->loaiPhong->ten_loai : 'N/A'
+                    ];
+                })
+                ->toArray();
         }
 
         return view('admin.invoices.create_extra', compact('invoice', 'booking', 'services', 'bookingServices', 'assignedRooms'));
@@ -565,8 +775,11 @@ class InvoiceController extends Controller
                         $entryPhongIds = array_filter([$entry['phong_id']]);
                     }
                     
-                    // If specific rooms are selected, create or accumulate one record per room
+                    // Create rows based on room selection:
+                    // - If specific rooms selected: one row per room
+                    // - Otherwise: one row per assigned room (or NULL if none)
                     if (!empty($entryPhongIds)) {
+                        // Specific rooms: create one row per room
                         foreach ($entryPhongIds as $phongId) {
                             $existing = BookingService::where('invoice_id', $new->id)
                                 ->where('dat_phong_id', $booking->id)
@@ -593,30 +806,66 @@ class InvoiceController extends Controller
                             $totalServices += ($qty * ($service->price ?? 0));
                         }
                     } else {
-                        // No specific rooms: create or accumulate aggregate record (phong_id = NULL)
-                        $existing = BookingService::where('invoice_id', $new->id)
-                            ->where('dat_phong_id', $booking->id)
-                            ->where('service_id', $service->id)
-                            ->where('used_at', $ngay)
-                            ->whereNull('phong_id')
-                            ->first();
-
-                        if ($existing) {
-                            $existing->quantity = ($existing->quantity ?? 0) + $qty;
-                            $existing->unit_price = $service->price ?? $existing->unit_price;
-                            $existing->save();
-                        } else {
-                            BookingService::create([
-                                'invoice_id' => $new->id,
-                                'dat_phong_id' => $booking->id,
-                                'service_id' => $service->id,
-                                'quantity' => $qty,
-                                'unit_price' => $service->price ?? 0,
-                                'used_at' => $ngay,
-                                'phong_id' => null,
-                            ]);
+                        // No specific rooms: apply to all assigned rooms
+                        $assigned = $booking ? $booking->getPhongIds() : [];
+                        if (is_string($assigned)) {
+                            $assigned = json_decode($assigned, true) ?: [];
                         }
-                        $totalServices += ($qty * ($service->price ?? 0));
+                        $assigned = is_array($assigned) ? array_filter($assigned) : [];
+
+                        if (!empty($assigned)) {
+                            // Create one row per assigned room
+                            foreach ($assigned as $phongId) {
+                                $existing = BookingService::where('invoice_id', $new->id)
+                                    ->where('dat_phong_id', $booking->id)
+                                    ->where('service_id', $service->id)
+                                    ->where('used_at', $ngay)
+                                    ->where('phong_id', $phongId)
+                                    ->first();
+
+                                if ($existing) {
+                                    $existing->quantity = ($existing->quantity ?? 0) + $qty;
+                                    $existing->unit_price = $service->price ?? $existing->unit_price;
+                                    $existing->save();
+                                } else {
+                                    BookingService::create([
+                                        'invoice_id' => $new->id,
+                                        'dat_phong_id' => $booking->id,
+                                        'service_id' => $service->id,
+                                        'quantity' => $qty,
+                                        'unit_price' => $service->price ?? 0,
+                                        'used_at' => $ngay,
+                                        'phong_id' => $phongId,
+                                    ]);
+                                }
+                                $totalServices += ($qty * ($service->price ?? 0));
+                            }
+                        } else {
+                            // No assigned rooms: create aggregate (phong_id = NULL)
+                            $existing = BookingService::where('invoice_id', $new->id)
+                                ->where('dat_phong_id', $booking->id)
+                                ->where('service_id', $service->id)
+                                ->where('used_at', $ngay)
+                                ->whereNull('phong_id')
+                                ->first();
+
+                            if ($existing) {
+                                $existing->quantity = ($existing->quantity ?? 0) + $qty;
+                                $existing->unit_price = $service->price ?? $existing->unit_price;
+                                $existing->save();
+                            } else {
+                                BookingService::create([
+                                    'invoice_id' => $new->id,
+                                    'dat_phong_id' => $booking->id,
+                                    'service_id' => $service->id,
+                                    'quantity' => $qty,
+                                    'unit_price' => $service->price ?? 0,
+                                    'used_at' => $ngay,
+                                    'phong_id' => null,
+                                ]);
+                            }
+                            $totalServices += ($qty * ($service->price ?? 0));
+                        }
                     }
                 }
             }

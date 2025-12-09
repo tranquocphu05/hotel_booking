@@ -18,6 +18,26 @@
                     <form id="bookingForm" method="POST" action="{{ route('admin.dat_phong.update', $booking->id) }}">
                         @csrf
                         @method('PUT')
+                        
+                        <!-- Display success message -->
+                        @if (session()->has('success'))
+                            <div class="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                                <div class="text-sm font-semibold text-green-900">✓ {{ session('success') }}</div>
+                            </div>
+                        @endif
+                        
+                        <!-- Display validation errors from session -->
+                        @if (session()->has('errors') && session('errors')->any())
+                            <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                                <h4 class="text-sm font-semibold text-red-900 mb-2">Lỗi xác thực:</h4>
+                                <ul class="text-sm text-red-700 space-y-1">
+                                    @foreach (session('errors')->all() as $error)
+                                        <li>• {{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
+                        
                         <div class="space-y-8">
 
 
@@ -86,6 +106,19 @@
                                                 </div>
                                             </div>
                                         </div>
+
+                                        <!-- Chọn phòng cụ thể (nếu có) -->
+                                        <div id="available_rooms_{{ $loop->index }}" class="mt-4 hidden">
+                                            <div class="flex items-center justify-between">
+                                                <label class="text-sm font-medium text-gray-700 mb-2 block">Chọn phòng cụ thể</label>
+                                                <button type="button" onclick="loadAvailableRooms({{ $loop->index }})" class="ml-2 px-3 py-1 text-xs bg-blue-600 text-white rounded">Tải danh sách phòng</button>
+                                            </div>
+                                            <div class="space-y-2 pl-4 border-l-2 border-gray-300">
+                                                <!-- Phòng sẽ được render bằng JavaScript -->
+                                            </div>
+                                            <p id="availability_text_{{ $loop->index }}" class="mt-2 text-xs text-gray-600"></p>
+                                        </div>
+
                                         <input type="hidden" name="room_types[{{ $loop->index }}][gia_rieng]"
                                             id="room_gia_rieng_{{ $loop->index }}" value="{{ $rtSoLuong * $rtGia }}">
                                     </div>
@@ -136,7 +169,9 @@
                                 @foreach ($services as $service)
                                     @php
                                         $sid = $service->id;
-                                        $isIncluded = isset($bookingServicesServer[$sid]);
+                                        // Determine inclusion from actual booking services (BookingService records)
+                                        // This is more reliable than checking the JS-friendly array which may be malformed.
+                                        $isIncluded = isset($bookingServices) && $bookingServices->pluck('service_id')->contains($sid);
                                     @endphp
                                     <div
                                         class="flex flex-col items-start gap-1 p-2 bg-white rounded border border-blue-100">
@@ -673,8 +708,51 @@
             // Initialize service rendering
             const allServices = @json($services ?? []);
             const bookingServicesData = @json($bookingServicesServer ?? []);
-            const assignedPhongIds = @json($assignedPhongIds ?? []);
-            const roomMapData = @json($roomMap ?? []);
+            // make these mutable so client-side changes reflect immediately
+            let assignedPhongIds = @json($assignedPhongIds ?? []);
+            let roomMapData = @json($roomMap ?? []);
+            // (flag removed) previously used to distinguish user-triggered updates
+
+            // Sync assignedPhongIds and roomMapData from current room checkboxes
+            function syncAssignedPhongIdsFromCheckboxes() {
+                try {
+                    const checked = Array.from(document.querySelectorAll('input.available-room-checkbox:checked'))
+                        .map(cb => parseInt(cb.value)).filter(Boolean);
+                    assignedPhongIds = Array.from(new Set(checked));
+
+                    // Ensure roomMapData has labels for any known checkboxes
+                    Array.from(document.querySelectorAll('input.available-room-checkbox')).forEach(cb => {
+                        const id = parseInt(cb.value);
+                        const name = cb.getAttribute('data-room-name') || cb.getAttribute('data-room-id') || id;
+                        if (id && !(id in roomMapData)) {
+                            roomMapData[id] = name;
+                        }
+                    });
+
+                    // Re-render service room lists to reflect updated assigned rooms
+                    updateServiceRoomLists();
+
+                    // Auto-switch service room mode: if any rooms selected -> specific, if none -> global
+                    document.querySelectorAll('[data-service-id]').forEach(card => {
+                        const sid = card.getAttribute('data-service-id');
+                        const globalRadio = card.querySelector('input[name="service_room_mode_' + sid + '"][value="global"]');
+                        const specificRadio = card.querySelector('input[name="service_room_mode_' + sid + '"][value="specific"]');
+                        if (assignedPhongIds && assignedPhongIds.length > 0) {
+                            if (specificRadio && !specificRadio.checked) {
+                                specificRadio.checked = true;
+                                if (typeof specificRadio.onchange === 'function') specificRadio.onchange();
+                            }
+                        } else {
+                            if (globalRadio && !globalRadio.checked) {
+                                globalRadio.checked = true;
+                                if (typeof globalRadio.onchange === 'function') globalRadio.onchange();
+                            }
+                        }
+                    });
+                } catch (e) {
+                    console.error('syncAssignedPhongIdsFromCheckboxes error', e);
+                }
+            }
 
             function buildDateRow(serviceId, dateVal = '') {
                 const idx = 'new_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
@@ -825,6 +903,10 @@
                             try {
                                 const phongIdsForDate = (entriesByDate[dateValRow]?.phong_ids || [])
                                     .map(p => parseInt(p));
+                                // Only pre-check if this service entry explicitly contains this room
+                                // (i.e. the room was saved for this service in DB). Do NOT auto-check
+                                // when admin merely selects rooms in the room list — user should
+                                // manually choose service rooms.
                                 if (phongIdsForDate.includes(pidInt)) {
                                     ecb.checked = true;
                                     console.log('Pre-checked service', serviceId, 'date', dateValRow,
@@ -845,6 +927,14 @@
                             //console.log('Appended checkbox for service', serviceId, 'room', pid, 'row date', r.querySelector('input[type=date]')?.value);
                         });
                     });
+
+                    // After rebuilding entry-room-checkboxes for this service, ensure hidden inputs reflect current state
+                    try {
+                        syncHiddenEntries(serviceId);
+                        window.computeTotals && window.computeTotals();
+                    } catch (e) {
+                        // ignore
+                    }
                 });
             }
 
@@ -1128,6 +1218,7 @@
             // Per-night booking calculations
             const allLoaiPhongs = @json($loaiPhongs);
             const currentBookingId = {{ $booking->id ?? 'null' }};
+            const selectedRoomsByLoaiPhong = @json($selectedRoomsByLoaiPhong ?? []);
             let roomIndex = {{ count($roomTypes) > 0 ? count($roomTypes) : 1 }};
 
             document.addEventListener('DOMContentLoaded', function() {
@@ -1157,6 +1248,24 @@
                 // derive per-night unit prices for existing rows (edit page stores totals)
                 initializeRoomUnitPrices();
 
+                // Auto-load available rooms for existing rows when page loads
+                try {
+                    const ngayNhanVal = document.getElementById('ngay_nhan')?.value;
+                    const ngayTraVal = document.getElementById('ngay_tra')?.value;
+                    if (ngayNhanVal && ngayTraVal) {
+                        document.querySelectorAll('.room-item').forEach(item => {
+                            const idx = item.getAttribute('data-room-index');
+                            const sel = item.querySelector('.room-type-select');
+                            if (sel && sel.value) {
+                                // load rooms for this row
+                                loadAvailableRooms(idx);
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.error('Auto-load rooms error', e);
+                }
+
                 // Setup unified voucher event system
                 setupVoucherEventSystem();
                 updateVoucherAvailability();
@@ -1184,59 +1293,74 @@
                 }
 
                 const container = document.getElementById('roomTypesContainer');
+                
+                // Build select options from allLoaiPhongs
+                let selectOptions = '<option value="">-- Chọn loại phòng --</option>';
+                allLoaiPhongs.forEach(lp => {
+                    const formattedPrice = new Intl.NumberFormat('vi-VN').format(lp.gia_khuyen_mai);
+                    selectOptions += `<option value="${lp.id}" data-price="${lp.gia_khuyen_mai}">${lp.ten_loai} - ${formattedPrice} VNĐ/đêm</option>`;
+                });
+                
                 const newRoomHtml = `
                 <div class="room-item border border-gray-200 rounded-lg p-4 bg-white" data-room-index="${roomIndex}">
-                    <div class="flex justify-between items-start mb-3">
-                        <h4 class="text-sm font-medium text-gray-700">Loại phòng ${roomIndex + 1}</h4>
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h4 class="font-semibold text-gray-900">Loại phòng ${roomIndex + 1}</h4>
+                            <p class="text-sm text-gray-600 quantity-text">0 phòng</p>
+                        </div>
                         <button type="button" onclick="removeRoom(${roomIndex})" 
-                            class="text-red-600 hover:text-red-800 text-sm">
-                            <i class="fas fa-times"></i> Xóa
+                            class="text-red-600 hover:text-red-800 text-sm font-medium">
+                            <i class="fas fa-trash-alt"></i> Xóa
                         </button>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Loại phòng</label>
                             <select name="room_types[${roomIndex}][loai_phong_id]" 
-                                class="room-type-select mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                class="room-type-select w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                                 onchange="handleRoomTypeChange(${roomIndex}, this.value)"
                                 required>
-                                <option value="">-- Chọn loại phòng --</option>
-
-                                @foreach ($loaiPhongs as $lp)
-                                    <option value="{{ $lp->id }}" data-price="{{ $lp->gia_khuyen_mai }}">
-                                        {{ $lp->ten_loai }} - {{ number_format($lp->gia_khuyen_mai, 0, ',', '.') }} VNĐ/đêm
-                                    </option>
-                                @endforeach
+                                ${selectOptions}
                             </select>
                             <div id="availability_text_${roomIndex}" class="mt-1 text-xs text-gray-500"></div>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Số lượng</label>
                             <div class="flex items-center gap-2">
-                                <button type="button" onclick="decreaseQuantity(${roomIndex})" 
-                                    class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50">-</button>
-                                <input type="number" 
-                                    name="room_types[${roomIndex}][so_luong]" 
-                                    class="room-quantity-input quantity-input w-20 text-center border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                    value="1" 
-                                    min="1"
-                                    max="10"
+                                <button type="button" onclick="decreaseQuantity(${roomIndex})"
+                                    class="w-8 h-8 border border-gray-300 rounded-md hover:bg-gray-50 text-gray-700 font-semibold">−</button>
+                                <input type="number" name="room_types[${roomIndex}][so_luong]"
+                                    class="room-quantity-input quantity-input flex-1 text-center px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                                    value="1" min="1" max="10"
                                     data-room-index="${roomIndex}"
-                                    onchange="updateRoomQuantity(${roomIndex})"
-                                    required>
-                                <button type="button" onclick="increaseQuantity(${roomIndex})" 
-                                    class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50">+</button>
+                                    onchange="updateRoomQuantity(${roomIndex})" required>
+                                <button type="button" onclick="increaseQuantity(${roomIndex})"
+                                    class="w-8 h-8 border border-gray-300 rounded-md hover:bg-gray-50 text-gray-700 font-semibold">+</button>
                             </div>
-                            <div class="mt-1 text-xs text-gray-600">
-                                Giá: <span id="room_price_${roomIndex}" class="font-medium">0 VNĐ</span>
+                            <div class="mt-2 text-xs text-gray-600">
+                                Giá: <span id="room_price_${roomIndex}" class="font-semibold">0 VNĐ</span>
                             </div>
                         </div>
                     </div>
-                    <input type="hidden" name="room_types[${roomIndex}][gia_rieng]" 
-                        id="room_gia_rieng_${roomIndex}" 
-                        value="0">
+
+                    <!-- Chọn phòng cụ thể -->
+                    <div id="available_rooms_${roomIndex}" class="mt-4">
+                        <div class="flex items-center justify-between">
+                            <label class="text-sm font-medium text-gray-700 mb-3 block">
+                                <span class="text-red-600">*</span> Chọn phòng cụ thể
+                            </label>
+                            <button type="button" onclick="loadAvailableRooms(${roomIndex})" class="ml-2 px-3 py-1 text-xs bg-blue-600 text-white rounded">Tải danh sách phòng</button>
+                        </div>
+                        <div id="room_list_${roomIndex}" class="space-y-2 pl-4 border-l-2 border-blue-300 max-h-48 overflow-y-auto bg-gray-50 p-3 rounded">
+                            <p class="text-xs text-gray-500 italic">Vui lòng chọn loại phòng trước</p>
+                        </div>
+                        <p id="availability_rooms_text_${roomIndex}" class="mt-2 text-xs text-gray-600"></p>
+                    </div>
+
+                    <input type="hidden" name="room_types[${roomIndex}][gia_rieng]"
+                        id="room_gia_rieng_${roomIndex}" value="0">
                 </div>
-            `;
+                `;
                 container.insertAdjacentHTML('beforeend', newRoomHtml);
                 roomIndex++;
                 updateAllRoomAvailability();
@@ -1266,7 +1390,11 @@
                     }
 
                     // expose for external callers (e.g. voucher change handler)
-                    window.updateServiceCards = updateServiceCards;
+                    try {
+                        window.updateServiceCards = updateServiceCards;
+                    } catch (e) {
+                        // updateServiceCards not yet defined, will be available after DOMContentLoaded
+                    }
                 }
 
                 const loaiPhong = allLoaiPhongs.find(lp => lp.id == loaiPhongId);
@@ -1274,7 +1402,14 @@
                     const priceInput = document.getElementById(`room_gia_rieng_${index}`);
                     const priceDisplay = document.getElementById(`room_price_${index}`);
                     const qtyInput = document.querySelector(`input[data-room-index="${index}"]`);
+                    const quantityText = document.querySelector(`.room-item[data-room-index="${index}"] .quantity-text`);
                     const inputQty = qtyInput ? parseInt(qtyInput.value) || 1 : 1;
+                    
+                    // Update quantity text display
+                    if (quantityText) {
+                        quantityText.textContent = `${inputQty} phòng`;
+                    }
+                    
                     if (priceInput && priceDisplay) {
                         // derive unitPerNight from dataset or option price
                         let unitPerNight = parseFloat(priceInput.dataset.unitPerNight) || 0;
@@ -1282,13 +1417,20 @@
                         if (sel) {
                             const opt = sel.options[sel.selectedIndex];
                             const optPrice = opt ? parseFloat(opt.dataset.price || 0) : 0;
-                            if (optPrice && optPrice > 0) unitPerNight = optPrice;
+                            if (optPrice && optPrice > 0) {
+                                unitPerNight = optPrice;
+                            }
                         }
+                        
+                        console.log(`handleRoomTypeChange: index=${index}, loaiPhongId=${loaiPhongId}, unitPerNight=${unitPerNight}, nights=${getNights()}, qty=${inputQty}`);
+                        console.log(`handleRoomTypeChange: index=${index}, loaiPhongId=${loaiPhongId}, unitPerNight=${unitPerNight}, nights=${getNights()}, qty=${inputQty}`);
+                        
                         const nights = getNights();
                         const subtotal = unitPerNight * nights * inputQty;
                         priceInput.dataset.unitPerNight = unitPerNight;
                         priceInput.value = subtotal;
                         priceDisplay.textContent = formatCurrency(subtotal);
+                        
                         if (window.computeTotals) window.computeTotals();
                         // Re-render service room lists so they reflect current selection
                         document.querySelectorAll('[data-service-id]').forEach(card => {
@@ -1296,7 +1438,11 @@
                             if (sid) window.updateServiceRoomLists && window.updateServiceRoomLists(sid);
                         });
                         // Update voucher availability based on new room type selection
-                        updateVoucherAvailability();
+                        try {
+                            updateVoucherAvailability();
+                        } catch (e) {
+                            // updateVoucherAvailability not yet defined
+                        }
                     }
                 }
 
@@ -1341,20 +1487,70 @@
                             availabilityText.className = `mt-1 text-xs ${colorClass}`;
                         }
 
-                        // If controller returned specific room list, update assign select so admin can pick
-                        if (data.rooms && Array.isArray(data.rooms) && data.rooms.length) {
-                            const assignSelect = document.getElementById('phong_id_assign');
-                            if (assignSelect) {
-                                // clear existing options except placeholder
-                                const placeholder = assignSelect.querySelector('option[value=""]');
-                                assignSelect.innerHTML = '';
-                                if (placeholder) assignSelect.appendChild(placeholder);
-                                data.rooms.forEach(r => {
-                                    const opt = document.createElement('option');
-                                    opt.value = r.id;
-                                    opt.textContent = r.so_phong + (r.ten_phong ? (' (' + r.ten_phong + ')') : '');
-                                    assignSelect.appendChild(opt);
-                                });
+                        // If controller returned specific room list, render checkboxes for admin selection
+                        if (data.rooms && Array.isArray(data.rooms) && data.rooms.length > 0) {
+                            const roomsContainer = document.getElementById(`available_rooms_${index}`);
+                            if (roomsContainer) {
+                                roomsContainer.classList.remove('hidden');
+                                // Find the div inside that will hold the checkboxes
+                                const checkboxContainer = roomsContainer.querySelector('div.space-y-2');
+                                if (checkboxContainer) {
+                                    checkboxContainer.innerHTML = '';
+                                    data.rooms.forEach((r, idx) => {
+                                        const wrap = document.createElement('div');
+                                        wrap.className = 'flex items-center gap-2';
+
+                                        const cb = document.createElement('input');
+                                        cb.type = 'checkbox';
+                                        cb.name = `rooms[${loaiPhongId}][phong_ids][]`;
+                                        cb.value = r.id;
+                                        cb.id = `room_checkbox_${loaiPhongId}_${r.id}`;
+                                        cb.className = 'available-room-checkbox';
+                                        cb.setAttribute('data-room-name', r.so_phong || r.ten_phong || r.id);
+                                        cb.setAttribute('data-room-id', r.id);
+
+                                        const lbl = document.createElement('label');
+                                        lbl.className = 'text-sm cursor-pointer';
+                                        lbl.htmlFor = cb.id;
+                                        lbl.textContent = r.so_phong ? ('Phòng ' + r.so_phong) : (r.ten_phong || ('Phòng ' + r.id));
+
+                                        wrap.appendChild(cb);
+                                        wrap.appendChild(lbl);
+                                        checkboxContainer.appendChild(wrap);
+                                        // attach change listener so services update when admin toggles rooms
+                                        cb.addEventListener('change', syncAssignedPhongIdsFromCheckboxes);
+                                    });
+
+                                    // Pre-check boxes: prefer previously selected room IDs for this booking, fall back to first N
+                                    const want = parseInt(document.querySelector(`input[data-room-index="${index}"]`)?.value || 0);
+                                    const boxes = checkboxContainer.querySelectorAll('input.available-room-checkbox');
+                                    if (boxes && boxes.length > 0) {
+                                        // Normalize preselected ids to numbers
+                                        const pre = (selectedRoomsByLoaiPhong && selectedRoomsByLoaiPhong[loaiPhongId]) ? selectedRoomsByLoaiPhong[loaiPhongId].map(x => parseInt(x)) : [];
+                                        let checkedCount = 0;
+                                        boxes.forEach(cb => {
+                                            const id = parseInt(cb.value);
+                                            if (pre && pre.includes(id)) { cb.checked = true; checkedCount++; }
+                                            // attach listener to newly created boxes
+                                            cb.addEventListener('change', syncAssignedPhongIdsFromCheckboxes);
+                                        });
+
+                                        // If still need more to reach want, check the first unchecked boxes
+                                        for (let i = 0; i < boxes.length && checkedCount < want; i++) {
+                                            if (!boxes[i].checked) { boxes[i].checked = true; checkedCount++; }
+                                        }
+
+                                        // After pre-checking, sync the assigned list so services reflect the current state
+                                        syncAssignedPhongIdsFromCheckboxes();
+                                    }
+                                }
+                            }
+                        } else {
+                            const roomsContainer = document.getElementById(`available_rooms_${index}`);
+                            if (roomsContainer) {
+                                roomsContainer.classList.add('hidden');
+                                const checkboxContainer = roomsContainer.querySelector('div.space-y-2');
+                                if (checkboxContainer) checkboxContainer.innerHTML = '';
                             }
                         }
                     })
@@ -1401,10 +1597,72 @@
                                 `mt-1 text-xs ${availableCount > 0 ? 'text-green-600' : 'text-red-600'}`;
                         }
 
+                        // Always show the rooms container (so admin can pick or see 'no rooms')
+                        const roomsContainer = document.getElementById(`available_rooms_${index}`);
+                        if (roomsContainer) {
+                            roomsContainer.classList.remove('hidden');
+                            const checkboxContainer = roomsContainer.querySelector('div.space-y-2');
+                            if (checkboxContainer) {
+                                checkboxContainer.innerHTML = '';
+                                if (data.rooms && Array.isArray(data.rooms) && data.rooms.length > 0) {
+                                    // Render a checkbox per room
+                                    data.rooms.forEach((r) => {
+                                        const wrap = document.createElement('div');
+                                        wrap.className = 'flex items-center gap-2';
+
+                                        const cb = document.createElement('input');
+                                        cb.type = 'checkbox';
+                                        cb.name = `rooms[${loaiPhongId}][phong_ids][]`;
+                                        cb.value = r.id;
+                                        cb.className = 'available-room-checkbox';
+                                        cb.id = `room_checkbox_${loaiPhongId}_${r.id}`;
+                                        cb.setAttribute('data-room-name', r.so_phong || r.ten_phong || r.id);
+                                        cb.setAttribute('data-room-id', r.id);
+
+                                        // ensure toggle updates assigned list and service cards
+                                        cb.addEventListener('change', syncAssignedPhongIdsFromCheckboxes);
+
+                                        const lbl = document.createElement('label');
+                                        lbl.className = 'text-sm cursor-pointer';
+                                        lbl.htmlFor = cb.id;
+                                        lbl.textContent = r.so_phong ? ('Phòng ' + r.so_phong) : (r.ten_phong || ('Phòng ' + r.id));
+
+                                        wrap.appendChild(cb);
+                                        wrap.appendChild(lbl);
+                                        checkboxContainer.appendChild(wrap);
+                                    });
+
+                                    // Pre-check previously selected rooms for this loai, else auto-fill first N
+                                    const want = parseInt(document.querySelector(`input[data-room-index=\"${index}\"]`)?.value || 0);
+                                    const boxes = checkboxContainer.querySelectorAll('input.available-room-checkbox');
+                                    const pre = (selectedRoomsByLoaiPhong && selectedRoomsByLoaiPhong[loaiPhongId]) ? selectedRoomsByLoaiPhong[loaiPhongId].map(x => parseInt(x)) : [];
+                                    let checkedCount = 0;
+                                    boxes.forEach(cb => {
+                                        const id = parseInt(cb.value);
+                                        if (pre && pre.includes(id)) { cb.checked = true; checkedCount++; }
+                                    });
+                                    for (let i = 0; i < boxes.length && checkedCount < want; i++) {
+                                        if (!boxes[i].checked) { boxes[i].checked = true; checkedCount++; }
+                                    }
+                                    // attach listeners to all boxes so future toggles update services
+                                    boxes.forEach(cb => cb.addEventListener('change', syncAssignedPhongIdsFromCheckboxes));
+
+                                    // After pre-checking, sync the assigned list so services reflect the current state
+                                    syncAssignedPhongIdsFromCheckboxes();
+                                } else {
+                                    // No rooms available: show informative message
+                                    const p = document.createElement('div');
+                                    p.className = 'text-xs text-gray-500 italic';
+                                    p.textContent = 'Không có phòng trống cho loại phòng này trong khoảng thời gian đã chọn.';
+                                    checkboxContainer.appendChild(p);
+                                }
+                            }
+                        }
+
+                        // Backward-compatible assignSelect population (if present)
                         if (data.rooms && Array.isArray(data.rooms)) {
                             const assignSelect = document.getElementById('phong_id_assign');
                             if (assignSelect) {
-                                // preserve placeholder option if present
                                 const placeholder = document.createElement('option');
                                 placeholder.value = '';
                                 placeholder.textContent = '-- Chọn phòng --';
@@ -1420,6 +1678,22 @@
                         }
                     })
                     .catch(e => console.error('availability error', e));
+            }
+
+            // Helper to load available rooms for a row by reading the selected loai_phong
+            function loadAvailableRooms(index) {
+                try {
+                    const row = document.querySelector(`.room-item[data-room-index="${index}"]`);
+                    if (!row) return;
+                    const sel = row.querySelector('.room-type-select');
+                    if (!sel || !sel.value) {
+                        alert('Vui lòng chọn loại phòng trước khi tải danh sách phòng.');
+                        return;
+                    }
+                    updateRoomAvailability(index, sel.value);
+                } catch (e) {
+                    console.error('loadAvailableRooms error', e);
+                }
             }
 
             function updateAllRoomAvailability() {
@@ -1440,13 +1714,46 @@
                 if (input) {
                     const currentValue = parseInt(input.value) || 1;
                     const maxValue = parseInt(input.getAttribute('max')) || 10;
-                    if (currentValue < maxValue) {
-                        input.value = currentValue + 1;
-                        updateRoomQuantity(index);
-                        // refresh availability and room list for this row
-                        const select = document.querySelector(`.room-item[data-room-index="${index}"] .room-type-select`);
-                        if (select && select.value) updateRoomAvailability(index, select.value);
+                    const select = document.querySelector(`.room-item[data-room-index="${index}"] .room-type-select`);
+                    const loaiPhongId = select ? select.value : null;
+                    
+                    if (!loaiPhongId) {
+                        alert('Vui lòng chọn loại phòng trước');
+                        return;
                     }
+                    
+                    // Get available count for this room type
+                    fetch('{{ route('admin.dat_phong.available_count') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({
+                            loai_phong_id: loaiPhongId,
+                            ngay_nhan: document.getElementById('ngay_nhan')?.value,
+                            ngay_tra: document.getElementById('ngay_tra')?.value,
+                            booking_id: currentBookingId
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        const availableCount = data.available_count || 0;
+                        const newValue = currentValue + 1;
+                        
+                        if (newValue > availableCount) {
+                            alert(`Không thể tăng số lượng! Chỉ còn ${availableCount} phòng trống.`);
+                            return;
+                        }
+                        
+                        if (newValue <= maxValue) {
+                            input.value = newValue;
+                            updateRoomQuantity(index);
+                            // refresh availability and room list for this row
+                            if (select && select.value) updateRoomAvailability(index, select.value);
+                        }
+                    })
+                    .catch(error => console.error('Error checking availability:', error));
                 }
             }
 
@@ -1467,9 +1774,16 @@
                 const input = document.querySelector(`input[data-room-index="${index}"]`);
                 const priceInput = document.getElementById(`room_gia_rieng_${index}`);
                 const priceDisplay = document.getElementById(`room_price_${index}`);
+                const quantityText = document.querySelector(`.room-item[data-room-index="${index}"] .quantity-text`);
 
                 if (input && priceInput && priceDisplay) {
                     const quantity = parseInt(input.value) || 1;
+                    
+                    // Update quantity text
+                    if (quantityText) {
+                        quantityText.textContent = `${quantity} phòng`;
+                    }
+                    
                     const nights = getNights();
                     // use per-night unit stored on dataset (derived on load or set when room type changes)
                     const unitPerNight = parseFloat(priceInput.dataset.unitPerNight) || 0;
@@ -1532,7 +1846,8 @@
                 const s = new Date(start);
                 const e = new Date(end);
                 const diff = Math.ceil((e - s) / (1000 * 60 * 60 * 24));
-                return Math.max(1, diff);
+                const result = Math.max(1, diff);
+                return result;
             }
 
             // ========================================
@@ -1977,6 +2292,61 @@
                     form.submit();
                 }
             };
+
+            // Client-side validation: ensure admin selected exact rooms per room-type before submit
+            function validateBookingForm(event) {
+                // Remove previous inline errors
+                document.querySelectorAll('.room-error').forEach(el => el.remove());
+
+                const roomItems = document.querySelectorAll('.room-item');
+                let valid = true;
+                let firstInvalid = null;
+
+                roomItems.forEach(item => {
+                    const idx = item.getAttribute('data-room-index');
+                    const qtyInput = item.querySelector('input[data-room-index]');
+                    const required = qtyInput ? (parseInt(qtyInput.value) || 1) : 1;
+
+                    const checkboxContainer = item.querySelector(`#room_list_${idx}`) || item.querySelector('.space-y-2');
+                    const checkboxes = item.querySelectorAll('input.available-room-checkbox');
+
+                    if (!checkboxes || checkboxes.length === 0) {
+                        // If there are no checkboxes rendered, require admin to load/select rooms
+                        valid = false;
+                        const err = document.createElement('div');
+                        err.className = 'room-error text-sm text-red-600 mt-2';
+                        err.textContent = `Vui lòng tải danh sách phòng và chọn ${required} phòng cho loại này.`;
+                        (checkboxContainer || item).appendChild(err);
+                        if (!firstInvalid) firstInvalid = item;
+                        return;
+                    }
+
+                    const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+                    if (checkedCount !== required) {
+                        valid = false;
+                        const err = document.createElement('div');
+                        err.className = 'room-error text-sm text-red-600 mt-2';
+                        err.textContent = `Vui lòng chọn đúng ${required} phòng (đã chọn ${checkedCount}).`;
+                        (checkboxContainer || item).appendChild(err);
+                        if (!firstInvalid) firstInvalid = item;
+                    }
+                });
+
+                if (!valid) {
+                    event.preventDefault();
+                    if (firstInvalid) firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return false;
+                }
+                return true;
+            }
+
+            // Attach validator to booking form submit
+            try {
+                const bookingForm = document.getElementById('bookingForm');
+                if (bookingForm) bookingForm.addEventListener('submit', validateBookingForm, { capture: true });
+            } catch (e) {
+                console.error('Failed to attach booking form validator', e);
+            }
         </script>
     @endpush
 @endsection

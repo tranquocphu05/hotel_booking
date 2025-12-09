@@ -6,6 +6,7 @@ use App\Models\DatPhong;
 use App\Models\LoaiPhong;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class BookingPriceCalculator

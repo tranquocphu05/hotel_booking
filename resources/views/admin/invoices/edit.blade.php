@@ -162,71 +162,15 @@
                         </div>
 
                         {{-- Show dynamic total so admin sees live changes --}}
-                        @php
-                            // Calculate room total properly from booking data
-                            $nights = 1;
-                            $roomTotalCalculated = 0;
-                            // If this invoice is an EXTRA invoice, do not include room price
-                            if ($invoice->isExtra()) {
-                                $roomTotalCalculated = 0;
-                            } else if($booking && $booking->ngay_nhan && $booking->ngay_tra) {
-                                $checkin = \Carbon\Carbon::parse($booking->ngay_nhan);
-                                $checkout = \Carbon\Carbon::parse($booking->ngay_tra);
-                                $nights = max(1, $checkin->diffInDays($checkout));
-                                
-                                // Get room types and calculate room total using LoaiPhong promotional price
-                                $roomTypes = $booking->getRoomTypes();
-                                foreach ($roomTypes as $rt) {
-                                    $soLuong = $rt['so_luong'] ?? 1;
-                                    $loaiPhongId = $rt['loai_phong_id'] ?? null;
-                                    $unit = 0;
-                                    // Use pre-loaded loaiPhongs from controller to avoid N+1 queries
-                                    if ($loaiPhongId && isset($loaiPhongs[$loaiPhongId])) {
-                                        $lp = $loaiPhongs[$loaiPhongId];
-                                        $unit = $lp->gia_khuyen_mai ?? $lp->gia_co_ban ?? 0;
-                                    }
-                                    $roomTotalCalculated += $unit * $nights * $soLuong;
-                                }
-                            }
-                            
-                            // Get current service total from database
-                            $currentServiceTotal = 0;
-                            foreach ($bookingServices as $bs) {
-                                $currentServiceTotal += ($bs->quantity ?? 0) * ($bs->unit_price ?? 0);
-                            }
-                        @endphp
                         <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                             <p><strong>Ngày nhận:</strong> {{ optional($booking)->ngay_nhan ? date('d/m/Y', strtotime($booking->ngay_nhan)) : 'N/A' }} | <strong>Ngày trả:</strong> {{ optional($booking)->ngay_tra ? date('d/m/Y', strtotime($booking->ngay_tra)) : 'N/A' }} | <strong>{{ $nights }} đêm</strong></p>
                             @php
                                 $voucherPercent = 0;
-                                $voucherAmountServer = 0;
                                 $voucherLoaiPhongId = null;
                                 if ($booking && isset($booking->voucher) && $booking->voucher) {
                                     $voucher = $booking->voucher;
                                     $voucherPercent = $voucher->gia_tri ?? 0;
                                     $voucherLoaiPhongId = $voucher->loai_phong_id ?? null;
-
-                                    // If voucher applies to a specific room type, compute subtotal only for that type
-                                    if ($voucherLoaiPhongId) {
-                                        $applicableTotal = 0;
-                                        $roomTypes = $booking->getRoomTypes();
-                                        foreach ($roomTypes as $rt) {
-                                            $lpId = $rt['loai_phong_id'] ?? null;
-                                            if ($lpId && $lpId == $voucherLoaiPhongId) {
-                                                $soLuong = $rt['so_luong'] ?? 1;
-                                                $unit = 0;
-                                                if ($lpId && isset($loaiPhongs[$lpId])) {
-                                                    $lp = $loaiPhongs[$lpId];
-                                                    $unit = $lp->gia_khuyen_mai ?? $lp->gia_co_ban ?? 0;
-                                                }
-                                                $applicableTotal += $unit * $soLuong * $nights;
-                                            }
-                                        }
-                                        $voucherAmountServer = round($applicableTotal * ($voucherPercent / 100), 0);
-                                    } else {
-                                        // Voucher applies to all rooms
-                                        $voucherAmountServer = round($roomTotalCalculated * ($voucherPercent / 100), 0);
-                                    }
                                 }
                             @endphp
                             @if($invoice->isExtra())
@@ -235,18 +179,18 @@
                                 <p class="mt-2"><strong>Tổng tiền dịch vụ:</strong> <span id="service_total_text" class="text-lg font-semibold text-green-600">{{ number_format($currentServiceTotal,0,',','.') }} VNĐ</span></p>
                                 <p class="mt-3 pt-3 border-t border-blue-200"><strong>Tổng thanh toán:</strong> <span id="total_price" class="text-2xl font-bold text-blue-700">{{ number_format($currentServiceTotal,0,',','.') }} VNĐ</span></p>
                                 <input type="hidden" id="base_room_total" value="0">
-                                <input type="hidden" id="voucher_percent" value="{{ $voucherPercent }}">
+                                <input type="hidden" id="voucher_percent" value="0">
                                 <input type="hidden" id="voucher_amount" value="0">
                                 <input type="hidden" id="tong_tien_input" name="tong_tien" value="{{ $currentServiceTotal }}">
                             @else
-                                <p class="mt-2"><strong>Giá phòng:</strong> <span id="base_room_total_text" class="text-lg font-semibold text-blue-600">{{ number_format($roomTotalCalculated,0,',','.') }} VNĐ</span></p>
-                                <p class="mt-2"><strong>Tổng tiền dịch vụ:</strong> <span id="service_total_text" class="text-lg font-semibold text-green-600">{{ number_format($currentServiceTotal,0,',','.') }} VNĐ</span></p>
-                                <p class="mt-2"><strong>Giảm giá:</strong> <span id="voucher_discount_text" class="text-sm text-red-600">{{ $voucherPercent > 0 ? ('-' . number_format($voucherAmountServer,0,',','.') . ' VNĐ') : '0 VNĐ' }}</span></p>
-                                <p class="mt-3 pt-3 border-t border-blue-200"><strong>Tổng thanh toán:</strong> <span id="total_price" class="text-2xl font-bold text-blue-700">{{ number_format($roomTotalCalculated + $currentServiceTotal - $voucherAmountServer,0,',','.') }} VNĐ</span></p>
+                                <p class="mt-2"><strong>Giá phòng (tien_phong):</strong> <span id="base_room_total_text" class="text-lg font-semibold text-blue-600">{{ number_format($roomTotalCalculated,0,',','.') }} VNĐ</span></p>
+                                <p class="mt-2"><strong>Tổng tiền dịch vụ (tien_dich_vu):</strong> <span id="service_total_text" class="text-lg font-semibold text-green-600">{{ number_format($currentServiceTotal,0,',','.') }} VNĐ</span></p>
+                                <p class="mt-2"><strong>Giảm giá (giam_gia):</strong> <span id="voucher_discount_text" class="text-sm text-red-600">{{ $voucherPercent > 0 ? ('-' . number_format($voucherDiscount,0,',','.') . ' VNĐ') : '0 VNĐ' }}</span></p>
+                                <p class="mt-3 pt-3 border-t border-blue-200"><strong>Tổng thanh toán (tong_tien):</strong> <span id="total_price" class="text-2xl font-bold text-blue-700">{{ number_format($roomTotalCalculated + $currentServiceTotal - $voucherDiscount,0,',','.') }} VNĐ</span></p>
                                 <input type="hidden" id="base_room_total" value="{{ $roomTotalCalculated }}">
                                 <input type="hidden" id="voucher_percent" value="{{ $voucherPercent }}">
-                                <input type="hidden" id="voucher_amount" value="{{ $voucherAmountServer }}">
-                                <input type="hidden" id="tong_tien_input" name="tong_tien" value="{{ $roomTotalCalculated + $currentServiceTotal - $voucherAmountServer }}">
+                                <input type="hidden" id="voucher_amount" value="{{ $voucherDiscount }}">
+                                <input type="hidden" id="tong_tien_input" name="tong_tien" value="{{ $roomTotalCalculated + $currentServiceTotal - $voucherDiscount }}">
                             @endif
                         </div>
 
@@ -420,6 +364,9 @@
                         entryRoomContainer.appendChild(ewrap);
                     });
                 });
+                
+                // After rendering all checkboxes, sync the hidden inputs
+                syncHiddenEntries(serviceId);
             });
         }
 
