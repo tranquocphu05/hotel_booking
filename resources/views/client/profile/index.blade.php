@@ -452,6 +452,56 @@
                                                 </div>
                                             @endif
 
+                                            {{-- Danh sách chi tiết các phòng đã đặt (ẩn, dùng cho modal) --}}
+                                            @if($booking->phongs && $booking->phongs->count() > 0)
+                                                <div id="booking-room-details-{{ $booking->id }}" class="hidden">
+                                                    <div class="mt-6">
+                                                        <h4 class="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                                                            <i class="fas fa-door-open text-blue-500"></i>
+                                                            Danh sách phòng đã đặt
+                                                        </h4>
+                                                        <div class="space-y-3">
+                                                            @foreach($booking->phongs as $phong)
+                                                                @php
+                                                                    $loaiPhongItem = $phong->loaiPhong ?? $booking->loaiPhong;
+                                                                @endphp
+                                                                <div class="border border-gray-200 rounded-lg p-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3 bg-gray-50">
+                                                                    <div>
+                                                                        <p class="text-sm font-semibold text-gray-900">
+                                                                            {{ $phong->so_phong ?? ('Phòng ' . $phong->so_phong) }}
+                                                                        </p>
+                                                                        <p class="text-xs text-gray-600 mt-1">
+                                                                            <span class="inline-flex items-center mr-3">
+                                                                                <i class="fas fa-bed mr-1 text-blue-500"></i>
+                                                                                {{ $loaiPhongItem->ten_loai ?? 'Loại phòng' }}
+                                                                            </span>
+                                                                            @if(!empty($phong->tang))
+                                                                                <span class="inline-flex items-center mr-3">
+                                                                                    <i class="fas fa-layer-group mr-1 text-green-500"></i>
+                                                                                    Tầng {{ $phong->tang }}
+                                                                                </span>
+                                                                            @endif
+                                                                            @if(!empty($phong->ghi_chu))
+                                                                                <span class="inline-flex items-center mr-3">
+                                                                                    <i class="fas fa-location-arrow mr-1 text-purple-500"></i>
+                                                                                    Hướng cửa sổ: {{ $phong->ghi_chu }}
+                                                                                </span>
+                                                                            @endif
+                                                                            @if(!empty($phong->gia_rieng))
+                                                                                <span class="inline-flex items-center">
+                                                                                    <i class="fas fa-money-bill-wave mr-1 text-green-500"></i>
+                                                                                    Giá bổ sung: {{ number_format($phong->gia_rieng, 0, ',', '.') }} đ
+                                                                                </span>
+                                                                            @endif
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                            @endforeach
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @endif
+
                                             <!-- Action buttons -->
                                             <div class="flex justify-end gap-3 mt-6">
                                                 {{-- Nút đánh giá: chỉ khi đã trả phòng --}}
@@ -1012,6 +1062,10 @@
 
             const status = statusMap[data.status] || statusMap['cho_xac_nhan'];
 
+            // Lấy HTML danh sách phòng đã đặt (nếu có)
+            const roomDetailsContainer = document.getElementById(`booking-room-details-${bookingId}`);
+            const roomDetailsHtml = roomDetailsContainer ? roomDetailsContainer.innerHTML : '';
+
             let content = `
         <div class="space-y-6">
             <!-- Hình ảnh phòng -->
@@ -1025,6 +1079,10 @@
                 <p class="text-gray-600 mb-4"><i class="fas fa-bed mr-2"></i>${data.roomType}</p>
                 ${data.roomDesc ? `<p class="text-gray-700 text-sm leading-relaxed">${data.roomDesc}</p>` : ''}
             </div>
+
+            ${roomDetailsHtml
+                ? `<div class="bg-white rounded-lg border border-gray-200 p-6">${roomDetailsHtml}</div>`
+                : ''}
 
             <!-- Trạng thái -->
             <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
