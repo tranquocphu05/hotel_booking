@@ -36,13 +36,22 @@ class DatPhong extends Model
     protected $fillable = [
         'nguoi_dung_id',
         'loai_phong_id',
-        'phong_id',
+        'so_luong_da_dat',
+        // legacy single-room column removed; use pivot `booking_rooms` instead
         'ngay_dat',
         'ngay_nhan',
         'ngay_tra',
         'tong_tien',
         'tong_tien_phong',
+        'so_nguoi',
         'ghi_chu',
+        'voucher_id',
+        'ly_do_huy',
+        'ngay_huy',
+        'username',
+        'email',
+        'sdt',
+        'cccd',
         'trang_thai',
         'phi_phat_sinh',
         'thoi_gian_checkin',
@@ -51,30 +60,10 @@ class DatPhong extends Model
         'nguoi_checkout',
         'ghi_chu_checkin',
         'ghi_chu_checkout',
-        'room_types',
-        'phong_ids',
+        'ghi_chu_hoan_tien',
+
     ];
 
-    /**
-        // Return the collection of Phong models attached via pivot table (booking_rooms).
-        $phongs = $this->phongs()->get();
-
-        // Fallback: if pivot empty but legacy single phong_id exists, return that Phong
-        if ($phongs->isEmpty() && $this->phong_id) {
-            $single = Phong::find($this->phong_id);
-            return $single ? collect([$single]) : collect();
-        }
-
-        return $phongs;
-        // Check-in/Check-out fields
-        'thoi_gian_checkin',
-        'thoi_gian_checkout',
-        'nguoi_checkin',
-        'nguoi_checkout',
-        'phi_phat_sinh',
-        'ghi_chu_checkin',
-        'ghi_chu_checkout',
-    ];
 
     /**
      * The attributes that should be cast.
@@ -153,15 +142,23 @@ class DatPhong extends Model
     /**
      * Get array of assigned room IDs from pivot table
      * Returns array of room IDs: [1, 2, 3]
+     * Falls back to single phong_id column if pivot is empty
      */
     public function getPhongIds()
     {
-        // Get from pivot table
-        $phongIds = $this->phongs()->pluck('phong_id')->toArray();
+        // Get from pivot table (booking_rooms) - use correct relationship
+        $phongIds = $this->phongs()->pluck('phong.id')->toArray();
 
-        // Fallback: If no rooms in pivot, try legacy phong_id
+        Log::info('DatPhong::getPhongIds - pivot result', ['booking_id' => $this->id, 'phong_ids' => $phongIds]);
+
+        // Fallback: If no rooms in pivot, try legacy phong_id column
         if (empty($phongIds) && $this->phong_id) {
+            Log::info('DatPhong::getPhongIds - using legacy phong_id', ['booking_id' => $this->id, 'phong_id' => $this->phong_id]);
             return [$this->phong_id];
+        }
+
+        if (empty($phongIds)) {
+            Log::warning('DatPhong::getPhongIds - no rooms found for booking', ['booking_id' => $this->id]);
         }
 
         return $phongIds;
@@ -172,16 +169,37 @@ class DatPhong extends Model
      */
     public function getAssignedPhongs()
     {
-        // Return the collection of Phong models attached via pivot table (booking_rooms).
-        $phongs = $this->phongs()->get();
+        return $this->phongs;
+    }
 
-        // Fallback: if pivot empty but legacy single phong_id exists, return that Phong as a collection
-        if ($phongs->isEmpty() && $this->phong_id) {
-            $single = Phong::find($this->phong_id);
-            return $single ? collect([$single]) : collect();
+    /**
+     * Add a room to booking via pivot table
+     */
+    public function addPhong($phongId)
+    {
+        // Check if already attached
+        if (!$this->phongs()->where('phong_id', $phongId)->exists()) {
+            $this->phongs()->attach($phongId);
         }
+        return $this;
+    }
 
-        return $phongs;
+    /**
+     * Remove a room from booking via pivot table
+     */
+    public function removePhong($phongId)
+    {
+        $this->phongs()->detach($phongId);
+        return $this;
+    }
+
+    /**
+     * Sync rooms with booking (replace all rooms)
+     */
+    public function syncPhongs(array $phongIds)
+    {
+        $this->phongs()->sync($phongIds);
+        return $this;
     }
 
     /**
@@ -191,9 +209,6 @@ class DatPhong extends Model
     public function getRoomTypes()
     {
         $roomTypes = $this->roomTypes()->get();
-        
-        // DEBUG
-        // Log::info('getRoomTypes for booking ' . $this->id . ': roomTypes_count=' . $roomTypes->count() . ', loai_phong_id=' . $this->loai_phong_id . ', so_luong_da_dat=' . $this->so_luong_da_dat);
 
         // If no room types in pivot, fallback to legacy single room type
         if ($roomTypes->isEmpty() && $this->loai_phong_id) {
@@ -202,31 +217,20 @@ class DatPhong extends Model
                     'loai_phong_id' => $this->loai_phong_id,
                     'so_luong' => $this->so_luong_da_dat ?? 1,
                     'gia_rieng' => $this->tong_tien ?? 0,
-                    'phong_ids' => $this->getPhongIds(),
                 ]
             ]);
         }
 
-        
-        // Get all assigned room ids for this booking from pivot table
-        $allAssignedRoomIds = $this->phongs()->pluck('phong.id')->toArray();
-        
         // Transform to array format for compatibility
-        return $roomTypes->map(function ($roomType) use ($allAssignedRoomIds) {
-            // Filter rooms to only those of this room type
-            $phongIdsForThisType = Phong::whereIn('id', $allAssignedRoomIds)
-                ->where('loai_phong_id', $roomType->id)
-                ->pluck('id')
-                ->toArray();
-            
+        return $roomTypes->map(function ($roomType) {
             return [
                 'loai_phong_id' => $roomType->id,
                 'so_luong' => $roomType->pivot->so_luong,
                 'gia_rieng' => $roomType->pivot->gia_rieng,
-                'phong_ids' => $phongIdsForThisType, // Room IDs for this specific room type
             ];
-        })->toArray();  // Convert Collection to Array
-    }    /**
+        });
+    }
+    /**
      * Add room type to booking via pivot table
      */
     public function addRoomType($loaiPhongId, $soLuong, $giaRieng)
@@ -246,7 +250,6 @@ class DatPhong extends Model
         $this->roomTypes()->sync($roomTypesData);
         return $this;
     }
-
     /**
      * Get all booking services for this booking.
      */
@@ -317,6 +320,41 @@ class DatPhong extends Model
     public function isDaXacNhan()
     {
         return $this->trang_thai === 'da_xac_nhan';
+    }
+    
+    /**
+     * Check if booking is cancelled
+     */
+    public function isDaHuy()
+    {
+        return $this->trang_thai === 'da_huy';
+    }
+
+    /**
+     * Check if booking is completed
+     */
+    public function isDaTra()
+    {
+        return $this->trang_thai === 'da_tra';
+    }
+
+    /**
+     * Check if guest can request services (checked in but not checked out)
+     */
+    public function canRequestService()
+    {
+        return $this->thoi_gian_checkin
+            && !$this->thoi_gian_checkout
+            && $this->trang_thai === 'da_xac_nhan';
+    }
+
+    /**
+     * Check if booking can be checked in
+     */
+    public function canCheckin()
+    {
+        return $this->trang_thai === 'da_xac_nhan'
+            && !$this->thoi_gian_checkin;
     }
 
     /**

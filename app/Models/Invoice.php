@@ -70,6 +70,8 @@ class Invoice extends Model
      */
     public function isExtra(): bool
     {
-        return $this->invoice_type === 'extra';
+        // invoice_type values in DB may be stored in various cases ('EXTRA', 'extra', etc.).
+        // Normalize to lowercase for a reliable check.
+        return strtolower((string) ($this->invoice_type ?? '')) === 'extra';
     }
 }

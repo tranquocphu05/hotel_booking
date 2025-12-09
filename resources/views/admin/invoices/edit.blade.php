@@ -3,6 +3,12 @@
 @section('title', 'Cập nhật Hóa đơn')
 
 @section('admin_content')
+@php
+    $nights = 1;
+    if ($booking && $booking->ngay_nhan && $booking->ngay_tra) {
+        $nights = max(1, \Carbon\Carbon::parse($booking->ngay_tra)->diffInDays(\Carbon\Carbon::parse($booking->ngay_nhan)));
+    }
+@endphp
 <div class="container mx-auto px-4 sm:px-8">
     <div class="py-8">
         <!-- Header with Invoice Info -->
@@ -179,6 +185,7 @@
                                 <p class="mt-2"><strong>Tổng tiền dịch vụ:</strong> <span id="service_total_text" class="text-lg font-semibold text-green-600">{{ number_format($currentServiceTotal,0,',','.') }} VNĐ</span></p>
                                 <p class="mt-3 pt-3 border-t border-blue-200"><strong>Tổng thanh toán:</strong> <span id="total_price" class="text-2xl font-bold text-blue-700">{{ number_format($currentServiceTotal,0,',','.') }} VNĐ</span></p>
                                 <input type="hidden" id="base_room_total" value="0">
+                                <input type="hidden" id="server_nights" value="{{ $nights }}">
                                 <input type="hidden" id="voucher_percent" value="0">
                                 <input type="hidden" id="voucher_amount" value="0">
                                 <input type="hidden" id="tong_tien_input" name="tong_tien" value="{{ $currentServiceTotal }}">
@@ -188,6 +195,7 @@
                                 <p class="mt-2"><strong>Giảm giá (giam_gia):</strong> <span id="voucher_discount_text" class="text-sm text-red-600">{{ $voucherPercent > 0 ? ('-' . number_format($voucherDiscount,0,',','.') . ' VNĐ') : '0 VNĐ' }}</span></p>
                                 <p class="mt-3 pt-3 border-t border-blue-200"><strong>Tổng thanh toán (tong_tien):</strong> <span id="total_price" class="text-2xl font-bold text-blue-700">{{ number_format($roomTotalCalculated + $currentServiceTotal - $voucherDiscount,0,',','.') }} VNĐ</span></p>
                                 <input type="hidden" id="base_room_total" value="{{ $roomTotalCalculated }}">
+                                <input type="hidden" id="server_nights" value="{{ $nights }}">
                                 <input type="hidden" id="voucher_percent" value="{{ $voucherPercent }}">
                                 <input type="hidden" id="voucher_amount" value="{{ $voucherDiscount }}">
                                 <input type="hidden" id="tong_tien_input" name="tong_tien" value="{{ $roomTotalCalculated + $currentServiceTotal - $voucherDiscount }}">
@@ -625,8 +633,30 @@
 
         function updateTotalsFromHidden() {
             const isExtraInvoice = {!! json_encode($invoice->isExtra()) !!};
-            let baseRoom = parseFloat(document.getElementById('base_room_total')?.value || 0);
-            if (isExtraInvoice) baseRoom = 0;
+            // Read server-provided base room total (may be per-night or already total)
+            const baseRoomRaw = parseFloat(document.getElementById('base_room_total')?.value || 0);
+            // Determine server-side nights (fallback to 1)
+            const serverNights = parseInt(document.getElementById('server_nights')?.value || 0) || 1;
+
+            // Compute client-side nights from booking range (using getBookingRangeDates())
+            let clientNights = 1;
+            try {
+                const rg = getBookingRangeDates();
+                if (rg.length >= 2) {
+                    // getBookingRangeDates returns inclusive dates array; nights = length - 1
+                    clientNights = Math.max(1, rg.length - 1);
+                }
+            } catch (e) {
+                clientNights = 1;
+            }
+
+            // Adjust baseRoom if server reported a per-night amount (serverNights may differ)
+            let baseRoom = isExtraInvoice ? 0 : baseRoomRaw;
+            if (!isExtraInvoice && serverNights > 0 && clientNights > 0 && serverNights !== clientNights && baseRoomRaw > 0) {
+                const unit = baseRoomRaw / serverNights;
+                baseRoom = unit * clientNights;
+                console.log('updateTotalsFromHidden - adjusted baseRoom from', baseRoomRaw, 'serverNights', serverNights, 'clientNights', clientNights, '=>', baseRoom);
+            }
             let servicesTotal = 0;
             const container = document.getElementById('selected_services_list');
             console.log('updateTotalsFromHidden - isExtraInvoice:', isExtraInvoice, 'baseRoom:', baseRoom);

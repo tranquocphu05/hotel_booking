@@ -63,7 +63,7 @@
 
         <div class="inline-block min-w-full shadow rounded-lg overflow-hidden">
             <div class="p-6 bg-white border-b border-gray-200">
-                <form method="POST" action="{{ route('admin.invoices.store_extra', $invoice->id) }}">
+                <form id="create_extra_form" method="POST" action="{{ route('admin.invoices.store_extra', $invoice->id) }}" onsubmit="return prepareServicesBeforeSubmit(event)">
                     @csrf
 
                     <!-- Inline services picker -->
@@ -602,6 +602,19 @@
                         renderSelectedServices(values || []); 
                         try { updateServiceRoomLists(); } catch(e){}
                     });
+
+                    // Ensure hidden inputs are synced just before submit
+                    window.prepareServicesBeforeSubmit = function(e) {
+                        try {
+                            // For each selected service, force sync of its hidden inputs
+                            const vals = ts.getValue() || [];
+                            vals.forEach(id => {
+                                try { syncHiddenEntries(id); } catch(_) {}
+                            });
+                        } catch (_) {}
+                        // allow submit to continue
+                        return true;
+                    };
 
                     console.log('✓ Extra invoice form initialized successfully');
                 } catch(e) { 
