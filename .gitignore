@@ -50,8 +50,15 @@ app/Console/Commands/Test*.php
 
 # Temporary/accidental files
 tatus
-web.php
 
+
+
+# Diagrams folders (without dot prefix)
+/sequence_diagrams/
+/activity_diagrams/
+/use_case_diagrams/
+/class_diagrams/
+/state_diagrams/
 # Editor configs
 /.cursor/
 /.continue/

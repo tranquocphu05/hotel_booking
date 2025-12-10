@@ -1,10 +1,17 @@
 @extends('layouts.client')
 
-@section('title', $loaiPhong->ten_loai ?? 'Đặt phòng')
+@section('title', isset($loaiPhong) ? ($loaiPhong->ten_loai ?? 'Đặt phòng') : 'Đặt phòng')
 
 @push('styles')
     @vite(['resources/css/booking.css'])
     @vite(['resources/css/contact-form.css'])
+@endpush
+
+@push('head')
+    {{-- Prevent browser caching to ensure fresh availability data --}}
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
 @endpush
 
 @section('client_content')
@@ -31,7 +38,9 @@
             : 1;
 
         // Use promotional price if available, otherwise use base price
-        $gia_mot_dem = $loaiPhong->gia_khuyen_mai ?? ($loaiPhong->gia_co_ban ?? 0);
+        $gia_mot_dem = isset($loaiPhong)
+            ? ($loaiPhong->gia_khuyen_mai ?? ($loaiPhong->gia_co_ban ?? 0))
+            : 0;
         $tong_tien_initial = $gia_mot_dem * $so_dem; // Tổng tiền ban đầu tính bằng PHP
 
     @endphp
@@ -39,7 +48,7 @@
         <div class="booking-shell container mx-auto px-4">
             <form action="{{ route('booking.submit') }}" method="POST" id="finalBookingForm" class="space-y-10"
                 data-booking-context="true" data-gia-mot-dem="{{ $gia_mot_dem }}"
-                data-loai-phong-id="{{ $loaiPhong->id }}">
+                data-loai-phong-id="{{ optional($loaiPhong)->id }}">
                 @csrf
                 @if (isset($errors) && $errors->any())
                     <div class="form-error-panel">
@@ -299,7 +308,7 @@
                                                     });
                                             @endphp
                                             <article
-                                                class="room-card {{ $option->id === ($loaiPhong->id ?? null) ? 'room-card--active' : '' }}">
+                                                class="room-card {{ $option->id === (optional($loaiPhong)->id) ? 'room-card--active' : '' }}">
                                                 <div class="room-card__left">
                                                     <div class="room-card__media">
                                                         <img src="{{ $optionImage }}" alt="{{ $option->ten_loai }}">
@@ -330,7 +339,7 @@
                                                                         data-max-quantity="{{ $initialAvailable }}"
                                                                         onchange="updateRoomCardQuantity('{{ $option->id }}')">
                                                                         @php
-                                                                            $isPreselected = $option->id === ($loaiPhong->id ?? null);
+                                                                            $isPreselected = $option->id === optional($loaiPhong)->id;
                                                                         @endphp
                                                                         @for ($q = 0; $q <= $initialAvailable; $q++)
                                                                             <option value="{{ $q }}" {{ ($isPreselected && $q === 1) ? 'selected' : '' }}>{{ $q }} Phòng</option>
@@ -787,6 +796,17 @@
         window.bookingConfig.csrfToken = '{{ csrf_token() }}';
         window.bookingConfig.defaultRoomCount = {{ $loaiPhong->so_luong_phong ?? 0 }};
         window.bookingConfig.userId = {{ auth()->check() ? auth()->id() : 'null' }};
+
+        // Handle back navigation (bfcache) - force reload to get fresh data
+        window.addEventListener('pageshow', function(event) {
+            // event.persisted is true when page is restored from bfcache (back/forward navigation)
+            if (event.persisted) {
+                console.log('[Booking] Page restored from bfcache, forcing reload for fresh data...');
+                // Force reload to get fresh availability data from server
+                // This is necessary because PHP renders the availability dropdown options
+                window.location.reload();
+            }
+        });
     </script>
     @vite('resources/js/booking.js')
 @endpush

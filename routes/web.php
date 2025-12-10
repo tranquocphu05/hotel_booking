@@ -25,6 +25,8 @@ use App\Http\Controllers\Client\CommentController as ClientCommentController;
 use App\Http\Controllers\Client\VoucherController as ClientVoucherController;
 use App\Http\Controllers\Client\NewsletterController as ClientNewsletterController;
 use App\Http\Controllers\Client\YeuCauDoiPhongController as ClientYeuCauDoiPhongController;
+use App\Http\Controllers\Client\SePayController;
+use App\Http\Controllers\Client\SePayTestController;
 
 //
 
@@ -183,6 +185,14 @@ Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\Allow
     Route::post('/thanh-toan/{datPhong}', [ClientThanhToanController::class, 'store'])->name('thanh-toan.store');
     Route::get('/vnpay/payment/{datPhong}', [ClientThanhToanController::class, 'create_vnpay_payment'])->name('vnpay_payment');
     Route::get('/vnpay/return', [ClientThanhToanController::class, 'vnpay_return'])->name('vnpay_return');
+
+    // SePay Payment routes
+    Route::get('/sepay/qr/{datPhong}', [SePayController::class, 'showQR'])->name('sepay.qr');
+    Route::get('/sepay/status/{datPhong}', [SePayController::class, 'checkStatus'])->name('sepay.status');
+
+    // SePay TEST routes (⚠️ XÓA KHI DEPLOY PRODUCTION!)
+    Route::get('/sepay/test', [SePayTestController::class, 'index'])->name('sepay.test.index');
+    Route::post('/sepay/test/simulate/{datPhong}', [SePayTestController::class, 'simulatePayment'])->name('sepay.test.simulate');
     Route::get('/tin-tuc', [ClientTinTucController::class, 'index'])->name('tintuc');
     Route::get('/tin-tuc/{slug}', [ClientTinTucController::class, 'chitiettintuc'])->name('tintuc.show');
     Route::get('/voucher', [ClientVoucherController::class, 'getVoucher'])->name('voucher');

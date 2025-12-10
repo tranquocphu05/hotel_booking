@@ -115,7 +115,7 @@
         </div>
             <div class="inline-block min-w-full shadow rounded-lg overflow-hidden">
                 <div class="p-6 bg-white border-b border-gray-200">
-                    <form method="POST" action="{{ route('admin.invoices.update', $invoice->id) }}">
+                    <form method="POST" action="{{ route('admin.invoices.update', $invoice->id) }}" id="invoice_update_form">
                         @csrf
                         @method('PATCH')
 
@@ -188,6 +188,9 @@
                                 <input type="hidden" id="server_nights" value="{{ $nights }}">
                                 <input type="hidden" id="voucher_percent" value="0">
                                 <input type="hidden" id="voucher_amount" value="0">
+                                <input type="hidden" id="tien_phong" name="tien_phong" value="0">
+                                <input type="hidden" id="tien_dich_vu" name="tien_dich_vu" value="{{ $currentServiceTotal }}">
+                                <input type="hidden" id="giam_gia" name="giam_gia" value="0">
                                 <input type="hidden" id="tong_tien_input" name="tong_tien" value="{{ $currentServiceTotal }}">
                             @else
                                 <p class="mt-2"><strong>Giá phòng (tien_phong):</strong> <span id="base_room_total_text" class="text-lg font-semibold text-blue-600">{{ number_format($roomTotalCalculated,0,',','.') }} VNĐ</span></p>
@@ -198,6 +201,9 @@
                                 <input type="hidden" id="server_nights" value="{{ $nights }}">
                                 <input type="hidden" id="voucher_percent" value="{{ $voucherPercent }}">
                                 <input type="hidden" id="voucher_amount" value="{{ $voucherDiscount }}">
+                                <input type="hidden" id="tien_phong" name="tien_phong" value="{{ $roomTotalCalculated }}">
+                                <input type="hidden" id="tien_dich_vu" name="tien_dich_vu" value="{{ $currentServiceTotal }}">
+                                <input type="hidden" id="giam_gia" name="giam_gia" value="{{ $voucherDiscount }}">
                                 <input type="hidden" id="tong_tien_input" name="tong_tien" value="{{ $roomTotalCalculated + $currentServiceTotal - $voucherDiscount }}">
                             @endif
                         </div>
@@ -709,8 +715,19 @@
             document.getElementById('base_room_total_text').textContent = formatCurrency(baseRoom);
             document.getElementById('service_total_text').textContent = formatCurrency(servicesTotal);
             document.getElementById('total_price').textContent = formatCurrency(total);
+            
+            // Update hidden inputs for form submission
             const tInput = document.getElementById('tong_tien_input');
             if (tInput) tInput.value = Math.round(total);
+            
+            const tienPhongInput = document.getElementById('tien_phong');
+            if (tienPhongInput) tienPhongInput.value = Math.round(baseRoom);
+            
+            const tienDichVuInput = document.getElementById('tien_dich_vu');
+            if (tienDichVuInput) tienDichVuInput.value = Math.round(servicesTotal);
+            
+            const giamGiaInput = document.getElementById('giam_gia');
+            if (giamGiaInput) giamGiaInput.value = Math.round(voucherAmount);
         }
 
         function formatCurrency(amount) {
@@ -787,5 +804,16 @@
             console.log('DEBUG assignedRooms:', {!! json_encode($assignedRooms ?? []) !!});
             console.log('DEBUG allServices:', {!! json_encode($services->toArray()) !!});
         @endif
+
+        // Form submit handler: update totals before submission
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('invoice_update_form');
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    updateTotalsFromHidden();
+                    console.log('Form submit: called updateTotalsFromHidden() to ensure hidden inputs are up to date');
+                });
+            }
+        });
     </script>
 @endpush

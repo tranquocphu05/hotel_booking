@@ -80,4 +80,3 @@ class BookingService extends Model
         return (float)$this->unit_price * $this->getEffectiveQuantity();
     }
 }
-

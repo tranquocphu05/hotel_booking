@@ -41,6 +41,7 @@ class DatPhong extends Model
         'ngay_dat',
         'ngay_nhan',
         'ngay_tra',
+        'phong_id',  // Specific room assigned (nullable, legacy support)
         'tong_tien',
         'tong_tien_phong',
         'so_nguoi',
@@ -80,9 +81,6 @@ class DatPhong extends Model
         'phi_phat_sinh' => 'decimal:2',
         'thoi_gian_checkin' => 'datetime',
         'thoi_gian_checkout' => 'datetime',
-        // JSON fields for room assignments
-        'room_types' => 'array',
-        'phong_ids' => 'array',
     ];
 
     /**
@@ -321,7 +319,7 @@ class DatPhong extends Model
     {
         return $this->trang_thai === 'da_xac_nhan';
     }
-    
+
     /**
      * Check if booking is cancelled
      */

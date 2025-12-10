@@ -76,7 +76,7 @@ class InvoiceController extends Controller
         $serviceTotal = 0;
         if ($invoice->invoice_type === 'EXTRA') {
             // Only show services for this invoice
-            $services = \App\Models\BookingService::with('service', 'phong')
+            $services = BookingService::with('service', 'phong')
                 ->where('invoice_id', $invoice->id)
                 ->get();
             $serviceTotal = $services->sum(function($bs) {
@@ -84,7 +84,7 @@ class InvoiceController extends Controller
             });
         } else {
             // PREPAID: show all booking services (legacy: invoice_id NULL or matches main invoice)
-            $services = \App\Models\BookingService::with('service', 'phong')
+            $services = BookingService::with('service', 'phong')
                 ->where('dat_phong_id', $invoice->dat_phong_id)
                 ->where(function($q) use ($invoice) {
                     $q->whereNull('invoice_id')->orWhere('invoice_id', $invoice->id);
@@ -171,7 +171,7 @@ class InvoiceController extends Controller
         $bookingServicesServer = [];
         if ($invoice->invoice_type === 'EXTRA') {
             // Only show/edit services for this invoice
-            $bookingServices = \App\Models\BookingService::with(['service', 'phong'])
+            $bookingServices = BookingService::with(['service', 'phong'])
                 ->where('invoice_id', $invoice->id)
                 ->get();
             $currentServiceTotal = $bookingServices->sum(function($bs) {
@@ -194,7 +194,7 @@ class InvoiceController extends Controller
             $voucherDiscount = 0;
         } else {
             // PREPAID: show/edit all booking services (legacy: invoice_id NULL or matches main invoice)
-            $bookingServices = \App\Models\BookingService::with(['service', 'phong'])
+            $bookingServices = BookingService::with(['service', 'phong'])
                 ->where('dat_phong_id', $invoice->dat_phong_id)
                 ->where(function($q) use ($invoice) {
                     $q->whereNull('invoice_id')->orWhere('invoice_id', $invoice->id);
@@ -727,7 +727,7 @@ class InvoiceController extends Controller
             }
         }
 
-        // Recalculate totals
+        // Handle total calculation for both invoice types
         if ($invoice->isExtra()) {
             // For EXTRA invoice, we already set tong_tien from services above if services_data provided.
             // If no services_data was provided, compute total from existing invoice-scoped booking_services.
@@ -743,19 +743,49 @@ class InvoiceController extends Controller
             }
             // For EXTRA invoices, no need to update booking - they don't affect it
         } else {
-            // For regular (non-EXTRA) invoices, recalculate the booking totals
-            // This will update booking tien_phong, tien_dich_vu, giam_gia, tong_tien
-            // And also sync the invoice with the same values via recalcTotal
-            $booking = $booking->fresh();
-            try {
-                BookingPriceCalculator::recalcTotal($booking);
-                // Reload both $booking and $invoice from DB to get the updated values
-                $booking = $booking->fresh();
-                $invoice = $invoice->fresh();
-            } catch (\Throwable $e) {
-                // Log and continue — do not block status update because of calc error
-                Log::warning('Recalc booking total failed in InvoiceController:update: ' . $e->getMessage());
+            // For regular (non-EXTRA) invoices:
+            // Use the form-submitted tong_tien (from client JS calculation) instead of recalculating
+            // This prevents double-counting of room prices
+            if ($request->filled('tong_tien')) {
+                $submittedTotal = $request->input('tong_tien', 0);
+                $invoice->tong_tien = $submittedTotal;
+                $invoice->giam_gia = $request->input('giam_gia', 0);
+                $invoice->tien_phong = $request->input('tien_phong', 0);
+                $invoice->tien_dich_vu = $request->input('tien_dich_vu', 0);
+                
+                // Update booking totals from invoice (sync invoice values to booking)
+                // Extract room price, service price from invoice data
+                // Note: giam_gia (voucher discount) belongs to Invoice table, not DatPhong
+                // Use update() to let Laravel handle type casting properly
+                $booking->update([
+                    'tien_phong' => $request->input('tien_phong', 0),
+                    'tien_dich_vu' => $request->input('tien_dich_vu', 0),
+                    'tong_tien' => $submittedTotal,
+                ]);
+                
+                Log::info('InvoiceController:update - Using submitted totals', [
+                    'invoice_id' => $invoice->id,
+                    'booking_id' => $booking->id,
+                    'tong_tien' => $submittedTotal,
+                    'tien_phong' => $request->input('tien_phong', 0),
+                    'tien_dich_vu' => $request->input('tien_dich_vu', 0),
+                ]);
+            } else {
+                // If no tong_tien in request, fall back to recalculating
+                try {
+                    BookingPriceCalculator::recalcTotal($booking);
+                    $booking = $booking->fresh();
+                    $invoice->tong_tien = $booking->tong_tien;
+                    
+                    Log::info('InvoiceController:update - Fallback to recalcTotal', [
+                        'invoice_id' => $invoice->id,
+                        'booking_id' => $booking->id,
+                    ]);
+                } catch (\Throwable $e) {
+                    Log::warning('Recalc booking total failed in InvoiceController:update: ' . $e->getMessage());
+                }
             }
+            $invoice->save();
         }
 
         // Đồng bộ trạng thái đặt phòng khi hóa đơn đã thanh toán

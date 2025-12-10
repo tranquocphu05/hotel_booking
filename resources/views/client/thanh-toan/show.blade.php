@@ -68,6 +68,18 @@
         @endif
 
             <div class="max-w-6xl mx-auto">
+                @if(isset($remainingSeconds) && $remainingSeconds > 0)
+                    <div id="payment-countdown" class="mb-6 max-w-md mx-auto bg-red-50 border border-red-200 rounded-lg px-4 py-3 flex items-center justify-between shadow-sm">
+                        <div class="text-sm text-red-800">
+                            <span class="font-semibold">Lưu ý:</span>
+                            <span class="ml-1">
+                                Biên lai chỉ có hiệu lực trong <strong>5 phút</strong>. <br>
+                                Vui lòng tiến hành thanh toán để hoàn tất đặt phòng.
+                            </span>
+                        </div>
+                        <div id="countdown-timer" class="ml-4 text-lg font-bold text-red-600 whitespace-nowrap"></div>
+                    </div>
+                @endif
                 <div class="flex flex-col lg:flex-row gap-8 lg:items-stretch">
                     <!-- Booking Details - Enhanced Card -->
                     <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-200 h-full flex-1">
@@ -517,7 +529,7 @@
                                 </div>
                             @endif
                         </div>
-      
+
                             <!-- Simple Policy Text -->
                             <div class="mt-6 space-y-2 text-sm text-gray-700">
                                 <p><strong>Hủy:</strong> Nếu hủy, thay đổi hoặc không đến, khách sẽ trả toàn bộ giá trị tiền đặt phòng.</p>
@@ -526,32 +538,57 @@
 
                             <!-- Payment Methods -->
                             <div class="mt-8 border-t pt-6">
-                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Phương thức thanh toán</h3>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Chọn phương thức thanh toán</h3>
 
-                                <form action="{{ route('client.thanh-toan.store', ['datPhong' => $datPhong->id]) }}" method="POST">
+                                <form action="{{ route('client.thanh-toan.store', ['datPhong' => $datPhong->id]) }}" method="POST" id="payment-form">
                                     @csrf
-                                    <input type="hidden" name="phuong_thuc" value="vnpay">
+                                    <input type="hidden" name="phuong_thuc" id="phuong_thuc" value="vnpay">
 
-                                    <!-- VNPay Payment Info -->
-                                    <div class="border-2 border-blue-200 bg-blue-50 rounded-lg p-5 mb-6">
-                                        <div class="flex items-center justify-between">
-                                            <div class="flex items-center">
-                                                <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mr-4">
-                                                    <!-- VNPay Logo -->
-                                                    <div class="w-10 h-10 bg-gradient-to-r from-red-500 to-red-600 rounded-lg flex items-center justify-center shadow-md">
+                                    <!-- Payment Options -->
+                                    <div class="space-y-4 mb-6">
+                                        <!-- VNPay Option -->
+                                        <label class="payment-option block cursor-pointer" data-method="vnpay">
+                                            <div class="border-2 border-blue-200 bg-blue-50 rounded-lg p-4 transition-all hover:border-blue-400 payment-card selected" id="vnpay-card">
+                                                <div class="flex items-center">
+                                                    <input type="radio" name="payment_method" value="vnpay" class="sr-only" checked>
+                                                    <div class="w-6 h-6 rounded-full border-2 border-blue-500 mr-4 flex items-center justify-center payment-radio" id="vnpay-radio">
+                                                        <div class="w-3 h-3 rounded-full bg-blue-500"></div>
+                                                    </div>
+                                                    <div class="w-12 h-12 bg-gradient-to-r from-red-500 to-red-600 rounded-lg flex items-center justify-center mr-4 shadow-md">
                                                         <span class="text-white font-bold text-lg">V</span>
                                                     </div>
-                                                </div>
-                                                <div>
-                                                    <p class="font-semibold text-gray-900 text-lg">VNPay</p>
-                                                    <p class="text-sm text-gray-600">Cổng thanh toán trực tuyến</p>
+                                                    <div class="flex-1">
+                                                        <p class="font-semibold text-gray-900">VNPay</p>
+                                                        <p class="text-sm text-gray-600">Thanh toán thẻ ATM/Visa/Mastercard</p>
+                                                    </div>
+                                                    <div class="text-right">
+                                                        <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">Phổ biến</span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div class="text-right">
-                                                <p class="text-xs text-gray-500 mb-1">Phương thức</p>
-                                                <p class="text-sm font-medium text-blue-600">Đã chọn</p>
+                                        </label>
+
+                                        <!-- SePay Option -->
+                                        <label class="payment-option block cursor-pointer" data-method="sepay">
+                                            <div class="border-2 border-gray-200 bg-gray-50 rounded-lg p-4 transition-all hover:border-green-400 payment-card" id="sepay-card">
+                                                <div class="flex items-center">
+                                                    <input type="radio" name="payment_method" value="sepay" class="sr-only">
+                                                    <div class="w-6 h-6 rounded-full border-2 border-gray-300 mr-4 flex items-center justify-center payment-radio" id="sepay-radio">
+                                                        <div class="w-3 h-3 rounded-full bg-transparent"></div>
+                                                    </div>
+                                                    <div class="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg flex items-center justify-center mr-4 shadow-md">
+                                                        <span class="text-white font-bold text-lg">SE</span>
+                                                    </div>
+                                                    <div class="flex-1">
+                                                        <p class="font-semibold text-gray-900">SePay</p>
+                                                        <p class="text-sm text-gray-600">Chuyển khoản ngân hàng qua QR Code</p>
+                                                    </div>
+                                                    <div class="text-right">
+                                                        <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Nhanh chóng</span>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
+                                        </label>
                                     </div>
 
                                     @error('phuong_thuc')
@@ -564,28 +601,110 @@
                                     @enderror
 
                                     <!-- Payment Notice -->
-                                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                                    <div id="vnpay-notice" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
                                         <div class="flex items-start">
                                             <i class="fas fa-info-circle text-yellow-600 mr-2 mt-0.5"></i>
                                             <div class="text-sm text-yellow-800">
-                                                <p class="font-medium mb-1">Lưu ý:</p>
+                                                <p class="font-medium mb-1">Lưu ý VNPay:</p>
                                                 <p>Bạn sẽ được chuyển đến trang thanh toán VNPay để hoàn tất giao dịch. Vui lòng không đóng trình duyệt trong quá trình thanh toán.</p>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <!-- Submit Button -->
+                                    <div id="sepay-notice" class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 hidden">
+                                        <div class="flex items-start">
+                                            <i class="fas fa-qrcode text-green-600 mr-2 mt-0.5"></i>
+                                            <div class="text-sm text-green-800">
+                                                <p class="font-medium mb-1">Thanh toán SePay:</p>
+                                                <p>Bạn sẽ quét mã QR VietQR để chuyển khoản. Hệ thống sẽ tự động xác nhận thanh toán trong vòng 10 giây sau khi chuyển khoản thành công.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Submit Buttons -->
                                     <div class="mt-6">
-                                        <button type="submit" class="w-full bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold py-4 px-6 rounded-lg hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center">
+                                        <button type="submit" id="vnpay-btn" class="w-full bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold py-4 px-6 rounded-lg hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center">
                                             <i class="fas fa-credit-card mr-2"></i>
                                             Thanh toán bằng VNPay
                                         </button>
+                                        <button type="submit" id="sepay-btn" class="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold py-4 px-6 rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center hidden">
+                                            <i class="fas fa-qrcode mr-2"></i>
+                                            Thanh toán bằng SePay (QR Code)
+                                        </button>
                                         <p class="text-center text-xs text-gray-500 mt-3">
                                             <i class="fas fa-lock mr-1"></i>
-                                            Giao dịch được bảo mật bởi VNPay
+                                            <span id="security-text">Giao dịch được bảo mật bởi VNPay</span>
                                         </p>
                                     </div>
                                 </form>
+
+                                <script>
+                                    document.addEventListener('DOMContentLoaded', function() {
+                                        const paymentOptions = document.querySelectorAll('.payment-option');
+                                        const phuongThucInput = document.getElementById('phuong_thuc');
+                                        const vnpayNotice = document.getElementById('vnpay-notice');
+                                        const sepayNotice = document.getElementById('sepay-notice');
+                                        const vnpayBtn = document.getElementById('vnpay-btn');
+                                        const sepayBtn = document.getElementById('sepay-btn');
+                                        const securityText = document.getElementById('security-text');
+                                        const vnpayCard = document.getElementById('vnpay-card');
+                                        const sepayCard = document.getElementById('sepay-card');
+                                        const vnpayRadio = document.getElementById('vnpay-radio');
+                                        const sepayRadio = document.getElementById('sepay-radio');
+
+                                        paymentOptions.forEach(option => {
+                                            option.addEventListener('click', function() {
+                                                const method = this.dataset.method;
+                                                phuongThucInput.value = method;
+
+                                                // Update radio buttons visual
+                                                if (method === 'vnpay') {
+                                                    vnpayCard.classList.add('border-blue-400', 'bg-blue-50', 'selected');
+                                                    vnpayCard.classList.remove('border-gray-200', 'bg-gray-50');
+                                                    vnpayRadio.classList.add('border-blue-500');
+                                                    vnpayRadio.classList.remove('border-gray-300');
+                                                    vnpayRadio.querySelector('div').classList.add('bg-blue-500');
+                                                    vnpayRadio.querySelector('div').classList.remove('bg-transparent');
+
+                                                    sepayCard.classList.remove('border-green-400', 'bg-green-50', 'selected');
+                                                    sepayCard.classList.add('border-gray-200', 'bg-gray-50');
+                                                    sepayRadio.classList.remove('border-green-500');
+                                                    sepayRadio.classList.add('border-gray-300');
+                                                    sepayRadio.querySelector('div').classList.remove('bg-green-500');
+                                                    sepayRadio.querySelector('div').classList.add('bg-transparent');
+
+                                                    // Show/hide elements
+                                                    vnpayNotice.classList.remove('hidden');
+                                                    sepayNotice.classList.add('hidden');
+                                                    vnpayBtn.classList.remove('hidden');
+                                                    sepayBtn.classList.add('hidden');
+                                                    securityText.textContent = 'Giao dịch được bảo mật bởi VNPay';
+                                                } else {
+                                                    sepayCard.classList.add('border-green-400', 'bg-green-50', 'selected');
+                                                    sepayCard.classList.remove('border-gray-200', 'bg-gray-50');
+                                                    sepayRadio.classList.add('border-green-500');
+                                                    sepayRadio.classList.remove('border-gray-300');
+                                                    sepayRadio.querySelector('div').classList.add('bg-green-500');
+                                                    sepayRadio.querySelector('div').classList.remove('bg-transparent');
+
+                                                    vnpayCard.classList.remove('border-blue-400', 'bg-blue-50', 'selected');
+                                                    vnpayCard.classList.add('border-gray-200', 'bg-gray-50');
+                                                    vnpayRadio.classList.remove('border-blue-500');
+                                                    vnpayRadio.classList.add('border-gray-300');
+                                                    vnpayRadio.querySelector('div').classList.remove('bg-blue-500');
+                                                    vnpayRadio.querySelector('div').classList.add('bg-transparent');
+
+                                                    // Show/hide elements
+                                                    vnpayNotice.classList.add('hidden');
+                                                    sepayNotice.classList.remove('hidden');
+                                                    vnpayBtn.classList.add('hidden');
+                                                    sepayBtn.classList.remove('hidden');
+                                                    securityText.textContent = 'Thanh toán tự động xác nhận bởi SePay';
+                                                }
+                                            });
+                                        });
+                                    });
+                                </script>
                             </div>
                         </div>
                     </div>
@@ -596,16 +715,45 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            var remaining = {{ isset($remainingSeconds) ? (int) $remainingSeconds : 0 }};
+            var timerElement = document.getElementById('countdown-timer');
 
-            // Show success modal on booking success
+            if (remaining > 0 && timerElement) {
+                var countdownContainer = document.getElementById('payment-countdown');
+
+                var formatTime = function(seconds) {
+                    var m = Math.floor(seconds / 60);
+                    var s = seconds % 60;
+                    var mm = m < 10 ? '0' + m : '' + m;
+                    var ss = s < 10 ? '0' + s : '' + s;
+                    return mm + ':' + ss;
+                };
+
+                var updateCountdown = function() {
+                    if (remaining <= 0) {
+                        timerElement.textContent = '00:00';
+                        if (countdownContainer) {
+                            countdownContainer.classList.add('opacity-60');
+                        }
+                        alert('Bạn đã quá thời gian thanh toán. Đơn đặt phòng của bạn đã bị hủy. Vui lòng đặt phòng lại.');
+                        window.location.href = "{{ url('/booking') }}";
+                        return;
+                    }
+
+                    timerElement.textContent = formatTime(remaining);
+                    remaining -= 1;
+                };
+
+                updateCountdown();
+                setInterval(updateCountdown, 1000);
+            }
+
             @if(session('booking_success'))
-                // Auto-scroll to success message
                 setTimeout(() => {
                     const successAlert = document.querySelector('.bg-gradient-to-r.from-green-50');
                     if (successAlert) {
                         successAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-                        // Add attention animation
                         successAlert.classList.add('animate-bounce-once');
                         setTimeout(() => {
                             successAlert.classList.remove('animate-bounce-once');
