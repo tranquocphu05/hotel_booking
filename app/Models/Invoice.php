@@ -50,7 +50,6 @@ class Invoice extends Model
         return match ($this->phuong_thuc) {
             'tien_mat'     => ['label' => 'Tiền mặt',      'bg' => 'bg-gray-100',   'text' => 'text-gray-700'],
             'vnpay'        => ['label' => 'VNPAY',         'bg' => 'bg-blue-100',   'text' => 'text-blue-700'],
-            'sepay'        => ['label' => 'SePay',         'bg' => 'bg-green-100',  'text' => 'text-green-700'],
             'momo'         => ['label' => 'MoMo',          'bg' => 'bg-pink-100',   'text' => 'text-pink-700'],
             'chuyen_khoan' => ['label' => 'Chuyển khoản',  'bg' => 'bg-indigo-100', 'text' => 'text-indigo-700'],
             default        => ['label' => 'Khác',          'bg' => 'bg-gray-100',   'text' => 'text-gray-700'],
@@ -71,6 +70,8 @@ class Invoice extends Model
      */
     public function isExtra(): bool
     {
-        return $this->invoice_type === 'extra';
+        // invoice_type values in DB may be stored in various cases ('EXTRA', 'extra', etc.).
+        // Normalize to lowercase for a reliable check.
+        return strtolower((string) ($this->invoice_type ?? '')) === 'extra';
     }
 }

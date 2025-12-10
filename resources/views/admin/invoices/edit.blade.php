@@ -3,6 +3,12 @@
 @section('title', 'Cập nhật Hóa đơn')
 
 @section('admin_content')
+@php
+    $nights = 1;
+    if ($booking && $booking->ngay_nhan && $booking->ngay_tra) {
+        $nights = max(1, \Carbon\Carbon::parse($booking->ngay_tra)->diffInDays(\Carbon\Carbon::parse($booking->ngay_nhan)));
+    }
+@endphp
 <div class="container mx-auto px-4 sm:px-8">
     <div class="py-8">
         <!-- Header with Invoice Info -->
@@ -109,7 +115,7 @@
         </div>
             <div class="inline-block min-w-full shadow rounded-lg overflow-hidden">
                 <div class="p-6 bg-white border-b border-gray-200">
-                    <form method="POST" action="{{ route('admin.invoices.update', $invoice->id) }}">
+                    <form method="POST" action="{{ route('admin.invoices.update', $invoice->id) }}" id="invoice_update_form">
                         @csrf
                         @method('PATCH')
 
@@ -125,24 +131,31 @@
                             </select>
                         </div>
 
-                        <!-- Inline services picker (same UI as booking create/edit) -->
+                        <!-- Inline services picker (same UI as create_extra) -->
                         <link href="https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/css/tom-select.css" rel="stylesheet">
                         <style>
-                                .service-card-custom{border-radius:12px;background:linear-gradient(135deg, #e0f2fe 0%, #bfdbfe 100%);border:2px solid #2563eb;padding:1.25rem;box-shadow:0 10px 25px rgba(37, 99, 235, 0.08);} 
-                                .service-card-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1.25rem}
-                                .service-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;padding-bottom:.5rem;border-bottom:2px solid #bfdbfe}
-                                .service-card-header .service-title{color:#1e40af;font-weight:700;font-size:1.1rem}
-                                .service-card-header .service-price{color:#1e3a8a;font-weight:600;font-size:0.95rem}
-                                .service-date-row{display:flex;gap:.75rem;align-items:center;margin-top:.75rem;padding:.5rem;background:#ffffff;border-radius:8px;border:1px solid #bfdbfe}
-                                .service-date-row input[type=date]{border:1px solid #93c5fd;padding:.45rem .6rem;border-radius:6px;background:#eff6ff;font-size:0.9rem;flex:1}
-                                .service-date-row input[type=number]{border:1px solid #93c5fd;padding:.45rem .6rem;border-radius:6px;background:#eff6ff;width:80px;text-align:center}
-                                .service-add-day{background:linear-gradient(135deg, #93c5fd 0%, #2563eb 100%);color:#07316a;padding:.5rem .75rem;border-radius:8px;border:1.5px solid #60a5fa;cursor:pointer;font-weight:600;font-size:0.9rem}
-                                .service-add-day:hover{background:linear-gradient(135deg, #2563eb 0%, #1e40af 100%);box-shadow:0 4px 12px rgba(37, 99, 235, 0.15)}
-                                .service-remove-btn{background:#fee2e2;color:#991b1b;padding:.4rem .6rem;border-radius:6px;border:1px solid #fecaca;cursor:pointer;font-weight:600;font-size:0.85rem}
-                                .service-remove-btn:hover{background:#fca5a5;box-shadow:0 4px 12px rgba(185, 28, 28, 0.15)}
-                                #services_select + .ts-control{margin-top:.5rem;border-color:#2563eb}
-                                #selected_services_list .service-card-custom{transition:all .2s ease}
-                                #selected_services_list .service-card-custom:hover{transform:translateY(-6px);box-shadow:0 15px 35px rgba(37, 99, 235, 0.15)}
+                            .service-card-custom{
+                                border-radius:10px;
+                                background: linear-gradient(135deg, #e0f2fe 0%, #bfdbfe 100%);
+                                border:1.5px solid #2563eb;
+                                padding:0.875rem;
+                                box-shadow: 0 6px 18px rgba(37, 99, 235, 0.06);
+                            }
+                            .service-card-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:0.75rem}
+                            .service-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;padding-bottom:0.4rem;border-bottom:1.5px solid #bfdbfe}
+                            .service-card-header .service-title{color:#1e40af;font-weight:600;font-size:0.95rem}
+                            .service-card-header .service-price{color:#1e3a8a;font-weight:600;font-size:0.85rem}
+                            .service-date-row{display:flex;gap:0.5rem;align-items:center;margin-top:0.5rem;padding:0.4rem;background:#ffffff;border-radius:6px;border:1px solid #bfdbfe}
+                            .service-date-row input[type=date]{border:1px solid #93c5fd;padding:0.35rem 0.5rem;border-radius:5px;background:#eff6ff;font-size:0.85rem;flex:1}
+                            .service-date-row input[type=number]{border:1px solid #93c5fd;padding:0.35rem 0.5rem;border-radius:5px;background:#eff6ff;width:64px;text-align:center;font-size:0.85rem}
+                            .service-add-day{background:linear-gradient(135deg, #93c5fd 0%, #2563eb 100%);color:#08203a;padding:0.4rem 0.6rem;border-radius:6px;border:1.5px solid #60a5fa;cursor:pointer;font-weight:600;font-size:0.85rem}
+                            .service-add-day:hover{background:linear-gradient(135deg, #2563eb 0%, #1e40af 100%);box-shadow:0 4px 12px rgba(37, 99, 235, 0.12)}
+                            .service-remove-btn{background:#fee2e2;color:#991b1b;padding:0.3rem 0.5rem;border-radius:5px;border:1px solid #fecaca;cursor:pointer;font-weight:600;font-size:0.8rem}
+                            .service-remove-btn:hover{background:#fca5a5;box-shadow:0 3px 10px rgba(185,28,28,0.12)}
+                            .entry-room-container{display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center}
+                            #services_select + .ts-control{margin-top:.5rem;border-color:#2563eb}
+                            #selected_services_list .service-card-custom{transition:all .18s ease}
+                            #selected_services_list .service-card-custom:hover{transform:translateY(-4px);box-shadow:0 10px 26px rgba(37, 99, 235, 0.12)}
                         </style>
                         <div class="bg-gray-50 p-4 rounded-lg mb-4">
                             <label for="services_select" class="block text-sm font-medium text-gray-700 mb-2">Chọn dịch vụ kèm theo</label>
@@ -155,54 +168,43 @@
                         </div>
 
                         {{-- Show dynamic total so admin sees live changes --}}
-                        @php
-                            // Calculate room total properly from booking data
-                            $nights = 1;
-                            $roomTotalCalculated = 0;
-                            // If this invoice is an EXTRA invoice, do not include room price
-                            if ($invoice->isExtra()) {
-                                $roomTotalCalculated = 0;
-                            } else if($booking && $booking->ngay_nhan && $booking->ngay_tra) {
-                                $checkin = \Carbon\Carbon::parse($booking->ngay_nhan);
-                                $checkout = \Carbon\Carbon::parse($booking->ngay_tra);
-                                $nights = max(1, $checkin->diffInDays($checkout));
-                                
-                                // Get room types and calculate room total using LoaiPhong promotional price
-                                $roomTypes = $booking->getRoomTypes();
-                                foreach ($roomTypes as $rt) {
-                                    $soLuong = $rt['so_luong'] ?? 1;
-                                    $loaiPhongId = $rt['loai_phong_id'] ?? null;
-                                    $unit = 0;
-                                    // Use pre-loaded loaiPhongs from controller to avoid N+1 queries
-                                    if ($loaiPhongId && isset($loaiPhongs[$loaiPhongId])) {
-                                        $lp = $loaiPhongs[$loaiPhongId];
-                                        $unit = $lp->gia_khuyen_mai ?? $lp->gia_co_ban ?? 0;
-                                    }
-                                    $roomTotalCalculated += $unit * $nights * $soLuong;
-                                }
-                            }
-                            
-                            // Get current service total from database
-                            $currentServiceTotal = 0;
-                            foreach ($bookingServices as $bs) {
-                                $currentServiceTotal += ($bs->quantity ?? 0) * ($bs->unit_price ?? 0);
-                            }
-                        @endphp
                         <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                             <p><strong>Ngày nhận:</strong> {{ optional($booking)->ngay_nhan ? date('d/m/Y', strtotime($booking->ngay_nhan)) : 'N/A' }} | <strong>Ngày trả:</strong> {{ optional($booking)->ngay_tra ? date('d/m/Y', strtotime($booking->ngay_tra)) : 'N/A' }} | <strong>{{ $nights }} đêm</strong></p>
+                            @php
+                                $voucherPercent = 0;
+                                $voucherLoaiPhongId = null;
+                                if ($booking && isset($booking->voucher) && $booking->voucher) {
+                                    $voucher = $booking->voucher;
+                                    $voucherPercent = $voucher->gia_tri ?? 0;
+                                    $voucherLoaiPhongId = $voucher->loai_phong_id ?? null;
+                                }
+                            @endphp
                             @if($invoice->isExtra())
                                 <p class="mt-2"><strong>Hóa đơn dịch vụ:</strong> <span class="text-sm text-gray-600">(Giá phòng không được tính trong hóa đơn này)</span></p>
                                 <p class="mt-2"><strong>Giá phòng:</strong> <span id="base_room_total_text" class="text-lg font-semibold text-blue-600">0 VNĐ</span></p>
                                 <p class="mt-2"><strong>Tổng tiền dịch vụ:</strong> <span id="service_total_text" class="text-lg font-semibold text-green-600">{{ number_format($currentServiceTotal,0,',','.') }} VNĐ</span></p>
                                 <p class="mt-3 pt-3 border-t border-blue-200"><strong>Tổng thanh toán:</strong> <span id="total_price" class="text-2xl font-bold text-blue-700">{{ number_format($currentServiceTotal,0,',','.') }} VNĐ</span></p>
                                 <input type="hidden" id="base_room_total" value="0">
+                                <input type="hidden" id="server_nights" value="{{ $nights }}">
+                                <input type="hidden" id="voucher_percent" value="0">
+                                <input type="hidden" id="voucher_amount" value="0">
+                                <input type="hidden" id="tien_phong" name="tien_phong" value="0">
+                                <input type="hidden" id="tien_dich_vu" name="tien_dich_vu" value="{{ $currentServiceTotal }}">
+                                <input type="hidden" id="giam_gia" name="giam_gia" value="0">
                                 <input type="hidden" id="tong_tien_input" name="tong_tien" value="{{ $currentServiceTotal }}">
                             @else
-                                <p class="mt-2"><strong>Giá phòng:</strong> <span id="base_room_total_text" class="text-lg font-semibold text-blue-600">{{ number_format($roomTotalCalculated,0,',','.') }} VNĐ</span></p>
-                                <p class="mt-2"><strong>Tổng tiền dịch vụ:</strong> <span id="service_total_text" class="text-lg font-semibold text-green-600">{{ number_format($currentServiceTotal,0,',','.') }} VNĐ</span></p>
-                                <p class="mt-3 pt-3 border-t border-blue-200"><strong>Tổng thanh toán:</strong> <span id="total_price" class="text-2xl font-bold text-blue-700">{{ number_format($roomTotalCalculated + $currentServiceTotal,0,',','.') }} VNĐ</span></p>
+                                <p class="mt-2"><strong>Giá phòng (tien_phong):</strong> <span id="base_room_total_text" class="text-lg font-semibold text-blue-600">{{ number_format($roomTotalCalculated,0,',','.') }} VNĐ</span></p>
+                                <p class="mt-2"><strong>Tổng tiền dịch vụ (tien_dich_vu):</strong> <span id="service_total_text" class="text-lg font-semibold text-green-600">{{ number_format($currentServiceTotal,0,',','.') }} VNĐ</span></p>
+                                <p class="mt-2"><strong>Giảm giá (giam_gia):</strong> <span id="voucher_discount_text" class="text-sm text-red-600">{{ $voucherPercent > 0 ? ('-' . number_format($voucherDiscount,0,',','.') . ' VNĐ') : '0 VNĐ' }}</span></p>
+                                <p class="mt-3 pt-3 border-t border-blue-200"><strong>Tổng thanh toán (tong_tien):</strong> <span id="total_price" class="text-2xl font-bold text-blue-700">{{ number_format($roomTotalCalculated + $currentServiceTotal - $voucherDiscount,0,',','.') }} VNĐ</span></p>
                                 <input type="hidden" id="base_room_total" value="{{ $roomTotalCalculated }}">
-                                <input type="hidden" id="tong_tien_input" name="tong_tien" value="{{ $roomTotalCalculated + $currentServiceTotal }}">
+                                <input type="hidden" id="server_nights" value="{{ $nights }}">
+                                <input type="hidden" id="voucher_percent" value="{{ $voucherPercent }}">
+                                <input type="hidden" id="voucher_amount" value="{{ $voucherDiscount }}">
+                                <input type="hidden" id="tien_phong" name="tien_phong" value="{{ $roomTotalCalculated }}">
+                                <input type="hidden" id="tien_dich_vu" name="tien_dich_vu" value="{{ $currentServiceTotal }}">
+                                <input type="hidden" id="giam_gia" name="giam_gia" value="{{ $voucherDiscount }}">
+                                <input type="hidden" id="tong_tien_input" name="tong_tien" value="{{ $roomTotalCalculated + $currentServiceTotal - $voucherDiscount }}">
                             @endif
                         </div>
 
@@ -224,15 +226,508 @@
 
 @push('scripts')
     <script>
-        // booking services grouped from server: { service_id: [ {ngay, so_luong}, ... ] }
-        const bookingServicesServer = {!! json_encode($bookingServices->map(function($b) use($booking) { return ['service_id' => $b->service_id, 'quantity' => $b->quantity, 'used_at' => $b->used_at ? date('Y-m-d', strtotime($b->used_at)) : date('Y-m-d', strtotime($booking->ngay_nhan))]; })->groupBy('service_id')->map(function($group){ return $group->map(function($item){ return ['ngay'=>$item['used_at'],'so_luong'=>$item['quantity']]; })->values(); })->toArray()) !!};
+        const bookingServicesServer = {!! json_encode($bookingServicesServer ?? []) !!};
+        const assignedRooms = {!! json_encode($assignedRooms ?? []) !!};
+        // Array of assigned room ids for quick access in global mode
+        const assignedPhongIds = Array.isArray(assignedRooms) ? assignedRooms.map(r => r.id) : [];
+        const allServices = {!! json_encode($services->toArray()) !!};
 
-        function loadTomSelectAndInit(cb) {
-            if (window.TomSelect) return cb();
-            var s = document.createElement('script');
-            s.src = 'https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/js/tom-select.complete.min.js';
-            s.onload = cb;
-            document.head.appendChild(s);
+        function getBookingRangeDates() {
+            const start = '{{ optional($booking)->ngay_nhan ? date('Y-m-d', strtotime($booking->ngay_nhan)) : '' }}';
+            const end = '{{ optional($booking)->ngay_tra ? date('Y-m-d', strtotime($booking->ngay_tra)) : '' }}';
+            if (!start || !end) return [];
+            const dates = [];
+            const s = new Date(start);
+            const e = new Date(end);
+            for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+                dates.push(new Date(d).toISOString().split('T')[0]);
+            }
+            return dates;
+        }
+
+        function buildDateRow(serviceId, dateVal = '') {
+            const r = document.createElement('div');
+            r.className = 'service-date-row';
+
+            const d = document.createElement('input');
+            d.type = 'date';
+            d.className = 'border rounded p-1';
+            d.value = dateVal || '';
+            const rg = getBookingRangeDates();
+            if (rg.length) {
+                d.min = rg[0];
+                d.max = rg[rg.length - 1];
+            }
+            d.addEventListener('change', () => syncHiddenEntries(serviceId));
+
+            const q = document.createElement('input');
+            q.type = 'number';
+            q.min = 1;
+            q.value = 1;
+            q.className = 'w-24 border rounded p-1 text-center';
+            q.onchange = () => syncHiddenEntries(serviceId);
+
+            const rem = document.createElement('button');
+            rem.type = 'button';
+            rem.className = 'service-remove-btn ml-2';
+            rem.textContent = 'Xóa';
+            rem.onclick = () => {
+                r.remove();
+                syncHiddenEntries(serviceId);
+                updateTotalsFromHidden && updateTotalsFromHidden();
+            };
+
+            r.appendChild(d);
+            r.appendChild(q);
+            r.appendChild(rem);
+
+            // Entry room container for per-room selection - INLINE
+            const entryRoomContainer = document.createElement('div');
+            entryRoomContainer.className = 'entry-room-container';
+            entryRoomContainer.style.display = 'none';
+            r.appendChild(entryRoomContainer);
+
+            return r;
+        }
+
+        function updateServiceRoomLists(filterServiceId) {
+            document.querySelectorAll('[data-service-id]').forEach(card => {
+                const serviceId = card.getAttribute('data-service-id');
+
+                if (filterServiceId && parseInt(serviceId) !== parseInt(filterServiceId)) {
+                    return;
+                }
+
+                const specificRadio = card.querySelector('input[name="service_room_mode_' + serviceId + '"][value="specific"]');
+                const isSpecific = specificRadio ? specificRadio.checked : false;
+                console.log('updateServiceRoomLists - serviceId:', serviceId, 'isSpecific:', isSpecific);
+
+                const rows = card.querySelectorAll('.service-date-row');
+                console.log('updateServiceRoomLists - found rows:', rows.length);
+                rows.forEach((r, rowIdx) => {
+                    const dateValRow = r.querySelector('input[type=date]')?.value || '';
+                    console.log('  Row', rowIdx, '- dateValRow:', dateValRow);
+                    let entryRoomContainer = r.querySelector('.entry-room-container');
+                    if (!entryRoomContainer) {
+                        entryRoomContainer = document.createElement('div');
+                        entryRoomContainer.className = 'entry-room-container';
+                        r.appendChild(entryRoomContainer);
+                    }
+                    entryRoomContainer.innerHTML = '';
+
+                    if (!isSpecific) {
+                        entryRoomContainer.style.display = 'none';
+                        return;
+                    } else {
+                        entryRoomContainer.style.display = '';
+                    }
+
+                    // Build entriesByDate for this service so we can pre-check boxes per row date
+                    const entriesByDate = {};
+                    if (bookingServicesServer[serviceId]) {
+                        console.log('  Building entriesByDate for service', serviceId, 'from bookingServicesServer entries:', bookingServicesServer[serviceId]['entries'].length);
+                        bookingServicesServer[serviceId]['entries'].forEach(entry => {
+                            const day = entry['ngay'] || '';
+                            console.log('    Entry day:', day, 'phong_ids:', entry['phong_ids']);
+                            if (!entriesByDate[day]) entriesByDate[day] = {
+                                phong_ids: []
+                            };
+                            if (entry['phong_ids'] && Array.isArray(entry['phong_ids'])) {
+                                entriesByDate[day].phong_ids = Array.from(new Set([
+                                    ...entriesByDate[day].phong_ids,
+                                    ...entry['phong_ids']
+                                ]));
+                            }
+                        });
+                    }
+                    console.log('  entriesByDate:', entriesByDate, 'phong_ids for row date:', entriesByDate[dateValRow]?.phong_ids);
+
+                    assignedRooms.forEach(room => {
+                        const ewrap = document.createElement('div');
+                        ewrap.className = 'inline-flex items-center gap-1 mr-2';
+
+                        const ecb = document.createElement('input');
+                        ecb.type = 'checkbox';
+                        ecb.className = 'entry-room-checkbox';
+                        ecb.setAttribute('data-room-id', room.id);
+                        ecb.value = room.id;
+
+                        ecb.onchange = () => {
+                            syncHiddenEntries(serviceId);
+                            updateTotalsFromHidden && updateTotalsFromHidden();
+                        };
+
+                        // Pre-check if bookingServicesServer has this room for this row date
+                        try {
+                            const phongIdsForDate = (entriesByDate[dateValRow]?.phong_ids || [])
+                                .map(p => parseInt(p));
+                            if (phongIdsForDate.includes(parseInt(room.id))) {
+                                console.log('    Pre-checking room', room.id, 'for date', dateValRow);
+                                ecb.checked = true;
+                            }
+                        } catch (e) {
+                            console.log('    Error pre-checking room', room.id, ':', e.message);
+                        }
+
+                        const elbl = document.createElement('label');
+                        elbl.className = 'text-xs cursor-pointer';
+                        elbl.textContent = room.so_phong + ' (' + room.ten_loai + ')';
+
+                        ewrap.appendChild(ecb);
+                        ewrap.appendChild(elbl);
+                        entryRoomContainer.appendChild(ewrap);
+                    });
+                });
+                
+                // After rendering all checkboxes, sync the hidden inputs
+                syncHiddenEntries(serviceId);
+            });
+        }
+
+        function renderServiceCard(service) {
+            const sid = service.id;
+            const existing = bookingServicesServer[sid] ? bookingServicesServer[sid]['entries'] || [] : [];
+            const hasSpecific = existing.some(e => e['phong_ids'] && e['phong_ids'].length > 0);
+
+            console.log('renderServiceCard for service:', sid, 'existing entries:', existing, 'hasSpecific:', hasSpecific);
+
+            // Card wrapper
+            const card = document.createElement('div');
+            card.className = 'service-card-custom';
+            card.setAttribute('data-service-id', sid);
+            console.log('Created card element:', card);
+
+            // Header
+            const header = document.createElement('div');
+            header.className = 'service-card-header';
+            const title = document.createElement('div');
+            title.innerHTML = `<div class="service-title">${service.name}</div>`;
+            const price = document.createElement('div');
+            price.className = 'service-price';
+            price.innerHTML = `${new Intl.NumberFormat('vi-VN').format(service.price)}/${service.unit || 'cái'}`;
+            header.appendChild(title);
+            header.appendChild(price);
+            card.appendChild(header);
+
+            // Room selection radios
+            const roomSection = document.createElement('div');
+            roomSection.className = 'service-room-mode';
+
+            const globalRadio = document.createElement('input');
+            globalRadio.type = 'radio';
+            globalRadio.name = 'service_room_mode_' + sid;
+            globalRadio.value = 'global';
+            globalRadio.checked = !hasSpecific;
+            globalRadio.id = 'global_' + sid;
+
+            const globalLabel = document.createElement('label');
+            globalLabel.htmlFor = 'global_' + sid;
+            globalLabel.className = 'text-sm flex items-center gap-2 cursor-pointer';
+            globalLabel.innerHTML = '<span>Áp dụng tất cả phòng</span>';
+
+            const specificRadio = document.createElement('input');
+            specificRadio.type = 'radio';
+            specificRadio.name = 'service_room_mode_' + sid;
+            specificRadio.value = 'specific';
+            specificRadio.checked = hasSpecific;
+            specificRadio.id = 'specific_' + sid;
+
+            const specificLabel = document.createElement('label');
+            specificLabel.htmlFor = 'specific_' + sid;
+            specificLabel.className = 'text-sm flex items-center gap-2 cursor-pointer';
+            specificLabel.innerHTML = '<span>Chọn phòng riêng</span>';
+
+            roomSection.appendChild(globalRadio);
+            roomSection.appendChild(globalLabel);
+            roomSection.appendChild(specificRadio);
+            roomSection.appendChild(specificLabel);
+
+            globalRadio.onchange = () => {
+                card.querySelectorAll('.entry-room-container').forEach(c => {
+                    c.style.display = 'none';
+                    Array.from(c.querySelectorAll('input[type=checkbox]')).forEach(cb => cb.checked = false);
+                });
+                updateServiceRoomLists();
+                syncHiddenEntries(sid);
+                updateTotalsFromHidden && updateTotalsFromHidden();
+            };
+
+            specificRadio.onchange = () => {
+                updateServiceRoomLists();
+                syncHiddenEntries(sid);
+                updateTotalsFromHidden && updateTotalsFromHidden();
+            };
+
+            card.appendChild(roomSection);
+
+            // Date rows container
+            const rows = document.createElement('div');
+            rows.id = 'service_dates_' + sid;
+
+            // Render existing entries - GROUP BY DATE to avoid duplicates
+            if (existing.length > 0) {
+                const entriesByDate = {};
+                existing.forEach((entry, idx) => {
+                    const day = entry['ngay'] || '';
+                    if (!entriesByDate[day]) {
+                        entriesByDate[day] = {
+                            so_luong: entry['so_luong'] || 1,
+                            phong_ids: entry['phong_ids'] || [],
+                            first_idx: idx
+                        };
+                    } else {
+                        // Merge phong_ids if multiple entries for same date
+                        entriesByDate[day].phong_ids = Array.from(new Set([
+                            ...entriesByDate[day].phong_ids,
+                            ...(entry['phong_ids'] || [])
+                        ]));
+                    }
+                });
+
+                Object.entries(entriesByDate).forEach(([day, data]) => {
+                    const row = buildDateRow(sid, day);
+                    // Set quantity
+                    row.querySelector('input[type=number]').value = data.so_luong || 1;
+                    rows.appendChild(row);
+                });
+            }
+
+            card.appendChild(rows);
+
+            // Don't call updateServiceRoomLists here - card not in DOM yet!
+            // It will be called after card is appended in updateServiceCards
+
+            // Add day button
+            const addBtn = document.createElement('button');
+            addBtn.type = 'button';
+            addBtn.className = 'service-add-day mt-3';
+            addBtn.textContent = '+ Thêm ngày';
+            addBtn.onclick = () => {
+                const used = Array.from(rows.querySelectorAll('input[type="date"]')).map(i => i.value);
+                const avail = getBookingRangeDates().find(d => !used.includes(d));
+                if (avail) {
+                    const newRow = buildDateRow(sid, avail);
+                    rows.appendChild(newRow);
+                    updateServiceRoomLists();
+                    syncHiddenEntries(sid);
+                    updateTotalsFromHidden && updateTotalsFromHidden();
+                } else {
+                    alert('Đã chọn đủ ngày. Không thể thêm ngày nữa.');
+                }
+            };
+
+            card.appendChild(addBtn);
+
+            // Hidden service marker
+            const hcb = document.createElement('input');
+            hcb.type = 'checkbox';
+            hcb.className = 'service-checkbox';
+            hcb.name = 'services[]';
+            hcb.value = sid;
+            hcb.setAttribute('data-price', service.price);
+            hcb.style.display = 'none';
+            hcb.checked = true;
+            card.appendChild(hcb);
+
+            // Hidden total quantity
+            const hsum = document.createElement('input');
+            hsum.type = 'hidden';
+            hsum.name = 'services_data[' + sid + '][so_luong]';
+            hsum.id = 'service_quantity_hidden_' + sid;
+            hsum.value = '1';
+            card.appendChild(hsum);
+
+            // Hidden service ID
+            const hdv = document.createElement('input');
+            hdv.type = 'hidden';
+            hdv.name = 'services_data[' + sid + '][dich_vu_id]';
+            hdv.value = sid;
+            card.appendChild(hdv);
+
+            return card;
+        }
+
+        function syncHiddenEntries(serviceId) {
+            console.log('syncHiddenEntries called for service:', serviceId);
+            const container = document.getElementById('selected_services_list');
+
+            // Get all entry rows
+            const rowsNow = Array.from(document.querySelectorAll('#service_dates_' + serviceId + ' .service-date-row'));
+            console.log('syncHiddenEntries - found rows:', rowsNow.length);
+
+            // Remove existing hidden entry inputs for this service
+            const oldHiddens = Array.from(document.querySelectorAll('input.entry-hidden[data-service="' + serviceId + '"]'));
+            console.log('syncHiddenEntries - removing old hidden inputs:', oldHiddens.length);
+            oldHiddens.forEach(n => {
+                n.remove();
+            });
+
+            // Determine current mode
+            const card = document.querySelector('[data-service-id="' + serviceId + '"]');
+            const mode = card?.querySelector('input[name="service_room_mode_' + serviceId + '"]:checked')?.value || 'global';
+            console.log('syncHiddenEntries - mode:', mode);
+
+            let total = 0;
+            rowsNow.forEach((r, idx) => {
+                const dateVal = r.querySelector('input[type=date]')?.value || '';
+                const qty = parseInt(r.querySelector('input[type=number]')?.value || 1);
+                console.log('syncHiddenEntries - row', idx, 'date:', dateVal, 'qty:', qty);
+
+                // Collect per-entry selected rooms
+                const entryRoomChecks = Array.from(r.querySelectorAll('.entry-room-checkbox:checked'));
+                console.log('  Found', entryRoomChecks.length, 'checked rooms:', entryRoomChecks.map(c => c.value));
+
+                // If specific mode but no rooms checked, skip this entry
+                if (mode === 'specific' && entryRoomChecks.length === 0) {
+                    console.log('  Skipping - specific mode, no rooms checked');
+                    return;
+                }
+
+                total += qty;
+
+                // Create hidden inputs for this entry
+                const hNgay = document.createElement('input');
+                hNgay.type = 'hidden';
+                hNgay.name = 'services_data[' + serviceId + '][entries][' + idx + '][ngay]';
+                hNgay.value = dateVal;
+                hNgay.className = 'entry-hidden';
+                hNgay.setAttribute('data-service', serviceId);
+                console.log('  Creating hidden input:', hNgay.name, '=', dateVal);
+                container.appendChild(hNgay);
+
+                const hSo = document.createElement('input');
+                hSo.type = 'hidden';
+                hSo.name = 'services_data[' + serviceId + '][entries][' + idx + '][so_luong]';
+                hSo.value = qty;
+                hSo.className = 'entry-hidden';
+                hSo.setAttribute('data-service', serviceId);
+                console.log('  Creating hidden input:', hSo.name, '=', qty);
+                container.appendChild(hSo);
+
+                // Add room IDs based on mode
+                if (mode === 'global') {
+                    // Global mode: add ALL assigned room IDs
+                    console.log('  Global mode - adding all assigned rooms:', assignedPhongIds);
+                    assignedPhongIds.forEach(phongId => {
+                        const hRoom = document.createElement('input');
+                        hRoom.type = 'hidden';
+                        hRoom.name = 'services_data[' + serviceId + '][entries][' + idx + '][phong_ids][]';
+                        hRoom.value = phongId;
+                        hRoom.className = 'entry-hidden';
+                        hRoom.setAttribute('data-service', serviceId);
+                        container.appendChild(hRoom);
+                    });
+                } else {
+                    // Specific mode: add only checked room IDs
+                    console.log('  Specific mode - adding checked rooms:', entryRoomChecks.map(c => c.value));
+                    entryRoomChecks.forEach((erc) => {
+                        const hRoom = document.createElement('input');
+                        hRoom.type = 'hidden';
+                        hRoom.name = 'services_data[' + serviceId + '][entries][' + idx + '][phong_ids][]';
+                        hRoom.value = erc.getAttribute('data-room-id') || erc.value;
+                        hRoom.className = 'entry-hidden';
+                        hRoom.setAttribute('data-service', serviceId);
+                        container.appendChild(hRoom);
+                    });
+                }
+            });
+
+            const sumEl = document.getElementById('service_quantity_hidden_' + serviceId);
+            if (sumEl) sumEl.value = total;
+            console.log('syncHiddenEntries - total qty for service', serviceId, ':', total);
+        }
+
+        function updateTotalsFromHidden() {
+            const isExtraInvoice = {!! json_encode($invoice->isExtra()) !!};
+            // Read server-provided base room total (may be per-night or already total)
+            const baseRoomRaw = parseFloat(document.getElementById('base_room_total')?.value || 0);
+            // Determine server-side nights (fallback to 1)
+            const serverNights = parseInt(document.getElementById('server_nights')?.value || 0) || 1;
+
+            // Compute client-side nights from booking range (using getBookingRangeDates())
+            let clientNights = 1;
+            try {
+                const rg = getBookingRangeDates();
+                if (rg.length >= 2) {
+                    // getBookingRangeDates returns inclusive dates array; nights = length - 1
+                    clientNights = Math.max(1, rg.length - 1);
+                }
+            } catch (e) {
+                clientNights = 1;
+            }
+
+            // Adjust baseRoom if server reported a per-night amount (serverNights may differ)
+            let baseRoom = isExtraInvoice ? 0 : baseRoomRaw;
+            if (!isExtraInvoice && serverNights > 0 && clientNights > 0 && serverNights !== clientNights && baseRoomRaw > 0) {
+                const unit = baseRoomRaw / serverNights;
+                baseRoom = unit * clientNights;
+                console.log('updateTotalsFromHidden - adjusted baseRoom from', baseRoomRaw, 'serverNights', serverNights, 'clientNights', clientNights, '=>', baseRoom);
+            }
+            let servicesTotal = 0;
+            const container = document.getElementById('selected_services_list');
+            console.log('updateTotalsFromHidden - isExtraInvoice:', isExtraInvoice, 'baseRoom:', baseRoom);
+            if (!container) {
+                console.log('updateTotalsFromHidden - container not found!');
+                return;
+            }
+            const cards = container.querySelectorAll('[data-service-id]');
+            console.log('updateTotalsFromHidden - found cards:', cards.length);
+            cards.forEach(card => {
+                const sid = card.getAttribute('data-service-id');
+                const serviceObj = allServices.find(s => s.id == sid);
+                const price = parseFloat(serviceObj ? serviceObj.price : 0);
+                console.log('updateTotalsFromHidden - service', sid, 'price:', price, 'serviceObj:', serviceObj);
+                
+                // Find ALL hidden inputs for this service's entries
+                // Select hidden inputs which represent per-entry quantities for this service
+                const selector = 'input[name^="services_data['+sid+'][entries]"][name$="[so_luong]"]';
+                const hiddenQtys = Array.from(document.querySelectorAll(selector));
+                console.log('updateTotalsFromHidden - selector:', selector, 'found inputs:', hiddenQtys.length);
+                
+                let svcTotal = 0;
+                hiddenQtys.forEach((h, idx) => { 
+                    const val = parseFloat(h.value||0);
+                    
+                    // For this entry, count how many phong_ids are associated
+                    // Find all phong_ids hidden inputs for this specific entry
+                    const entryIdx = h.name.match(/\[entries\]\[(\d+)\]/)[1];
+                    const phongIdSelector = 'input[name="services_data['+sid+'][entries]['+entryIdx+'][phong_ids][]"]';
+                    const phongIds = Array.from(document.querySelectorAll(phongIdSelector));
+                    
+                    const numRooms = phongIds.length > 0 ? phongIds.length : 1; // If no phong_ids, count as 1 (global)
+                    const entryTotal = val * numRooms;
+                    
+                    console.log('  Entry', idx, '- input name:', h.name, 'qty:', val, 'rooms:', numRooms, 'entry total:', entryTotal);
+                    svcTotal += entryTotal; 
+                });
+                console.log('updateTotalsFromHidden - service', sid, 'total qty*rooms:', svcTotal, 'price:', price, 'subtotal:', svcTotal * price);
+                servicesTotal += (svcTotal * price);
+            });
+            // Use server-provided voucher amount (already respects voucher type)
+            let voucherAmount = parseFloat(document.getElementById('voucher_amount')?.value || 0);
+            if (isExtraInvoice) voucherAmount = 0; // voucher not applied to EXTRA invoices
+
+            const voucherDiscountText = document.getElementById('voucher_discount_text');
+            if (voucherDiscountText) voucherDiscountText.textContent = voucherAmount > 0 ? ('-' + formatCurrency(voucherAmount)) : '0 VNĐ';
+
+            const total = Math.max(0, (baseRoom - voucherAmount) + servicesTotal);
+            console.log('updateTotalsFromHidden - final: baseRoom:', baseRoom, 'servicesTotal:', servicesTotal, 'total:', total);
+            document.getElementById('base_room_total_text').textContent = formatCurrency(baseRoom);
+            document.getElementById('service_total_text').textContent = formatCurrency(servicesTotal);
+            document.getElementById('total_price').textContent = formatCurrency(total);
+            
+            // Update hidden inputs for form submission
+            const tInput = document.getElementById('tong_tien_input');
+            if (tInput) tInput.value = Math.round(total);
+            
+            const tienPhongInput = document.getElementById('tien_phong');
+            if (tienPhongInput) tienPhongInput.value = Math.round(baseRoom);
+            
+            const tienDichVuInput = document.getElementById('tien_dich_vu');
+            if (tienDichVuInput) tienDichVuInput.value = Math.round(servicesTotal);
+            
+            const giamGiaInput = document.getElementById('giam_gia');
+            if (giamGiaInput) giamGiaInput.value = Math.round(voucherAmount);
         }
 
         function formatCurrency(amount) {
@@ -240,165 +735,85 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
+            const container = document.getElementById('selected_services_list');
+            const selectEl = document.getElementById('services_select');
+            
+            console.log('DOMContentLoaded: container found:', !!container, container);
+            console.log('DOMContentLoaded: selectEl found:', !!selectEl, selectEl);
+            
+            if (!selectEl || !container) return;
+
+            // Initialize TomSelect
+            function loadTomSelectAndInit(cb) {
+                if (window.TomSelect) return cb();
+                var s = document.createElement('script');
+                s.src = 'https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/js/tom-select.complete.min.js';
+                s.onload = cb;
+                document.head.appendChild(s);
+            }
+
             loadTomSelectAndInit(function() {
                 try {
-                    // Flag from server: whether this invoice is an EXTRA (service-only) invoice
-                    const isExtraInvoice = {!! json_encode($invoice->isExtra()) !!};
-                    const selectEl = document.getElementById('services_select');
-                    if (!selectEl) return;
-                    const ts = new TomSelect(selectEl, {plugins:['remove_button'], persist:false, create:false,});
+                    const ts = new TomSelect(selectEl, {plugins:['remove_button'], persist:false, create:false});
 
-                    // pre-select existing services
-                    try {
-                        const initialIds = Object.keys(bookingServicesServer || {});
-                        if (initialIds && initialIds.length) ts.setValue(initialIds);
-                    } catch(e){ console.warn('preselect services error', e); }
-
-                    function getBookingRangeDates() {
-                        // invoice has booking object passed
-                        const start = '{{ optional($booking)->ngay_nhan ? date('Y-m-d', strtotime($booking->ngay_nhan)) : '' }}';
-                        const end = '{{ optional($booking)->ngay_tra ? date('Y-m-d', strtotime($booking->ngay_tra)) : '' }}';
-                        if (!start || !end) return [];
-                        const a = [];
-                        const s = new Date(start);
-                        const e = new Date(end);
-                        for (let d = new Date(s); d <= e; d.setDate(d.getDate()+1)) a.push(new Date(d).toISOString().split('T')[0]);
-                        return a;
-                    }
-
-                    function updateTotalsFromHidden() {
-                        // Sum all service entries (sum across all entry hidden inputs for each service)
-                        let baseRoom = parseFloat(document.getElementById('base_room_total')?.value || 0);
-                        if (isExtraInvoice) baseRoom = 0;
-                        let servicesTotal = 0;
-                        // iterate over selected service cards
-                        const container = document.getElementById('selected_services_list');
-                        if (!container) return;
-                        const cards = container.querySelectorAll('[data-service-id]');
-                        cards.forEach(card => {
-                            const sid = card.getAttribute('data-service-id');
-                            const price = parseFloat((document.querySelector('#services_select option[value="'+sid+'"]')?.dataset.price) || 0);
-                            // sum all quantities from per-entry hidden inputs (ngay index) for this service
-                            const hiddenQtys = Array.from(document.querySelectorAll('input[name^="services_data['+sid+'][entries]["][name$="[so_luong]"]'));
-                            let svcTotal = 0;
-                            hiddenQtys.forEach(h => { svcTotal += (parseFloat(h.value||0)); });
-                            servicesTotal += (svcTotal * price);
+                    function updateServiceCards() {
+                        // Clear and rebuild cards
+                        container.innerHTML = '';
+                        const selectedIds = ts.getValue();
+                        console.log('updateServiceCards selectedIds:', selectedIds, 'allServices:', allServices);
+                        selectedIds.forEach(sid => {
+                            const service = allServices.find(s => s.id == sid);
+                            console.log('Looking for service', sid, 'found:', service);
+                            if (service) {
+                                const card = renderServiceCard(service);
+                                console.log('Appending card to container:', card, 'container:', container);
+                                container.appendChild(card);
+                                console.log('Card appended, container now has', container.children.length, 'children');
+                                
+                                // NOW update room lists for this specific service - card is in DOM
+                                updateServiceRoomLists(sid);
+                                
+                                syncHiddenEntries(sid);
+                            }
                         });
-                        const total = Math.max(0, baseRoom + servicesTotal);
-                        // update UI and hidden input - display room, services, and total separately
-                        document.getElementById('base_room_total_text').textContent = formatCurrency(baseRoom);
-                        document.getElementById('service_total_text').textContent = formatCurrency(servicesTotal);
-                        document.getElementById('total_price').textContent = formatCurrency(total);
-                        const tInput = document.getElementById('tong_tien_input');
-                        if (tInput) tInput.value = Math.round(total);
-                    }
 
-                    function renderSelectedServices(values) {
-                        const container = document.getElementById('selected_services_list');
-                        // Clear ALL child elements including stale services from cache
-                        while (container.firstChild) {
-                            container.removeChild(container.firstChild);
-                        }
-                        const range = getBookingRangeDates();
-
-                        (values||[]).forEach(val => {
-                            const option = selectEl.querySelector('option[value="'+val+'"]'); if(!option) return;
-                            const id = val;
-                            const serviceName = option.textContent?.split(' - ')[0] || option.innerText;
-                            const price = parseFloat(option.dataset.price||0)||0;
-                            const unit = option.dataset.unit || 'cái';
-
-                            const card = document.createElement('div'); card.className='service-card-custom'; card.setAttribute('data-service-id', id);
-                            const header = document.createElement('div'); header.className='service-card-header';
-                            const titleDiv = document.createElement('div'); titleDiv.className='service-title'; titleDiv.textContent = serviceName;
-                            const priceDiv = document.createElement('div'); priceDiv.className='service-price'; priceDiv.textContent = `${new Intl.NumberFormat('vi-VN').format(price)}/${unit}`;
-                            header.appendChild(titleDiv); header.appendChild(priceDiv); card.appendChild(header);
-
-                            const rows = document.createElement('div'); rows.id = 'service_dates_'+id;
-                            function buildRow(dv, qty){
-                                const r=document.createElement('div'); r.className='service-date-row';
-                                const di=document.createElement('input'); di.type='date'; di.value=dv||'';
-                                const rg=range; if(rg.length){ di.min=rg[0]; di.max=rg[rg.length-1]; }
-                                di.addEventListener('focus', function(){ this.dataset.prev = this.value || ''; });
-                                di.addEventListener('change', function(){ const val = this.value || ''; if(!val) { syncHidden(id); return; } const others = Array.from(document.querySelectorAll('#service_dates_'+id+' input[type=date]')).filter(i=>i!==this).map(i=>i.value); if (others.includes(val)){ this.value = this.dataset.prev || ''; alert('Ngày này đã được chọn cho dịch vụ này. Vui lòng chọn ngày khác.'); return; } syncHidden(id); });
-                                const qi=document.createElement('input'); qi.type='number'; qi.min=1; qi.value=(qty && qty>0)?qty:1; qi.className='w-24'; qi.onchange = ()=>syncHidden(id);
-                                const rem=document.createElement('button'); rem.type='button'; rem.className='service-remove-btn ml-2'; rem.textContent='Xóa'; rem.onclick=()=>{ r.remove(); syncHidden(id); };
-                                r.appendChild(di); r.appendChild(qi); r.appendChild(rem); return r;
-                            }
-
-                            const existing = bookingServicesServer && bookingServicesServer[id] ? bookingServicesServer[id] : null;
-                            if (existing && existing.length) {
-                                existing.forEach(e => { rows.appendChild(buildRow(e.ngay || (range.length? range[0] : ''), e.so_luong || 1)); });
-                            } else {
-                                rows.appendChild(buildRow((range.length? range[0] : ''), 1));
-                            }
-
-                            const addBtn = document.createElement('button'); addBtn.type='button'; addBtn.className='service-add-day mt-2'; addBtn.textContent='Thêm ngày'; addBtn.onclick=function(){ const used=Array.from(rows.querySelectorAll('input[type=date]')).map(i=>i.value); const avail=getBookingRangeDates().find(d=>!used.includes(d)); if(avail) { rows.appendChild(buildRow(avail)); syncHidden(id); } };
-
-                            card.appendChild(rows); card.appendChild(addBtn);
-
-                            // checkbox + hidden sum + hidden service id
-                            const cb = document.createElement('input'); cb.type='checkbox'; cb.name='services[]'; cb.value=id; cb.className='service-checkbox'; cb.style.display='none'; cb.checked=true;
-                            const sum = document.createElement('input'); sum.type='hidden'; sum.name='services_data['+id+'][so_luong]'; sum.id='service_quantity_hidden_'+id; sum.value='1';
-                            const dv = document.createElement('input'); dv.type='hidden'; dv.name='services_data['+id+'][dich_vu_id]'; dv.value=id;
-
-                            container.appendChild(card); container.appendChild(cb); container.appendChild(sum); container.appendChild(dv);
-
-                            function syncHidden(id){ // remove old entry-hidden
-                                Array.from(document.querySelectorAll('input.entry-hidden[data-service="'+id+'"]')).forEach(n=>n.remove());
-                                const rowsNow = Array.from(document.querySelectorAll('#service_dates_'+id+' .service-date-row'));
-                                if(rowsNow.length===0){ try{ ts.removeItem(id); }catch(e){ const el=document.querySelector('[data-service-id="'+id+'"]'); if(el) el.remove(); } updateTotalsFromHidden(); return; }
-                                let total=0; rowsNow.forEach((r,idx)=>{
-                                    const dateVal = r.querySelector('input[type=date]')?.value||'';
-                                    const qty = parseInt(r.querySelector('input[type=number]')?.value||1);
-                                    total += qty;
-                                    const h1=document.createElement('input'); h1.type='hidden'; h1.name='services_data['+id+'][entries]['+idx+'][ngay]'; h1.value=dateVal; h1.className='entry-hidden'; h1.setAttribute('data-service', id);
-                                    const h2=document.createElement('input'); h2.type='hidden'; h2.name='services_data['+id+'][entries]['+idx+'][so_luong]'; h2.value=qty; h2.className='entry-hidden'; h2.setAttribute('data-service', id);
-                                    container.appendChild(h1); container.appendChild(h2);
-                                });
-                                const sumEl = document.getElementById('service_quantity_hidden_'+id); if(sumEl) sumEl.value = total;
-                                updateTotalsFromHidden();
-                            }
-
-                            // ensure hidden inputs created
-                            syncHidden(id);
-                        });
-                        // after rendering, update totals
+                        // Update totals (room lists already updated per-service above)
                         updateTotalsFromHidden();
                     }
 
-                    // Initialize service total from existing services on page load
-                    function initializeServiceTotal() {
-                        let baseRoom = parseFloat(document.getElementById('base_room_total')?.value || 0);
-                        if (isExtraInvoice) baseRoom = 0;
-                        let currentServiceTotal = 0;
-                        const container = document.getElementById('selected_services_list');
-                        if (container) {
-                            const cards = container.querySelectorAll('[data-service-id]');
-                            cards.forEach(card => {
-                                const sid = card.getAttribute('data-service-id');
-                                const price = parseFloat((document.querySelector('#services_select option[value="'+sid+'"]')?.dataset.price) || 0);
-                                const hiddenQtys = Array.from(document.querySelectorAll('input[name^="services_data['+sid+'][entries]["][name$="[so_luong]"]'));
-                                let svcTotal = 0;
-                                hiddenQtys.forEach(h => { svcTotal += (parseFloat(h.value||0)); });
-                                currentServiceTotal += (svcTotal * price);
-                            });
-                        }
-                        const total = Math.max(0, baseRoom + currentServiceTotal);
-                        document.getElementById('service_total_text').textContent = formatCurrency(currentServiceTotal);
-                        document.getElementById('total_price').textContent = formatCurrency(total);
-                        const tInput = document.getElementById('tong_tien_input');
-                        if (tInput) tInput.value = Math.round(total);
-                    }
+                    ts.on('change', function(values){ 
+                        console.log('TomSelect change event, values:', values);
+                        updateServiceCards(); 
+                    });
 
-                    ts.on('change', function(values){ renderSelectedServices(values || []); });
-                    // initial render
-                    renderSelectedServices(ts.getValue() || []);
-                    // Initialize totals after initial render
-                    setTimeout(() => { initializeServiceTotal(); }, 100);
+                    // Preselect services from bookingServicesServer
+                    const initialIds = Object.keys(bookingServicesServer || {});
+                    console.log('Initial service IDs from server:', initialIds, 'bookingServicesServer:', bookingServicesServer);
+                    if (initialIds && initialIds.length) {
+                        ts.setValue(initialIds);
+                    }
+                    // Always call updateServiceCards to render initial services
+                    updateServiceCards();
 
                 } catch(e){ console.error('Services init error', e); }
             });
+        });
+
+        @if (config('app.debug'))
+            console.log('DEBUG bookingServicesServer:', {!! json_encode($bookingServicesServer ?? []) !!});
+            console.log('DEBUG assignedRooms:', {!! json_encode($assignedRooms ?? []) !!});
+            console.log('DEBUG allServices:', {!! json_encode($services->toArray()) !!});
+        @endif
+
+        // Form submit handler: update totals before submission
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('invoice_update_form');
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    updateTotalsFromHidden();
+                    console.log('Form submit: called updateTotalsFromHidden() to ensure hidden inputs are up to date');
+                });
+            }
         });
     </script>
 @endpush
