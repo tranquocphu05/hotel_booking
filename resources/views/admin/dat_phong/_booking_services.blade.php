@@ -91,15 +91,20 @@
 
         {{-- SERVICES LIST --}}
         <div id="servicesList">
-            @if($booking->services->count() > 0)
+            @php
+                // Eager-load phong relation to display room number
+                $bookingServices = $booking->services()->with('phong')->get();
+            @endphp
+            @if($bookingServices->count() > 0)
                 <div class="space-y-3">
-                    @foreach($booking->services as $bookingService)
+                    @foreach($bookingServices as $bookingService)
                         <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-purple-300 transition">
                             <div class="flex-1">
                                 <div class="flex items-start justify-between">
                                     <div>
                                         <h4 class="font-medium text-gray-900">{{ $bookingService->service->name }}</h4>
                                         <p class="text-sm text-gray-600 mt-1">
+                                            <span class="inline-block mr-3">Phòng: <span class="font-medium">{{ $bookingService->phong ? ($bookingService->phong->so_phong ?? $bookingService->phong->id) : ($bookingService->phong_id ?? '-') }}</span></span>
                                             Số lượng: <span class="font-medium">{{ $bookingService->quantity }}</span> {{ $bookingService->service->unit }}
                                             × {{ number_format($bookingService->unit_price) }}đ
                                             = <span class="font-semibold text-purple-600">{{ number_format($bookingService->quantity * $bookingService->unit_price) }}đ</span>

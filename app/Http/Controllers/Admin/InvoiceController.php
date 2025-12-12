@@ -161,6 +161,18 @@ class InvoiceController extends Controller
         return view('admin.invoices.combined_print', compact('invoice', 'extras', 'combinedTotal'));
     }
 
+    /**
+     * Render the printable invoice view.
+     */
+    public function print(Invoice $invoice)
+    {
+        $invoice->load(['datPhong' => function ($q) {
+            $q->with('user', 'loaiPhong');
+        }]);
+
+        return view('admin.invoices.print', compact('invoice'));
+    }
+
     public function edit($id)
     {
         // Nhân viên: có thể chỉnh sửa hóa đơn chưa khóa

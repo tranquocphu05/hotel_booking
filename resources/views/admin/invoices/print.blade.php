@@ -153,7 +153,8 @@
             @php
                 $services = collect();
                 if ($booking) {
-                    $services = \App\Models\BookingService::with('service')
+                    // Load related service and room (phong) so we can show room number
+                    $services = \App\Models\BookingService::with(['service', 'phong'])
                         ->where('dat_phong_id', $booking->id)
                         ->orderBy('used_at')
                         ->get();
@@ -169,6 +170,7 @@
                     <thead>
                         <tr class="bg-gray-200">
                             <th class="border border-gray-800 px-4 py-2 text-left text-sm font-bold">DỊCH VỤ</th>
+                            <th class="border border-gray-800 px-4 py-2 text-center text-sm font-bold">PHÒNG</th>
                             <th class="border border-gray-800 px-4 py-2 text-center text-sm font-bold">NGÀY DÙNG</th>
                             <th class="border border-gray-800 px-4 py-2 text-center text-sm font-bold">SỐ LƯỢNG</th>
                             <th class="border border-gray-800 px-4 py-2 text-right text-sm font-bold">ĐƠN GIÁ</th>
@@ -187,6 +189,9 @@
                             @endphp
                             <tr>
                                 <td class="border border-gray-800 px-4 py-2 text-sm">{{ $name }}</td>
+                                <td class="border border-gray-800 px-4 py-2 text-center text-sm">
+                                    {{ $s->phong ? ($s->phong->so_phong ?? $s->phong->id) : ($s->phong_id ?? '-') }}
+                                </td>
                                 <td class="border border-gray-800 px-4 py-2 text-center text-sm">{{ $usedAt }}</td>
                                 <td class="border border-gray-800 px-4 py-2 text-center text-sm">{{ $qty }}</td>
                                 <td class="border border-gray-800 px-4 py-2 text-right text-sm">{{ number_format($unitPrice, 0, ',', '.') }} đ</td>
