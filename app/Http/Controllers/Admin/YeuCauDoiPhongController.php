@@ -11,11 +11,21 @@ use App\Models\YeuCauDoiPhong;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Traits\HasRolePermissions;
 
 class YeuCauDoiPhongController extends Controller
 {
+    use HasRolePermissions;
+
     public function index(Request $request)
     {
+        // Nhân viên: xem yêu cầu đổi phòng
+        // Lễ tân: nhận yêu cầu đổi phòng từ khách
+        if ($this->hasRole('nhan_vien')) {
+            $this->authorizePermission('room_change.view');
+        } elseif ($this->hasRole('le_tan')) {
+            $this->authorizePermission('room_change.receive');
+        }
         $status = $request->get('status', 'all');
         $search = $request->get('q');
 
@@ -75,6 +85,9 @@ class YeuCauDoiPhongController extends Controller
 
     public function approve($id, Request $request)
     {
+        // Nhân viên: xử lý yêu cầu đổi phòng
+        $this->authorizePermission('room_change.process');
+        
         $yeuCau = YeuCauDoiPhong::with(['datPhong', 'phongCu', 'phongMoi'])->findOrFail($id);
 
         if ($yeuCau->trang_thai !== 'cho_duyet') {

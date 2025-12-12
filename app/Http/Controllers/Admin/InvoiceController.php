@@ -13,12 +13,15 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\QueryException;
 use App\Services\BookingPriceCalculator;
+use App\Traits\HasRolePermissions;
 
 class InvoiceController extends Controller
 {
+    use HasRolePermissions;
 
     public function index(Request $request)
     {
+        // Nhân viên và Lễ tân: xem hóa đơn
         $query = Invoice::with(['datPhong' => function($q) {
             $q->with('user', 'loaiPhong');
         }]);
@@ -99,6 +102,14 @@ class InvoiceController extends Controller
 
     public function export(Invoice $invoice)
     {
+        // Nhân viên: xuất hóa đơn cho khách
+        // Lễ tân: in hóa đơn VAT
+        if ($this->hasRole('nhan_vien')) {
+            $this->authorizePermission('invoice.export');
+        } elseif ($this->hasRole('le_tan')) {
+            $this->authorizePermission('invoice.print_vat');
+        }
+        
         $export = new InvoiceExport($invoice);
         $fileName = 'hoa_don_' . $invoice->id . '_' . date('dmY_His') . '.xlsx';
 
@@ -116,6 +127,14 @@ class InvoiceController extends Controller
      */
     public function exportCombined(Invoice $invoice)
     {
+        // Nhân viên: xuất hóa đơn cho khách
+        // Lễ tân: in hóa đơn VAT
+        if ($this->hasRole('nhan_vien')) {
+            $this->authorizePermission('invoice.export');
+        } elseif ($this->hasRole('le_tan')) {
+            $this->authorizePermission('invoice.print_vat');
+        }
+        
         // Ensure relationships are loaded
         $invoice->load(['datPhong' => function($q) {
             $q->with('user', 'loaiPhong');
@@ -156,6 +175,14 @@ class InvoiceController extends Controller
 
     public function edit($id)
     {
+        // Nhân viên: có thể chỉnh sửa hóa đơn chưa khóa
+        // Lễ tân: không được chỉnh sửa hóa đơn
+        if ($this->hasRole('nhan_vien')) {
+            // Nhân viên có thể chỉnh sửa nếu chưa khóa
+        } elseif ($this->hasRole('le_tan')) {
+            abort(403, 'Bạn không có quyền chỉnh sửa hóa đơn.');
+        }
+        
         $invoice = Invoice::findOrFail($id);
         // Prevent editing if invoice already paid or refunded
         if (in_array($invoice->trang_thai, ['da_thanh_toan', 'hoan_tien'])) {
@@ -440,6 +467,14 @@ class InvoiceController extends Controller
 
     public function update(Request $request, $id)
     {
+        // Nhân viên: có thể cập nhật hóa đơn chưa khóa
+        // Lễ tân: không được chỉnh sửa hóa đơn
+        if ($this->hasRole('nhan_vien')) {
+            // Nhân viên có thể cập nhật nếu chưa khóa
+        } elseif ($this->hasRole('le_tan')) {
+            abort(403, 'Bạn không có quyền chỉnh sửa hóa đơn.');
+        }
+        
         $request->validate([
             'trang_thai' => 'required|in:cho_thanh_toan,da_thanh_toan,hoan_tien',
         ]);
@@ -814,9 +849,18 @@ class InvoiceController extends Controller
 
     /**
      * Show form to create an EXTRA invoice (do not persist until user confirms)
+     * Nhân viên: Gán dịch vụ phát sinh vào hóa đơn
      */
     public function createExtra(Invoice $invoice)
     {
+        // Nhân viên: gán dịch vụ phát sinh vào hóa đơn
+        // Lễ tân: không được tạo hóa đơn phát sinh
+        if ($this->hasRole('nhan_vien')) {
+            $this->authorizePermission('invoice.assign_service');
+        } elseif ($this->hasRole('le_tan')) {
+            abort(403, 'Bạn không có quyền tạo hóa đơn phát sinh.');
+        }
+        
         // Only allow creating EXTRA invoice from a paid invoice
         if ($invoice->trang_thai !== 'da_thanh_toan') {
             return redirect()->route('admin.invoices.show', $invoice->id)
@@ -869,6 +913,14 @@ class InvoiceController extends Controller
      */
     public function storeExtra(Request $request, Invoice $invoice)
     {
+        // Nhân viên: gán dịch vụ phát sinh vào hóa đơn
+        // Lễ tân: không được tạo hóa đơn phát sinh
+        if ($this->hasRole('nhan_vien')) {
+            $this->authorizePermission('invoice.assign_service');
+        } elseif ($this->hasRole('le_tan')) {
+            abort(403, 'Bạn không có quyền tạo hóa đơn phát sinh.');
+        }
+        
         // Only allow creating EXTRA invoice from a paid invoice
         if ($invoice->trang_thai !== 'da_thanh_toan') {
             return redirect()->route('admin.invoices.show', $invoice->id)

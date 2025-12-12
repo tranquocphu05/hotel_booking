@@ -7,40 +7,62 @@ use App\Models\DatPhong;
 use App\Models\Invoice;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Traits\HasRolePermissions;
+use Illuminate\Support\Facades\DB;
 
 class RevenueController extends Controller
 {
+    use HasRolePermissions;
+
     public function index(Request $request)
     {
-        // Lấy tháng và năm từ request, mặc định là tháng hiện tại
-        $month = $request->get('month', Carbon::now()->month);
-        $year = $request->get('year', Carbon::now()->year);
+        // Nhân viên: không có quyền xem doanh thu
+        if ($this->hasRole('nhan_vien')) {
+            abort(403, 'Bạn không có quyền xem doanh thu.');
+        }
         
-        // Lấy ngày bắt đầu và kết thúc nếu có
-        $startDate = $request->get('start_date');
-        $endDate = $request->get('end_date');
+        // Lễ tân: chỉ xem doanh thu ca của chính họ (ngày hiện tại)
+        $isReceptionist = $this->hasRole('le_tan');
+        if ($isReceptionist) {
+            $this->authorizePermission('revenue.view_own_shift');
+            // Lễ tân chỉ xem doanh thu của ngày hiện tại (ca làm việc của họ)
+            $startDate = Carbon::today()->format('Y-m-d');
+            $endDate = Carbon::today()->format('Y-m-d');
+            $month = Carbon::now()->month; // Khởi tạo để tránh lỗi
+            $year = Carbon::now()->year; // Khởi tạo để tránh lỗi
+        } else {
+            // Lấy tháng và năm từ request, mặc định là tháng hiện tại
+            $month = $request->get('month', Carbon::now()->month);
+            $year = $request->get('year', Carbon::now()->year);
+            
+            // Lấy ngày bắt đầu và kết thúc nếu có
+            $startDate = $request->get('start_date');
+            $endDate = $request->get('end_date');
+        }
         
         // Nếu có ngày bắt đầu và kết thúc, ưu tiên lọc theo ngày
         if ($startDate && $endDate) {
-            $startDate = Carbon::parse($startDate)->startOfDay();
-            $endDate = Carbon::parse($endDate)->endOfDay();
+            $startDateParsed = Carbon::parse($startDate)->startOfDay();
+            $endDateParsed = Carbon::parse($endDate)->endOfDay();
             
             $paidBookings = DatPhong::with(['loaiPhong', 'invoice'])
                 ->whereHas('invoice', function($query) {
                     $query->where('trang_thai', 'da_thanh_toan');
                 })
-                ->whereBetween('ngay_dat', [$startDate, $endDate])
+                ->whereBetween('ngay_dat', [$startDateParsed, $endDateParsed])
                 ->orderBy('ngay_dat', 'desc')
                 ->paginate(10);
                 
             // Tính toán doanh thu theo ngày
-            $revenueData = $this->calculateDateRangeRevenue($startDate, $endDate);
-            $roomTypeStats = $this->getDateRangeRoomTypeStats($startDate, $endDate);
-            $dailyStats = $this->getDateRangeDailyStats($startDate, $endDate);
+            $revenueData = $this->calculateDateRangeRevenue($startDateParsed, $endDateParsed);
+            $roomTypeStats = $this->getDateRangeRoomTypeStats($startDateParsed, $endDateParsed);
+            $dailyStats = $this->getDateRangeDailyStats($startDateParsed, $endDateParsed);
         } else {
             // Nếu không có ngày cụ thể, lấy theo tháng
-            $startDate = Carbon::create($year, $month, 1)->startOfMonth();
-            $endDate = Carbon::create($year, $month, 1)->endOfMonth();
+            $month = $request->get('month', Carbon::now()->month);
+            $year = $request->get('year', Carbon::now()->year);
+            $startDateParsed = Carbon::create($year, $month, 1)->startOfMonth();
+            $endDateParsed = Carbon::create($year, $month, 1)->endOfMonth();
             
             $paidBookings = DatPhong::with(['loaiPhong', 'invoice'])
                 ->whereHas('invoice', function($query) {
@@ -82,13 +104,13 @@ class RevenueController extends Controller
 
         // Lấy doanh thu theo ngày
         $dailyRevenues = DatPhong::select(
-                \DB::raw('DATE(hoa_don.ngay_tao) as ngay'),
-                \DB::raw('SUM(dat_phong.tong_tien) as tong_tien'),
-                \DB::raw('COUNT(dat_phong.id) as so_luong')
+                DB::raw('DATE(hoa_don.ngay_tao) as ngay'),
+                DB::raw('SUM(dat_phong.tong_tien) as tong_tien'),
+                DB::raw('COUNT(dat_phong.id) as so_luong')
             )
             ->join('hoa_don', 'dat_phong.id', '=', 'hoa_don.dat_phong_id')
             ->where('hoa_don.trang_thai', 'da_thanh_toan')
-            ->whereBetween('hoa_don.ngay_tao', [$startDate, $endDate])
+            ->whereBetween('hoa_don.ngay_tao', [$startDateParsed ?? $startDate, $endDateParsed ?? $endDate])
             ->groupBy('ngay')
             ->orderBy('ngay', 'desc')
             ->get();
@@ -105,7 +127,8 @@ class RevenueController extends Controller
             'endDate' => $endDate,
             'today' => $today->format('Y-m-d'),
             'yesterday' => $yesterday->format('Y-m-d'),
-            'dailyRevenues' => $dailyRevenues
+            'dailyRevenues' => $dailyRevenues,
+            'isReceptionist' => $isReceptionist, // Truyền flag để view biết là lễ tân
         ]);
     }
 

@@ -17,6 +17,8 @@
                         </svg>
                         Quay lại
                     </a>
+                    {{-- Chỉnh sửa: Chỉ Admin --}}
+                    @hasPermission('phong.edit')
                     <a href="{{ route('admin.phong.edit', $phong->id) }}"
                         class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
@@ -26,6 +28,7 @@
                         </svg>
                         Chỉnh sửa
                     </a>
+                    @endhasPermission
                 </div>
             </div>
 

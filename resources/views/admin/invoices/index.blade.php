@@ -148,7 +148,8 @@
                 <a href="{{ route('admin.invoices.show', $inv->id) }}" class="text-blue-600 hover:text-blue-700 text-xs inline-flex items-center gap-1" title="Xem">
                   <i class="fas fa-eye"></i>
                 </a>
-                @if(!in_array($inv->trang_thai, ['da_thanh_toan', 'hoan_tien']))
+                {{-- Sửa: Chỉ Admin và Nhân viên (không phải Lễ tân) --}}
+                @if(!in_array($inv->trang_thai, ['da_thanh_toan', 'hoan_tien']) && in_array(auth()->user()->vai_tro ?? '', ['admin', 'nhan_vien']))
                   <a href="{{ route('admin.invoices.edit', $inv->id) }}" class="text-amber-600 hover:text-amber-700 text-xs inline-flex items-center gap-1" title="Chỉnh sửa">
                     <i class="fas fa-edit"></i>
                   </a>

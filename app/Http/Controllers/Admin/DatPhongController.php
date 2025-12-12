@@ -20,11 +20,15 @@ use App\Mail\AdminBookingEvent;
 use App\Models\BookingService;
 use App\Models\Service;
 use App\Models\ThanhToan;
+use App\Traits\HasRolePermissions;
 
 class DatPhongController extends Controller
 {
+    use HasRolePermissions;
+
     public function index(Request $request)
     {
+        // Nhân viên và Lễ tân: xem danh sách đặt phòng
         // Lấy tất cả đơn đặt phòng và sắp xếp theo ngày đặt mới nhất
         $query = DatPhong::with(['loaiPhong', 'voucher', 'invoice'])
             ->orderBy('ngay_dat', 'desc');
@@ -70,6 +74,11 @@ class DatPhongController extends Controller
 
     public function showCancelForm($id)
     {
+        // Chỉ admin mới được hủy đặt phòng
+        if (!$this->hasRole('admin')) {
+            abort(403, 'Bạn không có quyền hủy đặt phòng.');
+        }
+        
         $booking = DatPhong::with(['loaiPhong'])->findOrFail($id);
 
         // Kiểm tra nếu không phải trạng thái chờ xác nhận thì không cho hủy
@@ -83,6 +92,11 @@ class DatPhongController extends Controller
 
     public function submitCancel(Request $request, $id)
     {
+        // Chỉ admin mới được hủy đặt phòng
+        if (!$this->hasRole('admin')) {
+            abort(403, 'Bạn không có quyền hủy đặt phòng.');
+        }
+        
         $booking = DatPhong::findOrFail($id);
 
         // Validate
@@ -244,6 +258,14 @@ class DatPhongController extends Controller
 
     public function edit($id)
     {
+        // Nhân viên: cập nhật thông tin khách
+        // Lễ tân: không được sửa đặt phòng
+        if ($this->hasRole('nhan_vien')) {
+            $this->authorizePermission('booking.update_customer');
+        } elseif ($this->hasRole('le_tan')) {
+            abort(403, 'Bạn không có quyền chỉnh sửa đặt phòng.');
+        }
+        
         $booking = DatPhong::with(['loaiPhong', 'voucher', 'user', 'phong'])->findOrFail($id);
 
         // Lấy danh sách loại phòng để hiển thị trong form sửa
@@ -570,6 +592,14 @@ class DatPhongController extends Controller
 
     public function update(Request $request, $id)
     {
+        // Nhân viên: cập nhật thông tin khách
+        // Lễ tân: không được sửa đặt phòng
+        if ($this->hasRole('nhan_vien')) {
+            $this->authorizePermission('booking.update_customer');
+        } elseif ($this->hasRole('le_tan')) {
+            abort(403, 'Bạn không có quyền chỉnh sửa đặt phòng.');
+        }
+        
         $booking = DatPhong::findOrFail($id);
 
         if ($booking->trang_thai !== 'cho_xac_nhan') {
@@ -1095,6 +1125,14 @@ class DatPhongController extends Controller
 
     public function assignRoom(Request $request, $id)
     {
+        // Nhân viên: gán dịch vụ vào phòng
+        // Lễ tân: không được gán phòng
+        if ($this->hasRole('nhan_vien')) {
+            $this->authorizePermission('phong.assign_service');
+        } elseif ($this->hasRole('le_tan')) {
+            abort(403, 'Bạn không có quyền gán phòng.');
+        }
+        
         $booking = DatPhong::with(['loaiPhong', 'phong'])->findOrFail($id);
 
         // Kiểm tra booking có phải trạng thái cho phép gán phòng không
@@ -1256,6 +1294,14 @@ class DatPhongController extends Controller
 
     public function create(\Illuminate\Http\Request $request)
     {
+        // Nhân viên: tạo đặt phòng
+        // Lễ tân: tạo đặt phòng trực tiếp, nhận đặt phòng qua điện thoại
+        if ($this->hasRole('nhan_vien')) {
+            $this->authorizePermission('booking.create');
+        } elseif ($this->hasRole('le_tan')) {
+            $this->authorizePermission('booking.create_direct');
+        }
+        
         // Lấy danh sách loại phòng thay vì phòng cụ thể
         $loaiPhongs = LoaiPhong::where('trang_thai', 'hoat_dong')
             ->with([
@@ -1367,6 +1413,14 @@ class DatPhongController extends Controller
 
     public function store(Request $request)
     {
+        // Nhân viên: tạo đặt phòng
+        // Lễ tân: tạo đặt phòng trực tiếp
+        if ($this->hasRole('nhan_vien')) {
+            $this->authorizePermission('booking.create');
+        } elseif ($this->hasRole('le_tan')) {
+            $this->authorizePermission('booking.create_direct');
+        }
+        
         // Validate room_types array first
         $request->validate([
             'room_types' => 'required|array|min:1',
@@ -1909,6 +1963,11 @@ class DatPhongController extends Controller
 
     public function blockRoom($id)
     {
+        // Chỉ admin mới được chống phòng
+        if (!$this->hasRole('admin')) {
+            abort(403, 'Bạn không có quyền chống phòng.');
+        }
+        
         $booking = DatPhong::findOrFail($id);
 
         // Chỉ cho phép chống phòng khi đã xác nhận
@@ -1927,9 +1986,18 @@ class DatPhongController extends Controller
 
     /**
      * Quick confirm booking from index card
+     * Nhân viên: Xác nhận thanh toán đặt cọc
      */
     public function quickConfirm($id)
     {
+        // Nhân viên: xác nhận thanh toán đặt cọc
+        // Lễ tân: không được xác nhận
+        if ($this->hasRole('nhan_vien')) {
+            $this->authorizePermission('booking.confirm_deposit');
+        } elseif ($this->hasRole('le_tan')) {
+            abort(403, 'Bạn không có quyền xác nhận đặt phòng.');
+        }
+        
         $booking = DatPhong::findOrFail($id);
 
         if ($booking->trang_thai !== 'cho_xac_nhan') {
@@ -2141,9 +2209,18 @@ class DatPhongController extends Controller
 
     /**
      * Mark booking as paid: create (or update) invoice to 'da_thanh_toan'
+     * Nhân viên: Xác nhận thanh toán đặt cọc
      */
     public function markPaid($id)
     {
+        // Nhân viên: xác nhận thanh toán đặt cọc
+        // Lễ tân: không được đánh dấu đã thanh toán
+        if ($this->hasRole('nhan_vien')) {
+            $this->authorizePermission('booking.confirm_deposit');
+        } elseif ($this->hasRole('le_tan')) {
+            abort(403, 'Bạn không có quyền đánh dấu đã thanh toán.');
+        }
+        
         $booking = DatPhong::with('invoice')->findOrFail($id);
 
         // Create invoice if missing
@@ -2208,9 +2285,15 @@ class DatPhongController extends Controller
 
     /**
      * Check-in booking
+     * Lễ tân: Check-in khách đặt trước
      */
     public function checkin(Request $request, $id)
     {
+        // Lễ tân: check-in
+        if ($this->hasRole('le_tan')) {
+            $this->authorizePermission('phong.checkin');
+        }
+        
         $validated = $request->validate([
             'ghi_chu_checkin' => 'nullable|string|max:500',
         ], [
@@ -2257,9 +2340,15 @@ class DatPhongController extends Controller
 
     /**
      * Check-out booking
+     * Lễ tân: Check-out
      */
     public function checkout(Request $request, $id)
     {
+        // Lễ tân: check-out
+        if ($this->hasRole('le_tan')) {
+            $this->authorizePermission('phong.checkout');
+        }
+        
         $validated = $request->validate([
             'phi_phat_sinh' => 'nullable|numeric|min:0',
             'ly_do_phi' => 'nullable|string|max:500',

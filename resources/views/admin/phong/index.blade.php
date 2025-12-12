@@ -8,12 +8,14 @@
         <h2 class="text-3xl font-semibold text-blue-600 flex items-center gap-2">
             <i class="bi bi-building"></i> Quản lý phòng
         </h2>
+        @hasPermission('phong.create')
         <div class="flex gap-3">
             <a href="{{ route('admin.phong.create') }}" class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2 rounded-full shadow transition">
                 <i class="fas fa-plus"></i>
                 Thêm phòng
             </a>
         </div>
+        @endhasPermission
     </div>
 
     @if (session('success'))
@@ -124,11 +126,14 @@
                                title="Xem chi tiết">
                                 <i class="fas fa-eye"></i>
                             </a>
+                            @hasPermission('phong.edit')
                             <a href="{{ route('admin.phong.edit', $phong->id) }}" 
                                class="text-yellow-500 hover:text-yellow-600 flex items-center gap-1 transition text-xs"
                                title="Sửa">
                                 <i class="fas fa-edit"></i>
                             </a>
+                            @endhasPermission
+                            @hasPermission('phong.delete')
                             <form action="{{ route('admin.phong.destroy', $phong->id) }}" 
                                   method="POST" 
                                   onsubmit="return confirm('Bạn có chắc chắn muốn xóa phòng {{ $phong->so_phong }}?')"
@@ -141,6 +146,7 @@
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </form>
+                            @endhasPermission
                         </div>
                     </td>
                 </tr>

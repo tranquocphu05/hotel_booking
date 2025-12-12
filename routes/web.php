@@ -39,8 +39,15 @@ Route::get('/', [ClientDashboardController::class, 'index'])
 Route::get('/dashboard', function () {
     // Redirect authenticated users to their role dashboard
     $user = Auth::user();
-    if ($user && $user->vai_tro === 'admin') {
+    if (!$user) {
+        return redirect()->route('login');
+    }
+    
+    $role = $user->vai_tro;
+    if ($role === 'admin') {
         return redirect()->route('admin.dashboard');
+    } elseif (in_array($role, ['nhan_vien', 'le_tan'])) {
+        return redirect()->route('admin.dashboard'); // Staff and receptionist use admin dashboard
     }
 
     return redirect()->route('client.dashboard');
@@ -80,9 +87,9 @@ Route::get('/test-google-config', function () {
 });
 
 // =======================
-// Admin routes
+// Admin routes (Admin, Nhân viên, Lễ tân)
 // =======================
-Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsAdmin::class])->group(function () {
+Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsStaffOrReceptionist::class])->group(function () {
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
     Route::get('/revenue', [\App\Http\Controllers\Admin\RevenueController::class, 'index'])->name('revenue');
     Route::get('/test', function () {

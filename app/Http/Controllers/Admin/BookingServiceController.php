@@ -7,12 +7,17 @@ use App\Models\BookingService;
 use App\Models\DatPhong;
 use App\Services\BookingPriceCalculator;
 use Illuminate\Http\Request;
+use App\Traits\HasRolePermissions;
 
 class BookingServiceController extends Controller
 {
+    use HasRolePermissions;
+
     // 🔹 Lấy danh sách dịch vụ phát sinh cho 1 đặt phòng
     public function index($datPhongId)
     {
+        // Nhân viên: xem dịch vụ
+        $this->authorizePermission('service.view');
         $services = BookingService::with('service')
             ->where('dat_phong_id', $datPhongId)
             ->orderBy('used_at', 'desc')
@@ -22,8 +27,12 @@ class BookingServiceController extends Controller
     }
 
     // 🔹 Thêm dịch vụ vào đặt phòng
+    // Nhân viên: Thêm dịch vụ phát sinh vào phòng đang ở
     public function store(Request $request)
     {
+        // Nhân viên: thêm dịch vụ phát sinh vào phòng đang ở
+        $this->authorizePermission('service.add_to_room');
+        
         $validated = $request->validate([
             'dat_phong_id' => 'required|exists:dat_phong,id',
             'service_id' => 'required|exists:services,id',

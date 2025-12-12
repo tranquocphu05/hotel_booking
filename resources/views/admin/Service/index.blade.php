@@ -7,10 +7,13 @@
         <div class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
             <h2 class="text-3xl font-semibold text-blue-600 flex items-center gap-2"><i class="bi bi-building"></i>Danh sách
                 dịch vụ</h2>
-            <div class="flex gap-3"></div>
-            <a href="{{ route('admin.service.create') }}" class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2 rounded-full shadow transition">
-                <i class="fas fa-plus"></i>Thêm dịch vụ
-            </a>
+            @hasPermission('service.create')
+            <div class="flex gap-3">
+                <a href="{{ route('admin.service.create') }}" class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2 rounded-full shadow transition">
+                    <i class="fas fa-plus"></i>Thêm dịch vụ
+                </a>
+            </div>
+            @endhasPermission
         </div>
 
 
@@ -43,11 +46,14 @@
                             </span>
                         </td>
                         <td class="px-4 py-2 text-center">
+                            @hasPermission('service.edit')
                             {{-- 🟡 Nút sửa (full-page edit) --}}
                             <a href="{{ route('admin.service.edit', $service->id) }}" class="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 inline-block">
                                 Sửa
                             </a>
+                            @endhasPermission
 
+                            @hasPermission('service.edit')
                             <form method="POST" action="{{ route('admin.service.update', $service->id) }}" style="display:inline">
                                 @csrf
                                 @method('PUT')
@@ -56,7 +62,11 @@
                                     {{ $service->status === 'hoat_dong' ? 'Ngừng' : 'Kích hoạt' }}
                                 </button>
                             </form>
+                            @endhasPermission
 
+                            @unless(auth()->user()->vai_tro === 'admin' || auth()->user()->vai_tro === 'nhan_vien')
+                            <span class="text-gray-400 text-sm">Chỉ xem</span>
+                            @endunless
                         </td>
                     </tr>
                 @endforeach

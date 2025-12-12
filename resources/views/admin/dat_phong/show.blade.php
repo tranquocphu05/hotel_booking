@@ -256,6 +256,7 @@
                                 <p class="text-xl font-bold text-red-600">0%</p>
                             </div>
                         </div>
+                        @endhasRole
                     </div>
 
                     @if($cancellationPolicy['can_cancel'])
@@ -933,6 +934,8 @@
                                 Quay lại
                             </a>
                             @if ($booking->trang_thai === 'cho_xac_nhan')
+                                {{-- Sửa: Admin và Nhân viên --}}
+                                @if (in_array(auth()->user()->vai_tro ?? '', ['admin', 'nhan_vien']))
                                 <a href="{{ route('admin.dat_phong.edit', $booking->id) }}"
                                     class="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
@@ -942,6 +945,9 @@
                                     </svg>
                                     Sửa thông tin
                                 </a>
+                                @endif
+                                {{-- Hủy: Chỉ Admin --}}
+                                @hasRole('admin')
                                 <a href="{{ route('admin.dat_phong.cancel', $booking->id) }}"
                                     class="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
@@ -951,6 +957,7 @@
                                     </svg>
                                     Hủy đặt phòng
                                 </a>
+                                @endhasRole
                             @endif
                         </div>
                     </div>

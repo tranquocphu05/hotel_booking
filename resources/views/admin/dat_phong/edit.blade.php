@@ -657,7 +657,8 @@
                 </button>
             </form>
 
-            <!-- Cancel -->
+            <!-- Cancel: Chỉ Admin -->
+            @hasRole('admin')
             <a href="{{ route('admin.dat_phong.cancel', $booking->id) }}" title="Hủy"
                 class="inline-flex items-center px-4 py-2 mx-1 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
                 onclick="if(!confirm('Bạn có chắc chắn muốn hủy đặt phòng #{{ $booking->id }}?')) return false;">
@@ -666,6 +667,7 @@
                 </svg>
                 Hủy đặt phòng
             </a>
+            @endhasRole
 
             <!-- Update -->
             <button type="submit"
