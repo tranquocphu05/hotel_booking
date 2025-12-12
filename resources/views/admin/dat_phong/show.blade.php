@@ -256,7 +256,7 @@
                                 <p class="text-xl font-bold text-red-600">0%</p>
                             </div>
                         </div>
-                        @endhasRole
+
                     </div>
 
                     @if($cancellationPolicy['can_cancel'])
