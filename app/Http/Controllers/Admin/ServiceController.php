@@ -6,14 +6,19 @@ use App\Http\Controllers\Controller;
 use App\Models\Service;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use App\Traits\HasRolePermissions;
 
 class ServiceController extends Controller
 {
+    use HasRolePermissions;
+
     /**
      * 🔹 Hiển thị danh sách dịch vụ
      */
     public function index(Request $request)
     {
+        // Nhân viên và Lễ tân: xem dịch vụ
+        $this->authorizePermission('service.view');
         $query = Service::query();
 
         if ($keyword = $request->input('keyword')) {
@@ -40,6 +45,11 @@ class ServiceController extends Controller
      */
     public function create()
     {
+        // Chỉ admin mới được tạo dịch vụ
+        if (!$this->hasRole('admin')) {
+            abort(403, 'Bạn không có quyền tạo dịch vụ.');
+        }
+        
         return view('admin.Service.create');
     }
 
@@ -48,6 +58,11 @@ class ServiceController extends Controller
      */
     public function edit($id)
     {
+        // Nhân viên và Lễ tân: không được sửa giá
+        if ($this->hasRole(['nhan_vien', 'le_tan'])) {
+            $this->authorizePermission('service.edit_price');
+        }
+        
         $service = Service::findOrFail($id);
         return view('admin.Service.edit', compact('service'));
     }
@@ -57,6 +72,11 @@ class ServiceController extends Controller
      */
     public function store(Request $request)
     {
+        // Chỉ admin mới được tạo dịch vụ
+        if (!$this->hasRole('admin')) {
+            abort(403, 'Bạn không có quyền tạo dịch vụ.');
+        }
+        
         $validator = Validator::make(
             $request->all(),
             [
@@ -114,6 +134,11 @@ class ServiceController extends Controller
      */
     public function update(Request $request, $id)
     {
+        // Nhân viên và Lễ tân: không được sửa giá
+        if ($this->hasRole(['nhan_vien', 'le_tan'])) {
+            $this->authorizePermission('service.edit_price');
+        }
+        
         $service = Service::findOrFail($id);
 
         if ($request->has('toggle')) {

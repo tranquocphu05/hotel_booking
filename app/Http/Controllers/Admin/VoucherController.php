@@ -6,12 +6,17 @@ use App\Http\Controllers\Controller;
 use App\Models\Voucher;
 use App\Models\LoaiPhong;
 use Illuminate\Http\Request;
+use App\Traits\HasRolePermissions;
 
 class VoucherController extends Controller
 {
+    use HasRolePermissions;
+
     // Hiển thị danh sách Vouchers và xử lý LỌC
     public function index(Request $request)
     {
+        // Tất cả đều xem được để áp dụng voucher
+        $this->authorizePermission('voucher.view');
         // 1. Lấy tất cả Loại phòng để truyền sang view (cho dropdown Lọc)
         $loaiPhongs = LoaiPhong::all();
 
@@ -51,6 +56,11 @@ class VoucherController extends Controller
     // Form thêm mới
     public function create()
     {
+        // Chỉ admin mới được tạo voucher
+        if (!$this->hasRole('admin')) {
+            abort(403, 'Bạn không có quyền tạo voucher.');
+        }
+        
         $loaiPhongs = LoaiPhong::all();
         return view('admin.voucher.create', compact('loaiPhongs'));
     }
@@ -58,6 +68,11 @@ class VoucherController extends Controller
     // Lưu voucher mới
     public function store(Request $request)
     {
+        // Chỉ admin mới được tạo voucher
+        if (!$this->hasRole('admin')) {
+            abort(403, 'Bạn không có quyền tạo voucher.');
+        }
+        
         $request->validate([
             'ma_voucher' => [
                 'required',
@@ -99,6 +114,11 @@ class VoucherController extends Controller
     // Form sửa voucher
     public function edit(Voucher $voucher)
     {
+        // Chỉ admin mới được sửa voucher
+        if (!$this->hasRole('admin')) {
+            abort(403, 'Bạn không có quyền chỉnh sửa voucher.');
+        }
+        
         $loaiPhongs = LoaiPhong::all();
         return view('admin.voucher.edit', compact('voucher', 'loaiPhongs'));
     }
@@ -106,6 +126,11 @@ class VoucherController extends Controller
     // Cập nhật voucher
     public function update(Request $request, Voucher $voucher)
     {
+        // Chỉ admin mới được sửa voucher
+        if (!$this->hasRole('admin')) {
+            abort(403, 'Bạn không có quyền chỉnh sửa voucher.');
+        }
+        
         $request->validate([
             'ma_voucher' => [
                 'required',
@@ -147,6 +172,10 @@ class VoucherController extends Controller
     // Xóa voucher
     public function destroy(Voucher $voucher)
     {
+        // Chỉ admin mới được xóa voucher
+        if (!$this->hasRole('admin')) {
+            abort(403, 'Bạn không có quyền xóa voucher.');
+        }
         $voucher->delete();
         return redirect()->route('admin.voucher.index')->with('success', 'Xóa voucher thành công!');
     }

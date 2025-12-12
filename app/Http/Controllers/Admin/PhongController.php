@@ -6,14 +6,19 @@ use App\Http\Controllers\Controller;
 use App\Models\Phong;
 use App\Models\LoaiPhong;
 use Illuminate\Http\Request;
+use App\Traits\HasRolePermissions;
 
 class PhongController extends Controller
 {
+    use HasRolePermissions;
+
     /**
      * Display a listing of the resource.
      */
     public function index(Request $request)
     {
+        // Nhân viên và Lễ tân: xem danh sách phòng
+        $this->authorizePermission('phong.view');
         $query = Phong::with('loaiPhong');
 
         // Filter theo loại phòng
@@ -50,6 +55,11 @@ class PhongController extends Controller
      */
     public function create()
     {
+        // Chỉ admin mới được tạo phòng
+        if (!$this->hasRole('admin')) {
+            abort(403, 'Bạn không có quyền tạo phòng.');
+        }
+        
         $loaiPhongs = LoaiPhong::where('trang_thai', 'hoat_dong')->get();
         return view('admin.phong.create', compact('loaiPhongs'));
     }
@@ -59,6 +69,11 @@ class PhongController extends Controller
      */
     public function store(Request $request)
     {
+        // Chỉ admin mới được tạo phòng
+        if (!$this->hasRole('admin')) {
+            abort(403, 'Bạn không có quyền tạo phòng.');
+        }
+        
         $validated = $request->validate([
             'loai_phong_id' => 'required|exists:loai_phong,id',
             'so_phong' => [
@@ -151,6 +166,10 @@ class PhongController extends Controller
      */
     public function show($id)
     {
+        // Nhân viên: xem lịch sử sử dụng phòng
+        // Lễ tân: xem trạng thái phòng theo thời gian thực
+        $this->authorizePermission('phong.view');
+        
         $phong = Phong::with(['loaiPhong', 'datPhongs' => function($query) {
             $query->orderBy('ngay_nhan', 'desc')->limit(10);
         }])->findOrFail($id);
@@ -163,6 +182,11 @@ class PhongController extends Controller
      */
     public function edit($id)
     {
+        // Chỉ admin mới được sửa phòng
+        if (!$this->hasRole('admin')) {
+            abort(403, 'Bạn không có quyền chỉnh sửa phòng.');
+        }
+        
         $phong = Phong::findOrFail($id);
         $loaiPhongs = LoaiPhong::where('trang_thai', 'hoat_dong')->get();
         return view('admin.phong.edit', compact('phong', 'loaiPhongs'));
@@ -173,6 +197,11 @@ class PhongController extends Controller
      */
     public function update(Request $request, $id)
     {
+        // Chỉ admin mới được sửa phòng
+        if (!$this->hasRole('admin')) {
+            abort(403, 'Bạn không có quyền chỉnh sửa phòng.');
+        }
+        
         $phong = Phong::findOrFail($id);
         $oldLoaiPhongId = $phong->loai_phong_id;
         $oldTrangThai = $phong->trang_thai;
@@ -341,6 +370,11 @@ class PhongController extends Controller
      */
     public function destroy($id)
     {
+        // Chỉ admin mới được xóa phòng
+        if (!$this->hasRole('admin')) {
+            abort(403, 'Bạn không có quyền xóa phòng.');
+        }
+        
         try {
             $phong = Phong::findOrFail($id);
             $loaiPhongId = $phong->loai_phong_id;
@@ -390,9 +424,13 @@ class PhongController extends Controller
 
     /**
      * Update room status quickly
+     * Nhân viên: Cập nhật trạng thái phòng sau khi dọn
      */
     public function updateStatus(Request $request, $id)
     {
+        // Nhân viên: cập nhật trạng thái phòng sau khi dọn
+        $this->authorizePermission('phong.update_status');
+        
         $phong = Phong::findOrFail($id);
         $oldTrangThai = $phong->trang_thai;
 

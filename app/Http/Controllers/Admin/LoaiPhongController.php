@@ -6,12 +6,17 @@ use App\Http\Controllers\Controller;
 use App\Models\LoaiPhong;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use App\Traits\HasRolePermissions;
 
 class LoaiPhongController extends Controller
 {
+    use HasRolePermissions;
+
     // Hiển thị danh sách loại phòng
     public function index(Request $request)
     {
+        // Nhân viên và Lễ tân: chỉ xem
+        $this->authorizePermission('loai_phong.view');
         $query = LoaiPhong::query();
 
         // Filter theo trạng thái nếu có
@@ -26,12 +31,17 @@ class LoaiPhongController extends Controller
     // Form thêm loại phòng
     public function create()
     {
+        // Chỉ admin mới được tạo mới
+        $this->authorizePermission('loai_phong.create');
         return view('admin.loai_phong.create');
     }
 
     // Lưu loại phòng mới
     public function store(Request $request)
     {
+        // Chỉ admin mới được tạo mới
+        $this->authorizePermission('loai_phong.create');
+        
         $validated = $request->validate([
             'ten_loai' => 'required|string|max:255|unique:loai_phong,ten_loai|regex:/^[\pL\s]+$/u',
             'mo_ta' => 'nullable|string|max:1000|regex:/^[\pL\pN\s.,()!?\-\'":;%&@\/]+$/u',
@@ -79,6 +89,9 @@ class LoaiPhongController extends Controller
     // Form chỉnh sửa
     public function edit($id)
     {
+        // Nhân viên không được chỉnh sửa giá hoặc xóa
+        $this->authorizePermission('loai_phong.edit');
+        
         $loaiPhong = LoaiPhong::findOrFail($id);
         return view('admin.loai_phong.edit', compact('loaiPhong'));
     }
@@ -86,6 +99,17 @@ class LoaiPhongController extends Controller
     // Cập nhật loại phòng
     public function update(Request $request, $id)
     {
+        // Nhân viên không được chỉnh sửa giá
+        $this->authorizePermission('loai_phong.edit');
+        
+        // Nếu là nhân viên, không cho sửa giá
+        if ($this->hasRole('nhan_vien')) {
+            $request->merge([
+                'gia_co_ban' => LoaiPhong::findOrFail($id)->gia_co_ban,
+                'gia_khuyen_mai' => LoaiPhong::findOrFail($id)->gia_khuyen_mai,
+            ]);
+        }
+        
         $validated = $request->validate([
             'ten_loai' => 'required|string|max:255|regex:/^[\pL\s]+$/u',
             'mo_ta' => 'nullable|string|max:1000|regex:/^[\pL\pN\s.,()!?\-\'":;%&@\/]+$/u',
@@ -151,6 +175,9 @@ class LoaiPhongController extends Controller
     // Xóa loại phòng
     public function destroy($id)
     {
+        // Nhân viên không được xóa
+        $this->authorizePermission('loai_phong.delete');
+        
         $loaiPhong = LoaiPhong::findOrFail($id);
         // Không xóa dữ liệu; chuyển trạng thái sang "ngung"
         $loaiPhong->update(['trang_thai' => 'ngung']);
@@ -164,6 +191,9 @@ class LoaiPhongController extends Controller
     // Bật/tắt trạng thái hoạt động của loại phòng
     public function toggleStatus($id)
     {
+        // Nhân viên không được thay đổi trạng thái
+        $this->authorizePermission('loai_phong.edit');
+        
         $loaiPhong = LoaiPhong::findOrFail($id);
         $new = $loaiPhong->trang_thai === 'hoat_dong' ? 'ngung' : 'hoat_dong';
         $loaiPhong->update(['trang_thai' => $new]);
