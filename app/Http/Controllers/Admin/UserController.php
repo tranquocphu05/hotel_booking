@@ -8,11 +8,21 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UserRequests;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use App\Traits\HasRolePermissions;
 
 class UserController extends Controller
 {
+    use HasRolePermissions;
+
     public function index()
     {
+        // Nhân viên: xem danh sách khách hàng
+        // Lễ tân: xem thông tin khách thanh toán, tìm kiếm khách hàng nhanh
+        if ($this->hasRole('nhan_vien')) {
+            $this->authorizePermission('customer.view');
+        } elseif ($this->hasRole('le_tan')) {
+            $this->authorizePermission('customer.view_paying');
+        }
         $users = User::paginate(5);
         $activeAdminCount = User::where('vai_tro', 'admin')
             ->where('trang_thai', 'hoat_dong')
@@ -22,11 +32,21 @@ class UserController extends Controller
 
     public function create()
     {
+        // Chỉ admin mới được tạo user
+        if (!$this->hasRole('admin')) {
+            abort(403, 'Bạn không có quyền tạo người dùng.');
+        }
+        
         return view('admin.users.create');
     }
 
     public function store(UserRequests $request)
     {
+        // Chỉ admin mới được tạo user
+        if (!$this->hasRole('admin')) {
+            abort(403, 'Bạn không có quyền tạo người dùng.');
+        }
+        
         $data = $request->validated();
 
         $data['password'] = Hash::make($data['password']);
@@ -38,11 +58,21 @@ class UserController extends Controller
 
     public function edit(User $user)
     {
+        // Chỉ admin mới được sửa user
+        if (!$this->hasRole('admin')) {
+            abort(403, 'Bạn không có quyền chỉnh sửa người dùng.');
+        }
+        
         return view('admin.users.edit', compact('user'));
     }
 
     public function update(UserRequests $request, User $user)
     {
+        // Chỉ admin mới được sửa user
+        if (!$this->hasRole('admin')) {
+            abort(403, 'Bạn không có quyền chỉnh sửa người dùng.');
+        }
+        
         try {
             $data = $request->validated();
 
@@ -78,6 +108,8 @@ class UserController extends Controller
 
     public function destroy(User $user)
     {
+        // Nhân viên: không được xóa khách
+        $this->authorizePermission('customer.delete');
         // Không xóa cứng; nếu là admin cuối cùng thì không cho khóa
         if ($user->vai_tro === 'admin') {
             // Không cho tự khóa chính mình
@@ -96,6 +128,10 @@ class UserController extends Controller
 
     public function toggleStatus(User $user)
     {
+        // Chỉ admin mới được thay đổi trạng thái user
+        if (!$this->hasRole('admin')) {
+            abort(403, 'Bạn không có quyền thay đổi trạng thái người dùng.');
+        }
         $newStatus = $user->trang_thai === 'hoat_dong' ? 'khoa' : 'hoat_dong';
 
         if ($user->vai_tro === 'admin' && $newStatus === 'khoa') {

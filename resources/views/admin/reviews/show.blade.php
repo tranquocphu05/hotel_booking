@@ -51,34 +51,52 @@
     </div>
 
     {{-- FORM PHẢN HỒI CỦA ADMIN --}}
-    <div class="mt-8 border-t pt-4">
-        <h3 class="text-lg font-semibold text-gray-700 mb-2">Phản hồi của Admin</h3>
+    {{-- Chỉ admin và nhân viên mới được phản hồi --}}
+    @if (in_array(auth()->user()->vai_tro ?? '', ['admin', 'nhan_vien']))
+        <div class="mt-8 border-t pt-4">
+            <h3 class="text-lg font-semibold text-gray-700 mb-2">Phản hồi của Admin</h3>
 
-        <form action="{{ route('admin.reviews.reply', $comment->id) }}" method="POST" class="mb-4">
-            @csrf
-            @method('PUT')
-
-            <textarea name="reply" rows="4" placeholder="Nhập phản hồi..." 
-                class="w-full border border-gray-300 rounded-lg p-3 focus:ring focus:ring-blue-300">{{ old('reply', $comment->reply) }}</textarea>
-
-            <button type="submit" 
-                class="mt-3 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
-                Gửi phản hồi
-            </button>
-        </form>
-
-        {{-- FORM XÓA PHẢN HỒI --}}
-        @if ($comment->reply)
-            <form action="{{ route('admin.reviews.reply.delete', $comment->id) }}" method="POST" onsubmit="return confirm('Bạn có chắc muốn xóa phản hồi này không?');">
+            <form action="{{ route('admin.reviews.reply', $comment->id) }}" method="POST" class="mb-4">
                 @csrf
-                @method('DELETE')
+                @method('PUT')
+
+                <textarea name="reply" rows="4" placeholder="Nhập phản hồi..." 
+                    class="w-full border border-gray-300 rounded-lg p-3 focus:ring focus:ring-blue-300">{{ old('reply', $comment->reply) }}</textarea>
+
                 <button type="submit" 
-                    class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition">
-                    Xóa phản hồi
+                    class="mt-3 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
+                    Gửi phản hồi
                 </button>
             </form>
+
+            {{-- FORM XÓA PHẢN HỒI --}}
+            @if ($comment->reply)
+                <form action="{{ route('admin.reviews.reply.delete', $comment->id) }}" method="POST" onsubmit="return confirm('Bạn có chắc muốn xóa phản hồi này không?');">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" 
+                        class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition">
+                        Xóa phản hồi
+                    </button>
+                </form>
+            @endif
+        </div>
+    @else
+        {{-- Lễ tân chỉ xem phản hồi nếu có --}}
+        @if ($comment->reply)
+            <div class="mt-8 border-t pt-4">
+                <h3 class="text-lg font-semibold text-gray-700 mb-2">Phản hồi của Admin</h3>
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <p class="text-gray-700">{{ $comment->reply }}</p>
+                    @if ($comment->reply_at)
+                        <p class="text-sm text-gray-500 mt-2">
+                            Phản hồi lúc: {{ \Carbon\Carbon::parse($comment->reply_at)->format('H:i d/m/Y') }}
+                        </p>
+                    @endif
+                </div>
+            </div>
         @endif
-    </div>
+    @endif
 
     {{-- NÚT QUAY LẠI --}}
     <div class="mt-6">

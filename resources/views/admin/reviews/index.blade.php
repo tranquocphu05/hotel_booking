@@ -109,24 +109,27 @@
                                 Xem
                             </a>
 
-                            @if ($comment->trang_thai === 'hien_thi')
-                                <form action="{{ route('admin.reviews.toggle', $comment->id) }}" method="POST" class="inline">
-                                    @csrf
-                                    @method('PUT')
-                                    <input type="hidden" name="status" value="an">
-                                    <button type="submit" class="bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600">
-                                        Ẩn
-                                    </button>
-                                </form>
-                            @else
-                                <form action="{{ route('admin.reviews.toggle', $comment->id) }}" method="POST" class="inline">
-                                    @csrf
-                                    @method('PUT')
-                                    <input type="hidden" name="status" value="hien_thi">
-                                    <button type="submit" class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">
-                                        Hiển thị
-                                    </button>
-                                </form>
+                            {{-- Chỉ admin và nhân viên mới được cập nhật trạng thái --}}
+                            @if (in_array(auth()->user()->vai_tro ?? '', ['admin', 'nhan_vien']))
+                                @if ($comment->trang_thai === 'hien_thi')
+                                    <form action="{{ route('admin.reviews.toggle', $comment->id) }}" method="POST" class="inline">
+                                        @csrf
+                                        @method('PUT')
+                                        <input type="hidden" name="status" value="an">
+                                        <button type="submit" class="bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600">
+                                            Ẩn
+                                        </button>
+                                    </form>
+                                @else
+                                    <form action="{{ route('admin.reviews.toggle', $comment->id) }}" method="POST" class="inline">
+                                        @csrf
+                                        @method('PUT')
+                                        <input type="hidden" name="status" value="hien_thi">
+                                        <button type="submit" class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">
+                                            Hiển thị
+                                        </button>
+                                    </form>
+                                @endif
                             @endif
                         </td>
                     </tr>

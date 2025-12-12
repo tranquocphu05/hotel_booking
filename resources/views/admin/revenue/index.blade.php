@@ -7,11 +7,24 @@
     <!-- Header -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-            <h1 class="text-2xl font-bold text-gray-900">Chi tiết doanh thu</h1>
-            <p class="text-gray-600">Phân tích chi tiết doanh thu theo tháng</p>
+            <h1 class="text-2xl font-bold text-gray-900">
+                @if(isset($isReceptionist) && $isReceptionist)
+                    Doanh thu ca làm việc hôm nay
+                @else
+                    Chi tiết doanh thu
+                @endif
+            </h1>
+            <p class="text-gray-600">
+                @if(isset($isReceptionist) && $isReceptionist)
+                    Doanh thu của ca làm việc ngày {{ \Carbon\Carbon::today()->format('d/m/Y') }}
+                @else
+                    Phân tích chi tiết doanh thu theo tháng
+                @endif
+            </p>
         </div>
         
-        <!-- Date Range Filter -->
+        <!-- Date Range Filter: Chỉ hiển thị cho Admin -->
+        @unless(isset($isReceptionist) && $isReceptionist)
         <div class="flex items-center gap-4">
             <form method="GET" class="flex flex-wrap items-center gap-2">
                 <!-- Date range filter -->
@@ -34,6 +47,7 @@
                 </button>
             </form>
         </div>
+        @endunless
     </div>
 
     <!-- Revenue Overview Cards -->
@@ -51,6 +65,8 @@
                     <i class="fas fa-dollar-sign text-green-600 text-xl"></i>
                 </div>
             </div>
+            {{-- Chỉ hiển thị so sánh cho Admin --}}
+            @unless(isset($isReceptionist) && $isReceptionist)
             @if($revenueData['growth_rate'] != 0)
                 <div class="mt-4 flex items-center">
                     @if($revenueData['growth_rate'] > 0)
@@ -63,6 +79,7 @@
                     <span class="text-gray-500 text-sm ml-1">so với tháng trước</span>
                 </div>
             @endif
+            @endunless
         </div>
 
         <!-- Total Bookings -->
@@ -95,7 +112,8 @@
             </div>
         </div>
 
-        <!-- Previous Month Revenue -->
+        <!-- Previous Month Revenue: Chỉ hiển thị cho Admin -->
+        @unless(isset($isReceptionist) && $isReceptionist)
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div class="flex items-center justify-between">
                 <div>
@@ -109,6 +127,7 @@
                 </div>
             </div>
         </div>
+        @endunless
     </div>
 
     <!-- Charts Section -->
@@ -207,7 +226,8 @@
     </div>
 </div>
 
-<!-- Báo cáo doanh thu theo ngày -->
+<!-- Báo cáo doanh thu theo ngày: Chỉ hiển thị cho Admin -->
+@unless(isset($isReceptionist) && $isReceptionist)
 <div class="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
     <div class="px-6 py-4 border-b border-gray-200">
         <h3 class="text-lg font-semibold text-gray-900">Báo cáo doanh thu theo ngày</h3>
@@ -259,6 +279,7 @@
         </table>
     </div>
 </div>
+@endunless
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

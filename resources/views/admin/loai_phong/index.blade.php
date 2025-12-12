@@ -10,12 +10,14 @@
                 <i class="bi bi-door-open-fill text-blue-600 text-3xl"></i>
                 Quản lý loại phòng
             </h2>
+            @hasPermission('loai_phong.create')
             <div class="flex justify-start ml-8">
                 <a href="{{ route('admin.loai_phong.create') }}"
                     class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2 rounded-full shadow transition">
                     + Add
                 </a>
             </div>
+            @endhasPermission
         </div>
 
         {{-- Thông báo thành công --}}
@@ -124,10 +126,13 @@
                             {{-- ✅ Cột thao tác, áp dụng whitespace-nowrap và dùng flex để giữ các nút trên một hàng --}}
                             <td class="px-6 py-4 text-center whitespace-nowrap">
                                 <div class="flex justify-center items-center gap-4 whitespace-nowrap">
+                                    @hasPermission('loai_phong.edit')
                                     <a href="{{ route('admin.loai_phong.edit', $loai->id) }}"
                                         class="text-yellow-500 hover:text-yellow-600 flex items-center gap-1 transition whitespace-nowrap">
                                         <i class="bi bi-pencil-square"></i> Edit
                                     </a>
+                                    @endhasPermission
+                                    @hasPermission('loai_phong.edit')
                                     <form action="{{ route('admin.loai_phong.toggle', $loai->id) }}" method="POST"
                                         onsubmit="return confirm('{{ $loai->trang_thai === 'hoat_dong' ? 'Vô hiệu hóa loại phòng này?' : 'Kích hoạt lại loại phòng này?' }}')">
                                         @csrf
@@ -144,6 +149,10 @@
                                             </button>
                                         @endif
                                     </form>
+                                    @endhasPermission
+                                    @unless(auth()->user()->vai_tro === 'admin' || auth()->user()->vai_tro === 'nhan_vien')
+                                    <span class="text-gray-400 text-sm">Chỉ xem</span>
+                                    @endunless
                                 </div>
                             </td>
                         </tr>

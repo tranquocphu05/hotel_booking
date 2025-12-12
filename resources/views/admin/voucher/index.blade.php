@@ -10,10 +10,12 @@
                 <h1 class="text-xl font-bold text-gray-700 flex items-center">
                     <span class="text-orange-500 mr-2">📜</span> Danh sách phiếu giảm giá
                 </h1>
+                @hasPermission('voucher.create')
                 <a href="{{ route('admin.voucher.create') }}"
                     class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-md transition font-medium">
                     + Thêm Voucher
                 </a>
+                @endhasPermission
             </div>
 
             <div class="mb-6">
@@ -99,10 +101,13 @@
                                     </span>
                                 </td>
                                 <td>
+                                    @hasPermission('voucher.edit')
                                     <a href="{{ route('admin.voucher.edit', $voucher) }}"
                                         class="text-yellow-500 hover:text-yellow-600 font-medium mr-2">
                                         Sửa
                                     </a>
+                                    @endhasPermission
+                                    @hasPermission('voucher.delete')
                                     <form method="POST" action="{{ route('admin.voucher.destroy', $voucher) }}"
                                         class="inline" onsubmit="return confirm('Xóa voucher này?')">
                                         @csrf
@@ -111,6 +116,10 @@
                                             Xóa
                                         </button>
                                     </form>
+                                    @endhasPermission
+                                    @unless(auth()->user()->vai_tro === 'admin')
+                                    <span class="text-gray-400 text-sm">Chỉ xem</span>
+                                    @endunless
                                 </td>
                             </tr>
                         @empty

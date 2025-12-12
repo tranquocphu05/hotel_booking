@@ -79,88 +79,115 @@
                 <div class="px-4 py-3 group-header transition-all duration-300">
                     <p class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Quản lý phòng</p>
                 </div>
+                {{-- Loại phòng: Tất cả đều xem được --}}
+                @hasPermission('loai_phong.view')
                 <a href="{{ route('admin.loai_phong.index') }}"
                     class="group flex items-center px-4 py-3 text-base font-medium rounded-md {{ request()->routeIs('admin.loai_phong.*') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
                     <i class="fas fa-layer-group sidebar-icon mr-4 text-gray-400 group-hover:text-gray-500 text-lg"></i>
                     <span class="sidebar-text transition-all duration-300">Loại phòng</span>
                 </a>
+                @endhasPermission
+                {{-- Dịch vụ: Tất cả đều xem được --}}
+                @hasPermission('service.view')
                 <a href="{{ route('admin.service.index') }}"
                     class="group flex items-center px-4 py-3 text-base font-medium rounded-md {{ request()->routeIs('admin.service.*') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
                     <i
                         class="fas fa-concierge-bell sidebar-icon mr-4 text-gray-400 group-hover:text-gray-500 text-lg"></i>
                     <span class="sidebar-text transition-all duration-300">Quản lý dịch vụ</span>
                 </a>
+                @endhasPermission
+                {{-- Phòng: Tất cả đều xem được --}}
+                @hasPermission('phong.view')
                 <a href="{{ route('admin.phong.index') }}"
                     class="group flex items-center px-4 py-3 text-base font-medium rounded-md {{ request()->routeIs('admin.phong.*') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
                     <i class="fas fa-door-open sidebar-icon mr-4 text-gray-400 group-hover:text-gray-500 text-lg"></i>
                     <span class="sidebar-text">Quản lý phòng</span>
                 </a>
+                @endhasPermission
             </div>
 
             <div class="space-y-1">
                 <div class="px-4 py-3 group-header transition-all duration-300">
                     <p class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Đặt phòng & Doanh thu</p>
                 </div>
+                {{-- Đặt phòng: Tất cả đều xem được --}}
                 <a href="{{ route('admin.dat_phong.index') }}"
                     class="group flex items-center px-4 py-3 text-base font-medium rounded-md {{ request()->routeIs('admin.dat_phong.*') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
                     <i
                         class="fas fa-calendar-check sidebar-icon mr-4 text-gray-400 group-hover:text-gray-500 text-lg"></i>
                     <span class="sidebar-text transition-all duration-300">Đặt phòng</span>
                 </a>
+                {{-- Hóa đơn: Tất cả đều xem được --}}
                 <a href="{{ route('admin.invoices.index') }}"
                     class="group flex items-center px-4 py-3 text-base font-medium rounded-md {{ request()->routeIs('admin.invoices.*') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
                     <i
                         class="fas fa-file-invoice sidebar-icon mr-4 text-gray-400 group-hover:text-gray-500 text-lg"></i>
                     <span class="sidebar-text transition-all duration-300">Hóa đơn</span>
                 </a>
+                {{-- Doanh thu: Chỉ admin và lễ tân (lễ tân xem doanh thu ca của họ) --}}
+                @if (in_array(auth()->user()->vai_tro ?? '', ['admin', 'le_tan']))
                 <a href="{{ route('admin.revenue') }}"
                     class="group flex items-center px-4 py-3 text-base font-medium rounded-md {{ request()->routeIs('admin.revenue') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
                     <i class="fas fa-chart-line sidebar-icon mr-4 text-gray-400 group-hover:text-gray-500 text-lg"></i>
                     <span class="sidebar-text transition-all duration-300">Chi tiết doanh thu</span>
                 </a>
+                @endif
             </div>
 
             <div class="space-y-1">
                 <div class="px-4 py-3 group-header transition-all duration-300">
                     <p class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Khách hàng</p>
                 </div>
+                {{-- Khách hàng: Tất cả đều xem được --}}
                 <a href="{{ route('admin.users.index') }}"
                     class="group flex items-center px-4 py-3 text-base font-medium rounded-md {{ request()->routeIs('admin.users.*') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
                     <i class="fas fa-users sidebar-icon mr-4 text-gray-400 group-hover:text-gray-500 text-lg"></i>
                     <span class="sidebar-text transition-all duration-300">Khách hàng</span>
                 </a>
+                {{-- Đánh giá: Tất cả đều xem được --}}
+                @hasPermission('review.view')
                 <a href="{{ route('admin.reviews.index') }}"
                     class="group flex items-center px-4 py-3 text-base font-medium rounded-md {{ request()->routeIs('admin.reviews.*') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
                     <i class="fas fa-star sidebar-icon mr-4 text-gray-400 group-hover:text-gray-500 text-lg"></i>
                     <span class="sidebar-text transition-all duration-300">Đánh giá</span>
                 </a>
+                @endhasPermission
             </div>
 
             <div class="space-y-1">
                 <div class="px-4 py-3 group-header transition-all duration-300">
                     <p class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Khuyến mãi</p>
                 </div>
+                {{-- Voucher: Tất cả đều xem được (để áp dụng voucher) --}}
+                @hasPermission('voucher.view')
                 <a href="{{ route('admin.voucher.index') }}"
                     class="group flex items-center px-4 py-3 text-base font-medium rounded-md {{ request()->routeIs('admin.voucher.*') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
                     <i class="fas fa-ticket-alt sidebar-icon mr-4 text-gray-400 group-hover:text-gray-500 text-lg"></i>
                     <span class="sidebar-text transition-all duration-300">Voucher</span>
                 </a>
+                @endhasPermission
             </div>
 
             <div class="space-y-1">
                 <div class="px-4 py-3 group-header transition-all duration-300">
                     <p class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Quản lý nội dung</p>
                 </div>
+                {{-- Tin tức: Chỉ admin --}}
+                @hasRole('admin')
                 <a href="{{ route('admin.news.index') }}"
                     class="group flex items-center px-4 py-3 text-base font-medium rounded-md {{ request()->routeIs('admin.news.*') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
                     <i class="fas fa-newspaper sidebar-icon mr-4 text-gray-400 group-hover:text-gray-500 text-lg"></i>
                     <span class="sidebar-text transition-all duration-300">Tin tức</span>
                 </a>
+                @endhasRole
+                {{-- Yêu cầu đổi phòng: Nhân viên và Lễ tân --}}
+                @if (in_array(auth()->user()->vai_tro ?? '', ['admin', 'nhan_vien', 'le_tan']))
                 <a href="{{ route('admin.yeu_cau_doi_phong.index') }}"
                     class="group flex items-center px-4 py-3 text-base font-medium rounded-md {{ request()->routeIs('admin.yeu_cau_doi_phong.*') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
                     <i class="fas fa-exchange-alt sidebar-icon mr-4 text-gray-400 group-hover:text-gray-500 text-lg"></i>
                     <span class="sidebar-text transition-all duration-300">Yêu cầu đổi phòng</span>
                 </a>
+                @endif
             </div>
         </nav>
 
@@ -172,8 +199,18 @@
                     </div>
                 </div>
                 <div class="ml-3 user-text transition-all duration-300">
-                    <p class="text-base font-medium text-gray-900">{{ auth()->user()->ten ?? 'Admin' }}</p>
-                    <p class="text-sm text-gray-500">Administrator</p>
+                    <p class="text-base font-medium text-gray-900">{{ auth()->user()->ho_ten ?? auth()->user()->username ?? 'User' }}</p>
+                    <p class="text-sm text-gray-500">
+                        @php
+                            $roleNames = [
+                                'admin' => 'Administrator',
+                                'nhan_vien' => 'Nhân viên',
+                                'le_tan' => 'Lễ tân',
+                                'khach_hang' => 'Khách hàng'
+                            ];
+                        @endphp
+                        {{ $roleNames[auth()->user()->vai_tro ?? ''] ?? 'User' }}
+                    </p>
                 </div>
             </div>
         </div>

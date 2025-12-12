@@ -86,6 +86,7 @@
                     class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none @error('vai_tro') border-red-500 @enderror">
                     <option value="admin" {{ old('vai_tro') == 'admin' ? 'selected' : '' }}>Admin</option>
                     <option value="nhan_vien" {{ old('vai_tro') == 'nhan_vien' ? 'selected' : '' }}>Nhân viên</option>
+                    <option value="le_tan" {{ old('vai_tro') == 'le_tan' ? 'selected' : '' }}>Lễ tân</option>
                     <option value="khach_hang" {{ old('vai_tro', 'khach_hang') == 'khach_hang' ? 'selected' : '' }}>Khách hàng</option>
                 </select>
                 @error('vai_tro')

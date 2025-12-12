@@ -24,7 +24,7 @@
         </div>
 
         <!-- Stats Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 {{ $userRole === 'nhan_vien' ? 'lg:grid-cols-3' : 'lg:grid-cols-4' }} gap-6 mb-8">
             <!-- Total Bookings Card -->
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
                 <div class="flex items-center justify-between">
@@ -47,27 +47,44 @@
                 </div>
             </div>
 
-            <!-- Revenue Card -->
+            <!-- Revenue Card: Chỉ hiển thị cho Admin và Lễ tân -->
+            @if($userRole !== 'nhan_vien' && isset($revenueData['label']) && $revenueData['label'] !== null)
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm font-medium text-gray-600 mb-1">Doanh thu</p>
-                        <p class="text-3xl font-bold text-gray-900" data-target="{{ App\Models\DatPhong::sum('tong_tien') ?? 0 }}">0</p>
+                        <p class="text-sm font-medium text-gray-600 mb-1">{{ $revenueData['label'] }}</p>
+                        <p class="text-3xl font-bold text-gray-900" data-target="{{ $revenueData['total'] ?? 0 }}">0</p>
+                        @if($revenueData['show_trend'] ?? false)
                         <div class="flex items-center mt-2">
                             <span class="text-green-600 text-sm font-medium flex items-center">
                                 <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
                                 </svg>
-                                +8%
+                                @if(($revenueData['growth_rate'] ?? 0) > 0)
+                                    +{{ $revenueData['growth_rate'] }}%
+                                @elseif(($revenueData['growth_rate'] ?? 0) < 0)
+                                    {{ $revenueData['growth_rate'] }}%
+                                @else
+                                    0%
+                                @endif
                             </span>
                             <span class="text-gray-500 text-sm ml-2">so với tháng trước</span>
                         </div>
+                        @elseif($userRole === 'le_tan')
+                        <div class="flex items-center mt-2">
+                            <span class="text-blue-600 text-sm font-medium flex items-center">
+                                <i class="fas fa-calendar-day mr-1"></i>
+                                {{ \Carbon\Carbon::today()->format('d/m/Y') }}
+                            </span>
+                        </div>
+                        @endif
                     </div>
                     <div class="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center">
                         <i class="fas fa-dollar-sign text-green-600 text-xl"></i>
                     </div>
                 </div>
             </div>
+            @endif
 
             <!-- Total Rooms Card -->
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
@@ -115,8 +132,9 @@
         </div>
 
         <!-- Charts Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <!-- Revenue Chart -->
+        <div class="grid grid-cols-1 {{ $userRole === 'nhan_vien' || $userRole === 'le_tan' ? 'lg:grid-cols-1' : 'lg:grid-cols-2' }} gap-6 mb-8">
+            <!-- Revenue Chart: Chỉ hiển thị cho Admin -->
+            @if($userRole === 'admin')
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <div class="flex items-center justify-between mb-6">
                     <h3 class="text-lg font-semibold text-gray-900">Doanh thu theo tháng</h3>
@@ -128,6 +146,7 @@
                     <canvas id="revenueChart"></canvas>
                 </div>
             </div>
+            @endif
 
             <!-- Room Occupancy Chart -->
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -252,13 +271,16 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function(){
-        // Revenue Chart - Beautiful gradient line chart
-        const revenueCtx = document.getElementById('revenueChart').getContext('2d');
-        const revenueGradient = revenueCtx.createLinearGradient(0, 0, 0, 300);
+        // Revenue Chart - Beautiful gradient line chart (chỉ cho Admin)
+        @if($userRole === 'admin')
+        const revenueCtx = document.getElementById('revenueChart');
+        if (revenueCtx) {
+        const revenueCtx2d = revenueCtx.getContext('2d');
+        const revenueGradient = revenueCtx2d.createLinearGradient(0, 0, 0, 300);
         revenueGradient.addColorStop(0, 'rgba(99, 102, 241, 0.3)');
         revenueGradient.addColorStop(1, 'rgba(99, 102, 241, 0.05)');
 
-        new Chart(revenueCtx, {
+        new Chart(revenueCtx2d, {
             type: 'line',
             data: {
                 labels: ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'],
@@ -319,6 +341,8 @@
                 }
             }
         });
+        }
+        @endif
 
         // Occupancy Chart - Doughnut chart
         const occupancyCtx = document.getElementById('occupancyChart').getContext('2d');

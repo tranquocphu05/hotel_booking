@@ -11,6 +11,7 @@
                     <h1 class="text-3xl font-bold text-gray-900">Danh sách đặt phòng</h1>
                     <p class="mt-1 text-sm text-gray-600">Quản lý tất cả các đặt phòng của bạn</p>
                 </div>
+                {{-- Tạo đặt phòng: Tất cả đều có quyền --}}
                 <a href="{{ route('admin.dat_phong.create') }}"
                     class="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -126,6 +127,7 @@
                         </div>
                         <h3 class="text-xl font-semibold text-gray-900 mb-2">Chưa có đặt phòng nào</h3>
                         <p class="text-gray-600 mb-6">Hãy tạo một đặt phòng mới để bắt đầu quản lý</p>
+                        {{-- Tạo đặt phòng: Tất cả đều có quyền --}}
                         <a href="{{ route('admin.dat_phong.create') }}"
                             class="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -232,11 +234,16 @@
                                                 </a>
                                                 
                                                 @if ($booking->trang_thai === 'cho_xac_nhan')
+                                                    {{-- Sửa: Admin và Nhân viên --}}
+                                                    @if (in_array(auth()->user()->vai_tro ?? '', ['admin', 'nhan_vien']))
                                                     <a href="{{ route('admin.dat_phong.edit', $booking->id) }}" title="Sửa"
                                                         class="inline-flex items-center justify-center w-7 h-7 rounded hover:bg-amber-50 text-amber-600 hover:text-amber-700 transition text-xs">
                                                         <i class="fas fa-edit"></i>
                                                     </a>
+                                                    @endif
                                                     
+                                                    {{-- Xác nhận: Admin và Nhân viên (không phải Lễ tân) --}}
+                                                    @if (in_array(auth()->user()->vai_tro ?? '', ['admin', 'nhan_vien']))
                                                     <form action="{{ route('admin.dat_phong.confirm', $booking->id) }}" method="POST" class="inline"
                                                         onsubmit="return confirm('Xác nhận đặt phòng #{{ $booking->id }}?')">
                                                         @csrf
@@ -246,12 +253,16 @@
                                                             <i class="fas fa-check-circle"></i>
                                                         </button>
                                                     </form>
+                                                    @endif
 
+                                                    {{-- Hủy: Chỉ Admin --}}
+                                                    @hasRole('admin')
                                                     <a href="{{ route('admin.dat_phong.cancel', $booking->id) }}" title="Hủy"
                                                         class="inline-flex items-center justify-center w-7 h-7 rounded hover:bg-red-50 text-red-600 hover:text-red-700 transition text-xs"
                                                         onclick="if(!confirm('Bạn có chắc chắn muốn hủy đặt phòng #{{ $booking->id }}?')) return false;">
                                                         <i class="fas fa-times-circle"></i>
                                                     </a>
+                                                    @endhasRole
                                                 
                                                 @elseif ($booking->trang_thai === 'da_xac_nhan' && (!$booking->invoice || $booking->invoice->trang_thai !== 'da_thanh_toan'))
                                                     <form action="{{ route('admin.dat_phong.mark_paid', $booking->id) }}" method="POST" class="inline"

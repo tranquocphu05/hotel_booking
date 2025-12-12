@@ -99,7 +99,7 @@ class UserRequests extends FormRequest
                 'regex:/^(?!\d+$)[A-Za-zÀ-ỹ0-9\s,.-]+$/u',
             ],
 
-            'vai_tro' => 'required|in:admin,nhan_vien,khach_hang',
+            'vai_tro' => 'required|in:admin,nhan_vien,le_tan,khach_hang',
             'trang_thai' => 'required|in:hoat_dong,khoa',
         ];
 

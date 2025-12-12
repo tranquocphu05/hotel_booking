@@ -10,14 +10,21 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
+use App\Traits\HasRolePermissions;
 
 class NewsController extends Controller
 {
+    use HasRolePermissions;
+
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
+        // Chỉ admin mới được quản lý tin tức
+        if (!$this->hasRole('admin')) {
+            abort(403, 'Bạn không có quyền truy cập chức năng này.');
+        }
         $news = News::with('admin')->orderBy('created_at', 'desc')->paginate(10);
         return view('admin.news.index', compact('news'));
     }
@@ -27,6 +34,10 @@ class NewsController extends Controller
      */
     public function create()
     {
+        // Chỉ admin mới được quản lý tin tức
+        if (!$this->hasRole('admin')) {
+            abort(403, 'Bạn không có quyền truy cập chức năng này.');
+        }
         return view('admin.news.create');
     }
 
@@ -35,6 +46,10 @@ class NewsController extends Controller
      */
     public function store(Request $request)
     {
+        // Chỉ admin mới được quản lý tin tức
+        if (!$this->hasRole('admin')) {
+            abort(403, 'Bạn không có quyền truy cập chức năng này.');
+        }
         $request->validate([
             'tieu_de' => 'required|string|max:255|regex:/^(?=.*\pL)[\pL\pN\s\.\,\!\?\-\_]+$/u',
             'tom_tat' => 'required|string|max:500|regex:/^[\pL\pN\s\.\,\!\?\-\_]+$/u',
@@ -81,6 +96,10 @@ class NewsController extends Controller
      */
     public function show(string $id)
     {
+        // Chỉ admin mới được quản lý tin tức
+        if (!$this->hasRole('admin')) {
+            abort(403, 'Bạn không có quyền truy cập chức năng này.');
+        }
         $news = News::with('admin')->findOrFail($id);
         return view('admin.news.show', compact('news'));
     }
@@ -90,6 +109,10 @@ class NewsController extends Controller
      */
     public function edit(string $id)
     {
+        // Chỉ admin mới được quản lý tin tức
+        if (!$this->hasRole('admin')) {
+            abort(403, 'Bạn không có quyền truy cập chức năng này.');
+        }
         $news = News::findOrFail($id);
         return view('admin.news.edit', compact('news'));
     }
@@ -99,6 +122,10 @@ class NewsController extends Controller
      */
     public function update(Request $request, string $id)
     {
+        // Chỉ admin mới được quản lý tin tức
+        if (!$this->hasRole('admin')) {
+            abort(403, 'Bạn không có quyền truy cập chức năng này.');
+        }
         $news = News::findOrFail($id);
 
         $request->validate([
@@ -157,6 +184,10 @@ class NewsController extends Controller
      */
     public function destroy(string $id)
     {
+        // Chỉ admin mới được quản lý tin tức
+        if (!$this->hasRole('admin')) {
+            abort(403, 'Bạn không có quyền truy cập chức năng này.');
+        }
         $news = News::findOrFail($id);
 
         // Xóa hình ảnh nếu có
