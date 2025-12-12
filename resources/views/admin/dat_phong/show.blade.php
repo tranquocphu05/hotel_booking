@@ -4,125 +4,271 @@
 
 @section('admin_content')
 
-    <div class="py-6">
+    <div class="min-h-screen bg-gray-50 py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <!-- Header -->
-            <div class="mb-8 flex justify-between items-start">
-                <div>
-                    @php
-                        $roomTypes = $booking->getRoomTypes();
-                    @endphp
-                    <h1 class="text-3xl font-bold text-gray-900">
-                        Chi tiết đặt phòng #{{ $booking->id }}
-                        @if (count($roomTypes) > 1)
-                            <span class="text-lg text-gray-600">({{ count($roomTypes) }} loại phòng)</span>
-                        @endif
-                    </h1>
-                    <p class="mt-2 text-sm text-gray-600">
-                        @if ($booking->loaiPhong && count($roomTypes) == 1)
-                            {{ $booking->loaiPhong->ten_loai }}
-                        @else
-                            Đặt phòng ngày {{ date('d/m/Y', strtotime($booking->ngay_nhan)) }}
-                        @endif
-                    </p>
-                </div>
-                <span
-                    class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold
-                    @if ($booking->trang_thai === 'da_xac_nhan') bg-green-100 text-green-800
-                    @elseif($booking->trang_thai === 'cho_xac_nhan') bg-yellow-100 text-yellow-800
-                    @elseif($booking->trang_thai === 'da_huy') bg-red-100 text-red-800
-                    @else bg-blue-100 text-blue-800 @endif">
-                    @php
-                        $statuses = [
-                            'cho_xac_nhan' => 'Chờ xác nhận',
-                            'da_xac_nhan' => 'Đã xác nhận',
-                            'da_huy' => 'Đã hủy',
-                            'da_tra' => 'Đã trả phòng',
-                        ];
-                    @endphp
-                    {{ $statuses[$booking->trang_thai] ?? $booking->trang_thai }}
-                </span>
+            {{-- BREADCRUMB --}}
+            <div class="mb-6">
+                <a href="{{ route('admin.dat_phong.index') }}"
+                   class="inline-flex items-center text-sm text-gray-600 hover:text-blue-600 transition">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                    Quay lại danh sách
+                </a>
             </div>
 
-            @if ($booking->trang_thai === 'da_xac_nhan' && isset($cancellationPolicy))
-                <div class="bg-blue-50 border border-blue-200 rounded-lg shadow-sm p-6 mb-8">
-                    <div class="flex items-start gap-4">
-                        <div class="flex-shrink-0">
-                            <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                        </div>
-                        <div class="flex-1">
-                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Chính sách hủy phòng</h3>
+            {{-- HEADER --}}
+            <div class="mb-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div class="flex items-start justify-between">
+                    <div>
+                        @php
+                            $roomTypes = $booking->getRoomTypes();
+                        @endphp
+                        <h1 class="text-3xl font-bold text-gray-900 mb-2">
+                            Chi tiết đặt phòng #{{ $booking->id }}
+                        </h1>
+                        <p class="text-gray-600">
+                            @if(count($roomTypes) > 1)
+                                {{ count($roomTypes) }} loại phòng • {{ $booking->so_luong_da_dat }} phòng
+                            @else
+                                {{ $booking->loaiPhong->ten_loai ?? 'N/A' }} • {{ $booking->so_luong_da_dat }} phòng
+                            @endif
+                        </p>
+                    </div>
 
-                            <div class="grid md:grid-cols-2 gap-6">
-                                <!-- Time Info -->
-                                <div class="bg-white p-4 rounded-lg border border-blue-200">
-                                    <div class="space-y-3">
-                                        <div class="flex justify-between items-center pb-2 border-b border-gray-200">
-                                            <span class="text-sm font-medium text-gray-600">Ngày nhận phòng</span>
-                                            <span
-                                                class="text-lg font-semibold text-gray-900">{{ date('d/m/Y', strtotime($booking->ngay_nhan)) }}</span>
-                                        </div>
-                                        <div class="flex justify-between items-center">
-                                            <span class="text-sm font-medium text-gray-600">Thời gian còn lại</span>
-                                            <span
-                                                class="text-2xl font-bold text-blue-600">{{ number_format($cancellationPolicy['days_until_checkin'], 0) }}
-                                                ngày</span>
-                                        </div>
-                                    </div>
-                                </div>
+                    <span class="px-4 py-2 rounded-lg text-sm font-semibold border-2
+                        @if ($booking->trang_thai === 'da_xac_nhan') bg-green-50 text-green-700 border-green-200
+                        @elseif($booking->trang_thai === 'cho_xac_nhan') bg-yellow-50 text-yellow-700 border-yellow-200
+                        @elseif($booking->trang_thai === 'da_huy') bg-red-50 text-red-700 border-red-200
+                        @elseif($booking->trang_thai === 'da_tra') bg-blue-50 text-blue-700 border-blue-200
+                        @else bg-gray-50 text-gray-700 border-gray-200 @endif">
+                        @php
+                            $statuses = [
+                                'cho_xac_nhan' => 'Chờ xác nhận',
+                                'da_xac_nhan' => 'Đã xác nhận',
+                                'da_huy' => 'Đã hủy',
+                                'da_tra' => 'Đã trả phòng',
+                            ];
+                        @endphp
+                        {{ $statuses[$booking->trang_thai] ?? $booking->trang_thai }}
+                    </span>
+                </div>
+            </div>
+            {{-- TIMELINE --}}
+            <div class="mb-8 bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+                <h2 class="text-xl font-bold text-gray-900 mb-6">Trạng thái đơn đặt phòng</h2>
 
-                                <!-- Refund Policy Grid -->
-                                <div class="grid grid-cols-2 gap-2">
-                                    <div class="text-center p-3 bg-green-50 rounded border border-green-200">
-                                        <p class="text-xs text-gray-600 mb-1">≥ 7 ngày</p>
-                                        <p class="text-lg font-bold text-green-600">100%</p>
-                                    </div>
-                                    <div class="text-center p-3 bg-yellow-50 rounded border border-yellow-200">
-                                        <p class="text-xs text-gray-600 mb-1">3-6 ngày</p>
-                                        <p class="text-lg font-bold text-yellow-600">50%</p>
-                                    </div>
-                                    <div class="text-center p-3 bg-orange-50 rounded border border-orange-200">
-                                        <p class="text-xs text-gray-600 mb-1">1-2 ngày</p>
-                                        <p class="text-lg font-bold text-orange-600">25%</p>
-                                    </div>
-                                    <div class="text-center p-3 bg-red-50 rounded border border-red-200">
-                                        <p class="text-xs text-gray-600 mb-1">Trong ngày</p>
-                                        <p class="text-lg font-bold text-red-600">0%</p>
-                                    </div>
-                                </div>
+                <div class="relative">
+                    {{-- Timeline Line --}}
+                    <div class="absolute top-8 left-0 w-full h-0.5 bg-gray-200" style="z-index: 0;"></div>
+
+                    {{-- Timeline Steps --}}
+                    <div class="relative grid grid-cols-5 gap-4" style="z-index: 1;">
+
+                        {{-- Step 1: Đặt phòng --}}
+                        @php
+                            $step1Complete = true; // Luôn complete vì đã tạo booking
+                            $step1Date = $booking->ngay_dat;
+                        @endphp
+                        <div class="flex flex-col items-center">
+                            <div class="w-16 h-16 rounded-full flex items-center justify-center mb-3 {{ $step1Complete ? 'bg-blue-600' : 'bg-gray-200' }}">
+                                <svg class="w-8 h-8 {{ $step1Complete ? 'text-white' : 'text-gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                </svg>
                             </div>
-                            <p
-                                class="text-sm font-semibold {{ $step3Complete ? 'text-purple-600' : 'text-gray-400' }} mb-1">
-                                Check-in</p>
-                            @if ($step3Complete && $step3Date)
-                                <p class="text-xs text-gray-500">{{ $step3Date->format('d/m/Y H:i') }}</p>
-                                @if ($booking->nguoi_checkin)
-                                    <p class="text-xs text-gray-400">{{ $booking->nguoi_checkin }}</p>
-                                @endif
+                            <p class="text-sm font-semibold {{ $step1Complete ? 'text-blue-600' : 'text-gray-400' }} mb-1">Đặt phòng</p>
+                            @if($step1Complete && $step1Date)
+                                <p class="text-xs text-gray-500">{{ date('d/m/Y H:i', strtotime($step1Date)) }}</p>
                             @endif
                         </div>
-                        <!-- Cancel Button -->
-                        <div class="mt-4">
-                            @if ($cancellationPolicy['can_cancel'])
-                                <a href="{{ route('admin.dat_phong.cancel', $booking->id) }}"
-                                    class="inline-flex items-center px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition">
-                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                    Hủy đặt phòng
-                                </a>
-                            @else
-                                <div class="inline-block p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
-                                    <strong>{{ $cancellationPolicy['message'] }}</strong>
 
-                                </div>
+                        {{-- Step 2: Xác nhận --}}
+                        @php    
+                            $step2Complete = $booking->trang_thai === 'da_xac_nhan' || $booking->trang_thai === 'da_tra';
+                            $step2Date = $step2Complete ? $booking->ngay_xac_nhan : null;
+                        @endphp
+                        <div class="flex flex-col items-center">
+                            <div class="w-16 h-16 rounded-full flex items-center justify-center mb-3 {{ $step2Complete ? 'bg-blue-600' : 'bg-gray-200' }}">
+                                <svg class="w-8 h-8 {{ $step2Complete ? 'text-white' : 'text-gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round"    stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>       
+                                </svg>
+                            </div>
+                            <p class="text-sm font-semibold {{ $step2Complete ? 'text-blue-600' : 'text-gray-400' }} mb-1">Xác nhận</p>
+                            @if($step2Complete && $step2Date)
+                                <p class="text-xs text-gray-500">{{ date('d/m/Y H:i', strtotime($step2Date)) }}</p>
+                            @endif
+                        </div>
+
+                        {{-- Step 3: Check-in --}}
+                        @php    
+                            $step3Complete = in_array($booking->trang_thai, ['da_xac_nhan', 'da_tra']);
+                            $step3Date = $step3Complete ? $booking->ngay_checkin : null;
+                        @endphp
+                        <div class="flex flex-col items-center">
+                            <div class="w-16 h-16 rounded-full flex items-center justify-center mb-3 {{ $step3Complete ? 'bg-blue-600' : 'bg-gray-200' }}">
+                                <svg class="w-8 h-8 {{ $step3Complete ? 'text-white' : 'text-gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0 3.866-3.582 7-8 7s-8-3.134-8-7 3.582-7 8-7 8 3.134 8 7zM14 11V7a4 4 0 00-8 0v4m8 0h-8m8 0a4 4 0 01-8 0"/>
+                                </svg>
+                            </div>
+                            <p class="text-sm font-semibold {{ $step3Complete ? 'text-blue-600' : 'text-gray-400' }} mb-1">Check-in</p>
+                            @if($step3Complete && $step3Date)
+                                <p class="text-xs text-gray-500">{{ date('d/m/Y H:i', strtotime($step3Date)) }}</p>
+                            @endif
+                        </div>                    
+
+                        {{-- Step 4: Check-out --}}
+                        @php    
+                            $step4Complete = $booking->trang_thai === 'da_tra';
+                            $step4Date = $step4Complete ? $booking->ngay_checkout : null;
+                        @endphp
+                        <div class="flex flex-col items-center">
+                            <div class="w-16 h-16 rounded-full flex items-center justify-center mb-3 {{ $step4Complete ? 'bg-blue-600' : 'bg-gray-200' }}">
+                                <svg class="w-8 h-8 {{ $step4Complete ? 'text-white' : 'text-gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                                </svg>
+                            </div>
+                            <p class="text-sm font-semibold {{ $step4Complete ? 'text-blue-600' : 'text-gray-400' }} mb-1">Check-out</p>
+                            @if($step4Complete && $step4Date)
+                                <p class="text-xs text-gray-500">{{ date('d/m/Y H:i', strtotime($step4Date)) }}</p>
+                            @endif
+                        </div>
+            {{-- Step 5: Hoàn thành hoặc Hủy --}}
+                        @php
+                            $step5Complete = ($booking->trang_thai === 'da_tra') || ($booking->trang_thai === 'da_huy');
+                            $step5Cancelled = $booking->trang_thai === 'da_huy';
+                            $step5Date = $step5Cancelled ? $booking->ngay_huy : ($step4Complete ? $step4Date : null);
+                        @endphp
+                        <div class="flex flex-col items-center">
+                            <div class="w-16 h-16 rounded-full flex items-center justify-center mb-3 {{ $step5Complete ? ($step5Cancelled ? 'bg-red-600' : 'bg-green-600') : 'bg-gray-200' }}">
+                                @if($step5Cancelled)
+                                    <svg class="w-8 h-8 {{ $step5Complete ? 'text-white' : 'text-gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                    </svg>
+                                @else
+                                    <svg class="w-8 h-8 {{ $step5Complete ? 'text-white' : 'text-gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                @endif
+                            </div>                            
+<p class="text-sm font-semibold {{ $step5Complete ? ($step5Cancelled ? 'text-red-600' : 'text-green-600') : 'text-gray-400' }} mb-1">
+                                {{ $step5Cancelled ? 'Đã hủy' : 'Hoàn thành' }}
+                            </p>
+                            @if($step5Complete && $step5Date)
+                                <p class="text-xs text-gray-500">{{ date('d/m/Y H:i', strtotime($step5Date)) }}</p>
                             @endif
                         </div>
                     </div>
+                </div>
+
+                {{-- Lý do hủy nếu có --}}
+                @if($booking->trang_thai === 'da_huy' && $booking->ly_do_huy)
+                    <div class="mt-8 p-4 bg-red-50 border-l-4 border-red-500 rounded">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-semibold text-red-800">Lý do hủy phòng</h3>
+                                <p class="mt-1 text-sm text-red-700">{{ $booking->ly_do_huy }}</p>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+            </div>
+
+            {{-- CANCELLATION POLICY --}}
+            @if($booking->trang_thai === 'da_xac_nhan' && isset($cancellationPolicy))
+                <div class="mb-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                        <svg class="w-6 h-6 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Chính sách hủy phòng
+                    </h2>
+
+                    <div class="grid md:grid-cols-2 gap-6 mb-6">
+                        {{-- Time Info --}}
+                        <div class="bg-blue-50 p-5 rounded-lg border border-blue-200">
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center pb-3 border-b border-blue-200">
+                                    <span class="text-sm font-medium text-gray-700">Ngày nhận phòng</span>
+                                    <span class="text-lg font-bold text-blue-600">{{ date('d/m/Y', strtotime($booking->ngay_nhan)) }}</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm font-medium text-gray-700">Thời gian còn lại</span>
+                                    <span class="text-2xl font-bold text-blue-600">
+                                        @if($cancellationPolicy['days_until_checkin'] < 0)
+                                            Đã qua ngày
+                                        @else
+                                            {{ max(0, (int)$cancellationPolicy['days_until_checkin']) }} ngày
+                                        @endif
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Refund Info --}}
+                        <div class="bg-green-50 p-5 rounded-lg border border-green-200">
+                            <p class="text-sm font-semibold text-gray-700 mb-3">Nếu hủy phòng ngay:</p>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">Hoàn lại</span>
+                                    <div class="text-right">
+                                        <p class="text-xl font-bold text-green-600">
+                                            {{ number_format($cancellationPolicy['refund_amount'], 0, ',', '.') }}₫
+                                        </p>
+                                        <p class="text-xs text-gray-500">({{ $cancellationPolicy['refund_percentage'] }}%)</p>
+                                    </div>
+                                </div>
+                                @if($cancellationPolicy['penalty_amount'] > 0)
+                                    <div class="flex justify-between items-center pt-3 border-t border-green-200">
+                                        <span class="text-sm text-gray-600">Phí hủy</span>
+                                        <p class="text-lg font-bold text-red-600">
+                                            {{ number_format($cancellationPolicy['penalty_amount'], 0, ',', '.') }}₫
+                                        </p>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Policy Table --}}
+                    <div class="bg-gray-50 p-5 rounded-lg border border-gray-200 mb-6">
+                        <p class="text-sm font-semibold text-gray-700 mb-4">Bảng chính sách hoàn tiền:</p>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <div class="text-center p-3 bg-white rounded-lg border-2 border-green-200">
+                                <p class="text-xs text-gray-600 mb-1">≥ 7 ngày</p>
+                                <p class="text-xl font-bold text-green-600">100%</p>
+                            </div>
+                            <div class="text-center p-3 bg-white rounded-lg border-2 border-yellow-200">
+                                <p class="text-xs text-gray-600 mb-1">3-6 ngày</p>
+                                <p class="text-xl font-bold text-yellow-600">50%</p>
+                            </div>
+                            <div class="text-center p-3 bg-white rounded-lg border-2 border-orange-200">
+                                <p class="text-xs text-gray-600 mb-1">1-2 ngày</p>
+                                <p class="text-xl font-bold text-orange-600">25%</p>
+                            </div>
+                            <div class="text-center p-3 bg-white rounded-lg border-2 border-red-200">
+                                <p class="text-xs text-gray-600 mb-1">Trong ngày</p>
+                                <p class="text-xl font-bold text-red-600">0%</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if($cancellationPolicy['can_cancel'])
+                        <div class="flex justify-end">
+                            <a href="{{ route('admin.dat_phong.cancel', $booking->id) }}"
+                               class="inline-flex items-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg shadow-sm transition">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                                Hủy đặt phòng
+                            </a>
+                        </div>
+                    @endif
                 </div>
             @endif
 
