@@ -69,7 +69,7 @@
                                         class="text-red-600 font-semibold text-xs">{{ strtoupper(substr(auth()->user()->ho_ten ?? 'U', 0, 1)) }}</span>
                                 </div>
                             @endif
-                            <span>{{ auth()->user()->ten ?? (auth()->user()->ho_ten ?? 'User') }}</span>
+                            <span>{{ auth()->user()->username ?? auth()->user()->ho_ten ?? 'User' }}</span>
                             <i class="fas fa-chevron-down text-xs"></i>
                         </button>
                         <div
@@ -88,7 +88,7 @@
                                     </div>
                                     <div class="flex-1 min-w-0">
                                         <p class="text-sm font-semibold text-gray-900 truncate">
-                                            {{ auth()->user()->ten ?? (auth()->user()->ho_ten ?? 'User') }}</p>
+                                            {{ auth()->user()->username ?? auth()->user()->ho_ten ?? 'User' }}</p>
                                         <p class="text-xs text-orange-600 font-medium">Khách hàng thân thiết</p>
                                     </div>
                                 </div>
