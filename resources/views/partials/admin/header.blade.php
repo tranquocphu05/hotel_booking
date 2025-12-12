@@ -80,17 +80,7 @@
                     <div class="admin-avatar h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 hover:rotate-12">
                         <i class="fas fa-user-shield text-white text-sm"></i>
                     </div>
-                    @php
-                        $roleNames = [
-                            'admin' => 'Administrator',
-                            'nhan_vien' => 'Nhân viên',
-                            'le_tan' => 'Lễ tân',
-                            'khach_hang' => 'Khách hàng'
-                        ];
-                        $userRole = auth()->user()->vai_tro ?? '';
-                        $displayRole = $roleNames[$userRole] ?? 'User';
-                    @endphp
-                    <span class="hidden sm:block">{{ $displayRole }}</span>
+                    <span class="hidden sm:block">{{ auth()->user()->username ?? auth()->user()->ho_ten ?? 'User' }}</span>
                     <svg class="dropdown-arrow h-4 w-4 text-gray-400 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                     </svg>
@@ -98,7 +88,7 @@
 
                 <div class="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none hidden" id="user-menu" role="menu" aria-orientation="vertical" aria-labelledby="user-menu-button">
                     <div class="px-4 py-2 border-b border-gray-100">
-                        <p class="text-sm font-medium text-gray-900">{{ auth()->user()->ten ?? auth()->user()->ho_ten ?? auth()->user()->username ?? 'User' }}</p>
+                        <p class="text-sm font-medium text-gray-900">{{ auth()->user()->username ?? auth()->user()->ho_ten ?? 'User' }}</p>
                         @php
                             $roleNames = [
                                 'admin' => 'Administrator',
