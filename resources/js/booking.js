@@ -70,8 +70,8 @@ class BookingManager {
         this.roomTypeOptionsHtml = "";
         // Capacity and surcharge config
         this.maxAdultsPerRoom = 2; // fixed capacity per room
-        this.extraFeePercent = 0.1; // 10% of nightly room price per extra adult
-        this.childFeePercent = 0.05; // 5% of nightly room price per child (6-11)
+        this.extraFeePercent = 0.2; // 20% of nightly room price per extra adult
+        this.childFeePercent = 0.1; // 10% of nightly room price per child (6-11)
         this.infantFeePercent = 0.05; // 5% of nightly room price per infant (0-5)
 
         // Initialize

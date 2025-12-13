@@ -696,9 +696,19 @@
                                     <p class="text-sm text-gray-600">Ngày đặt: <span
                                             class="font-medium">{{ date('d/m/Y H:i', strtotime($booking->ngay_dat)) }}</span>
                                     </p>
-                                    <p class="text-sm text-gray-600">Số người: <span
-                                            class="font-medium">{{ $booking->so_nguoi }}
+                                    <p class="text-sm text-gray-600">Số người lớn: <span
+                                            class="font-medium">{{ $booking->so_nguoi ?? 0 }}
                                             người</span></p>
+                                    @if(($booking->so_tre_em ?? 0) > 0)
+                                    <p class="text-sm text-gray-600">Số trẻ em: <span
+                                            class="font-medium">{{ $booking->so_tre_em ?? 0 }}
+                                            trẻ em</span></p>
+                                    @endif
+                                    @if(($booking->so_em_be ?? 0) > 0)
+                                    <p class="text-sm text-gray-600">Số em bé: <span
+                                            class="font-medium">{{ $booking->so_em_be ?? 0 }}
+                                            em bé</span></p>
+                                    @endif
                                     <p class="text-sm text-gray-600">Ngày nhận phòng: <span
                                             class="font-medium">{{ date('d/m/Y', strtotime($booking->ngay_nhan)) }}</span>
                                     </p>

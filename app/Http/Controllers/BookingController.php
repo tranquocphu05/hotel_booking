@@ -187,7 +187,9 @@ class BookingController extends Controller
         $totalChildFee    = 0;
         $totalInfantFee   = 0;
         $maxAdultsPerRoom = 2;
-        $extraFeePercent  = 0.1;
+        $extraFeePercent  = 0.2; // 20% cho người lớn
+        $childFeePercent  = 0.1; // 10% cho trẻ em
+        $infantFeePercent = 0.05; // 5% cho em bé
 
         foreach ($data['rooms'] as $room) {
             $loaiPhong = LoaiPhong::findOrFail($room['loai_phong_id']);
@@ -220,8 +222,9 @@ class BookingController extends Controller
             }
 
             // Calculate children and infant surcharges
-            $childFeeRate  = $loaiPhong->phi_tre_em ?? 0;
-            $infantFeeRate = $loaiPhong->phi_em_be ?? 0;
+            // Phụ phí trẻ em = 10% giá phòng/đêm, em bé = 5% giá phòng/đêm
+            $childFeeRate  = $pricePerNight * $childFeePercent; // 10% giá phòng/đêm
+            $infantFeeRate = $pricePerNight * $infantFeePercent; // 5% giá phòng/đêm
 
             $roomChildFee  = $sumChildren * $childFeeRate * $nights;
             $roomInfantFee = $sumInfants * $infantFeeRate * $nights;

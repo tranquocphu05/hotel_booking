@@ -287,11 +287,29 @@
                                 </div>
                                 <div class="flex justify-between items-center">
                                     <span class="text-gray-600 flex items-center">
-                                        <i class="fas fa-users text-gray-400 mr-2 text-sm"></i>
-                                        Số người:
+                                        <i class="fas fa-user text-gray-400 mr-2 text-sm"></i>
+                                        Số người lớn:
                                     </span>
                                     <span class="font-medium text-gray-900">{{ $datPhong->so_nguoi ?? 1 }} người</span>
                                 </div>
+                                @if(($datPhong->so_tre_em ?? 0) > 0)
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-600 flex items-center">
+                                        <i class="fas fa-child text-gray-400 mr-2 text-sm"></i>
+                                        Số trẻ em:
+                                    </span>
+                                    <span class="font-medium text-gray-900">{{ $datPhong->so_tre_em ?? 0 }} trẻ em</span>
+                                </div>
+                                @endif
+                                @if(($datPhong->so_em_be ?? 0) > 0)
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-600 flex items-center">
+                                        <i class="fas fa-baby text-gray-400 mr-2 text-sm"></i>
+                                        Số em bé:
+                                    </span>
+                                    <span class="font-medium text-gray-900">{{ $datPhong->so_em_be ?? 0 }} em bé</span>
+                                </div>
+                                @endif
                                 @if(isset($datPhong->so_luong_da_dat) && $datPhong->so_luong_da_dat > 0)
                                 <div class="flex justify-between items-center">
                                     <span class="text-gray-600 flex items-center">
@@ -327,69 +345,70 @@
                                     $roomTypes = $datPhong->getRoomTypes();
                                 @endphp
 
-                                @if(count($roomTypes) > 1)
-                                    {{-- Hiển thị chi tiết từng loại phòng --}}
-                                    <div class="space-y-2">
-                                        @foreach($roomTypes as $roomType)
-                                            @php
-                                                $loaiPhong = \App\Models\LoaiPhong::find($roomType['loai_phong_id']);
-                                                $soLuong = $roomType['so_luong'] ?? 1;
-                                                $unitPrice = $loaiPhong ? ($loaiPhong->gia_khuyen_mai ?? $loaiPhong->gia_co_ban ?? 0) : 0;
-                                                $giaRieng = $unitPrice * ($nights ?? 1) * $soLuong; // subtotal computed from promotional price
-                                                $roomSurcharge = isset($surchargeMap[$roomType['loai_phong_id']]) ? $surchargeMap[$roomType['loai_phong_id']] : 0;
-                                                $displaySubtotal = $giaRieng + $roomSurcharge; // giá hiển thị đã bao gồm phụ phí
-                                            @endphp
-                                            @if($loaiPhong)
-                                                <div class="flex justify-between items-center bg-white/60 rounded-lg px-4 py-3">
-                                                    <span class="text-gray-700 font-medium">
-                                                        <i class="fas fa-bed text-blue-500 mr-2"></i>
-                                                        {{ $loaiPhong->ten_loai }}
-                                                        @if($soLuong > 1)
-                                                            ({{ $nights }} đêm × {{ $soLuong }} phòng)
-                                                        @else
-                                                            ({{ $nights }} đêm)
-                                                        @endif
-                                                    </span>
-                                                    <span class="font-semibold text-gray-900 text-base">{{ number_format($displaySubtotal, 0, ',', '.') }} VNĐ</span>
-                                                </div>
-                                                @if($roomSurcharge > 0)
-                                                    <div class="flex justify-between items-center bg-amber-50 rounded-md px-3 py-2 border border-amber-200 mt-1">
-                                                        <span class="text-amber-800 font-medium text-xs flex items-center">
-                                                            <i class="fas fa-user-plus text-amber-600 mr-2 text-sm"></i>
-                                                            Phụ phí thêm khách ({{ $loaiPhong->ten_loai }})
-                                                        </span>
-                                                        <span class="font-semibold text-amber-700 text-sm">+{{ number_format($roomSurcharge, 0, ',', '.') }} VNĐ</span>
-                                                    </div>
-                                                @endif
-                                            @endif
-                                        @endforeach
-                                    </div>
-                                    <p class="text-[11px] text-gray-600 mt-1 ml-1">Giá phòng đã bao gồm phụ phí.</p>
-                                @else
-                                    {{-- Hiển thị 1 loại phòng (legacy) --}}
-                                    @php
-                                        $soLuongPhong = $datPhong->so_luong_da_dat ?? 1;
-                                        // Compute display price using promotional price from LoaiPhong
-                                        $lp = $datPhong->loaiPhong;
-                                        $unit = $lp ? ($lp->gia_khuyen_mai ?? $lp->gia_co_ban ?? 0) : 0;
-                                        $displayPrice = $unit * ($nights ?? 1) * ($soLuongPhong ?? 1);
-                                        $roomSurcharge = isset($surchargeAmount) ? $surchargeAmount : 0;
-                                        $displayPriceWithSurcharge = $displayPrice + $roomSurcharge; // giá hiển thị đã bao gồm phụ phí
-                                    @endphp
-                                    <div class="flex justify-between items-center bg-white/60 rounded-lg px-4 py-3">
-                                        <span class="text-gray-700 font-medium">
-                                            <i class="fas fa-bed text-blue-500 mr-2"></i>
-                                            Giá phòng
-                                            @if($soLuongPhong > 1)
-                                                ({{ $nights }} đêm × {{ $soLuongPhong }} phòng)
-                                            @else
-                                                ({{ $nights }} đêm)
-                                            @endif
-                                        </span>
-                                        <span class="font-semibold text-gray-900 text-base">{{ number_format($displayPriceWithSurcharge, 0, ',', '.') }} VNĐ</span>
-                                    </div>
-                                    <p class="text-[11px] text-gray-600 mt-1 ml-1">Giá phòng đã bao gồm phụ phí.</p>
+                                @php
+                                    // Sử dụng các biến đã tính từ controller
+                                    $giaPhongGoc = $giaPhongGoc ?? 0;
+                                    $phuPhiNguoiLon = $phuPhiNguoiLon ?? 0;
+                                    $phuPhiTreEm = $phuPhiTreEm ?? 0;
+                                    $phuPhiEmBe = $phuPhiEmBe ?? 0;
+                                    $tongTienPhong = $tongTienPhong ?? ($giaPhongGoc + $phuPhiNguoiLon + $phuPhiTreEm + $phuPhiEmBe);
+                                @endphp
+                                
+                                {{-- Giá phòng gốc --}}
+                                <div class="flex justify-between items-center bg-white/60 rounded-lg px-4 py-3">
+                                    <span class="text-gray-700 font-medium">
+                                        <i class="fas fa-bed text-blue-500 mr-2"></i>
+                                        Giá phòng
+                                        @if(($datPhong->so_luong_da_dat ?? 1) > 1)
+                                            ({{ $nights }} đêm × {{ $datPhong->so_luong_da_dat }} phòng)
+                                        @else
+                                            ({{ $nights }} đêm)
+                                        @endif
+                                    </span>
+                                    <span class="font-semibold text-gray-900 text-base">{{ number_format($giaPhongGoc, 0, ',', '.') }} VNĐ</span>
+                                </div>
+                                
+                                {{-- Phụ phí người lớn --}}
+                                @if($phuPhiNguoiLon > 0)
+                                <div class="flex justify-between items-center bg-amber-50 rounded-md px-3 py-2 mt-2 text-sm">
+                                    <span class="text-gray-700 flex items-center">
+                                        <i class="fas fa-user-plus text-amber-600 mr-2"></i>
+                                        Phụ phí thêm người lớn
+                                    </span>
+                                    <span class="font-semibold text-amber-700">+{{ number_format($phuPhiNguoiLon, 0, ',', '.') }} VNĐ</span>
+                                </div>
                                 @endif
+                                
+                                {{-- Phụ phí trẻ em --}}
+                                @if(($datPhong->so_tre_em ?? 0) > 0)
+                                <div class="flex justify-between items-center bg-green-50 rounded-md px-3 py-2 mt-2 text-sm">
+                                    <span class="text-gray-700 flex items-center">
+                                        <i class="fas fa-child text-green-600 mr-2"></i>
+                                        Phụ phí trẻ em ({{ $datPhong->so_tre_em ?? 0 }} trẻ em)
+                                    </span>
+                                    <span class="font-semibold text-green-700">+{{ number_format($phuPhiTreEm, 0, ',', '.') }} VNĐ</span>
+                                </div>
+                                @endif
+                                
+                                {{-- Phụ phí em bé --}}
+                                @if(($datPhong->so_em_be ?? 0) > 0)
+                                <div class="flex justify-between items-center bg-pink-50 rounded-md px-3 py-2 mt-2 text-sm">
+                                    <span class="text-gray-700 flex items-center">
+                                        <i class="fas fa-baby text-pink-600 mr-2"></i>
+                                        Phụ phí em bé ({{ $datPhong->so_em_be ?? 0 }} em bé)
+                                    </span>
+                                    <span class="font-semibold text-pink-700">+{{ number_format($phuPhiEmBe, 0, ',', '.') }} VNĐ</span>
+                                </div>
+                                @endif
+                                
+                                {{-- Tổng tiền phòng --}}
+                                <div class="flex justify-between items-center bg-blue-50 rounded-lg px-4 py-3 mt-3 border border-blue-200">
+                                    <span class="text-gray-900 font-semibold">
+                                        <i class="fas fa-calculator text-blue-600 mr-2"></i>
+                                        Tổng tiền phòng
+                                    </span>
+                                    <span class="font-bold text-blue-700 text-lg">{{ number_format($tongTienPhong, 0, ',', '.') }} VNĐ</span>
+                                </div>
 
                                 {{-- Dịch vụ đã sử dụng --}}
                                 @php
@@ -419,11 +438,6 @@
 
                                 {{-- Tổng kết --}}
                                 <div class="border-t-2 border-blue-300 mt-4 pt-4 space-y-2">
-                                    <div class="flex justify-between items-center text-gray-700">
-                                        <span>Tổng tiền phòng:</span>
-                                        <span class="font-semibold">{{ number_format($originalPrice, 0, ',', '.') }} VNĐ</span>
-                                    </div>
-
                                     @if ($datPhong->voucher && $discountAmount > 0)
                                         <div class="flex justify-between items-center text-red-600">
                                             <span>Giảm giá ({{ $datPhong->voucher->ma_voucher }} - {{ $datPhong->voucher->gia_tri }}%):</span>
@@ -442,7 +456,7 @@
                                 <div class="border-t-2 border-blue-400 mt-4 pt-4">
                                     <div class="flex justify-between items-center bg-white/80 rounded-lg px-4 py-4 shadow-sm">
                                         <span class="text-lg font-bold text-gray-900">Tổng thanh toán:</span>
-                                        <span class="text-2xl font-bold text-blue-600">{{ number_format($datPhong->tong_tien, 0, ',', '.') }} VNĐ</span>
+                                        <span class="text-2xl font-bold text-blue-600">{{ number_format($tongThanhToan ?? $datPhong->tong_tien, 0, ',', '.') }} VNĐ</span>
                                     </div>
                                 </div>
                             </div>
