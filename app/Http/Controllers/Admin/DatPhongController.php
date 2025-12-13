@@ -21,6 +21,7 @@ use App\Models\BookingService;
 use App\Models\Service;
 use App\Models\ThanhToan;
 use App\Traits\HasRolePermissions;
+use App\Services\BookingPriceCalculator;
 
 class DatPhongController extends Controller
 {
@@ -78,7 +79,7 @@ class DatPhongController extends Controller
         if (!$this->hasRole('admin')) {
             abort(403, 'Bạn không có quyền hủy đặt phòng.');
         }
-        
+
         $booking = DatPhong::with(['loaiPhong'])->findOrFail($id);
 
         // Kiểm tra nếu không phải trạng thái chờ xác nhận thì không cho hủy
@@ -96,7 +97,7 @@ class DatPhongController extends Controller
         if (!$this->hasRole('admin')) {
             abort(403, 'Bạn không có quyền hủy đặt phòng.');
         }
-        
+
         $booking = DatPhong::findOrFail($id);
 
         // Validate
@@ -227,7 +228,9 @@ class DatPhongController extends Controller
 
                 // include currently assigned rooms for this type so admin can keep them
                 $assignedForThis = [];
-                $assignedIdsForThis = array_filter(array_values(array_map('intval', array_filter($assignedPhongIds ?? [], function($v){return $v; }))));
+                $assignedIdsForThis = array_filter(array_values(array_map('intval', array_filter($assignedPhongIds ?? [], function ($v) {
+                    return $v;
+                }))));
                 if (!empty($assignedIdsForThis)) {
                     $assignedForThis = Phong::whereIn('id', $assignedIdsForThis)
                         ->where('loai_phong_id', $lid)
@@ -265,7 +268,7 @@ class DatPhongController extends Controller
         } elseif ($this->hasRole('le_tan')) {
             abort(403, 'Bạn không có quyền chỉnh sửa đặt phòng.');
         }
-        
+
         $booking = DatPhong::with(['loaiPhong', 'voucher', 'user', 'phong'])->findOrFail($id);
 
         // Lấy danh sách loại phòng để hiển thị trong form sửa
@@ -302,9 +305,9 @@ class DatPhongController extends Controller
 
         // Lấy danh sách dịch vụ đang hoạt động
         $services = \App\Models\Service::where('status', 'hoat_dong')->get();
-        
+
         // Lấy dịch vụ đã sử dụng của booking này (với quan hệ service và phong)
-        $bookingServices = \App\Models\BookingService::with(['service','phong'])
+        $bookingServices = \App\Models\BookingService::with(['service', 'phong'])
             ->where('dat_phong_id', $booking->id)
             ->get();
 
@@ -316,7 +319,7 @@ class DatPhongController extends Controller
             $svcId = $bs->service_id;
             if (!isset($bookingServicesServer[$svcId])) {
                 $bookingServicesServer[$svcId] = [
-                    'service' => $bs->service ? $bs->service->only(['id','name','price','unit']) : null,
+                    'service' => $bs->service ? $bs->service->only(['id', 'name', 'price', 'unit']) : null,
                     'entries' => [], // each entry: ['ngay'=>'Y-m-d','so_luong'=>int,'phong_ids'=>[]]
                 ];
             }
@@ -326,7 +329,7 @@ class DatPhongController extends Controller
             // Each BookingService record is 1 entry (no merging by date/phong)
             // If phong_id present => specific room, otherwise applies to all
             $phongIds = $bs->phong_id ? [$bs->phong_id] : [];
-            
+
             $bookingServicesServer[$svcId]['entries'][] = [
                 'ngay' => $ngay,
                 'so_luong' => $bs->quantity ?? 1,  // so_luong from record (usually 1 for specific-mode)
@@ -336,7 +339,7 @@ class DatPhongController extends Controller
             if ($bs->phong) {
                 $roomMap[$bs->phong->id] = $bs->phong->so_phong ?? $bs->phong->ten_phong ?? $bs->phong->id;
             }
-            
+
             // DEBUG
             if (config('app.debug')) {
                 Log::debug("BookingService: id={$bs->id}, service_id={$svcId}, phong_id={$bs->phong_id}, used_at={$bs->used_at}, ngay={$ngay}, phongIds=" . json_encode($phongIds));
@@ -365,7 +368,7 @@ class DatPhongController extends Controller
         if ($roomTypes instanceof \Illuminate\Support\Collection) {
             $roomTypes = $roomTypes->toArray();
         }
-        
+
         $normalizedRoomTypes = [];
         if (is_array($roomTypes)) {
             $map = [];
@@ -505,7 +508,7 @@ class DatPhongController extends Controller
         $now = Carbon::now();
         $checkinDate = Carbon::parse($booking->ngay_nhan);
         $daysUntilCheckin = $now->diffInDays($checkinDate, false);
-        
+
         $policy = [
             'can_cancel' => true,
             'refund_percentage' => 0,
@@ -599,7 +602,7 @@ class DatPhongController extends Controller
         } elseif ($this->hasRole('le_tan')) {
             abort(403, 'Bạn không có quyền chỉnh sửa đặt phòng.');
         }
-        
+
         $booking = DatPhong::findOrFail($id);
 
         if ($booking->trang_thai !== 'cho_xac_nhan') {
@@ -615,13 +618,13 @@ class DatPhongController extends Controller
         } elseif (!is_array($rawRoomTypes)) {
             $rawRoomTypes = [];
         }
-        
+
         // Rebuild room_types with proper structure (loai_phong_id and so_luong keys)
         $normalizedRoomTypes = [];
         foreach ($rawRoomTypes as $idx => $roomType) {
             $loaiPhongId = null;
             $soLuong = 1;
-            
+
             if (is_array($roomType)) {
                 $loaiPhongId = $roomType['loai_phong_id'] ?? null;
                 $soLuong = isset($roomType['so_luong']) ? intval($roomType['so_luong']) : 1;
@@ -629,7 +632,7 @@ class DatPhongController extends Controller
                 // String value case (single room type scenario)
                 $loaiPhongId = $roomType;
             }
-            
+
             if ($loaiPhongId) {
                 $normalizedRoomTypes[] = [
                     'loai_phong_id' => intval($loaiPhongId),
@@ -637,7 +640,7 @@ class DatPhongController extends Controller
                 ];
             }
         }
-        
+
         // Merge normalized data back into request for validation
         $request->merge(['room_types' => $normalizedRoomTypes]);
 
@@ -712,18 +715,20 @@ class DatPhongController extends Controller
 
             // Tổng phòng có thể sử dụng = available mới + phòng cũ (giữ lại)
             $totalAvailable = $availableCount + $oldPhongsOfThisType;
-            
+
             // Kiểm tra: số lượng yêu cầu không được vượt quá tổng có sẵn
             if ($roomType['so_luong'] > $totalAvailable) {
                 return back()->withErrors([
-                    'room_types' => 'Loại phòng ' . $loaiPhong->ten_loai . ' chỉ có ' . $totalAvailable . ' phòng có sẵn ('. $oldPhongsOfThisType . ' phòng cũ + ' . $availableCount . ' phòng mới). Bạn không thể chọn ' . $roomType['so_luong'] . ' phòng.'
+                    'room_types' => 'Loại phòng ' . $loaiPhong->ten_loai . ' chỉ có ' . $totalAvailable . ' phòng có sẵn (' . $oldPhongsOfThisType . ' phòng cũ + ' . $availableCount . ' phòng mới). Bạn không thể chọn ' . $roomType['so_luong'] . ' phòng.'
                 ])->withInput();
             }
         }
 
-        // Calculate number of nights and total rooms and price using LoaiPhong prices
+        // Calculate number of nights (for legacy use) and prepare date range for per-day pricing
         $nights = Carbon::parse($request->ngay_nhan)->diffInDays(Carbon::parse($request->ngay_tra));
         $nights = max(1, $nights);
+        $checkIn = Carbon::parse($request->ngay_nhan);
+        $checkOut = Carbon::parse($request->ngay_tra);
 
         $totalSoLuong = array_sum(array_column($roomTypes, 'so_luong'));
         $totalPrice = 0;
@@ -731,8 +736,14 @@ class DatPhongController extends Controller
         $roomTypesArray = [];
         foreach ($roomTypes as $roomType) {
             $loaiPhong = LoaiPhong::find($roomType['loai_phong_id']);
-            $unitPricePerNight = $loaiPhong->gia_khuyen_mai ?? $loaiPhong->gia_co_ban ?? 0;
-            $roomTotal = $unitPricePerNight * $nights * $roomType['so_luong'];
+
+            // Tính tiền phòng theo từng ngày (ngày thường/cuối tuần/ngày lễ)
+            $roomTotal = BookingPriceCalculator::calculateRoomTypePriceByDateRange(
+                $loaiPhong,
+                $checkIn,
+                $checkOut,
+                (int) $roomType['so_luong']
+            );
             $totalPrice += $roomTotal;
 
             $roomTypesArray[] = [
@@ -793,7 +804,7 @@ class DatPhongController extends Controller
                         'phong_ids' => $entryPhongIds,
                     ];
 
-                    // Tính tổng tiền: 
+                    // Tính tổng tiền:
                     // Mỗi entry đại diện cho 1 lần sử dụng dịch vụ (1 checkbox trong specific-mode, hoặc 1 ngày trong global-mode)
                     // Nếu entry có phong_ids (specific-mode): mỗi phòng = 1 entry riêng => chỉ nhân qty × price
                     // Nếu entry không có phong_ids (global-mode): áp dụng cho tất cả phòng => nhân qty × price × tổng_phòng_booking
@@ -803,7 +814,7 @@ class DatPhongController extends Controller
                         $priceMultiplier = $totalSoLuong;
                     }
                     // Nếu có $entryPhongIds (specific mode): mỗi entry = 1 phòng = 1 use, nên multiplier = 1
-                    
+
                     $totalServicePrice += $qty * ($service->price ?? 0) * $priceMultiplier;
                 }
 
@@ -817,53 +828,53 @@ class DatPhongController extends Controller
             }
         }
 
-    // Calculate voucher discount on room subtotal only (match frontend logic)
-    $voucherDiscount = 0;
-    $requestVoucher = $request->input('voucher_clear_checkbox') ? null : $request->input('voucher');
-    if ($requestVoucher) {
-        // Only accept vouchers that are active and available (same checks as create/store path)
-        $voucher = Voucher::where('ma_voucher', $requestVoucher)
-            ->where('so_luong', '>', 0)
-            ->where('trang_thai', 'con_han')
-            ->whereDate('ngay_ket_thuc', '>=', now())
-            ->first();
+        // Calculate voucher discount on room subtotal only (match frontend logic)
+        $voucherDiscount = 0;
+        $requestVoucher = $request->input('voucher_clear_checkbox') ? null : $request->input('voucher');
+        if ($requestVoucher) {
+            // Only accept vouchers that are active and available (same checks as create/store path)
+            $voucher = Voucher::where('ma_voucher', $requestVoucher)
+                ->where('so_luong', '>', 0)
+                ->where('trang_thai', 'con_han')
+                ->whereDate('ngay_ket_thuc', '>=', now())
+                ->first();
 
-        if ($voucher) {
-            $discountValue = floatval($voucher->gia_tri ?? 0);
+            if ($voucher) {
+                $discountValue = floatval($voucher->gia_tri ?? 0);
 
-            // Compute applicable total: if voucher targets a specific loai_phong_id,
-            // sum only matching room types; otherwise use full room subtotal.
-            $applicableTotal = 0;
-            if (empty($voucher->loai_phong_id)) {
-                $applicableTotal = $totalPrice;
-            } else {
-                foreach ($roomTypesArray as $rt) {
-                    if (isset($rt['loai_phong_id']) && $rt['loai_phong_id'] == $voucher->loai_phong_id) {
-                        $applicableTotal += $rt['gia_rieng'];
+                // Compute applicable total: if voucher targets a specific loai_phong_id,
+                // sum only matching room types; otherwise use full room subtotal.
+                $applicableTotal = 0;
+                if (empty($voucher->loai_phong_id)) {
+                    $applicableTotal = $totalPrice;
+                } else {
+                    foreach ($roomTypesArray as $rt) {
+                        if (isset($rt['loai_phong_id']) && $rt['loai_phong_id'] == $voucher->loai_phong_id) {
+                            $applicableTotal += $rt['gia_rieng'];
+                        }
+                    }
+                }
+
+                if ($applicableTotal > 0 && $discountValue > 0) {
+                    if ($discountValue <= 100) {
+                        // Percentage discount
+                        $voucherDiscount = intval(round($applicableTotal * ($discountValue / 100)));
+                    } else {
+                        // Fixed amount discount (cap at applicable total)
+                        $voucherDiscount = intval(min(round($discountValue), $applicableTotal));
                     }
                 }
             }
-
-            if ($applicableTotal > 0 && $discountValue > 0) {
-                if ($discountValue <= 100) {
-                    // Percentage discount
-                    $voucherDiscount = intval(round($applicableTotal * ($discountValue / 100)));
-                } else {
-                    // Fixed amount discount (cap at applicable total)
-                    $voucherDiscount = intval(min(round($discountValue), $applicableTotal));
-                }
-            }
         }
-    }
 
-    // Tổng cuối cùng bao gồm tiền phòng + tiền dịch vụ - giảm giá voucher
-    $finalTotal = max(0, $totalPrice + $totalServicePrice - $voucherDiscount);
+        // Tổng cuối cùng bao gồm tiền phòng + tiền dịch vụ - giảm giá voucher
+        $finalTotal = max(0, $totalPrice + $totalServicePrice - $voucherDiscount);
 
         // Support admin-selected specific rooms per room type
         $requestedRooms = $request->input('rooms', []);
 
         // Update booking và gán lại phòng trong transaction
-    DB::transaction(function () use ($booking, $request, $roomTypes, $roomTypesArray, $totalSoLuong, $firstLoaiPhongId, $oldPhongIds, $servicesData, $finalTotal, $totalPrice, $totalServicePrice, $requestedRooms, $voucherDiscount) {
+        DB::transaction(function () use ($booking, $request, $roomTypes, $roomTypesArray, $totalSoLuong, $firstLoaiPhongId, $oldPhongIds, $servicesData, $finalTotal, $totalPrice, $totalServicePrice, $requestedRooms, $voucherDiscount) {
             // 1. Giải phóng tất cả phòng cũ (set về 'trong' nếu không có booking khác)
             foreach ($oldPhongIds as $phongId) {
                 $phong = Phong::find($phongId);
@@ -904,7 +915,7 @@ class DatPhongController extends Controller
                         $loai = LoaiPhong::find($loaiId);
                         $lname = $loai ? $loai->ten_loai : ($loaiId ?: 'N/A');
                         throw \Illuminate\Validation\ValidationException::withMessages([
-                            'rooms' => ["Vui lòng chọn chính xác {$soLuongCan} phòng cho loại '{$lname}' (bạn đã chọn " . count($selectedForType) . ")." ]
+                            'rooms' => ["Vui lòng chọn chính xác {$soLuongCan} phòng cho loại '{$lname}' (bạn đã chọn " . count($selectedForType) . ")."]
                         ]);
                     }
 
@@ -962,7 +973,7 @@ class DatPhongController extends Controller
             // 3. Update booking với thông tin mới (bao gồm tổng tiền đã cộng dịch vụ)
             // 3. Update booking với thông tin mới
             // Note: room_types, phong_ids được lưu trong bảng pivot thay vì JSON columns
-            
+
             // Handle voucher: check if voucher is selected or should be cleared
             $voucherId = null;
             if ($request->input('voucher_clear_checkbox')) {
@@ -973,7 +984,7 @@ class DatPhongController extends Controller
                 $voucher = Voucher::where('ma_voucher', $request->voucher)->first();
                 $voucherId = $voucher ? $voucher->id : null;
             }
-            
+
             $bookingData = [
                 'so_luong_da_dat' => $totalSoLuong,
                 'trang_thai' => $request->trang_thai ?? $booking->trang_thai,
@@ -1014,20 +1025,20 @@ class DatPhongController extends Controller
             // Mỗi entry (ngày) = 1 BookingService record
             // Hỗ trợ cả dịch vụ áp dụng cho tất cả phòng (phong_id = NULL)
             // và dịch vụ riêng cho phòng cụ thể (phong_id = room_id)
-            
+
             // Xóa hoàn toàn tất cả BookingService cũ để tạo lại từ form mới (đảm bảo consistency)
             \App\Models\BookingService::where('dat_phong_id', $booking->id)->delete();
-            
+
             if (is_array($servicesData) && !empty($servicesData)) {
                 foreach ($servicesData as $svcId => $svcRow) {
                     $service = Service::find($svcId);
                     if (!$service) continue;
-                    
+
                     // Kiểm tra phòng riêng (phong_ids) hay áp dụng cho tất cả
-                    $phongIds = isset($svcRow['phong_ids']) && is_array($svcRow['phong_ids']) 
-                        ? array_filter($svcRow['phong_ids']) 
+                    $phongIds = isset($svcRow['phong_ids']) && is_array($svcRow['phong_ids'])
+                        ? array_filter($svcRow['phong_ids'])
                         : [];
-                    
+
                     // Lấy các entries (mỗi ngày)
                     $entries = isset($svcRow['entries']) && is_array($svcRow['entries']) ? $svcRow['entries'] : [];
                     foreach ($entries as $entry) {
@@ -1043,10 +1054,10 @@ class DatPhongController extends Controller
                             $entryPhongIds = array_filter([$entry['phong_id']]);
                         }
                         $usePhongIds = !empty($entryPhongIds) ? $entryPhongIds : $phongIds;
-                        
+
                         // Check if entry was originally for specific rooms or global
                         $wasSpecificRooms = !empty($usePhongIds);
-                        
+
                         // Filter: only keep phong_ids that are still in $newPhongIds (remove deleted rooms)
                         if (!empty($usePhongIds)) {
                             $usePhongIds = array_intersect($usePhongIds, $newPhongIds);
@@ -1056,7 +1067,7 @@ class DatPhongController extends Controller
                         if ($wasSpecificRooms && empty($usePhongIds)) {
                             continue; // Skip this entry, don't create it
                         }
-                        
+
                         if (empty($usePhongIds)) {
                             // Originally global or no specific rooms -> create per-room records when we have room ids
                             if (!empty($newPhongIds)) {
@@ -1115,7 +1126,7 @@ class DatPhongController extends Controller
             if (Schema::hasColumn('dat_phong', 'tien_dich_vu')) {
                 $updateData['tien_dich_vu'] = $recalculatedServiceTotal;
             }
-            
+
             $booking->update($updateData);
         });
 
@@ -1132,7 +1143,7 @@ class DatPhongController extends Controller
         } elseif ($this->hasRole('le_tan')) {
             abort(403, 'Bạn không có quyền gán phòng.');
         }
-        
+
         $booking = DatPhong::with(['loaiPhong', 'phong'])->findOrFail($id);
 
         // Kiểm tra booking có phải trạng thái cho phép gán phòng không
@@ -1301,7 +1312,7 @@ class DatPhongController extends Controller
         } elseif ($this->hasRole('le_tan')) {
             $this->authorizePermission('booking.create_direct');
         }
-        
+
         // Lấy danh sách loại phòng thay vì phòng cụ thể
         $loaiPhongs = LoaiPhong::where('trang_thai', 'hoat_dong')
             ->with([
@@ -1309,8 +1320,7 @@ class DatPhongController extends Controller
                     $q->where('trang_thai', 'trong'); // chỉ lấy phòng sẵn sàng
                 }
             ])
-            ->get();
-        ;
+            ->get();;
         $services = Service::where('status', 'hoat_dong')->get();
 
         // Lấy danh sách voucher còn hiệu lực: must be active, not exhausted,
@@ -1393,7 +1403,7 @@ class DatPhongController extends Controller
             // Nếu client yêu cầu danh sách phòng cụ thể, trả về luôn
             if ($request->input('include_rooms')) {
                 $rooms = Phong::findAvailableRooms($loaiPhongId, $checkinDate, $checkoutDate, 999, $excludeBookingId);
-                $response['rooms'] = $rooms->map(function($r){
+                $response['rooms'] = $rooms->map(function ($r) {
                     return [
                         'id' => $r->id,
                         'so_phong' => $r->so_phong ?? null,
@@ -1420,7 +1430,7 @@ class DatPhongController extends Controller
         } elseif ($this->hasRole('le_tan')) {
             $this->authorizePermission('booking.create_direct');
         }
-        
+
         // Validate room_types array first
         $request->validate([
             'room_types' => 'required|array|min:1',
@@ -1483,6 +1493,8 @@ class DatPhongController extends Controller
 
         $nights = Carbon::parse($request->ngay_nhan)->diffInDays(Carbon::parse($request->ngay_tra));
         $nights = max(1, $nights);
+        $checkIn = Carbon::parse($request->ngay_nhan);
+        $checkOut = Carbon::parse($request->ngay_tra);
 
         // Validate each room type and check availability
         $totalPrice = 0;
@@ -1523,9 +1535,13 @@ class DatPhongController extends Controller
                 continue;
             }
 
-            // Use promotional price if available, otherwise use base price
-            $pricePerNight = $loaiPhong->gia_khuyen_mai ?? $loaiPhong->gia_co_ban ?? 0;
-            $roomTotal = $pricePerNight * $nights * $room['so_luong'];
+            // Tính tiền phòng theo từng ngày (ngày thường/cuối tuần/ngày lễ)
+            $roomTotal = BookingPriceCalculator::calculateRoomTypePriceByDateRange(
+                $loaiPhong,
+                $checkIn,
+                $checkOut,
+                (int) $room['so_luong']
+            );
             $totalPrice += $roomTotal;
 
             $roomDetails[] = [
@@ -1566,9 +1582,18 @@ class DatPhongController extends Controller
                     $checkin = now()->startOfDay();
                 }
 
-                $vStart = null; $vEnd = null;
-                try { $vStart = \Carbon\Carbon::parse($voucher->ngay_bat_dau)->startOfDay(); } catch(\Exception $e) { $vStart = null; }
-                try { $vEnd = \Carbon\Carbon::parse($voucher->ngay_ket_thuc)->startOfDay(); } catch(\Exception $e) { $vEnd = null; }
+                $vStart = null;
+                $vEnd = null;
+                try {
+                    $vStart = \Carbon\Carbon::parse($voucher->ngay_bat_dau)->startOfDay();
+                } catch (\Exception $e) {
+                    $vStart = null;
+                }
+                try {
+                    $vEnd = \Carbon\Carbon::parse($voucher->ngay_ket_thuc)->startOfDay();
+                } catch (\Exception $e) {
+                    $vEnd = null;
+                }
 
                 $validNow = ($voucher->so_luong > 0) && ($voucher->trang_thai === 'con_han');
                 // check date range against selected check-in
@@ -1651,7 +1676,7 @@ class DatPhongController extends Controller
         $selectedPhongIds = $request->input('selected_phong_ids', []); // Danh sách phòng được chọn riêng
         $totalServicePrice = 0;
         $normalizedServices = [];
-        
+
         if (is_array($servicesData) && !empty($servicesData)) {
             foreach ($servicesData as $svcId => $svcRow) {
                 $service = Service::find($svcId);
@@ -1662,8 +1687,8 @@ class DatPhongController extends Controller
                 // Kiểm tra xem dịch vụ này có chỉ định phòng riêng hay áp dụng cho tất cả
                 // svcRow['phong_ids'] = [id1, id2, ...] nếu áp dụng cho phòng riêng
                 // svcRow['phong_ids'] = [] hoặc không có = áp dụng cho TẤT CẢ phòng (nhân với số phòng)
-                $servicePhongIds = isset($svcRow['phong_ids']) && is_array($svcRow['phong_ids']) 
-                    ? array_filter($svcRow['phong_ids']) 
+                $servicePhongIds = isset($svcRow['phong_ids']) && is_array($svcRow['phong_ids'])
+                    ? array_filter($svcRow['phong_ids'])
                     : [];
 
                 $entries = isset($svcRow['entries']) && is_array($svcRow['entries']) ? $svcRow['entries'] : [];
@@ -1697,7 +1722,7 @@ class DatPhongController extends Controller
                         'so_luong' => $qty,
                         'phong_ids' => $entryPhongIds,
                     ];
-                    
+
                     // Tính tổng tiền:
                     // - Nếu entry có phong_ids: nhân với số phòng trong entry
                     // - Else if service-level phong_ids present: nhân với số phòng chỉ định
@@ -1724,22 +1749,22 @@ class DatPhongController extends Controller
         // Cộng tổng tiền dịch vụ vào tổng thanh toán cuối cùng
         $finalPrice = $roomNetTotal + $totalServicePrice;
 
-    // Create single booking within transaction to ensure atomicity
-    $booking = DB::transaction(function () use (
-        $roomDetails,
-        $priceRatio,
-        $request,
-        $voucherId,
-        $finalPrice,
-        $roomSubtotal,
-        $roomNetTotal,
-        $roomDiscount,
-        $totalServicePrice,
-        $totalSoLuong,
-        $firstLoaiPhongId,
-        $roomTypesArray,
-        $normalizedServices
-    ) {
+        // Create single booking within transaction to ensure atomicity
+        $booking = DB::transaction(function () use (
+            $roomDetails,
+            $priceRatio,
+            $request,
+            $voucherId,
+            $finalPrice,
+            $roomSubtotal,
+            $roomNetTotal,
+            $roomDiscount,
+            $totalServicePrice,
+            $totalSoLuong,
+            $firstLoaiPhongId,
+            $roomTypesArray,
+            $normalizedServices
+        ) {
             // Validate availability for all room types first
             foreach ($roomDetails as $roomDetail) {
                 // Lock and re-check availability inside transaction to prevent race conditions
@@ -1967,7 +1992,7 @@ class DatPhongController extends Controller
         if (!$this->hasRole('admin')) {
             abort(403, 'Bạn không có quyền chống phòng.');
         }
-        
+
         $booking = DatPhong::findOrFail($id);
 
         // Chỉ cho phép chống phòng khi đã xác nhận
@@ -1997,7 +2022,7 @@ class DatPhongController extends Controller
         } elseif ($this->hasRole('le_tan')) {
             abort(403, 'Bạn không có quyền xác nhận đặt phòng.');
         }
-        
+
         $booking = DatPhong::findOrFail($id);
 
         if ($booking->trang_thai !== 'cho_xac_nhan') {
@@ -2027,7 +2052,7 @@ class DatPhongController extends Controller
                         return in_array($phong->id, $allPhongIds);
                     });
 
-                    $count = 0; 
+                    $count = 0;
                     foreach ($availableRooms as $phong) {
                         if ($count >= $soLuongCan)
                             break;
@@ -2081,41 +2106,41 @@ class DatPhongController extends Controller
         // ========================================
         // CALCULATE PRICES (matching update() logic)
         // ========================================
-        
+
         // Calculate number of nights
         $nights = Carbon::parse($booking->ngay_nhan)->diffInDays(Carbon::parse($booking->ngay_tra));
         $nights = max(1, $nights);
-        
+
         // Get room types
         $roomTypes = $booking->getRoomTypes();
         $totalPrice = 0;
         $roomTypesArray = [];
         $totalSoLuong = 0;
-        
+
         // Calculate room prices
         foreach ($roomTypes as $roomType) {
             $soLuong = $roomType['so_luong'] ?? 1;
             $loaiPhongId = $roomType['loai_phong_id'];
             $totalSoLuong += $soLuong;
-            
+
             $loaiPhong = LoaiPhong::find($loaiPhongId);
             $unitPricePerNight = $loaiPhong ? ($loaiPhong->gia_khuyen_mai ?? $loaiPhong->gia_co_ban ?? 0) : 0;
             $roomTotal = $unitPricePerNight * $nights * $soLuong;
             $totalPrice += $roomTotal;
-            
+
             $roomTypesArray[] = [
                 'loai_phong_id' => $loaiPhongId,
                 'so_luong' => $soLuong,
                 'gia_rieng' => $roomTotal,
             ];
         }
-        
+
         // Calculate service prices
         $totalServicePrice = 0;
         $serviceTotal = \App\Models\BookingService::where('dat_phong_id', $booking->id)
             ->sum(DB::raw('quantity * unit_price'));
         $totalServicePrice = $serviceTotal ?? 0;
-        
+
         // Calculate voucher discount (if exists)
         $voucherDiscount = 0;
         if ($booking->voucher_id && $booking->voucher) {
@@ -2133,7 +2158,7 @@ class DatPhongController extends Controller
                         }
                     }
                 }
-                
+
                 if ($applicableTotal > 0) {
                     if ($voucher->gia_tri <= 100) {
                         // Percentage discount
@@ -2145,10 +2170,10 @@ class DatPhongController extends Controller
                 }
             }
         }
-        
+
         // Final total: room price + service price - voucher discount
         $finalTotal = max(0, $totalPrice + $totalServicePrice - $voucherDiscount);
-        
+
         // Update booking with calculated totals
         $updateData = [
             'tong_tien' => $finalTotal,
@@ -2159,7 +2184,7 @@ class DatPhongController extends Controller
         if (Schema::hasColumn('dat_phong', 'tien_dich_vu')) {
             $updateData['tien_dich_vu'] = $totalServicePrice;
         }
-        
+
         $booking->update($updateData);
 
         // Create invoice now that booking is confirmed (if not exists)
@@ -2220,7 +2245,7 @@ class DatPhongController extends Controller
         } elseif ($this->hasRole('le_tan')) {
             abort(403, 'Bạn không có quyền đánh dấu đã thanh toán.');
         }
-        
+
         $booking = DatPhong::with('invoice')->findOrFail($id);
 
         // Create invoice if missing
@@ -2293,7 +2318,7 @@ class DatPhongController extends Controller
         if ($this->hasRole('le_tan')) {
             $this->authorizePermission('phong.checkin');
         }
-        
+
         $validated = $request->validate([
             'ghi_chu_checkin' => 'nullable|string|max:500',
         ], [
@@ -2348,7 +2373,7 @@ class DatPhongController extends Controller
         if ($this->hasRole('le_tan')) {
             $this->authorizePermission('phong.checkout');
         }
-        
+
         $validated = $request->validate([
             'phi_phat_sinh' => 'nullable|numeric|min:0',
             'ly_do_phi' => 'nullable|string|max:500',
@@ -2407,9 +2432,9 @@ class DatPhongController extends Controller
 
                 // Update invoice
                 if ($booking->invoice) {
-                    $tongMoi = $booking->invoice->tien_phong 
-                        + $booking->invoice->tien_dich_vu 
-                        + $tongPhiPhatSinh 
+                    $tongMoi = $booking->invoice->tien_phong
+                        + $booking->invoice->tien_dich_vu
+                        + $tongPhiPhatSinh
                         - $booking->invoice->giam_gia;
 
                     $booking->invoice->update([

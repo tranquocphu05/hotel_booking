@@ -608,6 +608,7 @@
                                     <span id="totalAfterDiscount"
                                         class="total-amount">{{ number_format($tong_tien_initial) }} VNĐ</span>
                                 </div>
+                                <div id="pricingMultiplierInfo" class="mt-1 text-xs text-gray-500 hidden"></div>
                             </div>
 
                             <button type="submit" class="btn-booking-submit">

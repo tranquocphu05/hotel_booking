@@ -15,8 +15,7 @@ use App\Models\Invoice;
 use App\Models\Phong;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-
-
+use App\Services\BookingPriceCalculator;
 class BookingController extends Controller
 {
     /**
@@ -171,6 +170,9 @@ class BookingController extends Controller
         $user = Auth::user();
         $nights = $this->calculateNights($data['ngay_nhan'], $data['ngay_tra']);
 
+        $checkIn = Carbon::parse($data['ngay_nhan']);
+        $checkOut = Carbon::parse($data['ngay_tra']);
+
         // Check for duplicate room types
         $roomTypeIds = array_column($data['rooms'], 'loai_phong_id');
         if (count($roomTypeIds) !== count(array_unique($roomTypeIds))) {
@@ -203,13 +205,25 @@ class BookingController extends Controller
                 ])->withInput();
             }
 
-            $roomBaseTotal = $pricePerNight * $nights * $room['so_luong'];
+            // Tính tiền phòng theo từng ngày (ngày thường/cuối tuần/lễ)
+            $roomBaseTotal = BookingPriceCalculator::calculateRoomTypePriceByDateRange(
+                $loaiPhong,
+                $checkIn,
+                $checkOut,
+                (int) $room['so_luong']
+            );
             $sumAdults = isset($room['so_nguoi']) ? (int)$room['so_nguoi'] : ($maxAdultsPerRoom * (int)$room['so_luong']);
             $capacity = (int)$room['so_luong'] * $maxAdultsPerRoom;
             $extraGuests = max(0, $sumAdults - $capacity);
             $extraFee = 0;
             if ($extraGuests > 0) {
-                $extraFee = $extraGuests * $pricePerNight * $extraFeePercent * $nights;
+                $extraFee = BookingPriceCalculator::calculateExtraGuestSurcharge(
+                    $loaiPhong,
+                    $checkIn,
+                    $checkOut,
+                    $extraGuests,
+                    $extraFeePercent
+                );
             }
 
             $roomTotalWithSurcharge = $roomBaseTotal + $extraFee;

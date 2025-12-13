@@ -47,6 +47,9 @@ class BookingManager {
         );
         this.totalAfterDiscountDiv =
             document.getElementById("totalAfterDiscount");
+        this.pricingMultiplierInfoDiv = document.getElementById(
+            "pricingMultiplierInfo"
+        );
         this.finalBookingPriceInput =
             document.getElementById("finalBookingPrice");
 
@@ -464,6 +467,31 @@ class BookingManager {
         };
     }
 
+    // Helpers to mirror server-side holiday/weekend logic (fixed solar holidays)
+    isHoliday(date) {
+        const year = date.getFullYear();
+        const pad = (n) => (n < 10 ? "0" + n : "" + n);
+        const key = `${year}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+        const holidays = [
+            `${year}-01-01`,
+            `${year}-04-30`,
+            `${year}-05-01`,
+            `${year}-09-02`,
+        ];
+        return holidays.includes(key);
+    }
+
+    getMultiplierForDate(date) {
+        if (this.isHoliday(date)) {
+            return 1.25;
+        }
+        const day = date.getDay(); // 0 = Sun, 6 = Sat
+        if (day === 0 || day === 6) {
+            return 1.15;
+        }
+        return 1.0;
+    }
+
     getDiscountPercentFromCard(cardElement) {
         const discountElement = cardElement.querySelector(
             ".font-semibold.text-gray-800.text-base"
@@ -605,17 +633,24 @@ class BookingManager {
 
     // === PRICE CALCULATIONS ===
     tinhTongTien() {
-        // Tính tổng giá từ room cards với phụ phí tính theo tổng số người vượt tổng sức chứa
-        const { soDem } = this.getDatesAndDays();
+        // Tính tổng giá từ room cards với phụ phí và multiplier theo từng ngày
+        const { checkinValue, checkoutValue, soDem } = this.getDatesAndDays();
         let totalBeforeDiscountAmount = 0;
         let totalExtraFee = 0;
+
+        let weekdayNights = 0;
+        let weekendNights = 0;
+        let holidayNights = 0;
+
+        const checkinDate = new Date(checkinValue);
+        const checkoutDate = new Date(checkoutValue);
 
         // Tính từ room cards
         document
             .querySelectorAll(".room-card-quantity, .room-card-quantity-modern")
             .forEach((quantityInput) => {
                 const quantity = parseInt(quantityInput.value) || 0;
-                if (quantity > 0) {
+                if (quantity > 0 && !isNaN(checkinDate) && !isNaN(checkoutDate)) {
                     const price =
                         parseFloat(quantityInput.dataset.roomPrice) || 0;
                     const roomId = quantityInput.dataset.roomId;
@@ -649,17 +684,31 @@ class BookingManager {
                         0,
                         sumAdults - capacity
                     );
-                    if (extraGuestsForType > 0) {
-                        const feeForType =
-                            extraGuestsForType *
-                            price *
-                            this.extraFeePercent *
-                            soDem;
-                        totalExtraFee += feeForType;
-                    }
 
-                    // Base room charges (without extra guest fee)
-                    totalBeforeDiscountAmount += price * quantity * soDem;
+                    // Duyệt từng ngày để áp dụng multiplier giống server
+                    const current = new Date(checkinDate.getTime());
+                    while (current < checkoutDate) {
+                        const m = this.getMultiplierForDate(current);
+                        if (this.isHoliday(current)) {
+                            holidayNights++;
+                        } else {
+                            const d = current.getDay();
+                            if (d === 0 || d === 6) weekendNights++;
+                            else weekdayNights++;
+                        }
+
+                        totalBeforeDiscountAmount += price * m * quantity;
+
+                        if (extraGuestsForType > 0) {
+                            totalExtraFee +=
+                                extraGuestsForType *
+                                price *
+                                this.extraFeePercent *
+                                m;
+                        }
+
+                        current.setDate(current.getDate() + 1);
+                    }
                 }
             });
 
@@ -684,6 +733,20 @@ class BookingManager {
 
         // Cập nhật giao diện chính
         this.soDemLuuTruElement.textContent = `Số đêm: ${soDem} đêm`;
+
+        // Hiển thị breakdown ngày thường/cuối tuần/lễ nếu có element
+        if (this.pricingMultiplierInfoDiv) {
+            if (weekdayNights + weekendNights + holidayNights > 0) {
+                this.pricingMultiplierInfoDiv.innerHTML =
+                    `Giá đã áp dụng: ` +
+                    `${weekdayNights} đêm thường, ` +
+                    `${weekendNights} đêm cuối tuần (+15%), ` +
+                    `${holidayNights} đêm lễ (+25%).`;
+                this.pricingMultiplierInfoDiv.classList.remove("hidden");
+            } else {
+                this.pricingMultiplierInfoDiv.classList.add("hidden");
+            }
+        }
 
         // Dòng hiển thị phụ phí khách vượt
         let extraFeeDisplay = document.getElementById("extraGuestFeeDisplay");
