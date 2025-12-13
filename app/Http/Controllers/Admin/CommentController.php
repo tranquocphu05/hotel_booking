@@ -16,6 +16,7 @@ class CommentController extends Controller
     {
         // Nhân viên và Lễ tân: xem đánh giá
         $this->authorizePermission('review.view');
+
         $comments = Comment::with(['user', 'loaiPhong'])
             ->when($request->keyword, fn($q) => $q->where('noi_dung', 'like', "%{$request->keyword}%"))
             ->when($request->rating, fn($q) => $q->where('so_sao', $request->rating))
