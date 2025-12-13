@@ -47,6 +47,10 @@ class DatPhong extends Model
         'tong_tien',
         'tong_tien_phong',
         'so_nguoi',
+        'so_tre_em',        // Number of children (6-11 years old)
+        'so_em_be',         // Number of infants (0-5 years old)
+        'phu_phi_tre_em',   // Surcharge for children
+        'phu_phi_em_be',    // Surcharge for infants
         'ghi_chu',
         'voucher_id',
         'ly_do_huy',
@@ -64,7 +68,6 @@ class DatPhong extends Model
         'ghi_chu_checkin',
         'ghi_chu_checkout',
         'ghi_chu_hoan_tien',
-
     ];
 
 

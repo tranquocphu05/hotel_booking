@@ -100,6 +100,47 @@
                                         </svg>
                                         Sẵn sàng check-in phòng này
                                     </p>
+                                    
+                                    @php
+                                        $checkinTime = now();
+                                        $standardCheckinTime = \Carbon\Carbon::parse($booking->ngay_nhan)->setTime(14, 0);
+                                        $isEarly = $checkinTime->lt($standardCheckinTime);
+                                        
+                                        if ($isEarly) {
+                                            $phiCheckinSom = \App\Services\CheckinCheckoutFeeCalculator::calculateEarlyCheckinFee($booking, $checkinTime);
+                                            // Sử dụng diffInMinutes với absolute = true để đảm bảo giá trị dương
+                                            $diffMinutes = abs($standardCheckinTime->diffInMinutes($checkinTime));
+                                            $earlyHours = (int)floor($diffMinutes / 60);
+                                            $earlyMins = (int)($diffMinutes % 60);
+                                            
+                                            // Format thời gian sớm
+                                            if ($earlyHours > 0) {
+                                                $earlyTimeText = $earlyHours . ' giờ' . ($earlyMins > 0 ? ' ' . $earlyMins . ' phút' : '');
+                                            } else {
+                                                $earlyTimeText = $earlyMins . ' phút';
+                                            }
+                                        } else {
+                                            $phiCheckinSom = 0;
+                                            $earlyHours = 0;
+                                            $earlyMins = 0;
+                                            $earlyTimeText = '';
+                                        }
+                                    @endphp
+                                    
+                                    @if($isEarly && $phiCheckinSom > 0)
+                                        <div class="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                            <p class="text-xs text-yellow-800 font-medium mb-1 flex items-center">
+                                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                </svg>
+                                                Check-in sớm {{ $earlyTimeText }} (trước {{ $standardCheckinTime->format('d/m H:i') }})
+                                            </p>
+                                            <p class="text-sm font-semibold text-yellow-900">
+                                                Phụ phí check-in sớm: {{ number_format($phiCheckinSom, 0, ',', '.') }} VNĐ
+                                            </p>
+                                        </div>
+                                    @endif
+                                    
                                     <form action="{{ route('admin.dat_phong.checkin', $booking->id) }}" method="POST">
                                         @csrf
                                         <input type="hidden" name="phong_id" value="{{ $phong->id }}">
@@ -218,25 +259,41 @@
                                         </div>
 
                                         @php
-                                            $expectedCheckout = \Carbon\Carbon::parse($booking->ngay_tra)->setTime(12, 0);
-                                            $now = now();
-                                            $isLate = $now->gt($expectedCheckout);
-                                            $hoursLate = $isLate ? $now->diffInHours($expectedCheckout) : 0;
+                                            $checkoutTime = now();
+                                            $standardCheckoutTime = \Carbon\Carbon::parse($booking->ngay_tra)->setTime(12, 0);
+                                            $isLate = $checkoutTime->gt($standardCheckoutTime);
+                                            
+                                            if ($isLate) {
+                                                $phiCheckoutTre = \App\Services\CheckinCheckoutFeeCalculator::calculateLateCheckoutFee($booking, $checkoutTime);
+                                                // Sử dụng diffInMinutes với absolute để đảm bảo giá trị dương
+                                                $diffMinutes = abs($checkoutTime->diffInMinutes($standardCheckoutTime));
+                                                $lateHours = (int)floor($diffMinutes / 60);
+                                                $lateMins = (int)($diffMinutes % 60);
+                                                
+                                                // Format thời gian trễ
+                                                if ($lateHours > 0) {
+                                                    $lateTimeText = $lateHours . ' giờ' . ($lateMins > 0 ? ' ' . $lateMins . ' phút' : '');
+                                                } else {
+                                                    $lateTimeText = $lateMins . ' phút';
+                                                }
+                                            } else {
+                                                $phiCheckoutTre = 0;
+                                                $lateHours = 0;
+                                                $lateMins = 0;
+                                                $lateTimeText = '';
+                                            }
                                         @endphp
 
-                                        @if($isLate)
-                                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-2 mb-3">
-                                                <p class="text-xs text-yellow-800 font-medium">
-                                                    ⚠️ Check-out muộn {{ $hoursLate }} giờ
+                                        @if($isLate && $phiCheckoutTre > 0)
+                                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3">
+                                                <p class="text-xs text-yellow-800 font-medium mb-1 flex items-center">
+                                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                    </svg>
+                                                    Check-out trễ {{ $lateTimeText }} (sau {{ $standardCheckoutTime->format('d/m H:i') }})
                                                 </p>
-                                                <p class="text-xs text-yellow-700">
-                                                    @php
-                                                        $totalRooms = $assignedPhongs->count();
-                                                        $lateFeePerRoom = $hoursLate <= 6 
-                                                            ? ($booking->tong_tien * 0.5) / $totalRooms
-                                                            : $booking->tong_tien / $totalRooms;
-                                                    @endphp
-                                                    Phụ phí phòng này: {{ number_format($lateFeePerRoom, 0, ',', '.') }}₫
+                                                <p class="text-sm font-semibold text-yellow-900">
+                                                    Phụ phí check-out trễ: {{ number_format($phiCheckoutTre, 0, ',', '.') }} VNĐ
                                                 </p>
                                             </div>
                                         @endif

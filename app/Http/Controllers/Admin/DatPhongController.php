@@ -2350,12 +2350,30 @@ class DatPhongController extends Controller
                     ]);
                 }
 
+                // Tính phụ phí check-in sớm (nếu có)
+                $checkinTime = now();
+                $phiCheckinSom = \App\Services\CheckinCheckoutFeeCalculator::calculateEarlyCheckinFee($booking, $checkinTime);
+
+                // Build ghi chú check-in
+                $ghiChuCheckin = $validated['ghi_chu_checkin'] ?? '';
+                if ($phiCheckinSom > 0) {
+                    $ghiChuCheckin .= ($ghiChuCheckin ? "\n" : '') . "Phụ phí check-in sớm: " . number_format($phiCheckinSom, 0, ',', '.') . " VNĐ";
+                }
+
+                // Cập nhật phi_phat_sinh (cộng dồn với phụ phí check-in sớm)
+                $phiPhatSinhHienTai = $booking->phi_phat_sinh ?? 0;
+                $phiPhatSinhMoi = $phiPhatSinhHienTai + $phiCheckinSom;
+
                 // Update booking
                 $booking->update([
-                    'thoi_gian_checkin' => now(),
+                    'thoi_gian_checkin' => $checkinTime,
                     'nguoi_checkin' => Auth::user()->ho_ten,
-                    'ghi_chu_checkin' => $validated['ghi_chu_checkin'] ?? null,
+                    'ghi_chu_checkin' => trim($ghiChuCheckin),
+                    'phi_phat_sinh' => $phiPhatSinhMoi,
                 ]);
+
+                // Cập nhật tổng tiền booking và invoice
+                \App\Services\BookingPriceCalculator::recalcTotal($booking);
 
                 // Update room status to 'dang_thue'
                 foreach ($booking->getAssignedPhongs() as $phong) {
@@ -2365,6 +2383,7 @@ class DatPhongController extends Controller
                 Log::info('Booking checked in', [
                     'booking_id' => $booking->id,
                     'staff' => Auth::user()->ho_ten,
+                    'phi_checkin_som' => $phiCheckinSom,
                 ]);
             });
 
@@ -2391,11 +2410,13 @@ class DatPhongController extends Controller
         $validated = $request->validate([
             'phi_phat_sinh' => 'nullable|numeric|min:0',
             'ly_do_phi' => 'nullable|string|max:500',
+            'loai_thiet_hai' => 'nullable|string|max:100',
             'ghi_chu_checkout' => 'nullable|string|max:500',
         ], [
             'phi_phat_sinh.numeric' => 'Phụ phí phải là số',
             'phi_phat_sinh.min' => 'Phụ phí không được âm',
             'ly_do_phi.max' => 'Lý do không được vượt quá 500 ký tự',
+            'loai_thiet_hai.max' => 'Danh mục thiệt hại không được vượt quá 100 ký tự',
             'ghi_chu_checkout.max' => 'Ghi chú không được vượt quá 500 ký tự',
         ]);
 
@@ -2410,29 +2431,34 @@ class DatPhongController extends Controller
                     ]);
                 }
 
-                // Calculate late checkout fee
-                $phiCheckoutMuon = 0;
+                // Tính phụ phí check-out trễ (nếu có)
                 $checkoutTime = now();
-                $expectedCheckout = Carbon::parse($booking->ngay_tra)->setTime(12, 0);
+                $phiCheckoutTre = \App\Services\CheckinCheckoutFeeCalculator::calculateLateCheckoutFee($booking, $checkoutTime);
 
-                if ($checkoutTime->gt($expectedCheckout)) {
-                    $hoursLate = $checkoutTime->diffInHours($expectedCheckout);
-                    if ($hoursLate <= 6) { // Before 18:00
-                        $phiCheckoutMuon = $booking->tong_tien * 0.5;
-                    } else { // After 18:00
-                        $phiCheckoutMuon = $booking->tong_tien;
-                    }
-                }
-
-                $tongPhiPhatSinh = ($validated['phi_phat_sinh'] ?? 0) + $phiCheckoutMuon;
+                // Lấy phụ phí hiện tại (có thể đã có phụ phí check-in sớm)
+                $phiPhatSinhHienTai = $booking->phi_phat_sinh ?? 0;
+                
+                // Phụ phí thiệt hại tài sản từ form
+                $phiThietHai = (float)($validated['phi_phat_sinh'] ?? 0);
+                
+                // Tổng phụ phí = phụ phí hiện tại + phụ phí check-out trễ + phụ phí thiệt hại
+                $tongPhiPhatSinh = $phiPhatSinhHienTai + $phiCheckoutTre + $phiThietHai;
 
                 // Build checkout note
                 $ghiChuCheckout = $validated['ghi_chu_checkout'] ?? '';
-                if ($phiCheckoutMuon > 0) {
-                    $ghiChuCheckout .= "\nPhí check-out muộn: " . number_format($phiCheckoutMuon) . "đ";
+                
+                if ($phiCheckoutTre > 0) {
+                    $ghiChuCheckout .= ($ghiChuCheckout ? "\n" : '') . "Phụ phí check-out trễ: " . number_format($phiCheckoutTre, 0, ',', '.') . " VNĐ";
                 }
-                if (!empty($validated['ly_do_phi'])) {
-                    $ghiChuCheckout .= "\nLý do phụ phí: " . $validated['ly_do_phi'];
+                
+                if ($phiThietHai > 0) {
+                    $ghiChuCheckout .= ($ghiChuCheckout ? "\n" : '') . "Phụ phí thiệt hại: " . number_format($phiThietHai, 0, ',', '.') . " VNĐ";
+                    if (!empty($validated['ly_do_phi'])) {
+                        $ghiChuCheckout .= "\n[LY_DO_PHI: " . $validated['ly_do_phi'] . "]";
+                    }
+                    if (!empty($validated['loai_thiet_hai'])) {
+                        $ghiChuCheckout .= "\nDanh mục: " . $validated['loai_thiet_hai'];
+                    }
                 }
 
                 // Update booking
@@ -2444,17 +2470,18 @@ class DatPhongController extends Controller
                     'trang_thai' => 'da_tra',
                 ]);
 
-                // Update invoice
-                if ($booking->invoice) {
-                    $tongMoi = $booking->invoice->tien_phong 
-                        + $booking->invoice->tien_dich_vu 
-                        + $tongPhiPhatSinh 
-                        - $booking->invoice->giam_gia;
+                // Cập nhật tổng tiền booking và invoice
+                \App\Services\BookingPriceCalculator::recalcTotal($booking);
+                
+                // Refresh booking để lấy giá trị mới nhất
+                $booking->refresh();
 
+                // Update invoice với giá trị mới từ booking
+                if ($booking->invoice) {
                     $booking->invoice->update([
                         'phi_phat_sinh' => $tongPhiPhatSinh,
-                        'tong_tien' => $tongMoi,
-                        'con_lai' => $tongMoi - $booking->invoice->da_thanh_toan,
+                        'tong_tien' => $booking->tong_tien,
+                        'con_lai' => max(0, $booking->tong_tien - ($booking->invoice->da_thanh_toan ?? 0)),
                     ]);
 
                     // Create payment record for additional fees if any
