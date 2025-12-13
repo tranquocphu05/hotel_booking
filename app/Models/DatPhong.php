@@ -127,7 +127,7 @@ class DatPhong extends Model
     public function phongs()
     {
         return $this->belongsToMany(Phong::class, 'booking_rooms', 'dat_phong_id', 'phong_id')
-            ->withPivot('phu_phi')
+            ->withPivot('phu_phi', 'thoi_gian_checkin', 'thoi_gian_checkout', 'trang_thai_phong', 'phi_phat_sinh_phong')
             ->withTimestamps();
     }
 
