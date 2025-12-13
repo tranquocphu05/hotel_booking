@@ -25,6 +25,7 @@
         
         <!-- Date Range Filter: Chỉ hiển thị cho Admin -->
         @unless(isset($isReceptionist) && $isReceptionist)
+
         <div class="flex items-center gap-4">
             <form method="GET" class="flex flex-wrap items-center gap-2">
                 <!-- Date range filter -->
@@ -226,6 +227,7 @@
     </div>
 </div>
 
+
 <!-- Báo cáo doanh thu theo ngày: Chỉ hiển thị cho Admin -->
 @unless(isset($isReceptionist) && $isReceptionist)
 <div class="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -280,6 +282,7 @@
     </div>
 </div>
 @endunless
+
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

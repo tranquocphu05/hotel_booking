@@ -182,12 +182,14 @@
                 @endhasRole
                 {{-- Yêu cầu đổi phòng: Nhân viên và Lễ tân --}}
                 @if (in_array(auth()->user()->vai_tro ?? '', ['admin', 'nhan_vien', 'le_tan']))
+
                 <a href="{{ route('admin.yeu_cau_doi_phong.index') }}"
                     class="group flex items-center px-4 py-3 text-base font-medium rounded-md {{ request()->routeIs('admin.yeu_cau_doi_phong.*') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
                     <i class="fas fa-exchange-alt sidebar-icon mr-4 text-gray-400 group-hover:text-gray-500 text-lg"></i>
                     <span class="sidebar-text transition-all duration-300">Yêu cầu đổi phòng</span>
                 </a>
                 @endif
+
             </div>
         </nav>
 
