@@ -300,7 +300,8 @@
     align-items: stretch;
     padding: 40px;
     border-radius: 36px;
-    background: radial-gradient(circle at top, rgba(255, 255, 255, 0.9), #fff) #f7fafc;
+    background: radial-gradient(circle at top, rgba(255, 255, 255, 0.9), #fff)
+        #f7fafc;
     box-shadow: 0 35px 80px rgba(15, 23, 42, 0.12);
     border: 1px solid #eef2ff;
 }
@@ -606,7 +607,6 @@
 
 /* Đảm bảo ở chế độ di động (mobile) */
 @media (max-width: 1024px) {
-
     .block-list-room {
         grid-template-columns: 1fr;
         grid-template-areas: "rooms" "right-col";
@@ -645,43 +645,43 @@
 }
 
 .room-selection-eyebrow {
-font-size: 0.8rem;
-text-transform: uppercase;
-letter-spacing: 0.08em;
-color: #9ca3af;
-margin-bottom: 4px;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #9ca3af;
+    margin-bottom: 4px;
 }
 
 .room-selection-title {
-font-size: 1.4rem;
-font-weight: 700;
-color: #111827;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #111827;
 }
 
 .room-selection-note {
-font-size: 0.9rem;
-color: #6b7280;
+    font-size: 0.9rem;
+    color: #6b7280;
 }
 
 .room-selection-grid {
-display: grid;
-grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
-gap: 16px;
-margin-bottom: 24px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
 }
 
 .room-card {
-display: flex;
-background: #fff;
-border-radius: 16px;
-border: 1px solid #f1f5f9;
-box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
-overflow: hidden;
-transition: transform 0.2s ease, box-shadow 0.2s ease;
-min-height: 200px;
-padding: 16px;
-gap: 16px;
-align-items: flex-start;
+    display: flex;
+    background: #fff;
+    border-radius: 16px;
+    border: 1px solid #f1f5f9;
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    min-height: 200px;
+    padding: 16px;
+    gap: 16px;
+    align-items: flex-start;
 }
 
 .room-card__left {
@@ -692,9 +692,9 @@ align-items: flex-start;
 }
 
 .room-card--active {
-border-color: #f2a900;
-box-shadow: 0 20px 35px rgba(242, 169, 0, 0.2);
-transform: translateY(-4px);
+    border-color: #f2a900;
+    box-shadow: 0 20px 35px rgba(242, 169, 0, 0.2);
+    transform: translateY(-4px);
 }
 
 .room-card__media {
@@ -710,20 +710,25 @@ transform: translateY(-4px);
 }
 
 .room-card__selection-area {
-    width: 240px;
-    min-width: 240px;
+    width: 100%;
+    min-width: 320px;
+    max-width: 450px;
     display: flex;
     flex-direction: column;
 }
 
 .room-card__media::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.1) 100%);
+    background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        rgba(0, 0, 0, 0.1) 100%
+    );
     z-index: 1;
     pointer-events: none;
 }
@@ -907,7 +912,7 @@ transform: translateY(-4px);
 .room-selection-wrapper {
     position: relative;
     width: 100%;
-    max-width: 150px;
+    max-width: 100%;
 }
 
 .room-quantity-card {
@@ -927,7 +932,8 @@ transform: translateY(-4px);
 }
 
 .room-card-quantity-modern:focus {
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15), 0 4px 12px rgba(59, 130, 246, 0.2);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15),
+        0 4px 12px rgba(59, 130, 246, 0.2);
     transform: translateY(-1px);
 }
 
@@ -941,7 +947,8 @@ transform: translateY(-4px);
     position: relative;
     animation: slideIn 0.3s ease-out;
     width: 100%;
-    max-width: 250px;
+    min-width: 320px;
+    max-width: 450px;
 }
 
 @keyframes slideIn {
@@ -957,9 +964,15 @@ transform: translateY(-4px);
 
 .guest-select-modern {
     width: 100%;
-    min-width: 120px;
+    min-width: 70px;
     font-weight: 600;
     letter-spacing: 0.3px;
+}
+
+/* Guest type selector column */
+.guest-type-selector {
+    min-width: 80px;
+    max-width: 120px;
 }
 
 .guest-select-modern:hover {
@@ -968,7 +981,8 @@ transform: translateY(-4px);
 }
 
 .guest-select-modern:focus {
-    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.15), 0 4px 12px rgba(168, 85, 247, 0.2);
+    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.15),
+        0 4px 12px rgba(168, 85, 247, 0.2);
     transform: translateY(-1px);
 }
 
@@ -1262,8 +1276,8 @@ transform: translateY(-4px);
     border-bottom: 3px solid transparent;
 }
 
-#tabRooms:checked~.tab-labels label[for="tabRooms"],
-#tabVoucher:checked~.tab-labels label[for="tabVoucher"] {
+#tabRooms:checked ~ .tab-labels label[for="tabRooms"],
+#tabVoucher:checked ~ .tab-labels label[for="tabVoucher"] {
     color: #f2a900;
     border-color: #f2a900;
 }
@@ -1276,8 +1290,8 @@ transform: translateY(-4px);
     display: none;
 }
 
-#tabRooms:checked~.tab-panels [data-panel="rooms"],
-#tabVoucher:checked~.tab-panels [data-panel="voucher"] {
+#tabRooms:checked ~ .tab-panels [data-panel="rooms"],
+#tabVoucher:checked ~ .tab-panels [data-panel="voucher"] {
     display: block;
 }
 
@@ -1459,13 +1473,18 @@ transform: translateY(-4px);
 }
 
 .btn-booking-surface::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.2),
+        transparent
+    );
     transition: left 0.5s ease;
 }
 
@@ -1474,7 +1493,7 @@ transform: translateY(-4px);
 }
 
 .btn-booking-surface::after {
-    content: '';
+    content: "";
     position: absolute;
     inset: 0;
     border-radius: inherit;
@@ -1635,7 +1654,7 @@ transform: translateY(-4px);
     margin-top: 24px;
 }
 
- .guarantee-item {
+.guarantee-item {
     display: flex;
     align-items: center;
     gap: 14px;
@@ -1662,7 +1681,6 @@ transform: translateY(-4px);
 }
 
 @media (max-width: 1024px) {
-
     .block-book,
     .block-info-book {
         position: static;
@@ -1675,7 +1693,8 @@ transform: translateY(-4px);
     .block-list-room {
         grid-template-columns: 1fr;
         /* Hủy bỏ grid areas khi ở chế độ responsive */
-        grid-template-areas: "rooms"
+        grid-template-areas:
+            "rooms"
             "book-info"
             "contact-info";
     }
@@ -1778,7 +1797,6 @@ body.modal-open {
     overflow: hidden;
 }
 
-
 .modal-container {
     background: white;
     border-radius: 16px;
@@ -1787,7 +1805,8 @@ body.modal-open {
     max-height: 90vh;
     overflow-y: auto;
     position: relative;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+        0 10px 10px -5px rgba(0, 0, 0, 0.04);
     transform: scale(0.95);
     transition: transform 0.3s ease;
 }
@@ -2125,7 +2144,6 @@ body.modal-open {
     border-radius: 0 0 12px 12px;
 }
 
-
 /* Responsive */
 @media (max-width: 992px) {
     .modal-overlay {
@@ -2375,7 +2393,8 @@ body.modal-open {
     color: #f59e0b;
 }
 
-.form-input, .form-textarea {
+.form-input,
+.form-textarea {
     width: 100%;
     border: 1px solid #d1d5db;
     border-radius: 8px;
@@ -2385,7 +2404,8 @@ body.modal-open {
     transition: border-color 0.2s ease;
 }
 
-.form-input:focus, .form-textarea:focus {
+.form-input:focus,
+.form-textarea:focus {
     outline: none;
     border-color: #f59e0b;
     box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
@@ -2402,7 +2422,8 @@ body.modal-open {
     justify-content: flex-end;
 }
 
-.btn-cancel, .btn-submit {
+.btn-cancel,
+.btn-submit {
     padding: 10px 20px;
     border-radius: 8px;
     font-weight: 600;
@@ -2642,7 +2663,8 @@ body.modal-open {
         flex-direction: column;
     }
 
-    .btn-cancel, .btn-submit {
+    .btn-cancel,
+    .btn-submit {
         width: 100%;
     }
 }
@@ -2696,7 +2718,8 @@ body.modal-open {
 }
 
 .modal-comments-section .shadow-md {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+        0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
 }
 
 .modal-comments-section .bg-gray-50 {
@@ -2715,7 +2738,6 @@ body.modal-open {
     padding: 1rem;
     margin-bottom: 1rem;
 }
-
 
 .modal-comments-section .text-2xl {
     font-size: 1.25rem !important;
@@ -2739,6 +2761,3 @@ body.modal-open {
         justify-content: flex-start !important;
     }
 }
-
-
-

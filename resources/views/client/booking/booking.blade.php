@@ -338,6 +338,8 @@
                                                                         data-room-name="{{ $option->ten_loai }}"
                                                                         data-room-price="{{ $optionPrice }}"
                                                                         data-max-quantity="{{ $initialAvailable }}"
+                                                                        data-child-fee="{{ $option->phi_tre_em ?? 0 }}"
+                                                                        data-infant-fee="{{ $option->phi_em_be ?? 0 }}"
                                                                         onchange="updateRoomCardQuantity('{{ $option->id }}')">
                                                                         @php
                                                                             $isPreselected = $option->id === optional($loaiPhong)->id;
@@ -610,6 +612,16 @@
                                     <span id="totalAfterDiscount"
                                         class="total-amount">{{ number_format($tong_tien_initial) }} VNĐ</span>
                                 </div>
+                            </div>
+
+                            {{-- Chính sách check-in/check-out --}}
+                            <div class="summary-box bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <p class="summary-section-title text-sm font-semibold text-gray-900 mb-2">Chính sách check-in/check-out</p>
+                                <ul class="text-xs text-gray-700 space-y-1">
+                                    <li>• Giờ nhận phòng: từ 14:00</li>
+                                    <li>• Giờ trả phòng: trước 12:00</li>
+                                    <li class="text-orange-600 font-medium">• Đến trước 14:00 hoặc trả phòng sau 12:00 có thể phát sinh phụ thu theo chính sách khách sạn.</li>
+                                </ul>
                             </div>
 
                             <button type="submit" class="btn-booking-submit">
