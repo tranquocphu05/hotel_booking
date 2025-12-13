@@ -301,6 +301,16 @@
                             class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-base">
                 </div>
 
+                {{-- Chính sách check-in/check-out --}}
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 class="text-sm font-semibold text-gray-900 mb-2">Chính sách check-in/check-out</h4>
+                    <ul class="text-xs text-gray-700 space-y-1">
+                        <li>• Giờ nhận phòng: từ 14:00</li>
+                        <li>• Giờ trả phòng: trước 12:00</li>
+                        <li class="text-orange-600 font-medium">• Đến trước 14:00 hoặc trả phòng sau 12:00 có thể phát sinh phụ thu theo chính sách khách sạn.</li>
+                    </ul>
+                </div>
+
                 <div>
                     <label class="block text-base font-medium text-gray-700 mb-2">Số người</label>
                     <select name="guests"

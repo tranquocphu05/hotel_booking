@@ -115,15 +115,17 @@
                         {{-- Step 3: Check-in --}}
                         @php
                             $step3Complete = in_array($booking->trang_thai, ['da_xac_nhan', 'da_tra']);
-                            $step3Date = $step3Complete ? $booking->ngay_checkin : null;
+                            $step3Date = $step3Complete ? $booking->thoi_gian_checkin : null;
                         @endphp
                         <div class="flex flex-col items-center">
                             <div
                                 class="w-16 h-16 rounded-full flex items-center justify-center mb-3 {{ $step3Complete ? 'bg-blue-600' : 'bg-gray-200' }}">
-                                <svg class="w-8 h-8 {{ $step3Complete ? 'text-white' : 'text-gray-400' }}" fill="none"
-                                    stroke="currentColor" viewBox="0 0 24 24">
+                                {{-- Icon chìa khóa cho bước Check-in --}}
+                                <svg class="w-8 h-8 {{ $step3Complete ? 'text-white' : 'text-gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M12 11c0 3.866-3.582 7-8 7s-8-3.134-8-7 3.582-7 8-7 8 3.134 8 7zM14 11V7a4 4 0 00-8 0v4m8 0h-8m8 0a4 4 0 01-8 0" />
+                                        d="M15 7a3 3 0 11-6 0 3 3 0 016 0zM3 21l6-6" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 15h3m-3 3h2" />
                                 </svg>
                             </div>
                             <p class="text-sm font-semibold {{ $step3Complete ? 'text-blue-600' : 'text-gray-400' }} mb-1">
@@ -288,6 +290,7 @@
                                 <p class="text-xl font-bold text-red-600">0%</p>
                             </div>
                         </div>
+
                     </div>
 
                     @if ($cancellationPolicy['can_cancel'])

@@ -73,7 +73,9 @@ class BookingManager {
         this.roomTypeOptionsHtml = "";
         // Capacity and surcharge config
         this.maxAdultsPerRoom = 2; // fixed capacity per room
-        this.extraFeePercent = 0.1; // 20% of nightly room price per extra adult
+        this.extraFeePercent = 0.1; // 10% of nightly room price per extra adult
+        this.childFeePercent = 0.05; // 5% of nightly room price per child (6-11)
+        this.infantFeePercent = 0.05; // 5% of nightly room price per infant (0-5)
 
         // Initialize
         this.init();
@@ -128,25 +130,27 @@ class BookingManager {
         // Initialize quantity buttons based on current values (don't reset to 0)
         let hasPreselectedRoom = false;
 
-        document.querySelectorAll('.room-card-quantity, .room-card-quantity-modern').forEach(input => {
-            // Keep the value from HTML (may be 1 if pre-selected from room list)
-            const currentValue = parseInt(input.value) || 0;
-            const roomId = input.dataset.roomId;
+        document
+            .querySelectorAll(".room-card-quantity, .room-card-quantity-modern")
+            .forEach((input) => {
+                // Keep the value from HTML (may be 1 if pre-selected from room list)
+                const currentValue = parseInt(input.value) || 0;
+                const roomId = input.dataset.roomId;
 
-            // Update button states
-            this.updateQuantityButtons(input);
+                // Update button states
+                this.updateQuantityButtons(input);
 
-            // If quantity > 0, update the card to show selected state and render guest rows
-            if (currentValue > 0 && roomId) {
-                hasPreselectedRoom = true;
-                const roomCard = input.closest('.room-card');
-                if (roomCard) {
-                    roomCard.classList.add('room-card--active');
+                // If quantity > 0, update the card to show selected state and render guest rows
+                if (currentValue > 0 && roomId) {
+                    hasPreselectedRoom = true;
+                    const roomCard = input.closest(".room-card");
+                    if (roomCard) {
+                        roomCard.classList.add("room-card--active");
+                    }
+                    // Render guest rows for this room type
+                    this.renderGuestRows(roomId);
                 }
-                // Render guest rows for this room type
-                this.renderGuestRows(roomId);
-            }
-        });
+            });
         // Initialize adults selectors to 2
         document.querySelectorAll(".room-card-adults").forEach((sel) => {
             if (!sel.value) sel.value = "2";
@@ -162,6 +166,7 @@ class BookingManager {
     }
 
     // Render per-room guest selector rows for a room type card
+    // Now includes separate selectors for Adults (Người lớn), Children (Trẻ em 6-11), and Infants (Em bé 0-5)
     renderGuestRows(roomId) {
         const container = document.getElementById(
             `room_card_guest_rows_${roomId}`
@@ -192,32 +197,92 @@ class BookingManager {
             parseInt(defaultAdultsSel?.value || this.maxAdultsPerRoom) ||
             this.maxAdultsPerRoom;
 
+        // Get surcharge rates from room type data
+        const childFee = parseFloat(quantityInput.dataset.childFee) || 0;
+        const infantFee = parseFloat(quantityInput.dataset.infantFee) || 0;
+
         const rows = [];
         for (let i = 1; i <= qty; i++) {
-            const rowId = `room_card_guest_row_adults_${roomId}_${i}`;
-            const value = previousValues[rowId] || String(defaultAdults);
+            const adultsRowId = `room_card_guest_row_adults_${roomId}_${i}`;
+            const childrenRowId = `room_card_guest_row_children_${roomId}_${i}`;
+            const infantsRowId = `room_card_guest_row_infants_${roomId}_${i}`;
+
+            const adultsValue =
+                previousValues[adultsRowId] || String(defaultAdults);
+            const childrenValue = previousValues[childrenRowId] || "0";
+            const infantsValue = previousValues[infantsRowId] || "0";
+
             rows.push(`
-                <div class="guest-selection-card p-2 transition-all duration-300" data-guest-row>
-                    <div class="flex items-center gap-2">
-                        <label class="flex items-center gap-1.5 text-xs font-semibold text-gray-700 whitespace-nowrap min-w-[100px]">
-                            <div class="flex items-center justify-center w-5 h-5 rounded-md bg-purple-500 text-white shadow-sm">
-                                <i class="fas fa-users text-xs"></i>
+                <div class="guest-selection-card bg-gradient-to-r from-gray-50 to-white rounded-xl border border-gray-200 shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md" data-guest-row>
+                    <div class="bg-gradient-to-r from-indigo-500 to-indigo-600 px-4 py-2">
+                        <div class="flex items-center gap-2 text-white">
+                            <i class="fas fa-bed text-sm"></i>
+                            <span class="text-sm font-semibold">Phòng ${i}</span>
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <div class="flex items-center justify-between gap-3">
+                            <!-- Adults (Người lớn) -->
+                            <div class="guest-type-selector flex-1 text-center">
+                                <div class="flex flex-col items-center gap-1 mb-2">
+                                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                        <i class="fas fa-user text-blue-600 text-lg"></i>
+                                    </div>
+                                    <span class="text-xs font-semibold text-gray-700">Người lớn</span>
+                                    <span class="text-[10px] text-gray-500">&nbsp;</span>
+                                </div>
+                                <select id="${adultsRowId}"
+                                        class="guest-select-modern w-full text-center appearance-none bg-white border-2 border-blue-200 rounded-lg px-3 py-2 text-sm font-bold text-gray-800 shadow-sm transition-all duration-200 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-500 cursor-pointer"
+                                        data-room-id="${roomId}"
+                                        data-guest-type="adults"
+                                        onchange="window.bookingManager.onGuestRowChange('${roomId}')">
+                                    <option value="0">0</option>
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+                                </select>
                             </div>
-                            <span>Phòng ${i}:</span>
-                        </label>
-                        <div class="relative flex-1">
-                            <select id="${rowId}"
-                                    class="guest-select-modern appearance-none w-full bg-white border-2 border-purple-300 rounded-md px-2.5 py-1.5 pr-10 text-xs font-semibold text-gray-800 shadow-sm transition-all duration-200 hover:border-purple-500 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-500 cursor-pointer"
-                                    data-room-id="${roomId}"
-                                    onchange="window.bookingManager.onGuestRowChange('${roomId}')">
-                                <option value="0">0 Người</option>
-                                <option value="1">1 Người</option>
-                                <option value="2">2 Người</option>
-                                <option value="3">3 Người</option>
-                                <option value="4">4 Người</option>
-                            </select>
-                            <div class="absolute inset-y-0 right-0 flex items-center pr-2.5 pointer-events-none">
-                                <i class="fas fa-chevron-down text-purple-500 text-xs transition-transform duration-200 dropdown-chevron"></i>
+
+                            <!-- Children (Trẻ em 6-11 tuổi) -->
+                            <div class="guest-type-selector flex-1 text-center">
+                                <div class="flex flex-col items-center gap-1 mb-2">
+                                    <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                                        <i class="fas fa-child text-green-600 text-lg"></i>
+                                    </div>
+                                    <span class="text-xs font-semibold text-gray-700">Trẻ em</span>
+                                    <span class="text-[10px] text-gray-500">(6-11 tuổi)</span>
+                                </div>
+                                <select id="${childrenRowId}"
+                                        class="guest-select-modern w-full text-center appearance-none bg-white border-2 border-green-200 rounded-lg px-3 py-2 text-sm font-bold text-gray-800 shadow-sm transition-all duration-200 hover:border-green-400 focus:outline-none focus:ring-2 focus:ring-green-300 focus:border-green-500 cursor-pointer"
+                                        data-room-id="${roomId}"
+                                        data-guest-type="children"
+                                        onchange="window.bookingManager.onGuestRowChange('${roomId}')">
+                                    <option value="0">0</option>
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                </select>
+                            </div>
+
+                            <!-- Infants (Em bé 0-5 tuổi) -->
+                            <div class="guest-type-selector flex-1 text-center">
+                                <div class="flex flex-col items-center gap-1 mb-2">
+                                    <div class="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center">
+                                        <i class="fas fa-baby text-pink-600 text-lg"></i>
+                                    </div>
+                                    <span class="text-xs font-semibold text-gray-700">Em bé</span>
+                                    <span class="text-[10px] text-gray-500">(0-5 tuổi)</span>
+                                </div>
+                                <select id="${infantsRowId}"
+                                        class="guest-select-modern w-full text-center appearance-none bg-white border-2 border-pink-200 rounded-lg px-3 py-2 text-sm font-bold text-gray-800 shadow-sm transition-all duration-200 hover:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-500 cursor-pointer"
+                                        data-room-id="${roomId}"
+                                        data-guest-type="infants"
+                                        onchange="window.bookingManager.onGuestRowChange('${roomId}')">
+                                    <option value="0">0</option>
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -230,11 +295,23 @@ class BookingManager {
 
         // Apply preserved/default values
         for (let i = 1; i <= qty; i++) {
-            const rowId = `room_card_guest_row_adults_${roomId}_${i}`;
-            const sel = document.getElementById(rowId);
-            if (sel) {
-                const prev = previousValues[rowId];
-                sel.value = prev ? prev : String(defaultAdults);
+            const adultsRowId = `room_card_guest_row_adults_${roomId}_${i}`;
+            const childrenRowId = `room_card_guest_row_children_${roomId}_${i}`;
+            const infantsRowId = `room_card_guest_row_infants_${roomId}_${i}`;
+
+            const adultsSel = document.getElementById(adultsRowId);
+            const childrenSel = document.getElementById(childrenRowId);
+            const infantsSel = document.getElementById(infantsRowId);
+
+            if (adultsSel) {
+                adultsSel.value =
+                    previousValues[adultsRowId] || String(defaultAdults);
+            }
+            if (childrenSel) {
+                childrenSel.value = previousValues[childrenRowId] || "0";
+            }
+            if (infantsSel) {
+                infantsSel.value = previousValues[infantsRowId] || "0";
             }
         }
 
@@ -275,37 +352,43 @@ class BookingManager {
 
         if (!checkin || !checkout) {
             // Show default availability and ensure dropdown options are correct
-            document.querySelectorAll(".room-card-quantity, .room-card-quantity-modern").forEach((el) => {
-                const roomId = el.dataset.roomId;
-                const maxQuantity = parseInt(el.dataset.maxQuantity) || 0;
-                const availabilityEl = document.getElementById(
-                    `availability_${roomId}`
-                );
-                if (availabilityEl) {
-                    availabilityEl.textContent = `Còn ${maxQuantity} phòng`;
-                    availabilityEl.classList.remove("unavailable");
-                }
+            document
+                .querySelectorAll(
+                    ".room-card-quantity, .room-card-quantity-modern"
+                )
+                .forEach((el) => {
+                    const roomId = el.dataset.roomId;
+                    const maxQuantity = parseInt(el.dataset.maxQuantity) || 0;
+                    const availabilityEl = document.getElementById(
+                        `availability_${roomId}`
+                    );
+                    if (availabilityEl) {
+                        availabilityEl.textContent = `Còn ${maxQuantity} phòng`;
+                        availabilityEl.classList.remove("unavailable");
+                    }
 
-                // If it's a select, rebuild options 0..maxQuantity and clamp current value
-                if (el.tagName === "SELECT") {
-                    const current = parseInt(el.value) || 0;
-                    const newMax = Math.max(0, maxQuantity);
-                    const optionsHtml = Array.from(
-                        { length: newMax + 1 },
-                        (_, i) => `<option value="${i}">${i} Phòng</option>`
-                    ).join("");
-                    el.innerHTML = optionsHtml;
-                    el.value = Math.min(current, newMax).toString();
-                }
-            });
+                    // If it's a select, rebuild options 0..maxQuantity and clamp current value
+                    if (el.tagName === "SELECT") {
+                        const current = parseInt(el.value) || 0;
+                        const newMax = Math.max(0, maxQuantity);
+                        const optionsHtml = Array.from(
+                            { length: newMax + 1 },
+                            (_, i) => `<option value="${i}">${i} Phòng</option>`
+                        ).join("");
+                        el.innerHTML = optionsHtml;
+                        el.value = Math.min(current, newMax).toString();
+                    }
+                });
             return;
         }
 
         // Check availability for each room type
-        document.querySelectorAll(".room-card-quantity, .room-card-quantity-modern").forEach((input) => {
-            const roomId = input.dataset.roomId;
-            this.checkRoomCardAvailability(roomId, checkin, checkout);
-        });
+        document
+            .querySelectorAll(".room-card-quantity, .room-card-quantity-modern")
+            .forEach((input) => {
+                const roomId = input.dataset.roomId;
+                this.checkRoomCardAvailability(roomId, checkin, checkout);
+            });
     }
 
     checkRoomCardAvailability(roomId, checkin, checkout) {
@@ -471,7 +554,9 @@ class BookingManager {
     isHoliday(date) {
         const year = date.getFullYear();
         const pad = (n) => (n < 10 ? "0" + n : "" + n);
-        const key = `${year}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+        const key = `${year}-${pad(date.getMonth() + 1)}-${pad(
+            date.getDate()
+        )}`;
         const holidays = [
             `${year}-01-01`,
             `${year}-04-30`,
@@ -633,7 +718,7 @@ class BookingManager {
 
     // === PRICE CALCULATIONS ===
     tinhTongTien() {
-        // Tính tổng giá từ room cards với phụ phí và multiplier theo từng ngày
+        // Tính tổng giá từ room cards với multiplier theo từng ngày + phụ phí khách vượt
         const { checkinValue, checkoutValue, soDem } = this.getDatesAndDays();
         let totalBeforeDiscountAmount = 0;
         let totalExtraFee = 0;
@@ -650,7 +735,11 @@ class BookingManager {
             .querySelectorAll(".room-card-quantity, .room-card-quantity-modern")
             .forEach((quantityInput) => {
                 const quantity = parseInt(quantityInput.value) || 0;
-                if (quantity > 0 && !isNaN(checkinDate) && !isNaN(checkoutDate)) {
+                if (
+                    quantity > 0 &&
+                    !isNaN(checkinDate) &&
+                    !isNaN(checkoutDate)
+                ) {
                     const price =
                         parseFloat(quantityInput.dataset.roomPrice) || 0;
                     const roomId = quantityInput.dataset.roomId;
@@ -661,21 +750,27 @@ class BookingManager {
                         parseInt(adultsSel?.value || this.maxAdultsPerRoom) ||
                         this.maxAdultsPerRoom;
 
-                    // Sum adults from per-room rows if present
+                    // Sum adults từ các hàng guest, dùng để tính khách vượt
                     let sumAdults = 0;
                     const rowsContainer = document.getElementById(
                         `room_card_guest_rows_${roomId}`
                     );
-                    const rowSelects = rowsContainer
-                        ? rowsContainer.querySelectorAll(
-                              "[data-guest-row] select"
-                          )
-                        : [];
-                    if (rowSelects && rowSelects.length > 0) {
-                        rowSelects.forEach((sel) => {
+
+                    if (rowsContainer) {
+                        // Lấy tổng người lớn từ các selector
+                        const adultSelects = rowsContainer.querySelectorAll(
+                            '[data-guest-type="adults"]'
+                        );
+                        adultSelects.forEach((sel) => {
                             sumAdults += parseInt(sel.value) || 0;
                         });
-                    } else {
+                    }
+
+                    // Nếu không có dòng guest nào, mặc định số người lớn = số người chuẩn của phòng * số phòng
+                    if (
+                        sumAdults === 0 &&
+                        !rowsContainer?.querySelector("[data-guest-row]")
+                    ) {
                         sumAdults = defaultAdults * quantity;
                     }
 
@@ -697,8 +792,10 @@ class BookingManager {
                             else weekdayNights++;
                         }
 
+                        // Tiền phòng cơ bản theo hệ số ngày
                         totalBeforeDiscountAmount += price * m * quantity;
 
+                        // Phụ phí khách vượt (nếu có), áp dụng cùng multiplier theo ngày
                         if (extraGuestsForType > 0) {
                             totalExtraFee +=
                                 extraGuestsForType *
@@ -712,7 +809,7 @@ class BookingManager {
                 }
             });
 
-        // Add extra fee to total
+        // Cộng phụ phí khách vượt vào tổng (không có phụ phí trẻ em / em bé)
         if (totalExtraFee > 0) {
             totalBeforeDiscountAmount += totalExtraFee;
         }
@@ -768,6 +865,17 @@ class BookingManager {
         } else {
             extraFeeDisplay.classList.add("hidden");
         }
+        // Remove any existing duplicate surcharge displays (they are shown in summary instead)
+        const existingExtraFeeDisplay = document.getElementById(
+            "extraGuestFeeDisplay"
+        );
+        const existingChildFeeDisplay =
+            document.getElementById("childFeeDisplay");
+        const existingInfantFeeDisplay =
+            document.getElementById("infantFeeDisplay");
+        if (existingExtraFeeDisplay) existingExtraFeeDisplay.remove();
+        if (existingChildFeeDisplay) existingChildFeeDisplay.remove();
+        if (existingInfantFeeDisplay) existingInfantFeeDisplay.remove();
 
         // Tìm element hiển thị discount amount
         let discountAmountDisplay = document.getElementById(
@@ -905,44 +1013,88 @@ class BookingManager {
                     const price =
                         parseFloat(quantityInput.dataset.roomPrice) || 0;
                     const roomId = quantityInput.dataset.roomId;
+                    // Calculate child and infant fee rates as percentage of room price (5%)
+                    const childFeeRate = price * this.childFeePercent;
+                    const infantFeeRate = price * this.infantFeePercent;
                     const adultsSel = document.getElementById(
                         `room_card_adults_${roomId}`
                     );
-                    const adults =
+                    const defaultAdults =
                         parseInt(adultsSel?.value || this.maxAdultsPerRoom) ||
                         this.maxAdultsPerRoom;
                     totalRoomsSelected += quantity;
 
-                    // Compute extra fee for this room type
+                    // Compute guests from per-room rows
                     const { soDem } = this.getDatesAndDays();
                     let sumAdults = 0;
+                    let sumChildren = 0;
+                    let sumInfants = 0;
                     const rowsContainer = document.getElementById(
                         `room_card_guest_rows_${roomId}`
                     );
-                    const rowSelects = rowsContainer
-                        ? rowsContainer.querySelectorAll(
-                              "[data-guest-row] select"
-                          )
-                        : [];
-                    if (rowSelects && rowSelects.length > 0) {
-                        rowSelects.forEach((sel) => {
+
+                    if (rowsContainer) {
+                        // Get adults from adult selectors
+                        const adultSelects = rowsContainer.querySelectorAll(
+                            '[data-guest-type="adults"]'
+                        );
+                        adultSelects.forEach((sel) => {
                             sumAdults += parseInt(sel.value) || 0;
                         });
-                    } else {
-                        sumAdults = adults * quantity;
+
+                        // Get children from children selectors
+                        const childSelects = rowsContainer.querySelectorAll(
+                            '[data-guest-type="children"]'
+                        );
+                        childSelects.forEach((sel) => {
+                            sumChildren += parseInt(sel.value) || 0;
+                        });
+
+                        // Get infants from infant selectors
+                        const infantSelects = rowsContainer.querySelectorAll(
+                            '[data-guest-type="infants"]'
+                        );
+                        infantSelects.forEach((sel) => {
+                            sumInfants += parseInt(sel.value) || 0;
+                        });
                     }
+
+                    // If no guest rows, use default adults
+                    if (
+                        sumAdults === 0 &&
+                        !rowsContainer?.querySelector("[data-guest-row]")
+                    ) {
+                        sumAdults = defaultAdults * quantity;
+                    }
+
                     const capacity = quantity * this.maxAdultsPerRoom;
-                    const extraGuestsForType = Math.max(0, sumAdults - capacity);
+                    const extraGuestsForType = Math.max(
+                        0,
+                        sumAdults - capacity
+                    );
                     const extraFeeForType =
-                        extraGuestsForType * price * this.extraFeePercent * soDem;
+                        extraGuestsForType *
+                        price *
+                        this.extraFeePercent *
+                        soDem;
+
+                    // Calculate children and infant surcharges
+                    const childFeeForType = sumChildren * childFeeRate * soDem;
+                    const infantFeeForType = sumInfants * infantFeeRate * soDem;
 
                     roomsSummary.push({
                         name: roomName,
                         quantity: quantity,
                         price: price,
                         roomId: roomId,
-                        adults: adults,
+                        adults: sumAdults,
+                        children: sumChildren,
+                        infants: sumInfants,
                         extraFee: extraFeeForType,
+                        childFee: childFeeForType,
+                        infantFee: infantFeeForType,
+                        childFeeRate: childFeeRate,
+                        infantFeeRate: infantFeeRate,
                         source: "card",
                     });
                 }
@@ -957,27 +1109,93 @@ class BookingManager {
                     .map((room) => {
                         const removeAction = `onclick="window.bookingManager.clearRoomCardQuantity('${room.roomId}')"`;
 
-                        return `<div class="summary-room-line">
-                        <div>
-                            <p class="font-medium">${room.name}</p>
-                            <small>${this.formatCurrency(
+                        // Build guest info display
+                        let guestInfoHtml = "";
+                        if (
+                            room.adults > 0 ||
+                            room.children > 0 ||
+                            room.infants > 0
+                        ) {
+                            const guestParts = [];
+                            if (room.adults > 0) {
+                                guestParts.push(
+                                    `<span class="text-blue-600"><i class="fas fa-user text-xs"></i> ${room.adults} người lớn</span>`
+                                );
+                            }
+                            if (room.children > 0) {
+                                guestParts.push(
+                                    `<span class="text-green-600"><i class="fas fa-child text-xs"></i> ${room.children} trẻ em</span>`
+                                );
+                            }
+                            if (room.infants > 0) {
+                                guestParts.push(
+                                    `<span class="text-pink-600"><i class="fas fa-baby text-xs"></i> ${room.infants} em bé</span>`
+                                );
+                            }
+                            guestInfoHtml = `<div class="text-xs mt-1 flex flex-wrap gap-2">${guestParts.join(
+                                ""
+                            )}</div>`;
+                        }
+
+                        // Build surcharge display with breakdown
+                        let surchargeHtml = "";
+                        const surchargeItems = [];
+
+                        if (room.extraFee && room.extraFee > 0) {
+                            surchargeItems.push(
+                                `<div class="flex items-center gap-1">
+            <i class="fas fa-user-plus text-amber-500 text-xs"></i>
+            <span>Thêm người lớn: +${this.formatCurrency(room.extraFee)}</span>
+        </div>`
+                            );
+                        }
+
+                        if (room.childFee && room.childFee > 0) {
+                            surchargeItems.push(
+                                `<div class="flex items-center gap-1">
+            <i class="fas fa-child text-green-500 text-xs"></i>
+            <span>Thêm trẻ em: +${this.formatCurrency(room.childFee)}</span>
+        </div>`
+                            );
+                        }
+
+                        if (room.infantFee && room.infantFee > 0) {
+                            surchargeItems.push(
+                                `<div class="flex items-center gap-1">
+            <i class="fas fa-baby text-pink-500 text-xs"></i>
+            <span>Thêm em bé: +${this.formatCurrency(room.infantFee)}</span>
+        </div>`
+                            );
+                        }
+
+                        if (surchargeItems.length > 0) {
+                            surchargeHtml = `<div class="text-xs text-gray-700 mt-2 space-y-1 bg-orange-50 rounded-md p-2 border border-orange-100">${surchargeItems.join(
+                                ""
+                            )}</div>`;
+                        }
+
+                        return `<div class="summary-room-line border-b border-gray-100 pb-3 mb-3">
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between">
+                                <p class="font-semibold text-gray-800">${
+                                    room.name
+                                }</p>
+                                <div class="summary-room-actions flex items-center gap-2">
+                                    <span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-xs font-medium">x${
+                                        room.quantity
+                                    } phòng</span>
+                                    <button type="button" class="summary-room-remove text-red-400 hover:text-red-600 transition-colors" aria-label="Xóa ${
+                                        room.name
+                                    }" ${removeAction}>
+                                        <i class="fas fa-times-circle"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <small class="text-gray-500">${this.formatCurrency(
                                 room.price
                             )} / đêm</small>
-                            ${
-                                room.extraFee && room.extraFee > 0
-                                    ? `<div class="text-xs text-amber-700">Phụ phí: +${this.formatCurrency(
-                                          room.extraFee
-                                      )}</div>`
-                                    : ""
-                            }
-                        </div>
-                        <div class="summary-room-actions">
-                            <span>x${room.quantity}</span>
-                            <button type="button" class="summary-room-remove" aria-label="Xóa ${
-                                room.name
-                            }" ${removeAction}>
-                                <i class="fas fa-times"></i>
-                            </button>
+                            ${guestInfoHtml}
+                            ${surchargeHtml}
                         </div>
                     </div>`;
                     })
@@ -1251,7 +1469,9 @@ class BookingManager {
             this.finalBookingForm.addEventListener("submit", (e) => {
                 // Check if any rooms are selected
                 const hasSelectedRooms = Array.from(
-                    document.querySelectorAll(".room-card-quantity, .room-card-quantity-modern")
+                    document.querySelectorAll(
+                        ".room-card-quantity, .room-card-quantity-modern"
+                    )
                 ).some((input) => {
                     return parseInt(input.value) > 0;
                 });
@@ -1318,16 +1538,18 @@ class BookingManager {
 
         // Thu thập danh sách các loại phòng đang được chọn từ room cards
         const selectedRoomTypeIds = [];
-        document.querySelectorAll('.room-card-quantity, .room-card-quantity-modern').forEach((input) => {
-            const qty = parseInt(input.value) || 0;
-            const roomId = input.dataset.roomId;
-            if (qty > 0 && roomId) {
-                selectedRoomTypeIds.push(roomId);
-            }
-        });
+        document
+            .querySelectorAll(".room-card-quantity, .room-card-quantity-modern")
+            .forEach((input) => {
+                const qty = parseInt(input.value) || 0;
+                const roomId = input.dataset.roomId;
+                if (qty > 0 && roomId) {
+                    selectedRoomTypeIds.push(roomId);
+                }
+            });
 
         const roomTypeIdsParam = encodeURIComponent(
-            selectedRoomTypeIds.join(',')
+            selectedRoomTypeIds.join(",")
         );
 
         const fetchUrl = `/client/voucher?current_total=${Math.round(
@@ -2214,9 +2436,15 @@ class BookingManager {
                         sumAdults = this.maxAdultsPerRoom * quantity;
                     }
                     const capacity = quantity * this.maxAdultsPerRoom;
-                    const extraGuestsForType = Math.max(0, sumAdults - capacity);
+                    const extraGuestsForType = Math.max(
+                        0,
+                        sumAdults - capacity
+                    );
                     const extraFeeForType =
-                        extraGuestsForType * price * this.extraFeePercent * soDem;
+                        extraGuestsForType *
+                        price *
+                        this.extraFeePercent *
+                        soDem;
 
                     roomsSummary.push({
                         name: roomName,
@@ -2248,9 +2476,13 @@ class BookingManager {
                             <small>${this.formatCurrency(
                                 room.price
                             )} / đêm</small>
-                            ${room.extraFee && room.extraFee > 0
-                                ? `<div class="text-xs text-amber-700">Phụ phí: +${this.formatCurrency(room.extraFee)}</div>`
-                                : ""}
+                            ${
+                                room.extraFee && room.extraFee > 0
+                                    ? `<div class="text-xs text-amber-700">Phụ phí: +${this.formatCurrency(
+                                          room.extraFee
+                                      )}</div>`
+                                    : ""
+                            }
                         </div>
                         <div class="summary-room-actions">
                             <span>x${room.quantity}</span>
@@ -2379,45 +2611,85 @@ class BookingManager {
 
                 // Mark as processed
                 processedRoomIds.add(roomId);
-                    // Sum adults from per-room rows if present; else assume max per room
-                    let adultsTotal = 0;
-                    const rowsContainer = document.getElementById(
-                        `room_card_guest_rows_${roomId}`
+
+                // Sum guests from per-room rows if present; else assume defaults
+                let adultsTotal = 0;
+                let childrenTotal = 0;
+                let infantsTotal = 0;
+
+                const rowsContainer = document.getElementById(
+                    `room_card_guest_rows_${roomId}`
+                );
+
+                if (rowsContainer) {
+                    // Get adults from adult selectors
+                    const adultSelects = rowsContainer.querySelectorAll(
+                        '[data-guest-type="adults"]'
                     );
-                    const rowSelects = rowsContainer
-                        ? rowsContainer.querySelectorAll(
-                              "[data-guest-row] select"
-                          )
-                        : [];
-                    if (rowSelects && rowSelects.length > 0) {
-                        rowSelects.forEach(
-                            (sel) => (adultsTotal += parseInt(sel.value) || 0)
-                        );
-                    } else {
-                        adultsTotal = this.maxAdultsPerRoom * quantity;
-                    }
+                    adultSelects.forEach((sel) => {
+                        adultsTotal += parseInt(sel.value) || 0;
+                    });
 
-                    // Create hidden inputs in the format the controller expects: rooms[index][field]
-                    const roomIdInput = document.createElement("input");
-                    roomIdInput.type = "hidden";
-                    roomIdInput.name = `rooms[${roomIndex}][loai_phong_id]`;
-                    roomIdInput.value = roomId;
+                    // Get children from children selectors
+                    const childSelects = rowsContainer.querySelectorAll(
+                        '[data-guest-type="children"]'
+                    );
+                    childSelects.forEach((sel) => {
+                        childrenTotal += parseInt(sel.value) || 0;
+                    });
 
-                    const quantityHiddenInput = document.createElement("input");
-                    quantityHiddenInput.type = "hidden";
-                    quantityHiddenInput.name = `rooms[${roomIndex}][so_luong]`;
-                    quantityHiddenInput.value = quantity;
+                    // Get infants from infant selectors
+                    const infantSelects = rowsContainer.querySelectorAll(
+                        '[data-guest-type="infants"]'
+                    );
+                    infantSelects.forEach((sel) => {
+                        infantsTotal += parseInt(sel.value) || 0;
+                    });
+                }
 
-                    const adultsHiddenInput = document.createElement("input");
-                    adultsHiddenInput.type = "hidden";
-                    adultsHiddenInput.name = `rooms[${roomIndex}][so_nguoi]`;
-                    adultsHiddenInput.value = adultsTotal;
+                // If no guest rows, use default adults
+                if (
+                    adultsTotal === 0 &&
+                    !rowsContainer?.querySelector("[data-guest-row]")
+                ) {
+                    adultsTotal = this.maxAdultsPerRoom * quantity;
+                }
 
-                    container.appendChild(roomIdInput);
-                    container.appendChild(quantityHiddenInput);
-                    container.appendChild(adultsHiddenInput);
+                // Create hidden inputs in the format the controller expects: rooms[index][field]
+                const roomIdInput = document.createElement("input");
+                roomIdInput.type = "hidden";
+                roomIdInput.name = `rooms[${roomIndex}][loai_phong_id]`;
+                roomIdInput.value = roomId;
 
-                    roomIndex++;
+                const quantityHiddenInput = document.createElement("input");
+                quantityHiddenInput.type = "hidden";
+                quantityHiddenInput.name = `rooms[${roomIndex}][so_luong]`;
+                quantityHiddenInput.value = quantity;
+
+                const adultsHiddenInput = document.createElement("input");
+                adultsHiddenInput.type = "hidden";
+                adultsHiddenInput.name = `rooms[${roomIndex}][so_nguoi]`;
+                adultsHiddenInput.value = adultsTotal;
+
+                // Add children hidden input
+                const childrenHiddenInput = document.createElement("input");
+                childrenHiddenInput.type = "hidden";
+                childrenHiddenInput.name = `rooms[${roomIndex}][so_tre_em]`;
+                childrenHiddenInput.value = childrenTotal;
+
+                // Add infants hidden input
+                const infantsHiddenInput = document.createElement("input");
+                infantsHiddenInput.type = "hidden";
+                infantsHiddenInput.name = `rooms[${roomIndex}][so_em_be]`;
+                infantsHiddenInput.value = infantsTotal;
+
+                container.appendChild(roomIdInput);
+                container.appendChild(quantityHiddenInput);
+                container.appendChild(adultsHiddenInput);
+                container.appendChild(childrenHiddenInput);
+                container.appendChild(infantsHiddenInput);
+
+                roomIndex++;
             });
     }
 
@@ -2567,10 +2839,11 @@ document.addEventListener("DOMContentLoaded", function () {
             modalRoomDescription.textContent = roomData.roomDescription;
 
             // 2. Cập nhật giá phòng
-            const roomPrice = roomData.roomPrice || '0';
-            const modalRoomPrice = document.getElementById('modalRoomPrice');
+            const roomPrice = roomData.roomPrice || "0";
+            const modalRoomPrice = document.getElementById("modalRoomPrice");
             if (modalRoomPrice) {
-                modalRoomPrice.textContent = formatCurrency(parseFloat(roomPrice)) + '/đêm';
+                modalRoomPrice.textContent =
+                    formatCurrency(parseFloat(roomPrice)) + "/đêm";
             }
 
             // 3. Load rating và reviews từ data attributes
@@ -2582,9 +2855,9 @@ document.addEventListener("DOMContentLoaded", function () {
             // 2. BỎ QUA LOGIC ĐIỀN TIỆN ÍCH ĐỘNG (vì đã dùng HTML tĩnh)
 
             // 3. Hiển thị modal
-            modalOverlay.classList.add('visible');
+            modalOverlay.classList.add("visible");
             // Ẩn menu khi mở popup
-            document.body.classList.add('modal-open');
+            document.body.classList.add("modal-open");
         }
     });
 
@@ -2603,34 +2876,39 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     function closeRoomDetailsModal() {
-        modalOverlay.classList.remove('visible');
+        modalOverlay.classList.remove("visible");
         // Hiện lại menu khi đóng popup
-        document.body.classList.remove('modal-open');
+        document.body.classList.remove("modal-open");
     }
 
     // === HELPER FUNCTIONS ===
 
     // Format currency function
     function formatCurrency(number) {
-        return Math.round(number).toLocaleString('vi-VN', {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-        }) + ' VNĐ';
+        return (
+            Math.round(number).toLocaleString("vi-VN", {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0,
+            }) + " VNĐ"
+        );
     }
 
     // Load room rating and reviews từ data attributes
     function loadRoomRatingAndReviewsFromData(buttonElement) {
         try {
             // Lấy dữ liệu từ data attributes
-            const averageRating = parseFloat(buttonElement.dataset.averageRating) || 0;
-            const totalReviews = parseInt(buttonElement.dataset.totalReviews) || 0;
-            const recentReviewsJson = buttonElement.dataset.recentReviews || '[]';
+            const averageRating =
+                parseFloat(buttonElement.dataset.averageRating) || 0;
+            const totalReviews =
+                parseInt(buttonElement.dataset.totalReviews) || 0;
+            const recentReviewsJson =
+                buttonElement.dataset.recentReviews || "[]";
 
             let recentReviews = [];
             try {
                 recentReviews = JSON.parse(recentReviewsJson);
             } catch (e) {
-                console.warn('Error parsing recent reviews:', e);
+                console.warn("Error parsing recent reviews:", e);
                 recentReviews = [];
             }
 
@@ -2639,9 +2917,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // Update recent reviews
             updateRecentReviews(recentReviews);
-
         } catch (error) {
-            console.error('Error loading reviews from data:', error);
+            console.error("Error loading reviews from data:", error);
             // Fallback to show no reviews
             updateRatingSummary(0, 0);
             updateRecentReviews([]);
@@ -2651,13 +2928,14 @@ document.addEventListener("DOMContentLoaded", function () {
     // Cập nhật form đánh giá với thông tin phòng hiện tại
     function updateReviewForm(roomId, roomName) {
         // Cập nhật tên phòng trong form
-        const reviewFormRoomName = document.getElementById('reviewFormRoomName');
+        const reviewFormRoomName =
+            document.getElementById("reviewFormRoomName");
         if (reviewFormRoomName && roomName) {
             reviewFormRoomName.textContent = roomName;
         }
 
         // Cập nhật ID phòng trong form
-        const reviewFormRoomId = document.getElementById('reviewFormRoomId');
+        const reviewFormRoomId = document.getElementById("reviewFormRoomId");
         if (reviewFormRoomId && roomId) {
             reviewFormRoomId.value = roomId;
         }
@@ -2668,27 +2946,34 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Kiểm tra trạng thái đánh giá của phòng và hiển thị form phù hợp
     function checkRoomReviewStatus(roomId) {
-        const existingReviewsSection = document.getElementById('existingReviewsSection');
-        const newReviewForm = document.getElementById('newReviewForm');
+        const existingReviewsSection = document.getElementById(
+            "existingReviewsSection"
+        );
+        const newReviewForm = document.getElementById("newReviewForm");
 
         // Lấy dữ liệu từ data attributes để kiểm tra
-        const currentButton = document.querySelector(`[data-room-id="${roomId}"]`);
+        const currentButton = document.querySelector(
+            `[data-room-id="${roomId}"]`
+        );
         if (currentButton) {
-            const totalReviews = parseInt(currentButton.dataset.totalReviews) || 0;
-            const averageRating = parseFloat(currentButton.dataset.averageRating) || 0;
+            const totalReviews =
+                parseInt(currentButton.dataset.totalReviews) || 0;
+            const averageRating =
+                parseFloat(currentButton.dataset.averageRating) || 0;
 
             if (totalReviews > 0) {
                 // Có đánh giá - hiển thị section đánh giá, ẩn form
                 if (existingReviewsSection) {
-                    existingReviewsSection.style.display = 'flex';
+                    existingReviewsSection.style.display = "flex";
                     // Cập nhật thông tin đánh giá
-                    const reviewSummaryText = document.getElementById('reviewSummaryText');
+                    const reviewSummaryText =
+                        document.getElementById("reviewSummaryText");
                     if (reviewSummaryText) {
                         reviewSummaryText.textContent = `⭐ ${averageRating} / 5 (${totalReviews} đánh giá)`;
                     }
                 }
                 if (newReviewForm) {
-                    newReviewForm.style.display = 'none';
+                    newReviewForm.style.display = "none";
                 }
 
                 // Cập nhật danh sách đánh giá gần đây
@@ -2696,16 +2981,19 @@ document.addEventListener("DOMContentLoaded", function () {
             } else {
                 // Chưa có đánh giá - ẩn section đánh giá, hiển thị form
                 if (existingReviewsSection) {
-                    existingReviewsSection.style.display = 'none';
+                    existingReviewsSection.style.display = "none";
                 }
                 if (newReviewForm) {
-                    newReviewForm.style.display = 'block';
+                    newReviewForm.style.display = "block";
                 }
 
                 // Hiển thị "Chưa có đánh giá nào" trong danh sách
-                const reviewListContainer = document.getElementById('reviewListContainer');
+                const reviewListContainer = document.getElementById(
+                    "reviewListContainer"
+                );
                 if (reviewListContainer) {
-                    reviewListContainer.innerHTML = '<p class="text-gray-500 italic">Chưa có đánh giá nào.</p>';
+                    reviewListContainer.innerHTML =
+                        '<p class="text-gray-500 italic">Chưa có đánh giá nào.</p>';
                 }
             }
         }
@@ -2713,42 +3001,62 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Cập nhật danh sách đánh giá gần đây
     function updateReviewList(roomId) {
-        const reviewListContainer = document.getElementById('reviewListContainer');
+        const reviewListContainer = document.getElementById(
+            "reviewListContainer"
+        );
         if (!reviewListContainer || !roomId) return;
 
         // Lấy dữ liệu đánh giá từ data attributes
-        const currentButton = document.querySelector(`[data-room-id="${roomId}"]`);
+        const currentButton = document.querySelector(
+            `[data-room-id="${roomId}"]`
+        );
         if (currentButton) {
-            const recentReviewsJson = currentButton.dataset.recentReviews || '[]';
+            const recentReviewsJson =
+                currentButton.dataset.recentReviews || "[]";
 
             try {
                 const recentReviews = JSON.parse(recentReviewsJson);
 
                 if (recentReviews && recentReviews.length > 0) {
-                    let reviewsHtml = '';
-                    recentReviews.forEach(review => {
+                    let reviewsHtml = "";
+                    recentReviews.forEach((review) => {
                         const stars = generateStars(review.rating);
-                        const imageHtml = review.image ? `
+                        const imageHtml = review.image
+                            ? `
                             <img src="${review.image}"
                                  alt="Ảnh đánh giá"
                                  class="w-32 h-32 object-cover rounded-lg mt-2 border border-gray-200 shadow-sm">
-                        ` : '';
+                        `
+                            : "";
 
                         // Kiểm tra xem có phải đánh giá của user hiện tại không
-                        const currentUserId = window.bookingConfig?.userId || null;
-                        const isOwner = currentUserId && review.user_id && currentUserId == review.user_id;
-                        const editButtons = isOwner ? `
+                        const currentUserId =
+                            window.bookingConfig?.userId || null;
+                        const isOwner =
+                            currentUserId &&
+                            review.user_id &&
+                            currentUserId == review.user_id;
+                        const editButtons = isOwner
+                            ? `
                             <div class="flex gap-3 mt-3">
                                 <button type="button"
                                         onclick="toggleEdit(this)"
                                         class="text-blue-600 hover:text-blue-800 font-medium text-sm">
                                     ✏️ Chỉnh sửa
                                 </button>
-                                <form action="/client/danh-gia/${review.id || ''}"
+                                <form action="/client/danh-gia/${
+                                    review.id || ""
+                                }"
                                       method="POST"
                                       onsubmit="return confirm('Bạn có chắc muốn xóa đánh giá này không?')"
                                       style="display: inline;">
-                                    <input type="hidden" name="_token" value="${document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''}">
+                                    <input type="hidden" name="_token" value="${
+                                        document
+                                            .querySelector(
+                                                'meta[name="csrf-token"]'
+                                            )
+                                            ?.getAttribute("content") || ""
+                                    }">
                                     <input type="hidden" name="_method" value="DELETE">
                                     <button type="submit"
                                             class="text-red-600 hover:text-red-800 font-medium text-sm">
@@ -2756,17 +3064,22 @@ document.addEventListener("DOMContentLoaded", function () {
                                     </button>
                                 </form>
                             </div>
-                        ` : '';
+                        `
+                            : "";
 
                         reviewsHtml += `
                             <div x-data="{ editing: false }" class="bg-gray-50 p-4 rounded-lg shadow mb-3 flex justify-between items-start">
                                 <div class="flex-1">
                                     <p class="font-semibold text-gray-800 text-lg">
-                                        ${review.user_name || 'Khách ẩn danh'}
+                                        ${review.user_name || "Khách ẩn danh"}
                                     </p>
-                                    <p class="text-gray-600 text-sm mt-1">${review.comment || ''}</p>
+                                    <p class="text-gray-600 text-sm mt-1">${
+                                        review.comment || ""
+                                    }</p>
                                     ${imageHtml}
-                                    <p class="text-gray-400 text-xs mt-1">${review.created_at || ''}</p>
+                                    <p class="text-gray-400 text-xs mt-1">${
+                                        review.created_at || ""
+                                    }</p>
                                     ${editButtons}
                                 </div>
                                 <div class="flex items-center space-x-1">
@@ -2777,20 +3090,22 @@ document.addEventListener("DOMContentLoaded", function () {
                     });
                     reviewListContainer.innerHTML = reviewsHtml;
                 } else {
-                    reviewListContainer.innerHTML = '<p class="text-gray-500 italic">Chưa có đánh giá nào.</p>';
+                    reviewListContainer.innerHTML =
+                        '<p class="text-gray-500 italic">Chưa có đánh giá nào.</p>';
                 }
             } catch (e) {
-                console.warn('Error parsing reviews:', e);
-                reviewListContainer.innerHTML = '<p class="text-gray-500 italic">Chưa có đánh giá nào.</p>';
+                console.warn("Error parsing reviews:", e);
+                reviewListContainer.innerHTML =
+                    '<p class="text-gray-500 italic">Chưa có đánh giá nào.</p>';
             }
         }
     }
 
     // Update rating summary
     function updateRatingSummary(averageRating, totalReviews) {
-        const starsContainer = document.getElementById('modalRatingStars');
-        const scoreElement = document.getElementById('modalRatingScore');
-        const countElement = document.getElementById('modalRatingCount');
+        const starsContainer = document.getElementById("modalRatingStars");
+        const scoreElement = document.getElementById("modalRatingScore");
+        const countElement = document.getElementById("modalRatingCount");
 
         if (starsContainer) {
             starsContainer.innerHTML = generateStars(averageRating);
@@ -2807,7 +3122,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Generate stars HTML
     function generateStars(rating) {
-        let starsHtml = '';
+        let starsHtml = "";
         for (let i = 1; i <= 5; i++) {
             if (i <= rating) {
                 starsHtml += '<i class="fas fa-star text-yellow-400"></i>';
@@ -2820,13 +3135,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Update recent reviews
     function updateRecentReviews(reviews) {
-        const container = document.getElementById('modalRecentReviews');
+        const container = document.getElementById("modalRecentReviews");
         if (!container) return;
 
         if (reviews && reviews.length > 0) {
-            let reviewsHtml = '';
-            reviews.slice(0, 2).forEach(review => { // Chỉ hiển thị 2 review gần nhất
-                const userName = review.user_name || 'Anonymous';
+            let reviewsHtml = "";
+            reviews.slice(0, 2).forEach((review) => {
+                // Chỉ hiển thị 2 review gần nhất
+                const userName = review.user_name || "Anonymous";
                 const firstLetter = userName.charAt(0).toUpperCase();
                 const avatarUrl = `https://ui-avatars.com/api/?name=${firstLetter}&background=3b82f6&color=fff`;
 
@@ -2847,73 +3163,79 @@ document.addEventListener("DOMContentLoaded", function () {
             });
             container.innerHTML = reviewsHtml;
         } else {
-            container.innerHTML = '<div class="no-reviews"><p class="text-gray-500 text-sm">Chưa có đánh giá nào</p></div>';
+            container.innerHTML =
+                '<div class="no-reviews"><p class="text-gray-500 text-sm">Chưa có đánh giá nào</p></div>';
         }
     }
 
     // === JAVASCRIPT CHO TOGGLE FUNCTIONS ===
 
     // Toggle description function
-    window.toggleDescription = function() {
-        const description = document.getElementById('modalRoomDescription');
-        const toggleBtn = document.querySelector('.description-toggle');
+    window.toggleDescription = function () {
+        const description = document.getElementById("modalRoomDescription");
+        const toggleBtn = document.querySelector(".description-toggle");
 
-        if (description.style.webkitLineClamp === 'none') {
-            description.style.webkitLineClamp = '3';
-            description.style.lineClamp = '3';
-            toggleBtn.textContent = 'Xem thêm';
+        if (description.style.webkitLineClamp === "none") {
+            description.style.webkitLineClamp = "3";
+            description.style.lineClamp = "3";
+            toggleBtn.textContent = "Xem thêm";
         } else {
-            description.style.webkitLineClamp = 'none';
-            description.style.lineClamp = 'none';
-            toggleBtn.textContent = 'Thu gọn';
+            description.style.webkitLineClamp = "none";
+            description.style.lineClamp = "none";
+            toggleBtn.textContent = "Thu gọn";
         }
     };
 
     // Toggle review form function
-    window.toggleReviewForm = function() {
-        const container = document.querySelector('.review-form-container');
-        const toggleBtn = document.querySelector('.review-form-toggle');
-        const icon = toggleBtn.querySelector('.toggle-icon');
+    window.toggleReviewForm = function () {
+        const container = document.querySelector(".review-form-container");
+        const toggleBtn = document.querySelector(".review-form-toggle");
+        const icon = toggleBtn.querySelector(".toggle-icon");
 
-        if (container.style.display === 'none') {
-            container.style.display = 'block';
-            toggleBtn.classList.add('expanded');
-            toggleBtn.querySelector('span').textContent = 'Ẩn form đánh giá';
+        if (container.style.display === "none") {
+            container.style.display = "block";
+            toggleBtn.classList.add("expanded");
+            toggleBtn.querySelector("span").textContent = "Ẩn form đánh giá";
         } else {
-            container.style.display = 'none';
-            toggleBtn.classList.remove('expanded');
-            toggleBtn.querySelector('span').textContent = 'Viết đánh giá của bạn';
+            container.style.display = "none";
+            toggleBtn.classList.remove("expanded");
+            toggleBtn.querySelector("span").textContent =
+                "Viết đánh giá của bạn";
         }
     };
-
 
     // === JAVASCRIPT CHO PHẦN COMMENT VÀ ĐÁNH GIÁ ===
 
     // Toggle review form
-    const toggleReviewFormBtn = document.getElementById('toggleReviewForm');
-    const reviewFormContainer = document.getElementById('reviewFormContainer');
-    const cancelReviewBtn = document.getElementById('cancelReview');
-    const roomReviewForm = document.getElementById('roomReviewForm');
+    const toggleReviewFormBtn = document.getElementById("toggleReviewForm");
+    const reviewFormContainer = document.getElementById("reviewFormContainer");
+    const cancelReviewBtn = document.getElementById("cancelReview");
+    const roomReviewForm = document.getElementById("roomReviewForm");
 
     if (toggleReviewFormBtn && reviewFormContainer) {
-        toggleReviewFormBtn.addEventListener('click', function() {
-            reviewFormContainer.classList.toggle('hidden');
+        toggleReviewFormBtn.addEventListener("click", function () {
+            reviewFormContainer.classList.toggle("hidden");
 
-            if (!reviewFormContainer.classList.contains('hidden')) {
-                toggleReviewFormBtn.innerHTML = '<i class="fas fa-times"></i><span>Hủy viết đánh giá</span>';
+            if (!reviewFormContainer.classList.contains("hidden")) {
+                toggleReviewFormBtn.innerHTML =
+                    '<i class="fas fa-times"></i><span>Hủy viết đánh giá</span>';
                 // Focus vào form đầu tiên
-                const firstInput = reviewFormContainer.querySelector('input[type="radio"]');
+                const firstInput = reviewFormContainer.querySelector(
+                    'input[type="radio"]'
+                );
                 if (firstInput) firstInput.focus();
             } else {
-                toggleReviewFormBtn.innerHTML = '<i class="fas fa-edit"></i><span>Viết đánh giá của bạn</span>';
+                toggleReviewFormBtn.innerHTML =
+                    '<i class="fas fa-edit"></i><span>Viết đánh giá của bạn</span>';
             }
         });
     }
 
     if (cancelReviewBtn && reviewFormContainer) {
-        cancelReviewBtn.addEventListener('click', function() {
-            reviewFormContainer.classList.add('hidden');
-            toggleReviewFormBtn.innerHTML = '<i class="fas fa-edit"></i><span>Viết đánh giá của bạn</span>';
+        cancelReviewBtn.addEventListener("click", function () {
+            reviewFormContainer.classList.add("hidden");
+            toggleReviewFormBtn.innerHTML =
+                '<i class="fas fa-edit"></i><span>Viết đánh giá của bạn</span>';
 
             // Reset form
             if (roomReviewForm) {
@@ -2925,19 +3247,21 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Handle star rating
     function updateStarRating() {
-        const starInputs = document.querySelectorAll('.star-rating input[type="radio"]');
-        const starLabels = document.querySelectorAll('.star-rating .star');
+        const starInputs = document.querySelectorAll(
+            '.star-rating input[type="radio"]'
+        );
+        const starLabels = document.querySelectorAll(".star-rating .star");
 
         starInputs.forEach((input, index) => {
-            input.addEventListener('change', function() {
+            input.addEventListener("change", function () {
                 const rating = parseInt(this.value);
 
                 starLabels.forEach((star, starIndex) => {
                     const starValue = 5 - starIndex; // Reverse order
                     if (starValue <= rating) {
-                        star.style.color = '#f59e0b';
+                        star.style.color = "#f59e0b";
                     } else {
-                        star.style.color = '#d1d5db';
+                        star.style.color = "#d1d5db";
                     }
                 });
             });
@@ -2945,34 +3269,36 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Hover effects
         starLabels.forEach((star, index) => {
-            star.addEventListener('mouseenter', function() {
+            star.addEventListener("mouseenter", function () {
                 const rating = 5 - index; // Reverse order
 
                 starLabels.forEach((s, sIndex) => {
                     const sValue = 5 - sIndex;
                     if (sValue <= rating) {
-                        s.style.color = '#fbbf24';
+                        s.style.color = "#fbbf24";
                     } else {
-                        s.style.color = '#d1d5db';
+                        s.style.color = "#d1d5db";
                     }
                 });
             });
 
-            star.addEventListener('mouseleave', function() {
+            star.addEventListener("mouseleave", function () {
                 // Reset to selected state
-                const checkedInput = document.querySelector('.star-rating input[type="radio"]:checked');
+                const checkedInput = document.querySelector(
+                    '.star-rating input[type="radio"]:checked'
+                );
                 if (checkedInput) {
                     const selectedRating = parseInt(checkedInput.value);
                     starLabels.forEach((s, sIndex) => {
                         const sValue = 5 - sIndex;
                         if (sValue <= selectedRating) {
-                            s.style.color = '#f59e0b';
+                            s.style.color = "#f59e0b";
                         } else {
-                            s.style.color = '#d1d5db';
+                            s.style.color = "#d1d5db";
                         }
                     });
                 } else {
-                    starLabels.forEach(s => s.style.color = '#d1d5db');
+                    starLabels.forEach((s) => (s.style.color = "#d1d5db"));
                 }
             });
         });
@@ -2983,12 +3309,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Function to add new review to the list
     function addNewReviewToList(rating, title, content) {
-        const reviewsContainer = document.getElementById('reviewsContainer');
-        const noReviewsMessage = reviewsContainer.querySelector('.no-reviews-message');
+        const reviewsContainer = document.getElementById("reviewsContainer");
+        const noReviewsMessage = reviewsContainer.querySelector(
+            ".no-reviews-message"
+        );
 
         // Ẩn thông báo "chưa có đánh giá" nếu có
         if (noReviewsMessage) {
-            noReviewsMessage.style.display = 'none';
+            noReviewsMessage.style.display = "none";
         }
 
         // Tạo HTML cho đánh giá mới
@@ -3024,40 +3352,40 @@ document.addEventListener("DOMContentLoaded", function () {
         `;
 
         // Thêm đánh giá mới vào đầu danh sách
-        reviewsContainer.insertAdjacentHTML('afterbegin', newReviewHtml);
+        reviewsContainer.insertAdjacentHTML("afterbegin", newReviewHtml);
 
         // Cập nhật số lượng đánh giá
         updateReviewCount();
 
         // Scroll đến đánh giá mới
-        const newReview = reviewsContainer.querySelector('.review-item');
-        newReview.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        const newReview = reviewsContainer.querySelector(".review-item");
+        newReview.scrollIntoView({ behavior: "smooth", block: "nearest" });
 
         // Xóa highlight sau 3 giây
         setTimeout(() => {
-            newReview.classList.remove('new-review');
+            newReview.classList.remove("new-review");
         }, 3000);
 
         // Thêm event listener cho nút like của đánh giá mới
-        const newActionBtn = newReview.querySelector('.action-btn');
+        const newActionBtn = newReview.querySelector(".action-btn");
         if (newActionBtn) {
-            newActionBtn.addEventListener('click', function() {
-                const icon = this.querySelector('i');
-                const countSpan = this.querySelector('span');
+            newActionBtn.addEventListener("click", function () {
+                const icon = this.querySelector("i");
+                const countSpan = this.querySelector("span");
                 let currentCount = parseInt(countSpan.textContent);
 
-                if (icon.classList.contains('fa-thumbs-up')) {
+                if (icon.classList.contains("fa-thumbs-up")) {
                     // Toggle like
-                    if (this.classList.contains('liked')) {
-                        this.classList.remove('liked');
+                    if (this.classList.contains("liked")) {
+                        this.classList.remove("liked");
                         countSpan.textContent = currentCount - 1;
-                        this.style.background = '#f3f4f6';
-                        this.style.color = '#6b7280';
+                        this.style.background = "#f3f4f6";
+                        this.style.color = "#6b7280";
                     } else {
-                        this.classList.add('liked');
+                        this.classList.add("liked");
                         countSpan.textContent = currentCount + 1;
-                        this.style.background = '#dbeafe';
-                        this.style.color = '#2563eb';
+                        this.style.background = "#dbeafe";
+                        this.style.color = "#2563eb";
                     }
                 }
             });
@@ -3066,7 +3394,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Function to generate star rating HTML
     function generateStarRating(rating) {
-        let starsHtml = '';
+        let starsHtml = "";
         for (let i = 1; i <= 5; i++) {
             if (i <= rating) {
                 starsHtml += '<i class="fas fa-star text-yellow-400"></i>';
@@ -3079,10 +3407,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Function to update review count
     function updateReviewCount() {
-        const reviewItems = document.querySelectorAll('.review-item');
-        const totalReviewsDisplay = document.getElementById('totalReviewsDisplay');
-        const averageRatingDisplay = document.getElementById('averageRatingDisplay');
-        const averageStarsDisplay = document.getElementById('averageStarsDisplay');
+        const reviewItems = document.querySelectorAll(".review-item");
+        const totalReviewsDisplay = document.getElementById(
+            "totalReviewsDisplay"
+        );
+        const averageRatingDisplay = document.getElementById(
+            "averageRatingDisplay"
+        );
+        const averageStarsDisplay = document.getElementById(
+            "averageStarsDisplay"
+        );
 
         if (reviewItems.length > 0) {
             // Cập nhật số lượng đánh giá
@@ -3092,8 +3426,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // Tính điểm trung bình (giả lập - trong thực tế bạn sẽ tính từ database)
             let totalRating = 0;
-            reviewItems.forEach(item => {
-                const stars = item.querySelectorAll('.review-rating .fas.fa-star');
+            reviewItems.forEach((item) => {
+                const stars = item.querySelectorAll(
+                    ".review-rating .fas.fa-star"
+                );
                 totalRating += stars.length;
             });
 
@@ -3106,12 +3442,14 @@ document.addEventListener("DOMContentLoaded", function () {
             // Cập nhật sao trung bình
             if (averageStarsDisplay) {
                 const avgRating = Math.round(parseFloat(averageRating));
-                let starsHtml = '';
+                let starsHtml = "";
                 for (let i = 1; i <= 5; i++) {
                     if (i <= avgRating) {
-                        starsHtml += '<i class="fas fa-star text-yellow-400"></i>';
+                        starsHtml +=
+                            '<i class="fas fa-star text-yellow-400"></i>';
                     } else {
-                        starsHtml += '<i class="far fa-star text-gray-300"></i>';
+                        starsHtml +=
+                            '<i class="far fa-star text-gray-300"></i>';
                     }
                 }
                 averageStarsDisplay.innerHTML = starsHtml;

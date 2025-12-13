@@ -351,6 +351,10 @@
                                         </div>
                                         <div id="pricing_multiplier_info" class="text-xs text-gray-500 mt-1"></div>
                                     </div>
+                                    <p class="mt-2 text-xs text-gray-500">
+                                        Giá phòng được tính theo từng đêm: ngày thường x1.0, cuối tuần x1.15 (tăng 15%) và
+                                        ngày lễ x1.25 (tăng 25%).
+                                    </p>
                                 </div>
                             </section>
 
@@ -1216,23 +1220,33 @@
 
                 const startDate = new Date(ngayNhan);
                 const endDate = new Date(ngayTra);
-                const nights = Math.max(1, Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)));
-
-                // 1. Tính tiền phòng theo loại phòng
+                // 1. Tính tiền phòng theo loại phòng với multiplier theo từng ngày
                 let roomTotalByType = {}; // { loaiPhongId: totalPrice }
                 let roomTotal = 0;
-                document.querySelectorAll('.room-type-checkbox:checked').forEach(checkbox => {
-                    const roomTypeId = checkbox.value;
-                    const quantityInput = document.getElementById('quantity_' + roomTypeId);
-                    const quantity = parseInt(quantityInput?.value || 1);
-                    const price = parseFloat(checkbox.dataset.price || 0);
 
-                    if (price > 0 && quantity > 0) {
-                        const typeTotal = price * nights * quantity;
-                        roomTotalByType[roomTypeId] = typeTotal;
-                        roomTotal += typeTotal;
-                    }
-                });
+                if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime()) && endDate > startDate) {
+                    document.querySelectorAll('.room-type-checkbox:checked').forEach(checkbox => {
+                        const roomTypeId = checkbox.value;
+                        const quantityInput = document.getElementById('quantity_' + roomTypeId);
+                        const quantity = parseInt(quantityInput?.value || 1);
+                        const basePrice = parseFloat(checkbox.dataset.price || 0);
+
+                        if (!basePrice || basePrice <= 0 || !quantity || quantity <= 0) return;
+
+                        let current = new Date(startDate.getTime());
+                        let totalForType = 0;
+                        while (current < endDate) {
+                            const multiplier = getMultiplierForDateJS(current);
+                            totalForType += basePrice * multiplier * quantity;
+                            current.setDate(current.getDate() + 1);
+                        }
+
+                        if (totalForType > 0) {
+                            roomTotalByType[roomTypeId] = totalForType;
+                            roomTotal += totalForType;
+                        }
+                    });
+                }
 
                 // 2. Tính discount từ voucher - chỉ áp dụng cho tiền phòng, respecting loai_phong_id filter
                 const selectedVoucher = document.querySelector('.voucher-radio:checked');
