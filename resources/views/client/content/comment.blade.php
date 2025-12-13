@@ -186,158 +186,236 @@ $filterStar = request()->query('star');
 
 
 {{-- 🔹 DANH SÁCH ĐÁNH GIÁ --}}
-<h3 class="text-2xl font-bold text-gray-800 mb-4">Đánh giá gần đây</h3>
+<div class="mb-8">
+    <h3 class="text-3xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+        <span class="w-1 h-8 bg-gradient-to-b from-yellow-400 to-orange-500 rounded-full"></span>
+        Đánh giá gần đây
+    </h3>
 
-@php
-$comments = Comment::where('loai_phong_id', $room->id)
-    ->where('trang_thai', 'hien_thi')
-    ->when($filterStar && in_array($filterStar, [1,2,3,4,5]), function($q) use ($filterStar) {
-        $q->where('so_sao', $filterStar);
-    })
-    ->latest('ngay_danh_gia')
-    ->get();
-@endphp
+    @php
+    $comments = Comment::where('loai_phong_id', $room->id)
+        ->where('trang_thai', 'hien_thi')
+        ->when($filterStar && in_array($filterStar, [1,2,3,4,5]), function($q) use ($filterStar) {
+            $q->where('so_sao', $filterStar);
+        })
+        ->latest('ngay_danh_gia')
+        ->get();
+    @endphp
 
-@forelse ($comments as $comment)
-<div x-data="{ editing: false }"
-     class="bg-gray-50 p-4 rounded-lg shadow mb-3 flex justify-between items-start">
-
-    <div class="flex-1">
-        <p class="font-semibold text-gray-800 text-lg">
-            {{ $comment->user->name ?? $comment->user->username ?? 'Khách ẩn danh' }}
-        </p>
-
-        {{-- Nếu không chỉnh sửa --}}
-        <template x-if="!editing">
-            <p class="text-gray-600 text-sm mt-1">{{ $comment->noi_dung }}</p>
-        </template>
-
-        {{-- Khi đang chỉnh sửa --}}
-        <template x-if="editing">
-            <form action="{{ route('client.comment.update', $comment->id) }}"
-                  method="POST" enctype="multipart/form-data" class="mt-2 space-y-3">
-                @csrf
-                <textarea name="noi_dung" rows="3"
-                          class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-200"
-                          required>{{ $comment->noi_dung }}</textarea>
-
-                {{-- Cập nhật sao --}}
-                <div x-data="{ rating: {{ $comment->so_sao }}, hover: 0 }">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Cập nhật số sao:</label>
-                    <div class="flex space-x-1 text-2xl text-gray-300">
-                        @for ($i = 1; $i <= 5; $i++)
-                            <button type="button"
-                                @mouseover="hover = {{ $i }}"
-                                @mouseleave="hover = 0"
-                                @click="rating = {{ $i }}"
-                                class="focus:outline-none">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor"
-                                    viewBox="0 0 24 24"
-                                    :class="{
-                                        'text-yellow-400': {{ $i }} <= (hover || rating),
-                                        'text-gray-300': {{ $i }} > (hover || rating)
-                                    }"
-                                    class="w-7 h-7 transition-colors duration-150">
-                                    <path d="M12 .587l3.668 7.431 8.2 1.193-5.934 5.782
-                                            1.4 8.173L12 18.896l-7.334 3.87
-                                            1.4-8.173L.132 9.211l8.2-1.193z"/>
-                                </svg>
-                            </button>
-                        @endfor
+    <div class="space-y-4">
+        @forelse ($comments as $comment)
+        <div x-data="{ editing: false }"
+             class="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden group">
+            
+            <div class="p-6">
+                {{-- Header: Avatar + Name + Rating + Time --}}
+                <div class="flex items-start gap-4 mb-4">
+                    {{-- Avatar --}}
+                    <div class="flex-shrink-0">
+                        @if($comment->user && $comment->user->img)
+                            <img src="{{ asset($comment->user->img) }}" 
+                                 alt="{{ $comment->user->username ?? 'User' }}"
+                                 class="w-14 h-14 rounded-full object-cover border-2 border-yellow-200 shadow-md">
+                        @else
+                            <div class="w-14 h-14 rounded-full bg-gradient-to-br from-yellow-400 via-orange-400 to-pink-400 flex items-center justify-center shadow-md border-2 border-yellow-200">
+                                <span class="text-white font-bold text-lg">
+                                    {{ strtoupper(substr($comment->user->username ?? $comment->user->ho_ten ?? 'U', 0, 1)) }}
+                                </span>
+                            </div>
+                        @endif
                     </div>
-                    <input type="hidden" name="so_sao" x-model="rating" required>
+
+                    {{-- Info --}}
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-start justify-between gap-4 mb-2">
+                            <div>
+                                <h4 class="font-bold text-gray-900 text-lg mb-1">
+                                    {{ $comment->user->username ?? $comment->user->ho_ten ?? 'Khách ẩn danh' }}
+                                </h4>
+                                <div class="flex items-center gap-2 text-sm text-gray-500">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <span>{{ \Carbon\Carbon::parse($comment->ngay_danh_gia)->format('H:i d/m/Y') }}</span>
+                                </div>
+                            </div>
+
+                            {{-- Rating Stars --}}
+                            <div class="flex items-center gap-1 flex-shrink-0" x-show="!editing">
+                                @for ($i = 1; $i <= 5; $i++)
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor"
+                                         viewBox="0 0 24 24"
+                                         class="w-6 h-6 {{ $i <= $comment->so_sao ? 'text-yellow-400' : 'text-gray-200' }} transition-all duration-200">
+                                        <path d="M12 .587l3.668 7.431 8.2 1.193-5.934 5.782
+                                                 1.4 8.173L12 18.896l-7.334 3.87
+                                                 1.4-8.173L.132 9.211l8.2-1.193z"/>
+                                    </svg>
+                                @endfor
+                            </div>
+                        </div>
+
+                        {{-- Comment Content --}}
+                        <template x-if="!editing">
+                            <div>
+                                <p class="text-gray-700 leading-relaxed mb-3">{{ $comment->noi_dung }}</p>
+                                
+                                {{-- Image --}}
+                                @if($comment->img)
+                                    <div class="mb-3">
+                                        <img src="{{ asset('storage/' . $comment->img) }}"
+                                             alt="Ảnh đánh giá"
+                                             class="max-w-xs rounded-xl border border-gray-200 shadow-md hover:shadow-lg transition-shadow duration-300 cursor-pointer"
+                                             onclick="window.open(this.src, '_blank')">
+                                    </div>
+                                @endif
+
+                                {{-- Action Buttons --}}
+                                @if(auth()->check() && auth()->id() === $comment->nguoi_dung_id)
+                                <div class="flex items-center gap-4 pt-3 border-t border-gray-100">
+                                    <button type="button"
+                                            @click="editing = !editing"
+                                            class="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium text-sm transition-colors duration-200 hover:bg-blue-50 px-3 py-1.5 rounded-lg">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                        </svg>
+                                        <span x-text="editing ? 'Đang sửa...' : 'Chỉnh sửa'"></span>
+                                    </button>
+                                    <form action="{{ route('client.comment.destroy', $comment->id) }}"
+                                          method="POST"
+                                          onsubmit="return confirm('Bạn có chắc muốn xóa đánh giá này không?')"
+                                          class="inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit"
+                                                class="flex items-center gap-2 text-red-600 hover:text-red-700 font-medium text-sm transition-colors duration-200 hover:bg-red-50 px-3 py-1.5 rounded-lg">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                            </svg>
+                                            Xóa
+                                        </button>
+                                    </form>
+                                </div>
+                                @endif
+                            </div>
+                        </template>
+
+                        {{-- Edit Form --}}
+                        <template x-if="editing">
+                            <form action="{{ route('client.comment.update', $comment->id) }}"
+                                  method="POST" enctype="multipart/form-data" 
+                                  class="space-y-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                                @csrf
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Nội dung đánh giá</label>
+                                    <textarea name="noi_dung" rows="4"
+                                              class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                              required>{{ $comment->noi_dung }}</textarea>
+                                </div>
+
+                                {{-- Cập nhật sao --}}
+                                <div x-data="{ rating: {{ $comment->so_sao }}, hover: 0 }">
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Đánh giá sao</label>
+                                    <div class="flex space-x-1 text-3xl">
+                                        @for ($i = 1; $i <= 5; $i++)
+                                            <button type="button"
+                                                @mouseover="hover = {{ $i }}"
+                                                @mouseleave="hover = 0"
+                                                @click="rating = {{ $i }}"
+                                                class="focus:outline-none transform transition-transform duration-150 hover:scale-110">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                    :class="{
+                                                        'text-yellow-400': {{ $i }} <= (hover || rating),
+                                                        'text-gray-300': {{ $i }} > (hover || rating)
+                                                    }"
+                                                    class="w-8 h-8 transition-colors duration-150">
+                                                    <path d="M12 .587l3.668 7.431 8.2 1.193-5.934 5.782
+                                                            1.4 8.173L12 18.896l-7.334 3.87
+                                                            1.4-8.173L.132 9.211l8.2-1.193z"/>
+                                                </svg>
+                                            </button>
+                                        @endfor
+                                    </div>
+                                    <input type="hidden" name="so_sao" x-model="rating" required>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Cập nhật ảnh (tùy chọn)</label>
+                                    <input type="file" name="img" accept="image/*"
+                                           class="w-full text-sm border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    @if($comment->img)
+                                        <div class="mt-2">
+                                            <p class="text-xs text-gray-600 mb-1">Ảnh hiện tại:</p>
+                                            <img src="{{ asset('storage/' . $comment->img) }}"
+                                                 alt="Ảnh cũ" 
+                                                 class="w-24 h-24 rounded-lg border-2 border-gray-200 object-cover">
+                                        </div>
+                                    @endif
+                                </div>
+
+                                <div class="flex gap-3 pt-2">
+                                    <button type="submit"
+                                            class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all duration-200">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                        </svg>
+                                        Lưu thay đổi
+                                    </button>
+                                    <button type="button"
+                                            @click="editing = false"
+                                            class="flex items-center gap-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold px-5 py-2.5 rounded-lg transition-all duration-200">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                        Hủy
+                                    </button>
+                                </div>
+                            </form>
+                        </template>
+                    </div>
                 </div>
+            </div>
 
-                <input type="file" name="img" accept="image/*"
-                       class="w-full text-sm border border-gray-200 rounded-lg p-2">
-                @if($comment->img)
-                    <img src="{{ asset('storage/' . $comment->img) }}"
-                         alt="Ảnh cũ" class="w-20 h-20 mt-2 rounded border">
-                @endif
-
-                <div class="flex gap-2 mt-3">
-                    <button type="submit"
-                            class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-3 py-1 rounded">
-                        💾 Lưu
-                    </button>
-                    <button type="button"
-                            @click="editing = false"
-                            class="bg-gray-300 hover:bg-gray-400 text-gray-800 text-sm font-medium px-3 py-1 rounded">
-                        Hủy
-                    </button>
+            {{-- Admin Reply --}}
+            @if($comment->reply)
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-t border-blue-200 p-5">
+                <div class="flex items-start gap-3">
+                    <div class="flex-shrink-0">
+                        <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center shadow-md">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="font-bold text-blue-800 text-sm">Phản hồi từ quản trị viên</span>
+                            @if($comment->reply_at)
+                                <span class="text-xs text-blue-600">
+                                    {{ is_string($comment->reply_at) ? \Carbon\Carbon::parse($comment->reply_at)->format('d/m/Y H:i') : $comment->reply_at->format('d/m/Y H:i') }}
+                                </span>
+                            @endif
+                        </div>
+                        <p class="text-gray-800 leading-relaxed">{{ $comment->reply }}</p>
+                    </div>
                 </div>
-            </form>
-        </template>
-
-        @if($comment->img)
-            <img src="{{ asset('storage/' . $comment->img) }}"
-                 alt="Ảnh đánh giá"
-                 class="w-32 h-32 object-cover rounded-lg mt-2 border border-gray-200 shadow-sm">
-        @endif
-        <p class="text-gray-400 text-xs mt-1">
-            {{ \Carbon\Carbon::parse($comment->ngay_danh_gia)->format('H:i d/m/Y') }}
-        </p>
-
-        {{-- Nút sửa/xóa --}}
-        @if(auth()->check() && auth()->id() === $comment->nguoi_dung_id)
-        <div class="flex gap-3 mt-3">
-            <button type="button"
-                    @click="editing = !editing"
-                    class="text-blue-600 hover:text-blue-800 font-medium text-sm">
-                ✏️ <span x-text="editing ? 'Đang sửa...' : 'Chỉnh sửa'"></span>
-            </button>
-            <form action="{{ route('client.comment.destroy', $comment->id) }}"
-                  method="POST"
-                  onsubmit="return confirm('Bạn có chắc muốn xóa đánh giá này không?')">
-                @csrf
-                @method('DELETE')
-                <button type="submit"
-                        class="text-red-600 hover:text-red-800 font-medium text-sm">
-                    🗑️ Xóa
-                </button>
-            </form>
-        </div>
-        @endif
-    </div>
-
-    {{-- Sao --}}
-    <div class="flex items-center space-x-1" x-show="!editing">
-        @for ($i = 1; $i <= 5; $i++)
-            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor"
-                 viewBox="0 0 24 24"
-                 class="w-5 h-5 {{ $i <= $comment->so_sao ? 'text-yellow-400' : 'text-gray-300' }}">
-                <path d="M12 .587l3.668 7.431 8.2 1.193-5.934 5.782
-                         1.4 8.173L12 18.896l-7.334 3.87
-                         1.4-8.173L.132 9.211l8.2-1.193z"/>
-            </svg>
-        @endfor
-    </div>
-</div>
-
-@if($comment->reply)
-<div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-400 mb-3 ml-8">
-    <div class="flex items-start">
-        <div class="flex-shrink-0 mr-3">
-            <svg class="h-5 w-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h.01a1 1 0 100-2H10V9z" clip-rule="evenodd" />
-            </svg>
-        </div>
-        <div>
-            <div class="font-medium text-blue-800 text-sm">Phản hồi từ quản trị viên</div>
-            <p class="text-gray-700 text-sm mt-1">{{ $comment->reply }}</p>
-            @if($comment->reply_at)
-                <div class="text-xs text-gray-500 mt-1">
-                    {{ is_string($comment->reply_at) ? \Carbon\Carbon::parse($comment->reply_at)->format('d/m/Y H:i') : $comment->reply_at->format('d/m/Y H:i') }}
-                </div>
+            </div>
             @endif
         </div>
+
+        @empty
+        <div class="bg-white rounded-2xl shadow-lg p-12 text-center border border-gray-100">
+            <div class="max-w-md mx-auto">
+                <svg class="w-24 h-24 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
+                </svg>
+                <h4 class="text-xl font-semibold text-gray-700 mb-2">Chưa có đánh giá nào</h4>
+                <p class="text-gray-500">Hãy là người đầu tiên đánh giá về loại phòng này!</p>
+            </div>
+        </div>
+        @endforelse
     </div>
 </div>
-@endif
-
-@empty
-<p class="text-gray-500 italic">Chưa có đánh giá nào.</p>
-@endforelse
 </div>
 
 {{-- ALPINE.JS --}}

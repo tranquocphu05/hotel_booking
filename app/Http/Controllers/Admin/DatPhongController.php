@@ -1765,8 +1765,10 @@ class DatPhongController extends Controller
 
             // Tạo 1 booking duy nhất chứa tất cả các loại phòng
             // Note: loai_phong_id, phong_id, room_types, phong_ids được lưu trong bảng pivot thay vì JSON columns
+            // Set loai_phong_id là loại phòng đầu tiên để đảm bảo backward compatibility
             $bookingData = [
                 'nguoi_dung_id' => Auth::id(),
+                'loai_phong_id' => $firstLoaiPhongId, // Loại phòng đầu tiên (cho backward compatibility)
                 'so_luong_da_dat' => $totalSoLuong, // Tổng số lượng phòng
                 'ngay_dat' => now(),
                 'ngay_nhan' => $request->ngay_nhan,
