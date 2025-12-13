@@ -30,13 +30,19 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm font-medium text-gray-600 mb-1">Tổng đặt phòng</p>
-                        <p class="text-3xl font-bold text-gray-900" data-target="{{ App\Models\DatPhong::count() }}">0</p>
+                        <p class="text-3xl font-bold text-gray-900" data-target="{{ $totalBookings ?? 0 }}">0</p>
                         <div class="flex items-center mt-2">
                             <span class="text-green-600 text-sm font-medium flex items-center">
                                 <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
                                 </svg>
-                                +12%
+                                @if(($bookingGrowthRate ?? 0) > 0)
+                                    +{{ $bookingGrowthRate }}%
+                                @elseif(($bookingGrowthRate ?? 0) < 0)
+                                    {{ $bookingGrowthRate }}%
+                                @else
+                                    0%
+                                @endif
                             </span>
                             <span class="text-gray-500 text-sm ml-2">so với tháng trước</span>
                         </div>
@@ -91,16 +97,11 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm font-medium text-gray-600 mb-1">Tổng phòng</p>
-                        <p class="text-3xl font-bold text-gray-900" data-target="{{ App\Models\LoaiPhong::sum('so_luong_phong') }}">0</p>
+                        <p class="text-3xl font-bold text-gray-900" data-target="{{ $totalRooms ?? 0 }}">0</p>
                         <div class="flex items-center mt-2">
                             <a href="{{ route('admin.loai_phong.index') }}" class="text-blue-600 text-sm font-medium flex items-center hover:text-blue-800 transition-colors">
                                 <i class="fas fa-bed mr-1"></i>
-                                @php
-                                    $totalRooms = App\Models\LoaiPhong::sum('so_luong_phong');
-                                    $bookedRooms = App\Models\LoaiPhong::sum('so_luong_phong') - App\Models\LoaiPhong::sum('so_luong_trong');
-                                    $availableRooms = App\Models\LoaiPhong::sum('so_luong_trong');
-                                @endphp
-                                {{ $availableRooms }} trống
+                                {{ $availableRooms ?? 0 }} trống
                                 <i class="fas fa-external-link-alt ml-1 text-xs"></i>
                             </a>
                         </div>
@@ -116,11 +117,11 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm font-medium text-gray-600 mb-1">Khách hàng</p>
-                        <p class="text-3xl font-bold text-gray-900" data-target="{{ App\Models\User::count() }}">0</p>
+                        <p class="text-3xl font-bold text-gray-900" data-target="{{ $totalCustomers ?? 0 }}">0</p>
                         <div class="flex items-center mt-2">
                             <span class="text-indigo-600 text-sm font-medium flex items-center">
                                 <i class="fas fa-users mr-1"></i>
-                                {{ App\Models\User::where('vai_tro', 'user')->count() }} khách
+                                {{ $activeCustomers ?? 0 }} khách
                             </span>
                         </div>
                     </div>
@@ -136,12 +137,12 @@
             <!-- Revenue Chart: Chỉ hiển thị cho Admin -->
             @if($userRole === 'admin')
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <div class="flex items-center justify-between mb-6">
-                    <h3 class="text-lg font-semibold text-gray-900">Doanh thu theo tháng</h3>
-                    <div class="flex items-center space-x-2">
-                        <button class="px-3 py-1 text-xs bg-indigo-100 text-indigo-600 rounded-full font-medium">2024</button>
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-semibold text-gray-900">Doanh thu theo tháng</h3>
+                        <div class="flex items-center space-x-2">
+                            <button class="px-3 py-1 text-xs bg-indigo-100 text-indigo-600 rounded-full font-medium">{{ \Carbon\Carbon::now()->year }}</button>
+                        </div>
                     </div>
-                </div>
                 <div class="h-64">
                     <canvas id="revenueChart"></canvas>
                 </div>
@@ -268,100 +269,328 @@
 @endsection
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function(){
-        // Revenue Chart - Beautiful gradient line chart (chỉ cho Admin)
+        // Revenue Chart - Beautiful gradient bar chart (chỉ cho Admin)
         @if($userRole === 'admin')
         const revenueCtx = document.getElementById('revenueChart');
         if (revenueCtx) {
         const revenueCtx2d = revenueCtx.getContext('2d');
-        const revenueGradient = revenueCtx2d.createLinearGradient(0, 0, 0, 300);
-        revenueGradient.addColorStop(0, 'rgba(99, 102, 241, 0.3)');
-        revenueGradient.addColorStop(1, 'rgba(99, 102, 241, 0.05)');
+        
+        // Dữ liệu doanh thu theo tháng - chỉ tính các đơn đã thanh toán
+        @php
+        $currentYear = \Carbon\Carbon::now()->year;
+        $monthlyRevenue = [];
+        for ($month = 1; $month <= 12; $month++) {
+            $revenue = \Illuminate\Support\Facades\DB::table('dat_phong')
+                ->join('hoa_don', 'dat_phong.id', '=', 'hoa_don.dat_phong_id')
+                ->where('hoa_don.trang_thai', 'da_thanh_toan')
+                ->whereMonth('dat_phong.ngay_dat', $month)
+                ->whereYear('dat_phong.ngay_dat', $currentYear)
+                ->sum('dat_phong.tong_tien');
+            $monthlyRevenue[] = $revenue ?? 0;
+        }
+        @endphp
+        const revenueData = [{{ implode(', ', $monthlyRevenue) }}];
+        
+        // Tính toán max và stepSize cho trục Y
+        const maxRevenue = Math.max(...revenueData, 0);
+        let suggestedMax = 1000000; // Mặc định 1M
+        let stepSize = 200000; // Mặc định 200K
+        
+        if (maxRevenue > 0) {
+            if (maxRevenue >= 10000000) {
+                suggestedMax = Math.ceil(maxRevenue / 2000000) * 2000000;
+                stepSize = 2000000; // 2M steps
+            } else if (maxRevenue >= 5000000) {
+                suggestedMax = Math.ceil(maxRevenue / 1000000) * 1000000;
+                stepSize = 1000000; // 1M steps
+            } else if (maxRevenue >= 1000000) {
+                suggestedMax = Math.ceil(maxRevenue / 500000) * 500000;
+                stepSize = 500000; // 500K steps
+            } else {
+                suggestedMax = Math.ceil(maxRevenue / 100000) * 100000;
+                stepSize = 100000; // 100K steps
+            }
+        }
 
-        new Chart(revenueCtx2d, {
-            type: 'line',
+        // Polyfill cho roundRect
+        if (!CanvasRenderingContext2D.prototype.roundRect) {
+            CanvasRenderingContext2D.prototype.roundRect = function(x, y, width, height, radius) {
+                this.beginPath();
+                this.moveTo(x + radius, y);
+                this.lineTo(x + width - radius, y);
+                this.quadraticCurveTo(x + width, y, x + width, y + radius);
+                this.lineTo(x + width, y + height - radius);
+                this.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+                this.lineTo(x + radius, y + height);
+                this.quadraticCurveTo(x, y + height, x, y + height - radius);
+                this.lineTo(x, y + radius);
+                this.quadraticCurveTo(x, y, x + radius, y);
+                this.closePath();
+            };
+        }
+
+        // Không cần plugin vẽ label trên đầu bar vì đã có tooltip chi tiết
+
+        const revenueChart = new Chart(revenueCtx2d, {
+            type: 'bar',
             data: {
                 labels: ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'],
                 datasets: [{
                     label: 'Doanh thu (VNĐ)',
-                    data: [{{ App\Models\DatPhong::whereMonth('ngay_dat', 1)->sum('tong_tien') }}, {{ App\Models\DatPhong::whereMonth('ngay_dat', 2)->sum('tong_tien') }}, {{ App\Models\DatPhong::whereMonth('ngay_dat', 3)->sum('tong_tien') }}, {{ App\Models\DatPhong::whereMonth('ngay_dat', 4)->sum('tong_tien') }}, {{ App\Models\DatPhong::whereMonth('ngay_dat', 5)->sum('tong_tien') }}, {{ App\Models\DatPhong::whereMonth('ngay_dat', 6)->sum('tong_tien') }}, {{ App\Models\DatPhong::whereMonth('ngay_dat', 7)->sum('tong_tien') }}, {{ App\Models\DatPhong::whereMonth('ngay_dat', 8)->sum('tong_tien') }}, {{ App\Models\DatPhong::whereMonth('ngay_dat', 9)->sum('tong_tien') }}, {{ App\Models\DatPhong::whereMonth('ngay_dat', 10)->sum('tong_tien') }}, {{ App\Models\DatPhong::whereMonth('ngay_dat', 11)->sum('tong_tien') }}, {{ App\Models\DatPhong::whereMonth('ngay_dat', 12)->sum('tong_tien') }}],
-                    borderColor: 'rgb(99, 102, 241)',
-                    backgroundColor: revenueGradient,
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.4,
-                    pointBackgroundColor: 'rgb(99, 102, 241)',
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 2,
-                    pointRadius: 6,
-                    pointHoverRadius: 8
+                    data: revenueData,
+                    backgroundColor: (context) => {
+                        const chart = context.chart;
+                        const {ctx, chartArea} = chart;
+                        if (!chartArea) {
+                            return 'rgba(99, 102, 241, 0.7)';
+                        }
+                        
+                        const meta = chart.getDatasetMeta(context.datasetIndex);
+                        const bar = meta.data[context.dataIndex];
+                        if (!bar || !bar.y) {
+                            return 'rgba(99, 102, 241, 0.7)';
+                        }
+                        
+                        // Tạo gradient từ dưới lên trên
+                        const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, bar.y);
+                        gradient.addColorStop(0, 'rgba(99, 102, 241, 0.9)'); // Indigo-500
+                        gradient.addColorStop(0.5, 'rgba(139, 92, 246, 0.85)'); // Purple-500
+                        gradient.addColorStop(1, 'rgba(79, 70, 229, 0.95)'); // Indigo-600
+                        return gradient;
+                    },
+                    borderColor: 'rgba(99, 102, 241, 0.9)',
+                    borderWidth: 2,
+                    borderRadius: {
+                        topLeft: 8,
+                        topRight: 8,
+                        bottomLeft: 0,
+                        bottomRight: 0
+                    },
+                    borderSkipped: false,
+                    barThickness: 'flex',
+                    maxBarThickness: 50,
+                    categoryPercentage: 0.8,
+                    barPercentage: 0.65
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                animation: {
+                    duration: 1800,
+                    easing: 'easeOutQuart',
+                    onComplete: function() {
+                        // Animation hoàn thành
+                    }
+                },
                 plugins: {
                     legend: {
                         display: false
+                    },
+                    tooltip: {
+                        enabled: true,
+                        backgroundColor: 'rgba(15, 23, 42, 0.98)',
+                        padding: {
+                            top: 14,
+                            right: 18,
+                            bottom: 14,
+                            left: 18
+                        },
+                        titleFont: {
+                            size: 15,
+                            weight: 'bold',
+                            family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                        },
+                        bodyFont: {
+                            size: 13,
+                            weight: '500',
+                            family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                        },
+                        borderColor: 'rgba(99, 102, 241, 0.6)',
+                        borderWidth: 1.5,
+                        cornerRadius: 12,
+                        displayColors: false,
+                        titleSpacing: 8,
+                        bodySpacing: 6,
+                        titleMarginBottom: 10,
+                        titleAlign: 'center',
+                        bodyAlign: 'left',
+                        xAlign: 'center',
+                        yAlign: 'bottom',
+                        caretSize: 6,
+                        caretPadding: 8,
+                        animation: {
+                            duration: 200
+                        },
+                        callbacks: {
+                            title: function(context) {
+                                const monthNames = ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6', 
+                                                   'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'];
+                                return monthNames[context[0].dataIndex] + ' {{ \Carbon\Carbon::now()->year }}';
+                            },
+                            label: function(context) {
+                                const value = context.parsed.y;
+                                const formattedValue = value.toLocaleString('vi-VN');
+                                
+                                const lines = [
+                                    '💰 Doanh thu: ' + formattedValue + ' VNĐ'
+                                ];
+                                
+                                if (value >= 1000000) {
+                                    lines.push('📊 ' + (value / 1000000).toFixed(2) + ' triệu VNĐ');
+                                } else if (value >= 1000) {
+                                    lines.push('📊 ' + (value / 1000).toFixed(0) + ' nghìn VNĐ');
+                                }
+                                
+                                return lines;
+                            },
+                            afterBody: function(context) {
+                                const value = context[0].parsed.y;
+                                if (value === 0) return '';
+                                
+                                // Tính phần trăm so với tổng doanh thu năm
+                                const totalRevenue = revenueData.reduce((a, b) => a + b, 0);
+                                if (totalRevenue === 0) return '';
+                                
+                                const percentage = ((value / totalRevenue) * 100).toFixed(1);
+                                return '📈 Tỷ trọng: ' + percentage + '% tổng doanh thu năm';
+                            }
+                        }
                     }
-                },
-                animation: {
-                    duration: 2000,
-                    easing: 'easeInOutQuart'
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
+                        suggestedMax: suggestedMax,
                         grid: {
-                            color: 'rgba(0, 0, 0, 0.05)'
+                            color: 'rgba(0, 0, 0, 0.05)',
+                            drawBorder: false,
+                            lineWidth: 1
                         },
                         ticks: {
+                            color: '#6b7280',
+                            font: {
+                                size: 11,
+                                family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                            },
+                            padding: 8,
+                            stepSize: stepSize,
                             callback: function(value) {
                                 if (value >= 1000000) {
-                                    return (value / 1000000).toFixed(0) + 'M VNĐ';
+                                    return (value / 1000000).toFixed(0) + 'M';
                                 } else if (value >= 1000) {
-                                    return (value / 1000).toFixed(0) + 'K VNĐ';
+                                    return (value / 1000).toFixed(0) + 'K';
                                 } else {
-                                    return value.toLocaleString('vi-VN') + ' VNĐ';
+                                    return value;
                                 }
                             }
                         }
                     },
                     x: {
                         grid: {
-                            display: false
+                            display: false,
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: '#6b7280',
+                            font: {
+                                size: 12,
+                                weight: '600',
+                                family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                            },
+                            padding: 10
                         }
                     }
                 },
+                events: ['mousemove', 'mouseout', 'click', 'touchstart', 'touchmove'],
                 interaction: {
-                    intersect: false,
-                    mode: 'index'
+                    intersect: true,
+                    mode: 'point',
+                    axis: 'x'
+                },
+                onHover: (event, activeElements) => {
+                    const chart = event.chart || this.chart;
+                    const canvas = chart.canvas;
+                    if (activeElements && activeElements.length > 0) {
+                        canvas.style.cursor = 'pointer';
+                    } else {
+                        canvas.style.cursor = 'default';
+                    }
+                },
+                elements: {
+                    bar: {
+                        hoverBackgroundColor: function(context) {
+                            const chart = context.chart;
+                            const {ctx, chartArea} = chart;
+                            if (!chartArea) {
+                                return 'rgba(79, 70, 229, 0.9)';
+                            }
+                            
+                            const meta = chart.getDatasetMeta(context.datasetIndex);
+                            const bar = meta.data[context.dataIndex];
+                            if (!bar || !bar.y) {
+                                return 'rgba(79, 70, 229, 0.9)';
+                            }
+                            
+                            // Gradient đậm hơn khi hover
+                            const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, bar.y);
+                            gradient.addColorStop(0, 'rgba(79, 70, 229, 0.95)');
+                            gradient.addColorStop(0.5, 'rgba(99, 102, 241, 0.95)');
+                            gradient.addColorStop(1, 'rgba(67, 56, 202, 1)');
+                            return gradient;
+                        },
+                        hoverBorderColor: 'rgba(67, 56, 202, 1)',
+                        hoverBorderWidth: 3
+                    }
                 }
+            }
+        });
+        
+        // Thêm event listener để đảm bảo tooltip ẩn khi mouse ra khỏi chart
+        revenueCtx.addEventListener('mouseleave', function() {
+            if (revenueChart.tooltip) {
+                revenueChart.tooltip.setActiveElements([], {x: 0, y: 0});
+                revenueChart.update('none');
             }
         });
         }
         @endif
 
-        // Occupancy Chart - Doughnut chart
+        // Occupancy Chart - Beautiful Doughnut chart with gradient
         const occupancyCtx = document.getElementById('occupancyChart').getContext('2d');
-        new Chart(occupancyCtx, {
+        
+        // Tạo gradient đẹp cho phần đã đặt
+        const bookedGradient = occupancyCtx.createLinearGradient(0, 0, 0, 300);
+        bookedGradient.addColorStop(0, 'rgba(34, 197, 94, 1)');
+        bookedGradient.addColorStop(0.5, 'rgba(59, 130, 246, 0.9)');
+        bookedGradient.addColorStop(1, 'rgba(34, 197, 94, 0.8)');
+        
+        // Tạo gradient cho phần trống
+        const emptyGradient = occupancyCtx.createLinearGradient(0, 0, 0, 300);
+        emptyGradient.addColorStop(0, 'rgba(229, 231, 235, 0.6)');
+        emptyGradient.addColorStop(1, 'rgba(209, 213, 219, 0.8)');
+        
+        const occupancyChart = new Chart(occupancyCtx, {
             type: 'doughnut',
             data: {
                 labels: ['Đã đặt', 'Trống'],
                 datasets: [{
                     data: [{{ $occupancyRate }}, {{ 100 - $occupancyRate }}],
                     backgroundColor: [
-                        'rgba(34, 197, 94, 0.8)',
-                        'rgba(229, 231, 235, 0.8)'
+                        bookedGradient,
+                        emptyGradient
                     ],
                     borderColor: [
-                        'rgb(34, 197, 94)',
-                        'rgb(229, 231, 235)'
+                        'rgba(255, 255, 255, 1)',
+                        'rgba(255, 255, 255, 1)'
                     ],
-                    borderWidth: 2,
-                    cutout: '70%'
+                    borderWidth: 4,
+                    cutout: '75%',
+                    spacing: 2,
+                    hoverOffset: 8
                 }]
             },
             options: {
@@ -372,13 +601,79 @@
                         position: 'bottom',
                         labels: {
                             padding: 20,
-                            usePointStyle: true
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                            font: {
+                                size: 13,
+                                weight: '500'
+                            },
+                            color: '#374151',
+                            generateLabels: function(chart) {
+                                const data = chart.data;
+                                if (data.labels.length && data.datasets.length) {
+                                    return data.labels.map((label, i) => {
+                                        const dataset = data.datasets[0];
+                                        const value = dataset.data[i];
+                                        const backgroundColor = dataset.backgroundColor[i];
+                                        return {
+                                            text: `${label}: ${value}%`,
+                                            fillStyle: backgroundColor,
+                                            hidden: false,
+                                            index: i
+                                        };
+                                    });
+                                }
+                                return [];
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        titleFont: {
+                            size: 14,
+                            weight: 'bold'
+                        },
+                        bodyFont: {
+                            size: 13
+                        },
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                return `${label}: ${value}%`;
+                            }
                         }
                     }
                 },
                 animation: {
-                    duration: 1500,
-                    easing: 'easeInOutQuart'
+                    animateRotate: true,
+                    animateScale: true,
+                    duration: 2000,
+                    easing: 'easeOutQuart',
+                    onComplete: function() {
+                        const chart = this.chart;
+                        const ctx = chart.ctx;
+                        const centerX = chart.chartArea.left + (chart.chartArea.right - chart.chartArea.left) / 2;
+                        const centerY = chart.chartArea.top + (chart.chartArea.bottom - chart.chartArea.top) / 2;
+                        
+                        ctx.save();
+                        ctx.fillStyle = '#1f2937';
+                        ctx.font = 'bold 32px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText('{{ $occupancyRate }}%', centerX, centerY - 10);
+                        
+                        ctx.fillStyle = '#6b7280';
+                        ctx.font = '500 14px Arial';
+                        ctx.fillText('Tỷ lệ lấp đầy', centerX, centerY + 20);
+                        ctx.restore();
+                    }
+                },
+                elements: {
+                    arc: {
+                        borderRadius: 10
+                    }
                 }
             }
         });
