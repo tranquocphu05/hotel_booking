@@ -128,7 +128,7 @@
                                                         class="ml-2 px-3 py-1 text-xs bg-blue-600 text-white rounded">Tải
                                                         danh sách phòng</button>
                                                 </div>
-                                                <div class="space-y-2 pl-4 border-l-2 border-gray-300">
+                                                <div class="pl-4 border-l-2 border-gray-300 grid grid-cols-10 gap-2 checkbox-container">
                                                     <!-- Phòng sẽ được render bằng JavaScript -->
                                                 </div>
                                                 <p id="availability_text_{{ $loop->index }}"
@@ -1642,7 +1642,7 @@
                         const roomsContainer = document.getElementById(`available_rooms_${index}`);
                         if (roomsContainer) {
                             roomsContainer.classList.remove('hidden');
-                            const checkboxContainer = roomsContainer.querySelector('div.space-y-2');
+                            const checkboxContainer = roomsContainer.querySelector('.checkbox-container');
                             if (checkboxContainer) {
                                 checkboxContainer.innerHTML = '';
                                 if (data.rooms && Array.isArray(data.rooms) && data.rooms.length > 0) {

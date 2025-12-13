@@ -155,7 +155,7 @@
                                                 </p>
                                             </div>
                                             {{-- Danh sách các phòng cụ thể có sẵn (sẽ được JS điền vào) --}}
-                                            <div id="available_rooms_{{ $loaiPhong->id }}" class="available-rooms mt-3 hidden"></div>
+                                            <div id="available_rooms_{{ $loaiPhong->id }}" class="available-rooms mt-3 grid grid-cols-3 gap-2 hidden"></div>
                                         </div>
                                     @endforeach
                                 </div>

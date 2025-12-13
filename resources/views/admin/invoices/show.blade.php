@@ -265,7 +265,7 @@
                             </div>
                         @endif
                     </div>
-                    
+
                     <div class="grid md:grid-cols-1 gap-6">
                         <div class="bg-white border rounded-xl p-5 shadow-sm space-y-2">
                             <h3 class="text-base font-bold text-gray-900 mb-4">Tóm tắt thanh toán</h3>
@@ -288,46 +288,45 @@
                                     <span class="font-semibold">-{{ number_format($discount, 0, ',', '.') }}₫</span>
                                 </div>
                             @endif
-                            <div class="border-t pt-3 mt-3 flex justify-between items-center">
-                                <span class="text-base font-semibold text-gray-700">Tổng cần thanh toán</span>
-                                <span
-                                    class="text-2xl font-bold text-blue-600">{{ number_format($displayTotal, 0, ',', '.') }}₫</span>
-                            </div>
-                            @if ($invoice->tong_tien && $invoice->tong_tien != $calculatedTotal)
-                                <p class="text-xs text-gray-500">
-                                    (Đã lưu trong hệ thống: {{ number_format((float) $invoice->tong_tien, 0, ',', '.') }}₫)
-                                </p>
-                            @endif
-                            <div class="bg-white border rounded-xl p-5 shadow-sm space-y-4">
-                                <h3 class="text-base font-bold text-gray-900 mb-4">Chi tiết hóa đơn</h3>
 
-                                <div>
-                                    <p class="text-sm text-gray-500 uppercase font-semibold mb-2">Trạng thái thanh toán</p>
+                            <div class="pt-4 border-t border-gray-200 space-y-4">
+                                <div class="grid grid-cols-3 items-center gap-4">
+                                    <h3 class="text-base font-bold text-gray-900">
+                                        Chi tiết hóa đơn
+                                    </h3>
+
+                                    <p class="text-sm text-gray-600 text-center">
+                                        Phương thức:
+                                        <span class="font-semibold text-gray-900">
+                                            {{ $invoice->phuong_thuc ? strtoupper(str_replace('_', ' ', $invoice->phuong_thuc)) : 'N/A' }}
+                                        </span>
+                                    </p>
+
+                                    <p class="text-sm text-gray-600 text-right">
+                                        Ngày tạo:
+                                        <span class="font-semibold text-gray-900">
+                                            {{ $invoice->ngay_tao ? \Carbon\Carbon::parse($invoice->ngay_tao)->format('d/m/Y H:i') : 'N/A' }}
+                                        </span>
+                                    </p>
+                                </div>
+
+                                <div class="flex items-center justify-between">
+                                    <p class="text-sm text-gray-500 uppercase font-semibold">
+                                        Trạng thái thanh toán
+                                    </p>
+
                                     <span
-                                        class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold
-                                        @if ($invoice->trang_thai === 'da_thanh_toan') bg-green-100 text-green-800
-                                        @elseif($invoice->trang_thai === 'hoan_tien') bg-red-100 text-red-800
-                                        @else bg-yellow-100 text-yellow-800 @endif">
-                                        {{ $invoice->trang_thai === 'da_thanh_toan' ? 'Đã thanh toán' : ($invoice->trang_thai === 'hoan_tien' ? 'Hoàn tiền' : 'Chờ thanh toán') }}
+                                        class="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold
+        @if ($invoice->trang_thai === 'da_thanh_toan') bg-green-100 text-green-800
+        @elseif($invoice->trang_thai === 'hoan_tien') bg-red-100 text-red-800
+        @else bg-yellow-100 text-yellow-800 @endif">
+                                        {{ $invoice->trang_thai === 'da_thanh_toan'
+                                            ? 'Đã thanh toán'
+                                            : ($invoice->trang_thai === 'hoan_tien'
+                                                ? 'Hoàn tiền'
+                                                : 'Chờ thanh toán') }}
                                     </span>
                                 </div>
-
-                                <div>
-                                    <p class="text-sm text-gray-600">
-                                        Phương thức:
-                                        <span
-                                            class="font-semibold text-gray-900">{{ $invoice->phuong_thuc ? strtoupper(str_replace('_', ' ', $invoice->phuong_thuc)) : 'N/A' }}</span>
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <p class="text-sm text-gray-600">
-                                        Ngày tạo:
-                                        <span
-                                            class="font-semibold text-gray-900">{{ $invoice->ngay_tao ? \Carbon\Carbon::parse($invoice->ngay_tao)->format('d/m/Y H:i') : 'N/A' }}</span>
-                                    </p>
-                                </div>
-
                                 @if ($invoice->trang_thai === 'cho_thanh_toan')
                                     <form action="{{ route('admin.invoices.update', $invoice->id) }}" method="POST"
                                         class="pt-3 border-t space-y-2 no-print">
@@ -341,33 +340,8 @@
                                         <div class="text-xs text-gray-500 text-center">
                                             Áp dụng cho cả hóa đơn phát sinh (không ảnh hưởng hóa đơn chính).
                                         </div>
-                                        {{-- Voucher discount --}}
-                                        @if (($invoice->giam_gia ?? 0) > 0)
-                                            @php
-                                                $voucher = $booking->voucher;
-                                            @endphp
-                                            <div class="flex justify-between items-center py-2">
-                                                <span class="text-gray-700 font-medium">
-                                                    Giảm giá @if ($voucher)
-                                                        ({{ $voucher->ma_voucher ?? '' }} - {{ $voucher->gia_tri ?? 0 }}%)
-                                                    @endif
-                                                </span>
-                                                <span
-                                                    class="text-red-600 font-semibold text-lg">-{{ number_format($invoice->giam_gia ?? 0, 0, ',', '.') }}
-                                                    đ</span>
-                                            </div>
-                                        @endif
 
-                                        <div class="border-t border-gray-200"></div>
-                                        {{-- Services total --}}
-                                        @if ($servicesTotal > 0 || ($invoice->tien_dich_vu ?? 0) > 0)
-                                            <div class="flex justify-between items-center py-2">
-                                                <span class="text-gray-700 font-medium">Tổng dịch vụ</span>
-                                                <span
-                                                    class="text-gray-900 font-semibold text-lg">{{ number_format($invoice->tien_dich_vu ?? $servicesTotal, 0, ',', '.') }}
-                                                    đ</span>
-                                            </div>
-                                        @endif
+                                        
                                         {{-- Phụ phí thiệt hại tài sản --}}
                                         @php
                                             $phiPhatSinh = $invoice->phi_phat_sinh ?? 0;
@@ -447,6 +421,11 @@
                                                 $invoice->tong_tien ??
                                                 max(0, $tienPhong - $giamGia + $tienDichVu + $phiPhatSinh);
                                         @endphp
+                                        @if ($invoice->tong_tien && $invoice->tong_tien != $calculatedTotal)
+                                            <p class="text-xs text-gray-500 mb-2">
+                                                (Đã lưu trong hệ thống: {{ number_format((float) $invoice->tong_tien, 0, ',', '.') }}₫)
+                                            </p>
+                                        @endif
                                         <div class="flex justify-between items-center py-3 bg-blue-600 -mx-6 px-6 -mb-6">
                                             <span class="font-bold text-white text-lg">TỔNG THANH TOÁN</span>
                                             <span
@@ -470,7 +449,7 @@
                         <div class="bg-white rounded-lg border-2 border-gray-200 shadow-sm overflow-hidden">
                             <div class="p-6 space-y-4">
                                 <div class="flex justify-between items-center py-2">
-                                    <span class="text-gray-700 font-medium">Tổng số lượng</span>
+                                    <span class="text-gray-700 font-medium">Tổng số lượng dịch vụ</span>
                                     <span class="text-gray-900 font-semibold text-lg">{{ $servicesQty }}</span>
                                 </div>
 
@@ -488,13 +467,7 @@
                                         đ</span>
                                 </div>
                             </div>
-                            <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
-                                <div class="flex justify-between items-center">
-                                    <span class="text-sm text-gray-600">Phương thức thanh toán</span>
-                                    <span
-                                        class="text-sm font-semibold text-gray-900">{{ $invoice->phuong_thuc ?? 'N/A' }}</span>
-                                </div>
-                            </div>
+
                         </div>
                     </div>
                     @endif

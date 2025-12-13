@@ -418,7 +418,7 @@
                                             : null;
                                 @endphp
                                 @if ($loaiPhong)
-                                    <div class="flex gap-4 items-start">
+                                    <div class="flex flex-col md:flex-row gap-4 items-start">
                                         <img src="{{ asset($loaiPhong->anh ?? 'img/room/room-1.jpg') }}"
                                             class="w-32 h-32 object-cover rounded-lg shadow-sm">
 
@@ -455,6 +455,26 @@
                                                 </div>
 
                                             </div>
+                                        </div>
+                                        @php
+                                            $assignedForType = $booking->getAssignedPhongs()->filter(function($p) use ($loaiPhong) {
+                                                return $p->loai_phong_id == ($loaiPhong->id ?? null);
+                                            });
+                                        @endphp
+                                        <div class="mt-3 md:mt-0 md:w-64 flex-shrink-0">
+                                            <div class="text-xs text-gray-600 mb-2">Phòng đã gán ({{ $assignedForType->count() }} / {{ $singleRoomType['so_luong'] ?? 0 }})</div>
+                                            @if ($assignedForType->count())
+                                                <div class="space-y-2">
+                                                    @foreach ($assignedForType as $phong)
+                                                        <div class="bg-blue-50 border border-blue-200 rounded p-2 text-sm">
+                                                            <div class="font-semibold text-sm">{{ $phong->so_phong }} {{ $phong->ten_phong ? '('.$phong->ten_phong.')' : '' }}</div>
+                                                            <div class="text-xs text-gray-500">Tầng: {{ $phong->tang ?? 'N/A' }} • Trạng thái: <span class="{{ $phong->trang_thai === 'trong' ? 'text-green-600' : ($phong->trang_thai === 'dang_thue' ? 'text-orange-600' : 'text-gray-500') }}">{{ $phong->trang_thai }}</span></div>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                            @else
+                                                <div class="text-xs text-gray-500 italic">Chưa có phòng được gán cho loại này.</div>
+                                            @endif
                                         </div>
                                     </div>
                                 @else
