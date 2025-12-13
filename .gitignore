@@ -50,6 +50,7 @@ app/Console/Commands/Test*.php
 
 # Temporary/accidental files
 tatus
+web.php
 
 
 

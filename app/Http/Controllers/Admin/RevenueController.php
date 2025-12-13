@@ -16,6 +16,7 @@ class RevenueController extends Controller
 
     public function index(Request $request)
     {
+
         // Nhân viên: không có quyền xem doanh thu
         if ($this->hasRole('nhan_vien')) {
             abort(403, 'Bạn không có quyền xem doanh thu.');
@@ -63,7 +64,7 @@ class RevenueController extends Controller
             $year = $request->get('year', Carbon::now()->year);
             $startDateParsed = Carbon::create($year, $month, 1)->startOfMonth();
             $endDateParsed = Carbon::create($year, $month, 1)->endOfMonth();
-            
+
             $paidBookings = DatPhong::with(['loaiPhong', 'invoice'])
                 ->whereHas('invoice', function($query) {
                     $query->where('trang_thai', 'da_thanh_toan');
@@ -104,6 +105,7 @@ class RevenueController extends Controller
 
         // Lấy doanh thu theo ngày
         $dailyRevenues = DatPhong::select(
+
                 DB::raw('DATE(hoa_don.ngay_tao) as ngay'),
                 DB::raw('SUM(dat_phong.tong_tien) as tong_tien'),
                 DB::raw('COUNT(dat_phong.id) as so_luong')
@@ -111,6 +113,7 @@ class RevenueController extends Controller
             ->join('hoa_don', 'dat_phong.id', '=', 'hoa_don.dat_phong_id')
             ->where('hoa_don.trang_thai', 'da_thanh_toan')
             ->whereBetween('hoa_don.ngay_tao', [$startDateParsed ?? $startDate, $endDateParsed ?? $endDate])
+
             ->groupBy('ngay')
             ->orderBy('ngay', 'desc')
             ->get();

@@ -502,6 +502,7 @@
                                                 </div>
                                             @endif
 
+
                                             <!-- Action buttons -->
                                             <div class="flex justify-end gap-3 mt-6">
                                                 {{-- Nút đánh giá: chỉ khi đã trả phòng --}}

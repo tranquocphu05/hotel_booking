@@ -308,6 +308,7 @@
                                                     });
                                             @endphp
                                             <article
+
                                                 class="room-card {{ $option->id === (optional($loaiPhong)->id) ? 'room-card--active' : '' }}">
                                                 <div class="room-card__left">
                                                     <div class="room-card__media">
@@ -340,6 +341,7 @@
                                                                         onchange="updateRoomCardQuantity('{{ $option->id }}')">
                                                                         @php
                                                                             $isPreselected = $option->id === optional($loaiPhong)->id;
+
                                                                         @endphp
                                                                         @for ($q = 0; $q <= $initialAvailable; $q++)
                                                                             <option value="{{ $q }}" {{ ($isPreselected && $q === 1) ? 'selected' : '' }}>{{ $q }} Phòng</option>

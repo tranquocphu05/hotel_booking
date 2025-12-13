@@ -52,5 +52,4 @@ return new class extends Migration
             $table->json('phong_ids')->nullable()->after('room_types');
         });
     }
-
 };
