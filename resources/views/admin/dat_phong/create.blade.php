@@ -155,7 +155,7 @@
                                                 </p>
                                             </div>
                                             {{-- Danh sách các phòng cụ thể có sẵn (sẽ được JS điền vào) --}}
-                                            <div id="available_rooms_{{ $loaiPhong->id }}" class="available-rooms mt-3 hidden"></div>
+                                            <div id="available_rooms_{{ $loaiPhong->id }}" class="available-rooms mt-3 grid grid-cols-3 gap-2 hidden"></div>
                                         </div>
                                     @endforeach
                                 </div>
@@ -175,6 +175,8 @@
                                         <label for="ngay_nhan" class="block text-sm font-medium text-gray-700">Ngày nhận
                                             phòng</label>
                                         <input type="date" name="ngay_nhan" id="ngay_nhan"
+                                            value="{{ old('ngay_nhan', \Carbon\Carbon::today()->format('Y-m-d')) }}"
+                                            min="{{ \Carbon\Carbon::today()->format('Y-m-d') }}"
                                             class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                                         @error('ngay_nhan')
                                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -185,6 +187,8 @@
                                         <label for="ngay_tra" class="block text-sm font-medium text-gray-700">Ngày trả
                                             phòng</label>
                                         <input type="date" name="ngay_tra" id="ngay_tra"
+                                            value="{{ old('ngay_tra', \Carbon\Carbon::tomorrow()->format('Y-m-d')) }}"
+                                            min="{{ \Carbon\Carbon::tomorrow()->format('Y-m-d') }}"
                                             class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                                         @error('ngay_tra')
                                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -790,12 +794,34 @@
                 // Đặt ngày tối thiểu cho ngày nhận phòng là ngày hiện tại
                 const today = new Date().toISOString().split('T')[0];
                 ngayNhanInput.setAttribute('min', today);
-                ngayNhanInput.value = today;
+                
+                // Chỉ set giá trị mặc định nếu chưa có giá trị (từ old() hoặc server)
+                if (!ngayNhanInput.value) {
+                    ngayNhanInput.value = today;
+                }
 
-                // Đặt ngày trả mặc định là ngày mai
-                const tomorrow = new Date();
-                tomorrow.setDate(tomorrow.getDate() + 1);
-                ngayTraInput.value = tomorrow.toISOString().split('T')[0];
+                // Đặt ngày trả mặc định là ngày mai (hoặc ngày sau ngày nhận nếu đã có)
+                if (!ngayTraInput.value) {
+                    const tomorrow = new Date();
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    ngayTraInput.value = tomorrow.toISOString().split('T')[0];
+                }
+                
+                // Đảm bảo min của ngày trả phòng là ngày sau ngày nhận
+                if (ngayNhanInput.value) {
+                    const minCheckout = new Date(ngayNhanInput.value);
+                    minCheckout.setDate(minCheckout.getDate() + 1);
+                    ngayTraInput.setAttribute('min', minCheckout.toISOString().split('T')[0]);
+                    
+                    // Nếu ngày trả nhỏ hơn hoặc bằng ngày nhận, tự động set thành ngày sau
+                    if (ngayTraInput.value && ngayTraInput.value <= ngayNhanInput.value) {
+                        ngayTraInput.value = minCheckout.toISOString().split('T')[0];
+                    }
+                } else {
+                    const tomorrow = new Date();
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    ngayTraInput.setAttribute('min', tomorrow.toISOString().split('T')[0]);
+                }
 
                 // Cập nhật ngày trả phòng tối thiểu khi ngày nhận thay đổi
                 ngayNhanInput.addEventListener('change', function() {
