@@ -52,22 +52,27 @@ class YeuCauDoiPhongController extends Controller
 
         $phongHienTai = $booking->phongs->first(); // nếu nhiều phòng, bạn tự sửa logic tùy ý
 
-        // 4. Danh sách phòng trống cùng loại trong khoảng ngày booking
+        // 4. Danh sách phòng trống TẤT CẢ loại trong khoảng ngày booking
         $availableRooms = Phong::query()
-            ->where('loai_phong_id', $booking->loai_phong_id)
+            ->with('loaiPhong')
             ->whereIn('trang_thai', ['trong', 'dang_don'])
             ->whereDoesntHave('datPhongs', function ($q) use ($booking) {
                 $q->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
                     ->where('ngay_tra', '>', $booking->ngay_nhan)
                     ->where('ngay_nhan', '<', $booking->ngay_tra);
             })
+            ->orderBy('loai_phong_id')
             ->orderBy('ten_phong')
             ->get();
+
+        // Tính số đêm
+        $nights = max(1, \Carbon\Carbon::parse($booking->ngay_nhan)->diffInDays(\Carbon\Carbon::parse($booking->ngay_tra)));
 
         return view('client.yeu_cau_doi_phong.create', compact(
             'booking',
             'phongHienTai',
-            'availableRooms'
+            'availableRooms',
+            'nights'
         ));
     }
 
@@ -108,6 +113,9 @@ class YeuCauDoiPhongController extends Controller
         $request->validate([
             'phong_cu_id'  => 'required|exists:phong,id',
             'phong_moi_id' => 'required|exists:phong,id|different:phong_cu_id',
+            'so_nguoi_lon_moi' => 'nullable|integer|min:' . ($booking->so_nguoi ?? 2) . '|max:4',
+            'so_tre_em_moi' => 'nullable|integer|min:' . ($booking->so_tre_em ?? 0) . '|max:4',
+            'so_em_be_moi' => 'nullable|integer|min:' . ($booking->so_em_be ?? 0) . '|max:4',
             'ly_do'        => [
                 'required',
                 'string',
@@ -157,13 +165,38 @@ class YeuCauDoiPhongController extends Controller
             DB::transaction(function () use ($request, $booking, $user) {
 
                 // Lock record phòng mới để tránh race condition
-                $phongMoi = Phong::where('id', $request->phong_moi_id)
+                $phongMoi = Phong::with('loaiPhong')->where('id', $request->phong_moi_id)
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                // a) Chỉ cho phép đổi sang phòng cùng loại (nếu bạn muốn)
-                if ($phongMoi->loai_phong_id != $booking->loai_phong_id) {
-                    throw new \RuntimeException('Phòng mới phải cùng loại với phòng hiện tại.');
+                // Lock record phòng cũ để lấy thông tin
+                $phongCu = Phong::with('loaiPhong')->where('id', $request->phong_cu_id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                // a) Cho phép đổi sang TẤT CẢ loại phòng
+                // Tính phí đổi phòng 10% dựa trên chênh lệch giá
+                $nights = max(1, \Carbon\Carbon::parse($booking->ngay_nhan)->diffInDays(\Carbon\Carbon::parse($booking->ngay_tra)));
+                
+                // Giá phòng cũ (1 đêm)
+                $giaPhongCu = $phongCu->loaiPhong->gia_khuyen_mai ?? $phongCu->loaiPhong->gia_co_ban ?? 0;
+                $tongGiaPhongCu = $giaPhongCu * $nights;
+                
+                // Giá phòng mới (1 đêm)
+                $giaPhongMoi = $phongMoi->loaiPhong->gia_khuyen_mai ?? $phongMoi->loaiPhong->gia_co_ban ?? 0;
+                $tongGiaPhongMoi = $giaPhongMoi * $nights;
+                
+                // Chênh lệch giá (nếu phòng mới đắt hơn thì có phí, nếu rẻ hơn thì không có phí)
+                $chenhLechGia = max(0, $tongGiaPhongMoi - $tongGiaPhongCu);
+                
+                // Phí đổi phòng: nếu chênh lệch giá <= 100K thì miễn phí, còn nếu > 100K thì tính theo chênh lệch giá
+                $phiDoiPhongMacDinh = 100000; // 100K
+                if ($chenhLechGia <= $phiDoiPhongMacDinh) {
+                    // Chênh lệch giá bằng hoặc ít hơn 100K => miễn phí đổi phòng
+                    $phiDoiPhong = 0;
+                } else {
+                    // Chênh lệch giá > 100K => tính theo chênh lệch giá
+                    $phiDoiPhong = $chenhLechGia;
                 }
 
                 // b) Kiểm tra lại 1 lần nữa xem phòng còn trống trong khoảng ngày không
@@ -190,14 +223,37 @@ class YeuCauDoiPhongController extends Controller
                     throw new \RuntimeException('Bạn đã gửi một yêu cầu đổi phòng và đang chờ admin duyệt.');
                 }
 
+                // d) Lấy số người mới (tính từ người lớn, trẻ em, em bé)
+                $soNguoiLonMoi = $request->input('so_nguoi_lon_moi') 
+                    ? (int)$request->input('so_nguoi_lon_moi') 
+                    : ($booking->so_nguoi ?? 2);
+                $soTreEmMoi = $request->input('so_tre_em_moi') 
+                    ? (int)$request->input('so_tre_em_moi') 
+                    : ($booking->so_tre_em ?? 0);
+                $soEmBeMoi = $request->input('so_em_be_moi') 
+                    ? (int)$request->input('so_em_be_moi') 
+                    : ($booking->so_em_be ?? 0);
+                
+                // Tổng số người mới = số người lớn mới
+                $soNguoiMoi = $soNguoiLonMoi;
+
                 // d) Tạo yêu cầu mới
-                YeuCauDoiPhong::create([
+                $yeuCauData = [
                     'dat_phong_id' => $booking->id,
                     'phong_cu_id'  => $request->phong_cu_id,
                     'phong_moi_id' => $phongMoi->id,
                     'ly_do'        => $request->ly_do,
+                    'phi_doi_phong' => $phiDoiPhong,
+                    'so_nguoi_moi' => $soNguoiMoi,
+                    'so_tre_em_moi' => $soTreEmMoi,
+                    'so_em_be_moi' => $soEmBeMoi,
+                    'so_nguoi_ban_dau' => $booking->so_nguoi ?? 2, // Lưu số người ban đầu
+                    'so_tre_em_ban_dau' => $booking->so_tre_em ?? 0, // Lưu số trẻ em ban đầu
+                    'so_em_be_ban_dau' => $booking->so_em_be ?? 0, // Lưu số em bé ban đầu
                     'trang_thai'   => 'cho_duyet',
-                ]);
+                ];
+                
+                YeuCauDoiPhong::create($yeuCauData);
             });
 
         } catch (\RuntimeException $e) {

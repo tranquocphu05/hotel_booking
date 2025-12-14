@@ -11,6 +11,9 @@ use App\Models\YeuCauDoiPhong;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Services\BookingPriceCalculator;
+use App\Services\RoomUpgradeFeeCalculator;
+use Carbon\Carbon;
 
 use App\Traits\HasRolePermissions;
 
@@ -103,6 +106,50 @@ class YeuCauDoiPhongController extends Controller
             if ($booking) {
                 // Chỉ xử lý khi booking vẫn đang ở trạng thái đang ở
                 if ($booking->trang_thai === 'da_xac_nhan' && $booking->thoi_gian_checkin && !$booking->thoi_gian_checkout) {
+                    // Lấy thời điểm đổi phòng từ request hoặc dùng thời điểm hiện tại
+                    $changeAt = $request->input('change_at') 
+                        ? Carbon::parse($request->input('change_at')) 
+                        : Carbon::now();
+
+                    // Lấy các thông tin từ request (có thể để trống, dùng giá trị mặc định)
+                    $vatPercent = (float)($request->input('vat_percent', 0));
+                    $serviceChargePercent = (float)($request->input('service_charge_percent', 0));
+                    
+                    // Lấy các phụ thu khác từ request
+                    $extras = [];
+                    if ($request->has('extras')) {
+                        foreach ($request->input('extras', []) as $extra) {
+                            if (isset($extra['name']) && isset($extra['amount']) && $extra['amount'] > 0) {
+                                $extras[$extra['name']] = (float)$extra['amount'];
+                            }
+                        }
+                    }
+
+                    // Lấy số người mới từ request hoặc từ yêu cầu đã lưu
+                    $soNguoiMoi = $request->input('so_nguoi_moi') 
+                        ? (int)$request->input('so_nguoi_moi') 
+                        : ($yeuCau->so_nguoi_moi ?? null);
+                    $soTreEmMoi = $request->input('so_tre_em_moi') 
+                        ? (int)$request->input('so_tre_em_moi') 
+                        : ($yeuCau->so_tre_em_moi ?? null);
+                    $soEmBeMoi = $request->input('so_em_be_moi') 
+                        ? (int)$request->input('so_em_be_moi') 
+                        : ($yeuCau->so_em_be_moi ?? null);
+
+                    // Tính phí chênh lệch chi tiết
+                    $feeCalculation = RoomUpgradeFeeCalculator::calculate(
+                        $booking,
+                        $phongCu,
+                        $phongMoi,
+                        $changeAt,
+                        $vatPercent,
+                        $serviceChargePercent,
+                        $extras,
+                        $soNguoiMoi,
+                        $soTreEmMoi,
+                        $soEmBeMoi
+                    );
+
                     // Cập nhật lại phòng trong pivot (nếu có)
                     if ($booking->phongs()->where('phong_id', $phongCu->id)->exists()) {
                         $booking->phongs()->detach($phongCu->id);
@@ -110,8 +157,102 @@ class YeuCauDoiPhongController extends Controller
                     } elseif ($booking->phong_id === $phongCu->id) {
                         // Legacy: booking có cột phong_id
                         $booking->phong_id = $phongMoi->id;
-                        $booking->save();
                     }
+
+                    // Nếu phòng mới khác loại phòng, cập nhật loai_phong_id của booking
+                    if ($phongMoi->loai_phong_id != $booking->loai_phong_id) {
+                        $booking->loai_phong_id = $phongMoi->loai_phong_id;
+                    }
+
+                    // Cập nhật số người nếu có thay đổi
+                    if ($soNguoiMoi !== null && $soNguoiMoi > 0) {
+                        $booking->so_nguoi = $soNguoiMoi;
+                    }
+                    if ($soTreEmMoi !== null) {
+                        $booking->so_tre_em = $soTreEmMoi;
+                    }
+                    if ($soEmBeMoi !== null) {
+                        $booking->so_em_be = $soEmBeMoi;
+                    }
+
+                    // Phí đổi phòng cơ bản: SỬ DỤNG GIÁ TRỊ ĐÃ LƯU KHI CLIENT TẠO YÊU CẦU (không tính lại)
+                    // Để đảm bảo tính nhất quán, sử dụng giá trị đã lưu trong yêu cầu thay vì tính lại
+                    $phiDoiPhongCoBan = $yeuCau->phi_doi_phong ?? 0;
+                    
+                    // Nếu yêu cầu chưa có phi_doi_phong (trường hợp cũ), thì mới tính lại
+                    if ($phiDoiPhongCoBan == 0 && !$yeuCau->phi_doi_phong) {
+                        $phiDoiPhongCoBan = $feeCalculation['phi_doi_phong'];
+                    }
+                    
+                    // Cập nhật phụ phí phát sinh (tổng phí chênh lệch)
+                    // Lưu ý: $phiDoiPhongCoBan đã bao gồm chênh lệch giá phòng (nếu > 100K), nên không cộng thêm $room_extra
+                    // Bao gồm: phí đổi phòng + phụ phí thêm người/trẻ em/em bé + phụ thu khác + service charge + VAT
+                    // $room_extra chỉ dùng để tính VAT và service charge, không cộng vào phi_phat_sinh
+                    $phiPhatSinhThem = $phiDoiPhongCoBan
+                        + $feeCalculation['total_extra_guest_fee']
+                        + $feeCalculation['extras_total'] 
+                        + $feeCalculation['service_charge'] 
+                        + $feeCalculation['vat'];
+                    
+                    $booking->phi_phat_sinh = ($booking->phi_phat_sinh ?? 0) + $phiPhatSinhThem;
+                    
+                    // Cập nhật phụ phí thêm người/trẻ em/em bé vào booking (nếu có)
+                    // Tính lại phụ phí cho toàn bộ booking (từ ngày nhận đến ngày trả)
+                    $checkIn = Carbon::parse($booking->ngay_nhan);
+                    $checkOut = Carbon::parse($booking->ngay_tra);
+                    $loaiPhongMoi = $phongMoi->loaiPhong;
+                    $maxAdultsPerRoom = 2;
+                    $extraFeePercent = 0.2;
+                    $childFeePercent = 0.1;
+                    $infantFeePercent = 0.05;
+                    
+                    // Tính phụ phí thêm người lớn cho toàn bộ booking
+                    if ($soNguoiMoi !== null && $soNguoiMoi > ($booking->so_nguoi ?? $maxAdultsPerRoom)) {
+                        $extraGuestsTotal = $soNguoiMoi - ($booking->so_nguoi ?? $maxAdultsPerRoom);
+                        $totalExtraGuestFee = BookingPriceCalculator::calculateExtraGuestSurcharge(
+                            $loaiPhongMoi,
+                            $checkIn,
+                            $checkOut,
+                            $extraGuestsTotal,
+                            $extraFeePercent
+                        );
+                        // Cập nhật vào phu_phi_tre_em hoặc tính lại tổng
+                    }
+                    
+                    // Tính phụ phí thêm trẻ em cho toàn bộ booking
+                    if ($soTreEmMoi !== null && $soTreEmMoi > ($booking->so_tre_em ?? 0)) {
+                        $extraChildrenTotal = $soTreEmMoi - ($booking->so_tre_em ?? 0);
+                        $totalExtraChildFee = BookingPriceCalculator::calculateChildSurcharge(
+                            $loaiPhongMoi,
+                            $checkIn,
+                            $checkOut,
+                            $extraChildrenTotal,
+                            $childFeePercent
+                        );
+                        $booking->phu_phi_tre_em = ($booking->phu_phi_tre_em ?? 0) + $totalExtraChildFee;
+                    }
+                    
+                    // Tính phụ phí thêm em bé cho toàn bộ booking
+                    if ($soEmBeMoi !== null && $soEmBeMoi > ($booking->so_em_be ?? 0)) {
+                        $extraInfantsTotal = $soEmBeMoi - ($booking->so_em_be ?? 0);
+                        $totalExtraInfantFee = BookingPriceCalculator::calculateInfantSurcharge(
+                            $loaiPhongMoi,
+                            $checkIn,
+                            $checkOut,
+                            $extraInfantsTotal,
+                            $infantFeePercent
+                        );
+                        $booking->phu_phi_em_be = ($booking->phu_phi_em_be ?? 0) + $totalExtraInfantFee;
+                    }
+                    
+                    $booking->save();
+
+                    // KHÔNG cập nhật phi_doi_phong - giữ nguyên giá trị đã lưu khi client tạo yêu cầu
+                    // Để đảm bảo tính nhất quán, không tính lại phí đổi phòng khi approve
+                    // $yeuCau->phi_doi_phong đã được lưu khi client tạo yêu cầu, không cần cập nhật lại
+
+                    // Tính lại tổng tiền booking (bao gồm phí đổi phòng)
+                    BookingPriceCalculator::recalcTotal($booking);
 
                     // Cập nhật trạng thái phòng cơ bản
                     if ($phongCu) {
@@ -135,14 +276,6 @@ class YeuCauDoiPhongController extends Controller
 
     public function reject($id, Request $request)
     {
-        $request->validate([
-            'ghi_chu_admin' => 'required|string|min:5|max:500',
-        ], [
-            'ghi_chu_admin.required' => 'Vui lòng nhập lý do từ chối.',
-            'ghi_chu_admin.min' => 'Lý do từ chối phải có ít nhất 5 ký tự.',
-            'ghi_chu_admin.max' => 'Lý do từ chối không được vượt quá 500 ký tự.',
-        ]);
-
         $yeuCau = YeuCauDoiPhong::findOrFail($id);
 
         if ($yeuCau->trang_thai !== 'cho_duyet') {
@@ -152,9 +285,48 @@ class YeuCauDoiPhongController extends Controller
         $yeuCau->update([
             'trang_thai'    => 'bi_tu_choi',
             'nguoi_duyet'   => Auth::id(),
-            'ghi_chu_admin' => $request->input('ghi_chu_admin'),
+            'ghi_chu_admin' => $request->input('ghi_chu_admin', ''),
         ]);
 
         return back()->with('success', 'Đã từ chối yêu cầu đổi phòng.');
+    }
+
+    /**
+     * API tính toán phí chênh lệch (AJAX)
+     */
+    public function calculateFee($id, Request $request)
+    {
+        $yeuCau = YeuCauDoiPhong::with(['datPhong', 'phongCu', 'phongMoi'])->findOrFail($id);
+        
+        $changeAt = $request->input('change_at') 
+            ? Carbon::parse($request->input('change_at')) 
+            : Carbon::now();
+        
+        $vatPercent = (float)($request->input('vat_percent', 0));
+        $serviceChargePercent = (float)($request->input('service_charge_percent', 0));
+        $soNguoiMoi = $request->input('so_nguoi_moi') 
+            ? (int)$request->input('so_nguoi_moi') 
+            : ($yeuCau->so_nguoi_moi ?? null);
+        $soTreEmMoi = $request->input('so_tre_em_moi') 
+            ? (int)$request->input('so_tre_em_moi') 
+            : ($yeuCau->so_tre_em_moi ?? null);
+        $soEmBeMoi = $request->input('so_em_be_moi') 
+            ? (int)$request->input('so_em_be_moi') 
+            : ($yeuCau->so_em_be_moi ?? null);
+        
+        $feeCalculation = RoomUpgradeFeeCalculator::calculate(
+            $yeuCau->datPhong,
+            $yeuCau->phongCu,
+            $yeuCau->phongMoi,
+            $changeAt,
+            $vatPercent,
+            $serviceChargePercent,
+            [],
+            $soNguoiMoi,
+            $soTreEmMoi,
+            $soEmBeMoi
+        );
+        
+        return response()->json($feeCalculation);
     }
 }

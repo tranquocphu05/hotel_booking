@@ -115,15 +115,17 @@
                         {{-- Step 3: Check-in --}}
                         @php
                             $step3Complete = in_array($booking->trang_thai, ['da_xac_nhan', 'da_tra']);
-                            $step3Date = $step3Complete ? $booking->ngay_checkin : null;
+                            $step3Date = $step3Complete ? $booking->thoi_gian_checkin : null;
                         @endphp
                         <div class="flex flex-col items-center">
                             <div
                                 class="w-16 h-16 rounded-full flex items-center justify-center mb-3 {{ $step3Complete ? 'bg-blue-600' : 'bg-gray-200' }}">
-                                <svg class="w-8 h-8 {{ $step3Complete ? 'text-white' : 'text-gray-400' }}" fill="none"
-                                    stroke="currentColor" viewBox="0 0 24 24">
+                                {{-- Icon chìa khóa cho bước Check-in --}}
+                                <svg class="w-8 h-8 {{ $step3Complete ? 'text-white' : 'text-gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M12 11c0 3.866-3.582 7-8 7s-8-3.134-8-7 3.582-7 8-7 8 3.134 8 7zM14 11V7a4 4 0 00-8 0v4m8 0h-8m8 0a4 4 0 01-8 0" />
+                                        d="M15 7a3 3 0 11-6 0 3 3 0 016 0zM3 21l6-6" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 15h3m-3 3h2" />
                                 </svg>
                             </div>
                             <p class="text-sm font-semibold {{ $step3Complete ? 'text-blue-600' : 'text-gray-400' }} mb-1">
@@ -288,6 +290,10 @@
                                 <p class="text-xl font-bold text-red-600">0%</p>
                             </div>
                         </div>
+<<<<<<< HEAD
+=======
+
+>>>>>>> f97886649149332ddb973a10532ec469a8c76280
                     </div>
 
                     @if ($cancellationPolicy['can_cancel'])
@@ -693,9 +699,19 @@
                                     <p class="text-sm text-gray-600">Ngày đặt: <span
                                             class="font-medium">{{ date('d/m/Y H:i', strtotime($booking->ngay_dat)) }}</span>
                                     </p>
-                                    <p class="text-sm text-gray-600">Số người: <span
-                                            class="font-medium">{{ $booking->so_nguoi }}
+                                    <p class="text-sm text-gray-600">Số người lớn: <span
+                                            class="font-medium">{{ $booking->so_nguoi ?? 0 }}
                                             người</span></p>
+                                    @if(($booking->so_tre_em ?? 0) > 0)
+                                    <p class="text-sm text-gray-600">Số trẻ em: <span
+                                            class="font-medium">{{ $booking->so_tre_em ?? 0 }}
+                                            trẻ em</span></p>
+                                    @endif
+                                    @if(($booking->so_em_be ?? 0) > 0)
+                                    <p class="text-sm text-gray-600">Số em bé: <span
+                                            class="font-medium">{{ $booking->so_em_be ?? 0 }}
+                                            em bé</span></p>
+                                    @endif
                                     <p class="text-sm text-gray-600">Ngày nhận phòng: <span
                                             class="font-medium">{{ date('d/m/Y', strtotime($booking->ngay_nhan)) }}</span>
                                     </p>

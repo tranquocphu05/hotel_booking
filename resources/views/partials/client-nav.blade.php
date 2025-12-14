@@ -155,18 +155,18 @@
                                 @endif
                             </div>
 
-                            <div class="nav-dropdown-user__footer border-t border-gray-100 p-1.5 bg-gray-50/50">
-                                <form method="POST" action="{{ route('logout') }}" class="block">
-                                    @csrf
-                                    <button type="submit"
-                                        class="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-red-600 rounded-md hover:bg-red-50 transition-all duration-200 group/logout border border-red-200 hover:border-red-300">
-                                        <span class="w-5 h-5 flex items-center justify-center rounded bg-red-100 text-red-600 group-hover/logout:bg-red-200 transition-colors duration-200">
-                                            <i class="fas fa-sign-out-alt text-xs"></i>
-                                        </span>
-                                        <span class="font-semibold text-sm">Đăng xuất</span>
-                                    </button>
-                                </form>
-                            </div>
+<div class="nav-dropdown-user__footer border-t border-gray-100 px-2 py-1.5">
+    <form method="POST" action="{{ route('logout') }}">
+        @csrf
+        <button
+            type="submit"
+            class="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-red-600 rounded hover:bg-red-50 transition">
+            <i class="fas fa-sign-out-alt text-xs"></i>
+            <span class="font-medium">Đăng xuất</span>
+        </button>
+    </form>
+</div>
+
                         </div>
                     </div>
                 @else

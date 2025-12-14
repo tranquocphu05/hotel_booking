@@ -12,8 +12,13 @@
     <div class="p-6">
         @php
             $assignedPhongs = $booking->getAssignedPhongs();
-            $allCheckedIn = $booking->thoi_gian_checkin !== null;
-            $allCheckedOut = $booking->thoi_gian_checkout !== null;
+            // Tính trạng thái tổng dựa trên pivot của từng phòng
+            $allCheckedIn = $assignedPhongs->isNotEmpty() && $assignedPhongs->every(function ($phong) {
+                return !is_null(optional($phong->pivot)->thoi_gian_checkin);
+            });
+            $allCheckedOut = $assignedPhongs->isNotEmpty() && $assignedPhongs->every(function ($phong) {
+                return !is_null(optional($phong->pivot)->thoi_gian_checkout);
+            });
         @endphp
 
         @if($assignedPhongs->isEmpty())
@@ -29,8 +34,8 @@
                     Vui lòng gán phòng trước khi check-in
                 </p>
             </div>
-        @elseif(!$booking->canCheckin() && !$allCheckedIn)
-            {{-- CANNOT CHECK-IN YET --}}
+        @elseif($booking->trang_thai !== 'da_xac_nhan')
+            {{-- CANNOT CHECK-IN YET (booking chưa ở trạng thái đã xác nhận) --}}
             <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
                 <svg class="w-12 h-12 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -44,13 +49,14 @@
             <div class="space-y-6">
                 @foreach($assignedPhongs as $phong)
                     @php
-                        $roomCheckinTime = $booking->thoi_gian_checkin;
-                        $roomCheckoutTime = $booking->thoi_gian_checkout;
-                        $canRoomCheckin = $booking->canCheckin() && !$roomCheckinTime;
-                        // Only allow checkout if room is currently rented
-                        $canRoomCheckout = $roomCheckinTime && !$roomCheckoutTime && $phong->trang_thai === 'dang_thue';
-                        // Room is checked out if booking is done OR room status is cleaning
-                        $isRoomCheckedOut = $roomCheckoutTime || $phong->trang_thai === 'dang_don';
+                        $roomCheckinTime = optional($phong->pivot)->thoi_gian_checkin;
+                        $roomCheckoutTime = optional($phong->pivot)->thoi_gian_checkout;
+                        // Cho phép checkin nếu booking đã xác nhận và phòng này chưa có thoi_gian_checkin
+                        $canRoomCheckin = $booking->trang_thai === 'da_xac_nhan' && is_null($roomCheckinTime);
+                        // Cho phép checkout nếu đã checkin nhưng chưa checkout
+                        $canRoomCheckout = $booking->trang_thai === 'da_xac_nhan' && $roomCheckinTime && !$roomCheckoutTime;
+                        // Phòng coi như đã checkout khi có thoi_gian_checkout
+                        $isRoomCheckedOut = !is_null($roomCheckoutTime);
                     @endphp
 
                     <div class="border border-gray-200 rounded-lg overflow-hidden">
@@ -100,9 +106,50 @@
                                         </svg>
                                         Sẵn sàng check-in phòng này
                                     </p>
+                                    
+                                    @php
+                                        $checkinTime = now();
+                                        $standardCheckinTime = \Carbon\Carbon::parse($booking->ngay_nhan)->setTime(14, 0);
+                                        $isEarly = $checkinTime->lt($standardCheckinTime);
+                                        
+                                        if ($isEarly) {
+                                            $phiCheckinSom = \App\Services\CheckinCheckoutFeeCalculator::calculateEarlyCheckinFee($booking, $checkinTime);
+                                            // Sử dụng diffInMinutes với absolute = true để đảm bảo giá trị dương
+                                            $diffMinutes = abs($standardCheckinTime->diffInMinutes($checkinTime));
+                                            $earlyHours = (int)floor($diffMinutes / 60);
+                                            $earlyMins = (int)($diffMinutes % 60);
+                                            
+                                            // Format thời gian sớm
+                                            if ($earlyHours > 0) {
+                                                $earlyTimeText = $earlyHours . ' giờ' . ($earlyMins > 0 ? ' ' . $earlyMins . ' phút' : '');
+                                            } else {
+                                                $earlyTimeText = $earlyMins . ' phút';
+                                            }
+                                        } else {
+                                            $phiCheckinSom = 0;
+                                            $earlyHours = 0;
+                                            $earlyMins = 0;
+                                            $earlyTimeText = '';
+                                        }
+                                    @endphp
+                                    
+                                    @if($isEarly && $phiCheckinSom > 0)
+                                        <div class="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                            <p class="text-xs text-yellow-800 font-medium mb-1 flex items-center">
+                                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                </svg>
+                                                Check-in sớm {{ $earlyTimeText }} (trước {{ $standardCheckinTime->format('d/m H:i') }})
+                                            </p>
+                                            <p class="text-sm font-semibold text-yellow-900">
+                                                Phụ phí check-in sớm: {{ number_format($phiCheckinSom, 0, ',', '.') }} VNĐ
+                                            </p>
+                                        </div>
+                                    @endif
+                                    
                                     <form action="{{ route('admin.dat_phong.checkin', $booking->id) }}" method="POST">
                                         @csrf
-                                        <input type="hidden" name="phong_id" value="{{ $phong->id }}">
+                                        <input type="hidden" name="phong_ids[]" value="{{ $phong->id }}">
                                         
                                         <div class="mb-3">
                                             <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -134,8 +181,13 @@
                                             </svg>
                                             Đã check-in
                                         </p>
+                                        @php
+                                            // $roomCheckinTime từ pivot là string, cần parse sang Carbon trước khi format
+                                            $roomCheckinTimeCarbon = $roomCheckinTime ? \Carbon\Carbon::parse($roomCheckinTime) : null;
+                                        @endphp
                                         <p class="text-xs text-gray-600">
-                                            Thời gian: {{ $roomCheckinTime->format('d/m/Y H:i') }}
+                                            Thời gian:
+                                            {{ $roomCheckinTimeCarbon ? $roomCheckinTimeCarbon->format('d/m/Y H:i') : 'N/A' }}
                                         </p>
                                         <p class="text-xs text-gray-600">
                                             Nhân viên: {{ $booking->nguoi_checkin }}
@@ -150,7 +202,7 @@
                                     {{-- Checkout form --}}
                                     <form action="{{ route('admin.dat_phong.checkout', $booking->id) }}" method="POST" class="checkout-form">
                                         @csrf
-                                        <input type="hidden" name="phong_id" value="{{ $phong->id }}">
+                                        <input type="hidden" name="phong_ids[]" value="{{ $phong->id }}">
                                         
                                         <h4 class="font-medium text-gray-900 mb-3 flex items-center text-sm">
                                             <svg class="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -218,25 +270,41 @@
                                         </div>
 
                                         @php
-                                            $expectedCheckout = \Carbon\Carbon::parse($booking->ngay_tra)->setTime(12, 0);
-                                            $now = now();
-                                            $isLate = $now->gt($expectedCheckout);
-                                            $hoursLate = $isLate ? $now->diffInHours($expectedCheckout) : 0;
+                                            $checkoutTime = now();
+                                            $standardCheckoutTime = \Carbon\Carbon::parse($booking->ngay_tra)->setTime(12, 0);
+                                            $isLate = $checkoutTime->gt($standardCheckoutTime);
+                                            
+                                            if ($isLate) {
+                                                $phiCheckoutTre = \App\Services\CheckinCheckoutFeeCalculator::calculateLateCheckoutFee($booking, $checkoutTime);
+                                                // Sử dụng diffInMinutes với absolute để đảm bảo giá trị dương
+                                                $diffMinutes = abs($checkoutTime->diffInMinutes($standardCheckoutTime));
+                                                $lateHours = (int)floor($diffMinutes / 60);
+                                                $lateMins = (int)($diffMinutes % 60);
+                                                
+                                                // Format thời gian trễ
+                                                if ($lateHours > 0) {
+                                                    $lateTimeText = $lateHours . ' giờ' . ($lateMins > 0 ? ' ' . $lateMins . ' phút' : '');
+                                                } else {
+                                                    $lateTimeText = $lateMins . ' phút';
+                                                }
+                                            } else {
+                                                $phiCheckoutTre = 0;
+                                                $lateHours = 0;
+                                                $lateMins = 0;
+                                                $lateTimeText = '';
+                                            }
                                         @endphp
 
-                                        @if($isLate)
-                                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-2 mb-3">
-                                                <p class="text-xs text-yellow-800 font-medium">
-                                                    ⚠️ Check-out muộn {{ $hoursLate }} giờ
+                                        @if($isLate && $phiCheckoutTre > 0)
+                                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3">
+                                                <p class="text-xs text-yellow-800 font-medium mb-1 flex items-center">
+                                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                    </svg>
+                                                    Check-out trễ {{ $lateTimeText }} (sau {{ $standardCheckoutTime->format('d/m H:i') }})
                                                 </p>
-                                                <p class="text-xs text-yellow-700">
-                                                    @php
-                                                        $totalRooms = $assignedPhongs->count();
-                                                        $lateFeePerRoom = $hoursLate <= 6 
-                                                            ? ($booking->tong_tien * 0.5) / $totalRooms
-                                                            : $booking->tong_tien / $totalRooms;
-                                                    @endphp
-                                                    Phụ phí phòng này: {{ number_format($lateFeePerRoom, 0, ',', '.') }}₫
+                                                <p class="text-sm font-semibold text-yellow-900">
+                                                    Phụ phí check-out trễ: {{ number_format($phiCheckoutTre, 0, ',', '.') }} VNĐ
                                                 </p>
                                             </div>
                                         @endif
@@ -309,10 +377,15 @@
                                 {{-- COMPLETED --}}
                                 <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
                                     <div class="grid grid-cols-2 gap-3 text-xs">
+                                        @php
+                                            $roomCheckinTimeCarbon = $roomCheckinTime ? \Carbon\Carbon::parse($roomCheckinTime) : null;
+                                            $roomCheckoutTimeCarbon = $roomCheckoutTime ? \Carbon\Carbon::parse($roomCheckoutTime) : null;
+                                        @endphp
                                         <div>
                                             <h4 class="font-medium text-gray-900 mb-1">Check-in</h4>
                                             <p class="text-gray-600">
-                                                <span class="font-medium">Thời gian:</span> {{ $roomCheckinTime->format('d/m/Y H:i') }}
+                                                <span class="font-medium">Thời gian:</span>
+                                                {{ $roomCheckinTimeCarbon ? $roomCheckinTimeCarbon->format('d/m/Y H:i') : 'N/A' }}
                                             </p>
                                             <p class="text-gray-600">
                                                 <span class="font-medium">NV:</span> {{ $booking->nguoi_checkin }}
@@ -321,7 +394,8 @@
                                         <div>
                                             <h4 class="font-medium text-gray-900 mb-1">Check-out</h4>
                                             <p class="text-gray-600">
-                                                <span class="font-medium">Thời gian:</span> {{ $roomCheckoutTime ? $roomCheckoutTime->format('d/m/Y H:i') : 'Đã trả phòng' }}
+                                                <span class="font-medium">Thời gian:</span>
+                                                {{ $roomCheckoutTimeCarbon ? $roomCheckoutTimeCarbon->format('d/m/Y H:i') : 'Đã trả phòng' }}
                                             </p>
                                             <p class="text-gray-600">
                                                 <span class="font-medium">NV:</span> {{ $booking->nguoi_checkout ?? 'N/A' }}
@@ -352,8 +426,8 @@
                 @endforeach
             </div>
 
-            {{-- Overall booking checkin/checkout button (if all rooms ready) --}}
-            @if(!$allCheckedIn && $booking->canCheckin())
+            {{-- Overall booking checkin button (nếu còn phòng chưa checkin) --}}
+            @if(!$allCheckedIn && $booking->trang_thai === 'da_xac_nhan')
                 <div class="mt-6 pt-6 border-t border-gray-200">
                     <div class="bg-blue-50 border-2 border-blue-300 rounded-lg p-4">
                         <p class="text-sm font-medium text-blue-900 mb-3">
@@ -364,6 +438,11 @@
                         </p>
                         <form action="{{ route('admin.dat_phong.checkin', $booking->id) }}" method="POST">
                             @csrf
+                            @foreach($assignedPhongs as $phong)
+                                @if(is_null(optional($phong->pivot)->thoi_gian_checkin))
+                                    <input type="hidden" name="phong_ids[]" value="{{ $phong->id }}">
+                                @endif
+                            @endforeach
                             <div class="mb-3">
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Ghi chú chung (tùy chọn)</label>
                                 <textarea name="ghi_chu_checkin" rows="2" 

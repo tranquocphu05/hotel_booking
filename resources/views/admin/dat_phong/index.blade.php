@@ -192,7 +192,15 @@
                                         <td class="px-4 py-3 text-center text-gray-700 whitespace-nowrap text-sm">
                                             {{ date('d/m/Y', strtotime($booking->ngay_tra)) }}
                                         </td>
-                                        <td class="px-4 py-3 text-center text-gray-700 whitespace-nowrap">{{ $booking->so_nguoi }}</td>
+                                        <td class="px-4 py-3 text-center text-gray-700 whitespace-nowrap text-sm">
+                                            <div class="font-medium">{{ $booking->so_nguoi ?? 0 }} NL</div>
+                                            @if(($booking->so_tre_em ?? 0) > 0)
+                                            <div class="text-xs text-green-600">{{ $booking->so_tre_em }} TE</div>
+                                            @endif
+                                            @if(($booking->so_em_be ?? 0) > 0)
+                                            <div class="text-xs text-pink-600">{{ $booking->so_em_be }} EB</div>
+                                            @endif
+                                        </td>
                                         <td class="px-4 py-3 text-right whitespace-nowrap">
                                             <div class="font-semibold text-blue-700 text-sm">
                                                 {{ number_format($booking->tong_tien, 0, ',', '.') }} VNĐ
