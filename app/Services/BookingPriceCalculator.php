@@ -205,4 +205,80 @@ class BookingPriceCalculator
 
         return $total;
     }
+
+    /**
+     * Tính phụ phí trẻ em theo từng ngày, áp dụng multiplier theo ngày
+     */
+    public static function calculateChildSurcharge(
+        LoaiPhong $loaiPhong,
+        Carbon $checkIn,
+        Carbon $checkOut,
+        int $childrenCount,
+        float $childFeePercent
+    ): float {
+        if ($childrenCount <= 0 || $childFeePercent <= 0) {
+            return 0.0;
+        }
+
+        $total = 0.0;
+
+        $current = $checkIn->copy();
+        $end = $checkOut->copy();
+
+        while ($current->lt($end)) {
+            $base = $loaiPhong->gia_khuyen_mai ?? $loaiPhong->gia_co_ban ?? 0;
+
+            if ($base <= 0) {
+                $current->addDay();
+                continue;
+            }
+
+            $multiplier = self::getMultiplierForDate($current);
+
+            $priceForDay = $base * $multiplier;
+            $total += $childrenCount * $priceForDay * $childFeePercent;
+
+            $current->addDay();
+        }
+
+        return $total;
+    }
+
+    /**
+     * Tính phụ phí em bé theo từng ngày, áp dụng multiplier theo ngày
+     */
+    public static function calculateInfantSurcharge(
+        LoaiPhong $loaiPhong,
+        Carbon $checkIn,
+        Carbon $checkOut,
+        int $infantsCount,
+        float $infantFeePercent
+    ): float {
+        if ($infantsCount <= 0 || $infantFeePercent <= 0) {
+            return 0.0;
+        }
+
+        $total = 0.0;
+
+        $current = $checkIn->copy();
+        $end = $checkOut->copy();
+
+        while ($current->lt($end)) {
+            $base = $loaiPhong->gia_khuyen_mai ?? $loaiPhong->gia_co_ban ?? 0;
+
+            if ($base <= 0) {
+                $current->addDay();
+                continue;
+            }
+
+            $multiplier = self::getMultiplierForDate($current);
+
+            $priceForDay = $base * $multiplier;
+            $total += $infantsCount * $priceForDay * $infantFeePercent;
+
+            $current->addDay();
+        }
+
+        return $total;
+    }
 }

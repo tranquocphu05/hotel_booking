@@ -191,6 +191,13 @@ class BookingController extends Controller
         $childFeePercent  = 0.1; // 10% cho trẻ em
         $infantFeePercent = 0.05; // 5% cho em bé
 
+        // Khởi tạo các biến tổng
+        $totalGuests     = 0;
+        $totalChildren    = 0;
+        $totalInfants     = 0;
+        $totalChildFee    = 0;
+        $totalInfantFee   = 0;
+
         foreach ($data['rooms'] as $room) {
             $loaiPhong = LoaiPhong::findOrFail($room['loai_phong_id']);
 
@@ -232,13 +239,25 @@ class BookingController extends Controller
                 );
             }
 
-            // Calculate children and infant surcharges
-            // Phụ phí trẻ em = 10% giá phòng/đêm, em bé = 5% giá phòng/đêm
-            $childFeeRate  = $pricePerNight * $childFeePercent; // 10% giá phòng/đêm
-            $infantFeeRate = $pricePerNight * $infantFeePercent; // 5% giá phòng/đêm
+            // Lấy số trẻ em và em bé từ room data
+            $sumChildren = isset($room['so_tre_em']) ? (int) $room['so_tre_em'] : 0;
+            $sumInfants  = isset($room['so_em_be']) ? (int) $room['so_em_be'] : 0;
 
-            $roomChildFee  = $sumChildren * $childFeeRate * $nights;
-            $roomInfantFee = $sumInfants * $infantFeeRate * $nights;
+            // Calculate children and infant surcharges theo từng ngày (ngày thường/cuối tuần/lễ)
+            $roomChildFee  = BookingPriceCalculator::calculateChildSurcharge(
+                $loaiPhong,
+                $checkIn,
+                $checkOut,
+                $sumChildren,
+                $childFeePercent
+            );
+            $roomInfantFee = BookingPriceCalculator::calculateInfantSurcharge(
+                $loaiPhong,
+                $checkIn,
+                $checkOut,
+                $sumInfants,
+                $infantFeePercent
+            );
 
             $roomTotalWithSurcharge = $roomBaseTotal + $extraFee + $roomChildFee + $roomInfantFee;
             $totalPrice += $roomTotalWithSurcharge;
@@ -252,7 +271,7 @@ class BookingController extends Controller
                 'loai_phong_id' => $loaiPhong->id,
                 'loai_phong'    => $loaiPhong,
                 'so_luong'      => $room['so_luong'],
-                'price'         => $roomTotal,
+                'price'         => $roomTotalWithSurcharge,
             ];
         }
 
@@ -260,7 +279,7 @@ class BookingController extends Controller
 
         // Apply voucher and create bookings within transaction
         // Use lockForUpdate to prevent race conditions when checking availability
-        $bookings = DB::transaction(function () use ($request, $data, $user, $totalPrice, $roomDetails, $nights) {
+        $bookings = DB::transaction(function () use ($request, $data, $user, $totalPrice, $roomDetails, $nights, $totalGuests, $totalChildren, $totalInfants, $totalChildFee, $totalInfantFee) {
             $voucherId  = null;
             $finalPrice = $totalPrice;
 
@@ -335,11 +354,11 @@ class BookingController extends Controller
                 'ngay_dat'        => now(),
                 'ngay_nhan'       => $data['ngay_nhan'],
                 'ngay_tra'        => $data['ngay_tra'],
-                'so_nguoi'        => $data['so_nguoi'] ?? 1,
-                'so_tre_em'       => 0,
-                'so_em_be'        => 0,
-                'phu_phi_tre_em'  => 0,
-                'phu_phi_em_be'   => 0,
+                'so_nguoi'        => $totalGuests, // Luôn sử dụng $totalGuests được tính từ các phòng
+                'so_tre_em'       => $totalChildren,
+                'so_em_be'        => $totalInfants,
+                'phu_phi_tre_em'  => $totalChildFee,
+                'phu_phi_em_be'   => $totalInfantFee,
                 'trang_thai'      => 'cho_xac_nhan',
                 'tong_tien'       => $finalPrice, // Tổng tiền của tất cả loại phòng
                 'voucher_id'      => $voucherId,
