@@ -233,6 +233,17 @@
                                             @if($booking->invoice && $booking->invoice->trang_thai === 'da_thanh_toan')
                                                 <div class="text-xs text-green-700 font-medium">✓ Đã TT</div>
                                             @endif
+
+                                            @php
+                                                $hasCancelRequest = $booking->ghi_chu_hoan_tien && 
+                                                    strpos($booking->ghi_chu_hoan_tien, 'YÊU CẦU HỦY ĐẶT PHÒNG TỪ KHÁCH HÀNG') !== false;
+                                            @endphp
+                                            @if(in_array($booking->trang_thai, ['cho_xac_nhan', 'da_xac_nhan']) && $hasCancelRequest)
+                                                <div class="mt-1 inline-flex items-center px-2 py-1 rounded-full text-[11px] font-semibold bg-orange-100 text-orange-700">
+                                                    <i class="fas fa-exclamation-circle mr-1"></i>
+                                                    Có yêu cầu hủy từ khách
+                                                </div>
+                                            @endif
                                         </td>
                                         <td class="px-4 py-3">
                                             <div class="flex items-center justify-center space-x-2">

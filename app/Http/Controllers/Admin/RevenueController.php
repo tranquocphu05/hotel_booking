@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use Carbon\Carbon;
 use App\Models\DatPhong;
 use App\Models\Invoice;
+use App\Models\ThanhToan;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Traits\HasRolePermissions;
@@ -54,7 +55,7 @@ class RevenueController extends Controller
                 ->orderBy('ngay_dat', 'desc')
                 ->paginate(10);
                 
-            // Tính toán doanh thu theo ngày
+            // Tính toán doanh thu theo ngày + dòng tiền thu/hoàn
             $revenueData = $this->calculateDateRangeRevenue($startDateParsed, $endDateParsed);
             $roomTypeStats = $this->getDateRangeRoomTypeStats($startDateParsed, $endDateParsed);
             $dailyStats = $this->getDateRangeDailyStats($startDateParsed, $endDateParsed);
@@ -74,6 +75,7 @@ class RevenueController extends Controller
                 ->orderBy('ngay_dat', 'desc')
                 ->paginate(10);
                 
+            // Tính toán doanh thu theo tháng + dòng tiền thu/hoàn
             $revenueData = $this->calculateRevenueData($month, $year);
             $roomTypeStats = $this->getRoomTypeStats($month, $year);
             $dailyStats = $this->getDailyStats($month, $year);
@@ -140,7 +142,7 @@ class RevenueController extends Controller
         $startDate = Carbon::parse($startDate)->startOfDay();
         $endDate = Carbon::parse($endDate)->endOfDay();
 
-        // Tổng doanh thu trong khoảng hiện tại
+        // Tổng doanh thu trong khoảng hiện tại (theo giá trị booking/tong_tien)
         $currentRevenue = DatPhong::whereHas('invoice', function($query) use ($startDate, $endDate) {
                 $query->where('trang_thai', 'da_thanh_toan')
                       ->whereBetween('ngay_tao', [$startDate, $endDate]);
@@ -185,6 +187,21 @@ class RevenueController extends Controller
             $cursor->addDay();
         }
 
+        // Tính dòng tiền thu/hoàn dựa trên bảng thanh_toan để minh bạch dòng tiền thực tế
+        $totalPayments = ThanhToan::where('trang_thai', 'success')
+            ->whereBetween('ngay_thanh_toan', [$startDate, $endDate])
+            ->where('so_tien', '>', 0)
+            ->sum('so_tien');
+
+        $totalRefunds = ThanhToan::where('trang_thai', 'success')
+            ->whereBetween('ngay_thanh_toan', [$startDate, $EndDate = $endDate])
+            ->where('so_tien', '<', 0)
+            ->sum('so_tien');
+
+        // totalRefunds đang là số âm, nên lấy trị tuyệt đối để hiển thị
+        $totalRefundsAbs = abs($totalRefunds);
+        $netRevenue = $totalPayments - $totalRefundsAbs;
+
         // Tổng số đơn trong khoảng
         $totalBookings = DatPhong::whereHas('invoice', function($query) use ($startDate, $endDate) {
                 $query->where('trang_thai', 'da_thanh_toan')
@@ -197,12 +214,15 @@ class RevenueController extends Controller
             : 0;
 
         return [
-            'current_month' => $currentRevenue,
-            'previous_month' => $previousRevenue,
-            'growth_rate' => $growthRate,
-            'daily_revenue' => $dailyRevenue,
-            'total_bookings' => $totalBookings,
-            'average_booking_value' => $averageBookingValue,
+            'current_month'        => $currentRevenue,
+            'previous_month'       => $previousRevenue,
+            'growth_rate'          => $growthRate,
+            'daily_revenue'        => $dailyRevenue,
+            'total_bookings'       => $totalBookings,
+            'average_booking_value'=> $averageBookingValue,
+            'total_payments'       => $totalPayments,
+            'total_refunds'        => $totalRefundsAbs,
+            'net_revenue'          => $netRevenue,
         ];
     }
 
@@ -266,7 +286,7 @@ class RevenueController extends Controller
         $startDate = Carbon::create($year, $month, 1)->startOfMonth();
         $endDate = Carbon::create($year, $month, 1)->endOfMonth();
 
-        // Doanh thu tháng này
+        // Doanh thu tháng này (theo tong_tien booking)
         $currentMonthRevenue = DatPhong::whereHas('invoice', function($query) {
             $query->where('trang_thai', 'da_thanh_toan');
         })
@@ -307,25 +327,41 @@ class RevenueController extends Controller
             ];
         }
 
-        return [
-            'current_month' => $currentMonthRevenue,
-            'previous_month' => $previousMonthRevenue,
-            'growth_rate' => $growthRate,
-            'daily_revenue' => $dailyRevenue,
-            'total_bookings' => DatPhong::whereHas('invoice', function($query) {
+        // Dòng tiền thu/hoàn trong tháng (dựa trên bảng thanh_toan)
+        $totalPayments = ThanhToan::where('trang_thai', 'success')
+            ->whereBetween('ngay_thanh_toan', [$startDate, $endDate])
+            ->where('so_tien', '>', 0)
+            ->sum('so_tien');
+
+        $totalRefunds = ThanhToan::where('trang_thai', 'success')
+            ->whereBetween('ngay_thanh_toan', [$startDate, $endDate])
+            ->where('so_tien', '<', 0)
+            ->sum('so_tien');
+
+        $totalRefundsAbs = abs($totalRefunds);
+        $netRevenue = $totalPayments - $totalRefundsAbs;
+
+        $totalBookings = DatPhong::whereHas('invoice', function($query) {
                 $query->where('trang_thai', 'da_thanh_toan');
             })
             ->whereMonth('ngay_dat', $month)
             ->whereYear('ngay_dat', $year)
-            ->count(),
-            'average_booking_value' => $currentMonthRevenue > 0
-                ? round($currentMonthRevenue / DatPhong::whereHas('invoice', function($query) {
-                    $query->where('trang_thai', 'da_thanh_toan');
-                })
-                ->whereMonth('ngay_dat', $month)
-                ->whereYear('ngay_dat', $year)
-                ->count())
-                : 0
+            ->count();
+
+        $averageBookingValue = $currentMonthRevenue > 0 && $totalBookings > 0
+            ? round($currentMonthRevenue / $totalBookings)
+            : 0;
+
+        return [
+            'current_month'         => $currentMonthRevenue,
+            'previous_month'        => $previousMonthRevenue,
+            'growth_rate'           => $growthRate,
+            'daily_revenue'         => $dailyRevenue,
+            'total_bookings'        => $totalBookings,
+            'average_booking_value' => $averageBookingValue,
+            'total_payments'        => $totalPayments,
+            'total_refunds'         => $totalRefundsAbs,
+            'net_revenue'           => $netRevenue,
         ];
     }
 
