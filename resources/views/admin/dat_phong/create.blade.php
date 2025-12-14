@@ -615,8 +615,19 @@
                 try {
                     const want = parseInt(document.getElementById('quantity_' + roomTypeId)?.value || 0);
                     const boxes = Array.from(document.querySelectorAll('#available_rooms_' + roomTypeId + ' input.available-room-checkbox'));
-                    if (want > 0 && boxes.length > 0) {
-                        for (let i = 0; i < Math.min(want, boxes.length); i++) boxes[i].checked = true;
+                    if (boxes.length > 0) {
+                        // Ensure the exact number of boxes are checked: check more when increasing,
+                        // uncheck from the end when decreasing so recently-selected rooms are deselected.
+                        const checkedBoxes = boxes.filter(b => b.checked);
+                        if (checkedBoxes.length < want) {
+                            for (let i = 0; i < boxes.length && checkedBoxes.length < want; i++) {
+                                if (!boxes[i].checked) { boxes[i].checked = true; checkedBoxes.push(boxes[i]); }
+                            }
+                        } else if (checkedBoxes.length > want) {
+                            for (let i = boxes.length - 1; i >= 0 && checkedBoxes.length > want; i--) {
+                                if (boxes[i].checked) { boxes[i].checked = false; checkedBoxes.pop(); }
+                            }
+                        }
                     }
                 } catch(e){}
                 try { updateServiceRoomLists(); } catch(e){}

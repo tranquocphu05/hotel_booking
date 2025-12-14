@@ -185,7 +185,7 @@ class DatPhongController extends Controller
 
     public function show($id)
     {
-        $booking = DatPhong::with(['loaiPhong', 'voucher', 'phong', 'services.service'])->findOrFail($id);
+        $booking = DatPhong::with(['loaiPhong', 'voucher', 'phong', 'services.service', 'stayGuests.phong'])->findOrFail($id);
 
         // Lấy danh sách phòng trống của loại phòng này cho khoảng thời gian booking
         // Loại trừ các phòng đã được gán cho booking này
@@ -1067,6 +1067,7 @@ class DatPhongController extends Controller
                                 foreach ($newPhongIds as $phongId) {
                                     \App\Models\BookingService::create([
                                         'dat_phong_id' => $booking->id,
+                                        'invoice_id' => $booking->invoice?->id ?? null,
                                         'service_id' => $service->id,
                                         'quantity' => $qty,
                                         'unit_price' => $service->price,
@@ -1078,6 +1079,7 @@ class DatPhongController extends Controller
                                 // Fallback: no rooms available/assigned -> keep aggregated record
                                 \App\Models\BookingService::create([
                                     'dat_phong_id' => $booking->id,
+                                    'invoice_id' => $booking->invoice?->id ?? null,
                                     'service_id' => $service->id,
                                     'quantity' => $qty,
                                     'unit_price' => $service->price,
@@ -1090,6 +1092,7 @@ class DatPhongController extends Controller
                             foreach ($usePhongIds as $phongId) {
                                 \App\Models\BookingService::create([
                                     'dat_phong_id' => $booking->id,
+                                    'invoice_id' => $booking->invoice?->id ?? null,
                                     'service_id' => $service->id,
                                     'quantity' => $qty,
                                     'unit_price' => $service->price,
@@ -1903,6 +1906,7 @@ class DatPhongController extends Controller
                                 foreach ($allPhongIds as $phongId) {
                                     \App\Models\BookingService::create([
                                         'dat_phong_id' => $booking->id,
+                                        'invoice_id' => $booking->invoice?->id ?? null,
                                         'service_id' => $svcPayload['service_id'],
                                         'quantity' => $entry['so_luong'],
                                         'unit_price' => $svcPayload['unit_price'],
@@ -1914,6 +1918,7 @@ class DatPhongController extends Controller
                                 // Fallback: no rooms assigned -> keep aggregated record
                                 \App\Models\BookingService::create([
                                     'dat_phong_id' => $booking->id,
+                                    'invoice_id' => $booking->invoice?->id ?? null,
                                     'service_id' => $svcPayload['service_id'],
                                     'quantity' => $entry['so_luong'],
                                     'unit_price' => $svcPayload['unit_price'],
@@ -1926,6 +1931,7 @@ class DatPhongController extends Controller
                             foreach ($usePhongIds as $phongId) {
                                 \App\Models\BookingService::create([
                                     'dat_phong_id' => $booking->id,
+                                    'invoice_id' => $booking->invoice?->id ?? null,
                                     'service_id' => $svcPayload['service_id'],
                                     'quantity' => $entry['so_luong'],
                                     'unit_price' => $svcPayload['unit_price'],
@@ -2212,6 +2218,18 @@ class DatPhongController extends Controller
                 }
             } catch (\Exception $e) {
                 Log::warning('Failed to create invoice on confirmation: ' . $e->getMessage());
+            }
+        }
+
+        // Ensure any booking-level services are assigned to the booking's invoice (even if invoice pre-existed)
+        $linkedInvoiceId = $booking->invoice?->id ?? (isset($invoice) ? $invoice->id : null);
+        if ($linkedInvoiceId) {
+            try {
+                \App\Models\BookingService::where('dat_phong_id', $booking->id)
+                    ->whereNull('invoice_id')
+                    ->update(['invoice_id' => $linkedInvoiceId]);
+            } catch (\Throwable $e) {
+                Log::warning('Failed to link booking services to invoice on confirmation: ' . $e->getMessage());
             }
         }
 

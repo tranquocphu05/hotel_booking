@@ -230,6 +230,7 @@
                     {{-- Phụ phí thiệt hại tài sản --}}
                     @php
                         $phiPhatSinh = $invoice->phi_phat_sinh ?? 0;
+                        $phiThemNguoi = $invoice->phi_them_nguoi ?? 0;
                         $lyDoThietHai = '';
                         $loaiThietHai = '';
                         
@@ -247,6 +248,13 @@
                         }
                     @endphp
                     
+                    @if($phiThemNguoi > 0)
+                        <div class="flex justify-between text-sm">
+                            <span>Phí thêm người:</span>
+                            <span class="font-semibold">{{ number_format($phiThemNguoi, 0, ',', '.') }} ₫</span>
+                        </div>
+                    @endif
+
                     @if($phiPhatSinh > 0)
                         <div class="flex justify-between text-sm border-t border-gray-400 pt-2 mt-2">
                             <div class="flex-1">

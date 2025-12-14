@@ -140,7 +140,10 @@
                                         <p class="text-xs text-gray-600">
                                             Nhân viên: {{ $booking->nguoi_checkin }}
                                         </p>
-                                        @if($booking->ghi_chu_checkin)
+                                        @php
+                                            $showGhiChuCheckin = $booking->ghi_chu_checkin && !\Illuminate\Support\Str::contains($booking->ghi_chu_checkin, ['Thêm khách', 'Loại bỏ khách']);
+                                        @endphp
+                                        @if($showGhiChuCheckin)
                                             <p class="text-xs text-gray-600 mt-1">
                                                 Ghi chú: {{ $booking->ghi_chu_checkin }}
                                             </p>

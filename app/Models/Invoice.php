@@ -8,6 +8,11 @@ class Invoice extends Model
 {
     protected $table = 'hoa_don';
 
+    public function items()
+    {
+        return $this->hasMany(\App\Models\InvoiceItem::class, 'invoice_id');
+    }
+
     const CREATED_AT = 'ngay_tao';
     const UPDATED_AT = null;
 
@@ -17,6 +22,7 @@ class Invoice extends Model
         'tien_phong',
         'tien_dich_vu',
         'phi_phat_sinh',
+        'phi_them_nguoi',
         'giam_gia',
         'da_thanh_toan',
         'con_lai',
@@ -30,6 +36,7 @@ class Invoice extends Model
         'tien_phong' => 'decimal:2',
         'tien_dich_vu' => 'decimal:2',
         'phi_phat_sinh' => 'decimal:2',
+        'phi_them_nguoi' => 'decimal:2',
         'giam_gia' => 'decimal:2',
         'da_thanh_toan' => 'decimal:2',
         'con_lai' => 'decimal:2',

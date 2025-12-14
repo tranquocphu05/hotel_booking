@@ -34,7 +34,18 @@
                             @if (count($roomTypes) > 1)
                                 {{ count($roomTypes) }} loại phòng • {{ $booking->so_luong_da_dat }} phòng
                             @else
-                                {{ $booking->loaiPhong->ten_loai ?? 'N/A' }} • {{ $booking->so_luong_da_dat }} phòng
+                                @php
+                                    $typeName = $booking->loaiPhong ? $booking->loaiPhong->ten_loai ?? null : null;
+                                    if (
+                                        !$typeName &&
+                                        isset($roomTypes[0]) &&
+                                        ($roomTypes[0]['loai_phong_id'] ?? null)
+                                    ) {
+                                        $lp = \App\Models\LoaiPhong::find($roomTypes[0]['loai_phong_id']);
+                                        $typeName = $lp ? $lp->ten_loai : null;
+                                    }
+                                @endphp
+                                {{ $typeName ?? 'N/A' }} • {{ $booking->so_luong_da_dat }} phòng
                             @endif
                         </p>
                     </div>
@@ -457,25 +468,13 @@
                                             </div>
                                         </div>
                                         @php
-                                            $assignedForType = $booking->getAssignedPhongs()->filter(function($p) use ($loaiPhong) {
-                                                return $p->loai_phong_id == ($loaiPhong->id ?? null);
-                                            });
+                                            $assignedForType = $booking
+                                                ->getAssignedPhongs()
+                                                ->filter(function ($p) use ($loaiPhong) {
+                                                    return $p->loai_phong_id == ($loaiPhong->id ?? null);
+                                                });
                                         @endphp
-                                        <div class="mt-3 md:mt-0 md:w-64 flex-shrink-0">
-                                            <div class="text-xs text-gray-600 mb-2">Phòng đã gán ({{ $assignedForType->count() }} / {{ $singleRoomType['so_luong'] ?? 0 }})</div>
-                                            @if ($assignedForType->count())
-                                                <div class="space-y-2">
-                                                    @foreach ($assignedForType as $phong)
-                                                        <div class="bg-blue-50 border border-blue-200 rounded p-2 text-sm">
-                                                            <div class="font-semibold text-sm">{{ $phong->so_phong }} {{ $phong->ten_phong ? '('.$phong->ten_phong.')' : '' }}</div>
-                                                            <div class="text-xs text-gray-500">Tầng: {{ $phong->tang ?? 'N/A' }} • Trạng thái: <span class="{{ $phong->trang_thai === 'trong' ? 'text-green-600' : ($phong->trang_thai === 'dang_thue' ? 'text-orange-600' : 'text-gray-500') }}">{{ $phong->trang_thai }}</span></div>
-                                                        </div>
-                                                    @endforeach
-                                                </div>
-                                            @else
-                                                <div class="text-xs text-gray-500 italic">Chưa có phòng được gán cho loại này.</div>
-                                            @endif
-                                        </div>
+
                                     </div>
                                 @else
                                     <div
@@ -496,11 +495,12 @@
 
                             @if ($assignedCount > 0)
                                 <div class="pt-3 border-t">
-                                    <p class="text-sm font-semibold text-gray-700 mb-2">
+                                    <p class="text-sm font-semibold text-gray-700 mb-3">
                                         Phòng đã gán ({{ $assignedCount }}/{{ $booking->so_luong_da_dat }}):
                                     </p>
 
-                                    <div class="space-y-2">
+                                    {{-- Grid 4 cột --}}
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                                         @foreach ($assignedPhongs as $phong)
                                             <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                                                 <p class="text-sm font-medium text-blue-900">
@@ -514,10 +514,11 @@
                                                     Tầng: {{ $phong->tang ?? 'N/A' }} |
                                                     Trạng thái:
                                                     <span
-                                                        class="@if ($phong->trang_thai == 'trong') text-green-600
-                                              @elseif($phong->trang_thai == 'dang_thue') text-blue-600
-                                              @elseif($phong->trang_thai == 'dang_don') text-yellow-600
-                                              @else text-red-600 @endif">
+                                                        class="font-semibold
+                        @if ($phong->trang_thai == 'trong') text-green-600
+                        @elseif($phong->trang_thai == 'dang_thue') text-blue-600
+                        @elseif($phong->trang_thai == 'dang_don') text-yellow-600
+                        @else text-red-600 @endif">
                                                         {{ $phong->trang_thai === 'trong'
                                                             ? 'Trống'
                                                             : ($phong->trang_thai === 'dang_thue'
@@ -525,7 +526,6 @@
                                                                 : ($phong->trang_thai === 'dang_don'
                                                                     ? 'Đang dọn'
                                                                     : 'Bảo trì')) }}
-
                                                     </span>
                                                 </p>
                                             </div>
@@ -737,6 +737,8 @@
                             </div>
                         </div>
 
+
+
                         <!-- Card thông tin hủy (nếu có) -->
                         @if ($booking->trang_thai === 'da_huy')
                             <div class="bg-white rounded-lg shadow-sm overflow-hidden">
@@ -764,6 +766,8 @@
                             </div>
                         @endif
                     </div>
+                    <!-- Stay guests card -->
+                    @include('admin.dat_phong._stay_guests')
                 </div>
 
                 {{-- SIDEBAR (RIGHT) --}}

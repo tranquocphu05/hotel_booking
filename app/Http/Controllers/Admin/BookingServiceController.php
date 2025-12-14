@@ -62,6 +62,11 @@ class BookingServiceController extends Controller
             $validated['used_at'] = now();
         }
 
+        // If booking already has an invoice (e.g., confirmed), link the new service to it
+        if ($booking->invoice) {
+            $validated['invoice_id'] = $booking->invoice->id;
+        }
+
         $bookingService = BookingService::create($validated);
 
         // 🔹 Gọi lại hàm tính tổng

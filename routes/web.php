@@ -156,6 +156,9 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsStaff
         // Check-in/Check-out
         Route::post('/{id}/checkin', [DatPhongController::class, 'checkin'])->name('checkin');
         Route::post('/{id}/checkout', [DatPhongController::class, 'checkout'])->name('checkout');
+        // Add/remove stay guest (thêm người khi đang ở)
+        Route::post('/{id}/stay-guests', [\App\Http\Controllers\Admin\StayGuestController::class, 'store'])->name('stay_guests.store');
+        Route::delete('/{id}/stay-guests/{guest}', [\App\Http\Controllers\Admin\StayGuestController::class, 'destroy'])->name('stay_guests.destroy');
     });
 
     // Booking Services routes

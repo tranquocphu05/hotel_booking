@@ -269,6 +269,14 @@ class DatPhong extends Model
     }
 
     /**
+     * Get the actual guests staying for this booking (separate from booking->so_nguoi)
+     */
+    public function stayGuests()
+    {
+        return $this->hasMany(\App\Models\StayGuest::class, 'dat_phong_id');
+    }
+
+    /**
      * Scope a query to only include bookings with a specific status.
      */
     public function scopeTrangThai($query, $trangThai)

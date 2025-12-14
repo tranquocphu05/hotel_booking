@@ -15,6 +15,7 @@ use App\Models\Invoice;
 use App\Models\Phong;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 
 class BookingController extends Controller
@@ -295,23 +296,25 @@ class BookingController extends Controller
             $firstLoaiPhongId = $roomDetails[0]['loai_phong_id'];
 
             // Tạo 1 booking duy nhất chứa tất cả các loại phòng
-            $booking = DatPhong::create([
-                'nguoi_dung_id' => $user?->id,
-                'loai_phong_id' => $firstLoaiPhongId, // Loại phòng chính (cho backward compatibility)
-                'so_luong_da_dat' => $totalSoLuong, // Tổng số lượng phòng
-                'phong_id' => null, // Không gán phòng ở đây, sẽ dùng bảng trung gian
-                'ngay_dat' => now(),
-                'ngay_nhan' => $data['ngay_nhan'],
-                'ngay_tra' => $data['ngay_tra'],
-                'so_nguoi' => $totalGuests > 0 ? $totalGuests : ($data['so_nguoi'] ?? 1),
-                'trang_thai' => 'cho_xac_nhan',
-                'tong_tien' => $finalPrice, // Tổng tiền của tất cả loại phòng
-                'voucher_id' => $voucherId,
-                'username' => $username,
-                'email' => $data['email'],
-                'sdt' => $data['phone'] ?? null,
-                'cccd' => $data['cccd'],
-            ]);
+            $bookingPayload = [];
+            // Build payload only with columns that exist in `dat_phong` (handles schemaless legacy changes)
+            if (Schema::hasColumn('dat_phong', 'nguoi_dung_id')) $bookingPayload['nguoi_dung_id'] = $user?->id;
+            if (Schema::hasColumn('dat_phong', 'loai_phong_id')) $bookingPayload['loai_phong_id'] = $firstLoaiPhongId; // Loại phòng chính (backward-compat)
+            if (Schema::hasColumn('dat_phong', 'so_luong_da_dat')) $bookingPayload['so_luong_da_dat'] = $totalSoLuong;
+            if (Schema::hasColumn('dat_phong', 'phong_id')) $bookingPayload['phong_id'] = null;
+            if (Schema::hasColumn('dat_phong', 'ngay_dat')) $bookingPayload['ngay_dat'] = now();
+            if (Schema::hasColumn('dat_phong', 'ngay_nhan')) $bookingPayload['ngay_nhan'] = $data['ngay_nhan'];
+            if (Schema::hasColumn('dat_phong', 'ngay_tra')) $bookingPayload['ngay_tra'] = $data['ngay_tra'];
+            if (Schema::hasColumn('dat_phong', 'so_nguoi')) $bookingPayload['so_nguoi'] = $totalGuests > 0 ? $totalGuests : ($data['so_nguoi'] ?? 1);
+            if (Schema::hasColumn('dat_phong', 'trang_thai')) $bookingPayload['trang_thai'] = 'cho_xac_nhan';
+            if (Schema::hasColumn('dat_phong', 'tong_tien')) $bookingPayload['tong_tien'] = $finalPrice;
+            if (Schema::hasColumn('dat_phong', 'voucher_id')) $bookingPayload['voucher_id'] = $voucherId;
+            if (Schema::hasColumn('dat_phong', 'username')) $bookingPayload['username'] = $username;
+            if (Schema::hasColumn('dat_phong', 'email')) $bookingPayload['email'] = $data['email'];
+            if (Schema::hasColumn('dat_phong', 'sdt')) $bookingPayload['sdt'] = $data['phone'] ?? null;
+            if (Schema::hasColumn('dat_phong', 'cccd')) $bookingPayload['cccd'] = $data['cccd'];
+
+            $booking = DatPhong::create($bookingPayload);
 
             // Lưu room types vào pivot table
             $roomTypesData = [];
@@ -391,7 +394,7 @@ class BookingController extends Controller
             $booking->syncPhongs($allPhongIds);
 
             // Cập nhật phong_id (legacy support) nếu chỉ có 1 phòng
-            if (count($allPhongIds) == 1) {
+            if (count($allPhongIds) == 1 && Schema::hasColumn('dat_phong', 'phong_id')) {
                 $booking->phong_id = $allPhongIds[0];
                 $booking->save();
             }

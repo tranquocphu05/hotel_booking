@@ -9,10 +9,19 @@ if (auth()->check()) {
     $user = auth()->user();
 
     // ✅ Kiểm tra xem user đã có đơn đặt phòng của loại phòng này chưa
-    $hasBooking = DatPhong::where('nguoi_dung_id', $user->id)
-        ->where('loai_phong_id', $room->id)
-        ->whereIn('trang_thai', ['da_tra']) // trạng thái đã hoàn tất
-        ->exists();
+    $bookingQuery = DatPhong::where('nguoi_dung_id', $user->id)
+        ->whereIn('trang_thai', ['da_tra']); // trạng thái đã hoàn tất
+
+    // Use direct column filter when available, otherwise fall back to pivot relationship
+    if (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'loai_phong_id')) {
+        $bookingQuery = $bookingQuery->where('loai_phong_id', $room->id);
+    } else {
+        $bookingQuery = $bookingQuery->whereHas('roomTypes', function ($q) use ($room) {
+            $q->where('loai_phong.id', $room->id);
+        });
+    }
+
+    $hasBooking = $bookingQuery->exists();
 
     // ✅ Kiểm tra user đã đánh giá chưa
     $existing = Comment::where('loai_phong_id', $room->id)
