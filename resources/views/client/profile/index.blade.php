@@ -269,6 +269,17 @@
                         @if ($bookings->count() > 0)
                             <div class="space-y-6">
                                 @foreach ($bookings as $booking)
+                                    @php
+                                        // Danh sách phòng đã gán cho booking (số phòng, tầng, ghi chú)
+                                        $assignedRooms = $booking->getAssignedPhongs()->map(function($phong) {
+                                            return [
+                                                'so_phong' => $phong->so_phong,
+                                                'tang'     => $phong->tang,
+                                                'ghi_chu'  => $phong->ghi_chu,
+                                            ];
+                                        });
+                                    @endphp
+
                                     <div class="booking-item bg-gradient-to-r from-white to-gray-50 border-l-4
                                 @if ($booking->trang_thai == 'da_xac_nhan') border-green-500
                                 @elseif($booking->trang_thai == 'da_huy') border-red-500
@@ -288,7 +299,8 @@
                                         data-total="{{ number_format($booking->tong_tien, 0, ',', '.') }}"
                                         data-status="{{ $booking->trang_thai }}"
                                         data-cancel-reason="{{ $booking->ly_do_huy ?? '' }}"
-                                        data-cancel-date="{{ $booking->ngay_huy ? \Carbon\Carbon::parse($booking->ngay_huy)->format('d/m/Y H:i') : '' }}">
+                                        data-cancel-date="{{ $booking->ngay_huy ? \Carbon\Carbon::parse($booking->ngay_huy)->format('d/m/Y H:i') : '' }}"
+                                        data-rooms='@json($assignedRooms)'>
 
                                         <!-- Header -->
                                         <div class="p-6 border-b border-gray-100">
@@ -968,6 +980,46 @@
 
             const status = statusMap[data.status] || statusMap['cho_xac_nhan'];
 
+            // Parse assigned rooms from data-rooms (JSON)
+            let rooms = [];
+            if (data.rooms) {
+                try {
+                    rooms = JSON.parse(data.rooms);
+                } catch (e) {
+                    rooms = [];
+                }
+            }
+
+            // Build HTML for room list (danh sách phòng đã đặt)
+            let roomDetailsHtml = '';
+            if (rooms.length > 0) {
+                roomDetailsHtml = `
+            <div class="bg-white rounded-lg border border-gray-200 p-5">
+                <h4 class="text-sm font-semibold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-door-open mr-2 text-blue-600"></i>
+                    Danh sách phòng đã đặt
+                </h4>
+                <div class="space-y-3">
+                    ${rooms.map(room => `
+                        <div class="border border-gray-200 rounded-lg px-4 py-3 bg-gray-50">
+                            <div class="text-lg font-bold text-gray-900 mb-1">${room.so_phong ?? 'N/A'}</div>
+                            <div class="flex flex-wrap items-center text-xs text-gray-600 gap-x-3 gap-y-1">
+                                <span class="flex items-center">
+                                    <i class="fas fa-bed mr-1 text-blue-500"></i>${data.roomName || 'Phòng'}
+                                </span>
+                                <span class="flex items-center">
+                                    <i class="fas fa-layer-group mr-1 text-green-500"></i>Tầng ${room.tang ?? 'N/A'}
+                                </span>
+                                ${room.ghi_chu ? `<span class="flex items-center">
+                                    <i class="fas fa-sticky-note mr-1 text-purple-500"></i>Ghi chú: ${room.ghi_chu}
+                                </span>` : ''}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>`;
+            }
+
             let content = `
         <div class="space-y-6">
             <!-- Hình ảnh phòng -->
@@ -1017,6 +1069,8 @@
                                 ${data.cancelDate ? `<p class="text-xs text-red-600 mt-2">Ngày hủy: ${data.cancelDate}</p>` : ''}
                             </div>
                             ` : ''}
+
+            ${roomDetailsHtml}
 
             <!-- Tổng tiền -->
             <div class="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg p-6 text-white">
