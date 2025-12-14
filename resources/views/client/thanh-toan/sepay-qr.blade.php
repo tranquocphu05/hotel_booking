@@ -166,7 +166,53 @@
                             <span class="text-gray-600">Số đêm:</span>
                             <span class="font-medium text-gray-900">{{ $datPhong->ngay_nhan->diffInDays($datPhong->ngay_tra) }} đêm</span>
                         </div>
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                            <span class="text-gray-600">Số người lớn:</span>
+                            <span class="font-medium text-gray-900">{{ $datPhong->so_nguoi ?? 0 }} người</span>
+                        </div>
+                        @if(($datPhong->so_tre_em ?? 0) > 0)
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                            <span class="text-gray-600">Số trẻ em:</span>
+                            <span class="font-medium text-gray-900">{{ $datPhong->so_tre_em ?? 0 }} trẻ em</span>
+                        </div>
+                        @endif
+                        @if(($datPhong->so_em_be ?? 0) > 0)
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                            <span class="text-gray-600">Số em bé:</span>
+                            <span class="font-medium text-gray-900">{{ $datPhong->so_em_be ?? 0 }} em bé</span>
+                        </div>
+                        @endif
                     </div>
+
+                    {{-- Phụ phí chi tiết --}}
+                    @if(($datPhong->phu_phi_tre_em ?? 0) > 0 || ($datPhong->phu_phi_em_be ?? 0) > 0)
+                    <div class="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border-2 border-blue-200">
+                        <h3 class="text-sm font-semibold text-gray-900 mb-3 flex items-center">
+                            <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                            Chi tiết phụ phí
+                        </h3>
+                        <div class="space-y-2">
+                            @if(($datPhong->phu_phi_tre_em ?? 0) > 0)
+                            <div class="flex justify-between items-center text-sm">
+                                <span class="text-gray-700 flex items-center">
+                                    <i class="fas fa-child text-green-600 mr-2"></i>
+                                    Phụ phí trẻ em ({{ $datPhong->so_tre_em ?? 0 }} trẻ em):
+                                </span>
+                                <span class="font-semibold text-green-700">+{{ number_format($datPhong->phu_phi_tre_em, 0, ',', '.') }} VNĐ</span>
+                            </div>
+                            @endif
+                            @if(($datPhong->phu_phi_em_be ?? 0) > 0)
+                            <div class="flex justify-between items-center text-sm">
+                                <span class="text-gray-700 flex items-center">
+                                    <i class="fas fa-baby text-pink-600 mr-2"></i>
+                                    Phụ phí em bé ({{ $datPhong->so_em_be ?? 0 }} em bé):
+                                </span>
+                                <span class="font-semibold text-pink-700">+{{ number_format($datPhong->phu_phi_em_be, 0, ',', '.') }} VNĐ</span>
+                            </div>
+                            @endif
+                        </div>
+                    </div>
+                    @endif
 
                     {{-- Total Amount --}}
                     <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border-2 border-blue-200">

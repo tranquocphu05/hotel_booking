@@ -29,7 +29,7 @@ class ThanhToanController extends Controller
         if ($datPhong->ngay_nhan && $datPhong->ngay_tra) {
             $roomTypes = $datPhong->getRoomTypes();
             $assignedPhongIds = $datPhong->getPhongIds();
-            $totalRooms = $roomTypes->sum('so_luong') ?: ($datPhong->so_luong_da_dat ?? 1);
+            $totalRooms = $roomTypes->sum(function($item) { return $item['so_luong'] ?? 1; }) ?: ($datPhong->so_luong_da_dat ?? 1);
             $assignedCount = count($assignedPhongIds);
             $remainingCount = $totalRooms - $assignedCount;
 
@@ -60,13 +60,83 @@ class ThanhToanController extends Controller
         $roomTypes = $datPhong->getRoomTypes();
 
         // Tính giá gốc và phụ phí
-        // originalPrice: tổng theo từng loại phòng đã lưu (gia_rieng pivot - đã bao gồm phụ phí)
-        // basePrice: tổng giá "chuẩn" theo LoaiPhong (chưa tính phụ phí)
-        // surchargeMap: phụ phí thêm khách cho từng loai_phong_id
-        $originalPrice = 0;
-        $basePrice = 0;
+        // Logic: Tính lại từ gia_rieng trong pivot table
+        // gia_rieng = (basePrice + extraFee + childFee + infantFee) * priceRatio (nếu có voucher)
+        // Để tính lại đúng, ta cần:
+        // 1. Tính giá phòng gốc (basePrice) từ LoaiPhong
+        // 2. Tính tổng phụ phí từ gia_rieng: surcharge = gia_rieng - basePrice (sau khi chia lại priceRatio nếu có)
+        // 3. Phụ phí trẻ em và em bé đã có trong database (tổng cho tất cả loại phòng)
+        // 4. Phụ phí thêm người lớn = tổng phụ phí - phụ phí trẻ em - phụ phí em bé
+        
+        $giaPhongGoc = 0;
+        $phuPhiNguoiLon = 0;
+        $phuPhiTreEm = 0;
+        $phuPhiEmBe = 0;
         $surchargeMap = [];
-        if (!empty($roomTypes)) {
+        
+        // Tính priceRatio nếu có voucher
+        $priceRatio = 1;
+        if ($datPhong->voucher_id && $datPhong->voucher) {
+            $voucher = $datPhong->voucher;
+            if ($voucher->gia_tri && $voucher->gia_tri > 0 && $voucher->gia_tri <= 100) {
+                $priceRatio = 1 - ($voucher->gia_tri / 100);
+            }
+        }
+        
+        // Tính lại phụ phí trẻ em và em bé
+        // Phụ phí trẻ em = 10% giá phòng/đêm, em bé = 5% giá phòng/đêm
+        $childFeePercent = 0.1; // 10% cho trẻ em
+        $infantFeePercent = 0.05; // 5% cho em bé
+        $phuPhiTreEm = 0;
+        $phuPhiEmBe = 0;
+        
+        if (!empty($roomTypes) && $roomTypes->isNotEmpty()) {
+            // Tính phụ phí từ từng loại phòng
+            foreach ($roomTypes as $roomType) {
+                $soLuong = $roomType['so_luong'] ?? 1;
+                $lp = \App\Models\LoaiPhong::find($roomType['loai_phong_id']);
+                if ($lp) {
+                    $pricePerNight = $lp->gia_khuyen_mai ?? $lp->gia_co_ban ?? 0;
+                    // Phụ phí trẻ em = 10%, em bé = 5% giá phòng/đêm
+                    $childFeeRate = $pricePerNight * $childFeePercent;
+                    $infantFeeRate = $pricePerNight * $infantFeePercent;
+                    
+                    // Phân bổ số trẻ em và em bé cho loại phòng này (giả sử phân bổ đều)
+                    $totalRooms = $roomTypes->sum(function($item) { return $item['so_luong'] ?? 1; });
+                    $childrenForType = $totalRooms > 0 ? (($datPhong->so_tre_em ?? 0) * $soLuong / $totalRooms) : 0;
+                    $infantsForType = $totalRooms > 0 ? (($datPhong->so_em_be ?? 0) * $soLuong / $totalRooms) : 0;
+                    
+                    $phuPhiTreEm += $childrenForType * $childFeeRate * $nights;
+                    $phuPhiEmBe += $infantsForType * $infantFeeRate * $nights;
+                }
+            }
+        } else {
+            // Fallback: Tính từ loại phòng chính
+            $lp = $datPhong->loaiPhong;
+            if ($lp) {
+                $pricePerNight = $lp->gia_khuyen_mai ?? $lp->gia_co_ban ?? 0;
+                // Phụ phí trẻ em = 10%, em bé = 5% giá phòng/đêm
+                $childFeeRate = $pricePerNight * $childFeePercent;
+                $infantFeeRate = $pricePerNight * $infantFeePercent;
+                
+                $phuPhiTreEm = ($datPhong->so_tre_em ?? 0) * $childFeeRate * $nights;
+                $phuPhiEmBe = ($datPhong->so_em_be ?? 0) * $infantFeeRate * $nights;
+            }
+        }
+        
+        // Nếu đã có giá trong database và > 0, sử dụng giá đó (để đảm bảo tính nhất quán cho booking cũ)
+        if (($datPhong->phu_phi_tre_em ?? 0) > 0) {
+            $phuPhiTreEm = $datPhong->phu_phi_tre_em;
+        }
+        if (($datPhong->phu_phi_em_be ?? 0) > 0) {
+            $phuPhiEmBe = $datPhong->phu_phi_em_be;
+        }
+        
+        if (!empty($roomTypes) && $roomTypes->isNotEmpty()) {
+            // Tính tổng giá gốc và tổng giá sau voucher
+            $totalBasePrice = 0;
+            $totalPreDiscountPrice = 0;
+            
             foreach ($roomTypes as $roomType) {
                 $soLuong = $roomType['so_luong'] ?? 1;
                 $lp = \App\Models\LoaiPhong::find($roomType['loai_phong_id']);
@@ -74,37 +144,104 @@ class ThanhToanController extends Controller
                     // Giá chuẩn 1 đêm của loại phòng (không phụ phí)
                     $pricePerNight = $lp->gia_khuyen_mai ?? $lp->gia_co_ban ?? 0;
                     $baseForType = $pricePerNight * $nights * $soLuong;
+                    $totalBasePrice += $baseForType;
 
-                    // Tổng tiền đã lưu cho loại phòng này (trước voucher, đã gồm phụ phí)
+                    // Tính lại giá trước voucher từ gia_rieng
                     $storedTotalForType = $roomType['gia_rieng'] ?? $baseForType;
-
-                    // Phụ phí = chênh lệch giữa giá lưu và giá chuẩn
-                    $surchargeForType = max(0, $storedTotalForType - $baseForType);
-
-                    // Cộng dồn
-                    $originalPrice += $storedTotalForType;
-                    $basePrice += $baseForType;
-                    $surchargeMap[$roomType['loai_phong_id']] = $surchargeForType;
+                    $preDiscountTotalForType = $priceRatio > 0 ? ($storedTotalForType / $priceRatio) : $storedTotalForType;
+                    $totalPreDiscountPrice += $preDiscountTotalForType;
                 }
             }
+            
+            // Tổng phụ phí (bao gồm tất cả: thêm người lớn + trẻ em + em bé)
+            $totalSurcharge = max(0, $totalPreDiscountPrice - $totalBasePrice);
+            
+            // Phụ phí thêm người lớn = tổng phụ phí - phụ phí trẻ em - phụ phí em bé
+            $phuPhiNguoiLon = max(0, $totalSurcharge - $phuPhiTreEm - $phuPhiEmBe);
+            
+            // Phân bổ phụ phí thêm người lớn cho từng loại phòng theo tỷ lệ giá trị
+            if ($totalPreDiscountPrice > 0) {
+                foreach ($roomTypes as $roomType) {
+                    $soLuong = $roomType['so_luong'] ?? 1;
+                    $lp = \App\Models\LoaiPhong::find($roomType['loai_phong_id']);
+                    if ($lp) {
+                        $pricePerNight = $lp->gia_khuyen_mai ?? $lp->gia_co_ban ?? 0;
+                        $baseForType = $pricePerNight * $nights * $soLuong;
+                        $storedTotalForType = $roomType['gia_rieng'] ?? $baseForType;
+                        $preDiscountTotalForType = $priceRatio > 0 ? ($storedTotalForType / $priceRatio) : $storedTotalForType;
+                        
+                        // Phân bổ theo tỷ lệ giá trị của loại phòng này
+                        $ratio = $totalPreDiscountPrice > 0 ? ($preDiscountTotalForType / $totalPreDiscountPrice) : 0;
+                        $extraFeeForType = $phuPhiNguoiLon * $ratio;
+                        $surchargeMap[$roomType['loai_phong_id']] = $extraFeeForType;
+                    }
+                }
+            }
+            
+            $giaPhongGoc = $totalBasePrice;
         } else {
             // Fallback: Calculate using loaiPhong (legacy support)
             $soLuongPhong = $datPhong->so_luong_da_dat ?? 1;
-            $pricePerNight = $datPhong->loaiPhong->gia_khuyen_mai ?? $datPhong->loaiPhong->gia_co_ban ?? 0;
-            $originalPrice = $pricePerNight * $nights * $soLuongPhong;
-            $basePrice = $originalPrice;
+            $lp = $datPhong->loaiPhong;
+            if ($lp) {
+                $pricePerNight = $lp->gia_khuyen_mai ?? $lp->gia_co_ban ?? 0;
+                $giaPhongGoc = $pricePerNight * $nights * $soLuongPhong;
+                
+                // Tính phụ phí thêm người lớn từ surchargeAmount hoặc tính lại
+                $maxAdultsPerRoom = 2;
+                $extraFeePercent = 0.2; // 20% cho người lớn
+                $sumAdults = $datPhong->so_nguoi ?? ($maxAdultsPerRoom * $soLuongPhong);
+                $capacity = $soLuongPhong * $maxAdultsPerRoom;
+                $extraGuests = max(0, $sumAdults - $capacity);
+                if ($extraGuests > 0) {
+                    $phuPhiNguoiLon = $extraGuests * $pricePerNight * $extraFeePercent * $nights;
+                } else {
+                    // Nếu không có extra guests, tính từ tong_tien
+                    $tongTienPhong = $datPhong->tong_tien ?? 0;
+                    $servicesTotal = \App\Models\BookingService::where('dat_phong_id', $datPhong->id)
+                        ->sum(\DB::raw('quantity * unit_price'));
+                    $tongTienPhongTruDichVu = $tongTienPhong - $servicesTotal;
+                    
+                    // Nếu có voucher, tính lại giá trước voucher
+                    if ($datPhong->voucher_id && $datPhong->voucher && $datPhong->voucher->gia_tri) {
+                        $discountPercent = $datPhong->voucher->gia_tri;
+                        $tongTienPhongTruDichVu = $tongTienPhongTruDichVu / (1 - $discountPercent / 100);
+                    }
+                    
+                    $phuPhiNguoiLon = max(0, $tongTienPhongTruDichVu - $giaPhongGoc - $phuPhiTreEm - $phuPhiEmBe);
+                }
+            }
         }
+        
+        // Tổng tiền phòng = giá gốc + phụ phí thêm người lớn + phụ phí trẻ em + phụ phí em bé
+        $tongTienPhong = $giaPhongGoc + $phuPhiNguoiLon + $phuPhiTreEm + $phuPhiEmBe;
 
         // Calculate discount amount from voucher (only applies to room price, not services)
+        // Note: tong_tien trong database đã bao gồm voucher discount rồi
         $discountAmount = 0;
         if ($datPhong->voucher_id && $datPhong->voucher) {
             $voucher = $datPhong->voucher;
             if ($voucher->gia_tri) {
-                // Voucher only applies to room price (originalPrice), not services
-                $discountAmount = $originalPrice * ($voucher->gia_tri / 100);
+                // Voucher only applies to room price (tongTienPhong), not services
+                // Tính discount từ giá trước voucher để hiển thị
+                $discountAmount = $tongTienPhong * ($voucher->gia_tri / 100);
             }
         }
-        $surchargeAmount = max(0, $originalPrice - $basePrice);
+        
+        // Tính tổng tiền dịch vụ
+        $servicesTotal = \App\Models\BookingService::where('dat_phong_id', $datPhong->id)
+            ->sum(\DB::raw('quantity * unit_price'));
+        
+        // Tính tổng thanh toán cuối cùng
+        // tong_tien trong database đã bao gồm voucher discount, nhưng chưa bao gồm dịch vụ
+        // Nếu có dịch vụ, cần cộng thêm
+        if ($datPhong->tong_tien) {
+            // Sử dụng tong_tien từ database (đã bao gồm voucher) + dịch vụ
+            $tongThanhToan = $datPhong->tong_tien + $servicesTotal;
+        } else {
+            // Fallback: Tính từ tongTienPhong - discount + dịch vụ
+            $tongThanhToan = $tongTienPhong - $discountAmount + $servicesTotal;
+        }
 
         // Find or create the invoice
         $invoice = Invoice::firstOrCreate(
@@ -130,7 +267,7 @@ class ThanhToanController extends Controller
             }
         }
 
-        return view('client.thanh-toan.show', compact('datPhong', 'invoice', 'originalPrice', 'discountAmount', 'surchargeAmount', 'nights', 'roomTypes', 'availableRooms', 'surchargeMap', 'remainingSeconds'));
+        return view('client.thanh-toan.show', compact('datPhong', 'invoice', 'giaPhongGoc', 'phuPhiNguoiLon', 'phuPhiTreEm', 'phuPhiEmBe', 'tongTienPhong', 'discountAmount', 'nights', 'roomTypes', 'availableRooms', 'surchargeMap', 'remainingSeconds', 'servicesTotal', 'tongThanhToan'));
     }
 
     /**
@@ -464,4 +601,5 @@ class ThanhToanController extends Controller
         return $errorMessages[$responseCode] ?? 'Giao dịch không thành công. Vui lòng thử lại sau.';
     }
 }
+
 

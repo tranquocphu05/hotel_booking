@@ -68,6 +68,13 @@ class BookingPriceCalculator
 
         // 5️⃣ Lấy phụ phí phát sinh (nếu có)
         $phiPhatSinh = $booking->phi_phat_sinh ?? 0;
+        
+        // 5️⃣.1 Lấy phụ phí trẻ em và em bé (tương tự như phụ phí thêm người lớn)
+        $phuPhiTreEm = $booking->phu_phi_tre_em ?? 0;
+        $phuPhiEmBe = $booking->phu_phi_em_be ?? 0;
+        
+        // Thêm phụ phí trẻ em và em bé vào tổng tiền phòng (giống như phụ phí thêm người lớn)
+        $tongTienPhong += $phuPhiTreEm + $phuPhiEmBe;
 
         // 6️⃣ Tổng cuối cùng: (Tiền phòng - Giảm giá) + Tiền dịch vụ + Phụ phí
         $tongCong = max(0, $tongTienPhong - $giamGia + $totalServices + $phiPhatSinh);
