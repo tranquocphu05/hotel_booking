@@ -484,7 +484,7 @@
                                                                             @if(!empty($phong->ghi_chu))
                                                                                 <span class="inline-flex items-center mr-3">
                                                                                     <i class="fas fa-location-arrow mr-1 text-purple-500"></i>
-                                                                                    Hướng cửa sổ: {{ $phong->ghi_chu }}
+                                                                                    Ghi chú: {{ $phong->ghi_chu }}
                                                                                 </span>
                                                                             @endif
                                                                             @if(!empty($phong->gia_rieng))

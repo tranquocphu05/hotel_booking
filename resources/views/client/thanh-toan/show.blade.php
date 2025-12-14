@@ -714,6 +714,7 @@
     </div>
 
     <script>
+        //countdown timer
         document.addEventListener('DOMContentLoaded', function() {
             var remaining = {{ isset($remainingSeconds) ? (int) $remainingSeconds : 0 }};
             var timerElement = document.getElementById('countdown-timer');

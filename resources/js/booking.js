@@ -47,6 +47,9 @@ class BookingManager {
         );
         this.totalAfterDiscountDiv =
             document.getElementById("totalAfterDiscount");
+        this.pricingMultiplierInfoDiv = document.getElementById(
+            "pricingMultiplierInfo"
+        );
         this.finalBookingPriceInput =
             document.getElementById("finalBookingPrice");
 
@@ -240,7 +243,7 @@ class BookingManager {
                                     <option value="4">4</option>
                                 </select>
                             </div>
-                            
+
                             <!-- Children (Trẻ em 6-11 tuổi) -->
                             <div class="guest-type-selector flex-1 text-center">
                                 <div class="flex flex-col items-center gap-1 mb-2">
@@ -261,7 +264,7 @@ class BookingManager {
                                     <option value="3">3</option>
                                 </select>
                             </div>
-                            
+
                             <!-- Infants (Em bé 0-5 tuổi) -->
                             <div class="guest-type-selector flex-1 text-center">
                                 <div class="flex flex-col items-center gap-1 mb-2">
@@ -547,6 +550,33 @@ class BookingManager {
         };
     }
 
+    // Helpers to mirror server-side holiday/weekend logic (fixed solar holidays)
+    isHoliday(date) {
+        const year = date.getFullYear();
+        const pad = (n) => (n < 10 ? "0" + n : "" + n);
+        const key = `${year}-${pad(date.getMonth() + 1)}-${pad(
+            date.getDate()
+        )}`;
+        const holidays = [
+            `${year}-01-01`,
+            `${year}-04-30`,
+            `${year}-05-01`,
+            `${year}-09-02`,
+        ];
+        return holidays.includes(key);
+    }
+
+    getMultiplierForDate(date) {
+        if (this.isHoliday(date)) {
+            return 1.25;
+        }
+        const day = date.getDay(); // 0 = Sun, 6 = Sat
+        if (day === 0 || day === 6) {
+            return 1.15;
+        }
+        return 1.0;
+    }
+
     getDiscountPercentFromCard(cardElement) {
         const discountElement = cardElement.querySelector(
             ".font-semibold.text-gray-800.text-base"
@@ -688,20 +718,28 @@ class BookingManager {
 
     // === PRICE CALCULATIONS ===
     tinhTongTien() {
-        // Tính tổng giá từ room cards với phụ phí tính theo tổng số người vượt tổng sức chứa
-        // và phụ phí trẻ em, em bé
-        const { soDem } = this.getDatesAndDays();
+        // Tính tổng giá từ room cards với multiplier theo từng ngày + phụ phí khách vượt
+        const { checkinValue, checkoutValue, soDem } = this.getDatesAndDays();
         let totalBeforeDiscountAmount = 0;
         let totalExtraFee = 0;
-        let totalChildFee = 0;
-        let totalInfantFee = 0;
+
+        let weekdayNights = 0;
+        let weekendNights = 0;
+        let holidayNights = 0;
+
+        const checkinDate = new Date(checkinValue);
+        const checkoutDate = new Date(checkoutValue);
 
         // Tính từ room cards
         document
             .querySelectorAll(".room-card-quantity, .room-card-quantity-modern")
             .forEach((quantityInput) => {
                 const quantity = parseInt(quantityInput.value) || 0;
-                if (quantity > 0) {
+                if (
+                    quantity > 0 &&
+                    !isNaN(checkinDate) &&
+                    !isNaN(checkoutDate)
+                ) {
                     const price =
                         parseFloat(quantityInput.dataset.roomPrice) || 0;
                     const roomId = quantityInput.dataset.roomId;
@@ -712,45 +750,23 @@ class BookingManager {
                         parseInt(adultsSel?.value || this.maxAdultsPerRoom) ||
                         this.maxAdultsPerRoom;
 
-                    // Calculate child and infant fee rates as percentage of room price (5%)
-                    const childFeeRate = price * this.childFeePercent;
-                    const infantFeeRate = price * this.infantFeePercent;
-
-                    // Sum guests from per-room rows if present
+                    // Sum adults từ các hàng guest, dùng để tính khách vượt
                     let sumAdults = 0;
-                    let sumChildren = 0;
-                    let sumInfants = 0;
                     const rowsContainer = document.getElementById(
                         `room_card_guest_rows_${roomId}`
                     );
 
                     if (rowsContainer) {
-                        // Get adults from adult selectors
+                        // Lấy tổng người lớn từ các selector
                         const adultSelects = rowsContainer.querySelectorAll(
                             '[data-guest-type="adults"]'
                         );
                         adultSelects.forEach((sel) => {
                             sumAdults += parseInt(sel.value) || 0;
                         });
-
-                        // Get children from children selectors
-                        const childSelects = rowsContainer.querySelectorAll(
-                            '[data-guest-type="children"]'
-                        );
-                        childSelects.forEach((sel) => {
-                            sumChildren += parseInt(sel.value) || 0;
-                        });
-
-                        // Get infants from infant selectors
-                        const infantSelects = rowsContainer.querySelectorAll(
-                            '[data-guest-type="infants"]'
-                        );
-                        infantSelects.forEach((sel) => {
-                            sumInfants += parseInt(sel.value) || 0;
-                        });
                     }
 
-                    // If no guest rows, use defaults
+                    // Nếu không có dòng guest nào, mặc định số người lớn = số người chuẩn của phòng * số phòng
                     if (
                         sumAdults === 0 &&
                         !rowsContainer?.querySelector("[data-guest-row]")
@@ -763,39 +779,39 @@ class BookingManager {
                         0,
                         sumAdults - capacity
                     );
-                    if (extraGuestsForType > 0) {
-                        const feeForType =
-                            extraGuestsForType *
-                            price *
-                            this.extraFeePercent *
-                            soDem;
-                        totalExtraFee += feeForType;
-                    }
 
-                    // Calculate children surcharge (5% of room price per child per night)
-                    if (sumChildren > 0) {
-                        totalChildFee += sumChildren * childFeeRate * soDem;
-                    }
+                    // Duyệt từng ngày để áp dụng multiplier giống server
+                    const current = new Date(checkinDate.getTime());
+                    while (current < checkoutDate) {
+                        const m = this.getMultiplierForDate(current);
+                        if (this.isHoliday(current)) {
+                            holidayNights++;
+                        } else {
+                            const d = current.getDay();
+                            if (d === 0 || d === 6) weekendNights++;
+                            else weekdayNights++;
+                        }
 
-                    // Calculate infant surcharge (5% of room price per infant per night)
-                    if (sumInfants > 0) {
-                        totalInfantFee += sumInfants * infantFeeRate * soDem;
-                    }
+                        // Tiền phòng cơ bản theo hệ số ngày
+                        totalBeforeDiscountAmount += price * m * quantity;
 
-                    // Base room charges (without extra guest fee)
-                    totalBeforeDiscountAmount += price * quantity * soDem;
+                        // Phụ phí khách vượt (nếu có), áp dụng cùng multiplier theo ngày
+                        if (extraGuestsForType > 0) {
+                            totalExtraFee +=
+                                extraGuestsForType *
+                                price *
+                                this.extraFeePercent *
+                                m;
+                        }
+
+                        current.setDate(current.getDate() + 1);
+                    }
                 }
             });
 
-        // Add all surcharges to total
+        // Cộng phụ phí khách vượt vào tổng (không có phụ phí trẻ em / em bé)
         if (totalExtraFee > 0) {
             totalBeforeDiscountAmount += totalExtraFee;
-        }
-        if (totalChildFee > 0) {
-            totalBeforeDiscountAmount += totalChildFee;
-        }
-        if (totalInfantFee > 0) {
-            totalBeforeDiscountAmount += totalInfantFee;
         }
 
         const discountPercent = this.currentDiscountPercent;
@@ -815,6 +831,40 @@ class BookingManager {
         // Cập nhật giao diện chính
         this.soDemLuuTruElement.textContent = `Số đêm: ${soDem} đêm`;
 
+        // Hiển thị breakdown ngày thường/cuối tuần/lễ nếu có element
+        if (this.pricingMultiplierInfoDiv) {
+            if (weekdayNights + weekendNights + holidayNights > 0) {
+                this.pricingMultiplierInfoDiv.innerHTML =
+                    `Giá đã áp dụng: ` +
+                    `${weekdayNights} đêm thường, ` +
+                    `${weekendNights} đêm cuối tuần (+15%), ` +
+                    `${holidayNights} đêm lễ (+25%).`;
+                this.pricingMultiplierInfoDiv.classList.remove("hidden");
+            } else {
+                this.pricingMultiplierInfoDiv.classList.add("hidden");
+            }
+        }
+
+        // Dòng hiển thị phụ phí khách vượt
+        let extraFeeDisplay = document.getElementById("extraGuestFeeDisplay");
+        if (!extraFeeDisplay) {
+            extraFeeDisplay = document.createElement("div");
+            extraFeeDisplay.id = "extraGuestFeeDisplay";
+            extraFeeDisplay.className = "text-sm text-amber-700 mb-1 hidden";
+            this.totalAfterDiscountDiv.parentNode.insertBefore(
+                extraFeeDisplay,
+                this.totalAfterDiscountDiv
+            );
+        }
+
+        if (totalExtraFee > 0) {
+            extraFeeDisplay.innerHTML = `Phụ phí thêm khách: <span class="font-semibold">+${this.formatCurrency(
+                totalExtraFee
+            )}</span>`;
+            extraFeeDisplay.classList.remove("hidden");
+        } else {
+            extraFeeDisplay.classList.add("hidden");
+        }
         // Remove any existing duplicate surcharge displays (they are shown in summary instead)
         const existingExtraFeeDisplay = document.getElementById(
             "extraGuestFeeDisplay"
@@ -1091,33 +1141,32 @@ class BookingManager {
                         let surchargeHtml = "";
                         const surchargeItems = [];
 
-if (room.extraFee && room.extraFee > 0) {
-    surchargeItems.push(
-        `<div class="flex items-center gap-1">
+                        if (room.extraFee && room.extraFee > 0) {
+                            surchargeItems.push(
+                                `<div class="flex items-center gap-1">
             <i class="fas fa-user-plus text-amber-500 text-xs"></i>
             <span>Thêm người lớn: +${this.formatCurrency(room.extraFee)}</span>
         </div>`
-    );
-}
+                            );
+                        }
 
-if (room.childFee && room.childFee > 0) {
-    surchargeItems.push(
-        `<div class="flex items-center gap-1">
+                        if (room.childFee && room.childFee > 0) {
+                            surchargeItems.push(
+                                `<div class="flex items-center gap-1">
             <i class="fas fa-child text-green-500 text-xs"></i>
             <span>Thêm trẻ em: +${this.formatCurrency(room.childFee)}</span>
         </div>`
-    );
-}
+                            );
+                        }
 
-if (room.infantFee && room.infantFee > 0) {
-    surchargeItems.push(
-        `<div class="flex items-center gap-1">
+                        if (room.infantFee && room.infantFee > 0) {
+                            surchargeItems.push(
+                                `<div class="flex items-center gap-1">
             <i class="fas fa-baby text-pink-500 text-xs"></i>
             <span>Thêm em bé: +${this.formatCurrency(room.infantFee)}</span>
         </div>`
-    );
-}
-
+                            );
+                        }
 
                         if (surchargeItems.length > 0) {
                             surchargeHtml = `<div class="text-xs text-gray-700 mt-2 space-y-1 bg-orange-50 rounded-md p-2 border border-orange-100">${surchargeItems.join(
