@@ -100,19 +100,6 @@
                         </div>
 
                         <div class="filter-field">
-                            <label for="so_nguoi_input" class="filter-label">Số người</label>
-                            <div class="filter-input">
-                                <span class="filter-icon"><i class="fas fa-user-friends"></i></span>
-                                <input type="text" name="so_nguoi" id="so_nguoi_input"
-                                    value="{{ old('so_nguoi', isset($guests) ? $guests : 1) }}"
-                                    class="@error('so_nguoi') border-red-500 @enderror">
-                            </div>
-                            @error('so_nguoi')
-                                <div class="field-error">{{ $message }}</div>
-                            @enderror
-                        </div>
-
-                        <div class="filter-field filter-field--wide">
                             <label class="filter-label">Mã khuyến mãi / Voucher</label>
                             <div class="voucher-inline">
                                 <div class="voucher-placeholder">
