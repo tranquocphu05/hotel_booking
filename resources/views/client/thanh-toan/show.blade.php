@@ -348,10 +348,11 @@
                                 @php
                                     // Sử dụng các biến đã tính từ controller
                                     $giaPhongGoc = $giaPhongGoc ?? 0;
+                                    $phuPhiNgayLe = $phuPhiNgayLe ?? 0;
                                     $phuPhiNguoiLon = $phuPhiNguoiLon ?? 0;
                                     $phuPhiTreEm = $phuPhiTreEm ?? 0;
                                     $phuPhiEmBe = $phuPhiEmBe ?? 0;
-                                    $tongTienPhong = $tongTienPhong ?? ($giaPhongGoc + $phuPhiNguoiLon + $phuPhiTreEm + $phuPhiEmBe);
+                                    $tongTienPhong = $tongTienPhong ?? ($giaPhongGoc + $phuPhiNgayLe + $phuPhiNguoiLon + $phuPhiTreEm + $phuPhiEmBe);
                                 @endphp
                                 
                                 {{-- Giá phòng gốc --}}
@@ -367,6 +368,17 @@
                                     </span>
                                     <span class="font-semibold text-gray-900 text-base">{{ number_format($giaPhongGoc, 0, ',', '.') }} VNĐ</span>
                                 </div>
+                                
+                                {{-- Phụ phí ngày lễ/cuối tuần --}}
+                                @if($phuPhiNgayLe > 0)
+                                <div class="flex justify-between items-center bg-purple-50 rounded-md px-3 py-2 mt-2 text-sm">
+                                    <span class="text-gray-700 flex items-center">
+                                        <i class="fas fa-calendar-alt text-purple-600 mr-2"></i>
+                                        Phụ phí ngày lễ/cuối tuần
+                                    </span>
+                                    <span class="font-semibold text-purple-700">+{{ number_format($phuPhiNgayLe, 0, ',', '.') }} VNĐ</span>
+                                </div>
+                                @endif
                                 
                                 {{-- Phụ phí người lớn --}}
                                 @if($phuPhiNguoiLon > 0)

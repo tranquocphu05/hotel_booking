@@ -170,6 +170,9 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsStaff
     Route::get('/yeu-cau-doi-phong', [YeuCauDoiPhongController::class, 'index'])
         ->name('yeu_cau_doi_phong.index');
 
+    Route::post('/yeu-cau-doi-phong/{id}/calculate-fee', [YeuCauDoiPhongController::class, 'calculateFee'])
+        ->name('yeu_cau_doi_phong.calculate_fee');
+
     Route::post('/yeu-cau-doi-phong/{id}/approve', [YeuCauDoiPhongController::class, 'approve'])
         ->name('yeu_cau_doi_phong.approve');
 
