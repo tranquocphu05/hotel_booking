@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
@@ -12,6 +13,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Services\BookingPriceCalculator;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -171,6 +173,9 @@ class BookingController extends Controller
         $user   = Auth::user();
         $nights = $this->calculateNights($data['ngay_nhan'], $data['ngay_tra']);
 
+        $checkIn = Carbon::parse($data['ngay_nhan']);
+        $checkOut = Carbon::parse($data['ngay_tra']);
+
         // Check for duplicate room types
         $roomTypeIds = array_column($data['rooms'], 'loai_phong_id');
         if (count($roomTypeIds) !== count(array_unique($roomTypeIds))) {
@@ -181,11 +186,6 @@ class BookingController extends Controller
 
         $totalPrice       = 0;
         $roomDetails      = [];
-        $totalGuests      = 0;
-        $totalChildren    = 0;
-        $totalInfants     = 0;
-        $totalChildFee    = 0;
-        $totalInfantFee   = 0;
         $maxAdultsPerRoom = 2;
         $extraFeePercent  = 0.2; // 20% cho người lớn
         $childFeePercent  = 0.1; // 10% cho trẻ em
@@ -209,16 +209,27 @@ class BookingController extends Controller
                 ])->withInput();
             }
 
-            $roomBaseTotal = $pricePerNight * $nights * $room['so_luong'];
-            $sumAdults     = isset($room['so_nguoi']) ? (int) $room['so_nguoi'] : ($maxAdultsPerRoom * (int) $room['so_luong']);
-            $sumChildren   = isset($room['so_tre_em']) ? (int) $room['so_tre_em'] : 0;
-            $sumInfants    = isset($room['so_em_be']) ? (int) $room['so_em_be'] : 0;
+            // Tính tiền phòng theo từng ngày (ngày thường/cuối tuần/lễ)
+            $roomBaseTotal = BookingPriceCalculator::calculateRoomTypePriceByDateRange(
+                $loaiPhong,
+                $checkIn,
+                $checkOut,
+                (int) $room['so_luong']
+            );
 
-            $capacity    = (int) $room['so_luong'] * $maxAdultsPerRoom;
+            // Phụ phí khách vượt quá sức chứa chuẩn
+            $sumAdults = isset($room['so_nguoi']) ? (int) $room['so_nguoi'] : ($maxAdultsPerRoom * (int) $room['so_luong']);
+            $capacity  = (int) $room['so_luong'] * $maxAdultsPerRoom;
             $extraGuests = max(0, $sumAdults - $capacity);
             $extraFee    = 0;
             if ($extraGuests > 0) {
-                $extraFee = $extraGuests * $pricePerNight * $extraFeePercent * $nights;
+                $extraFee = BookingPriceCalculator::calculateExtraGuestSurcharge(
+                    $loaiPhong,
+                    $checkIn,
+                    $checkOut,
+                    $extraGuests,
+                    $extraFeePercent
+                );
             }
 
             // Calculate children and infant surcharges
@@ -238,14 +249,10 @@ class BookingController extends Controller
             $totalInfantFee += $roomInfantFee;
 
             $roomDetails[] = [
-                'loai_phong_id'  => $loaiPhong->id,
-                'loai_phong'     => $loaiPhong,
-                'so_luong'       => $room['so_luong'],
-                'so_tre_em'      => $sumChildren,
-                'so_em_be'       => $sumInfants,
-                'phu_phi_tre_em' => $roomChildFee,
-                'phu_phi_em_be'  => $roomInfantFee,
-                'price'          => $roomTotalWithSurcharge,
+                'loai_phong_id' => $loaiPhong->id,
+                'loai_phong'    => $loaiPhong,
+                'so_luong'      => $room['so_luong'],
+                'price'         => $roomTotal,
             ];
         }
 
@@ -253,7 +260,7 @@ class BookingController extends Controller
 
         // Apply voucher and create bookings within transaction
         // Use lockForUpdate to prevent race conditions when checking availability
-        $bookings = DB::transaction(function () use ($request, $data, $user, $totalPrice, $roomDetails, $nights, $totalGuests, $totalChildren, $totalInfants, $totalChildFee, $totalInfantFee) {
+        $bookings = DB::transaction(function () use ($request, $data, $user, $totalPrice, $roomDetails, $nights) {
             $voucherId  = null;
             $finalPrice = $totalPrice;
 
@@ -328,11 +335,11 @@ class BookingController extends Controller
                 'ngay_dat'        => now(),
                 'ngay_nhan'       => $data['ngay_nhan'],
                 'ngay_tra'        => $data['ngay_tra'],
-                'so_nguoi'        => $totalGuests > 0 ? $totalGuests : ($data['so_nguoi'] ?? 1),
-                'so_tre_em'       => $totalChildren,
-                'so_em_be'        => $totalInfants,
-                'phu_phi_tre_em'  => $totalChildFee,
-                'phu_phi_em_be'   => $totalInfantFee,
+                'so_nguoi'        => $data['so_nguoi'] ?? 1,
+                'so_tre_em'       => 0,
+                'so_em_be'        => 0,
+                'phu_phi_tre_em'  => 0,
+                'phu_phi_em_be'   => 0,
                 'trang_thai'      => 'cho_xac_nhan',
                 'tong_tien'       => $finalPrice, // Tổng tiền của tất cả loại phòng
                 'voucher_id'      => $voucherId,
@@ -425,8 +432,8 @@ class BookingController extends Controller
                 $booking->save();
             }
 
-                                                    // Tạo invoice ngay với trạng thái chờ thanh toán
-                                                    // Tính breakdown: tien_phong, giam_gia
+            // Tạo invoice ngay với trạng thái chờ thanh toán
+            // Tính breakdown: tien_phong, giam_gia
             $tienPhong = $totalPrice;               // Giá gốc trước voucher
             $giamGia   = $totalPrice - $finalPrice; // Số tiền giảm từ voucher
 

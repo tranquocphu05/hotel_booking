@@ -19,9 +19,9 @@ class BookingPriceCalculator
 
         $query = $booking->services();
         if ($mainInvoiceId) {
-            $query->where(function($q) use ($mainInvoiceId) {
+            $query->where(function ($q) use ($mainInvoiceId) {
                 $q->where('invoice_id', $mainInvoiceId)
-                  ->orWhereNull('invoice_id');
+                    ->orWhereNull('invoice_id');
             });
         } else {
             $query->whereNull('invoice_id');
@@ -30,16 +30,12 @@ class BookingPriceCalculator
         $totalServices = $query->select(DB::raw('SUM(quantity * unit_price) as total'))
             ->value('total') ?? 0;
 
-        // 2️⃣ Tính số đêm (đảm bảo ít nhất là 1 đêm)
+        // 2️⃣ Lấy ngày nhận/trả dạng Carbon (có thể null)
         $ngayNhan = $booking->ngay_nhan ? Carbon::parse($booking->ngay_nhan) : null;
         $ngayTra = $booking->ngay_tra ? Carbon::parse($booking->ngay_tra) : null;
-        $soDem = 1;
-
-        if ($ngayNhan && $ngayTra && $ngayTra->greaterThan($ngayNhan)) {
-            $soDem = max(1, $ngayNhan->diffInDays($ngayTra));
-        }
 
         // 3️⃣ Lấy thông tin các loại phòng (giá riêng hoặc giá mặc định)
+        //    và tính tiền phòng theo từng ngày (ngày thường/cuối tuần/lễ)
         $tongTienPhong = 0;
         $roomTypes = $booking->getRoomTypes(); // Phương thức custom, giả sử trả mảng
 
@@ -47,45 +43,26 @@ class BookingPriceCalculator
             $soLuong = (int) ($rt['so_luong'] ?? 1);
             $loaiPhongId = (int) ($rt['loai_phong_id'] ?? 0);
 
-            // Always use LoaiPhong promotional price (gia_khuyen_mai) if available,
-            // otherwise fall back to base price (gia_co_ban).
             $loaiPhong = LoaiPhong::find($loaiPhongId);
-            $unit = 0;
-            if ($loaiPhong) {
-                $unit = $loaiPhong->gia_khuyen_mai ?? $loaiPhong->gia_co_ban ?? 0;
+            if (!$loaiPhong || !$ngayNhan || !$ngayTra || !$ngayTra->greaterThan($ngayNhan)) {
+                continue;
             }
 
-            $tongTienPhong += $soLuong * $unit * $soDem;
+            $tongTienPhong += self::calculateRoomTypePriceByDateRange(
+                $loaiPhong,
+                $ngayNhan,
+                $ngayTra,
+                $soLuong
+            );
         }
 
         // 4️⃣ Nếu có voucher thì tính giảm giá (CHỈ áp dụng cho tiền phòng)
-        // Nếu voucher gán cho 1 loại phòng cụ thể (loai_phong_id), thì chỉ áp dụng phần tương ứng của loại phòng đó
         $giamGia = 0;
         if ($booking->voucher_id && $booking->voucher) {
             $voucher = $booking->voucher;
             if ($voucher->gia_tri) {
-                $percent = $voucher->gia_tri / 100;
-                if (!empty($voucher->loai_phong_id)) {
-                    // Compute subtotal only for room types matching voucher->loai_phong_id
-                    $applicableTotal = 0;
-                    $roomTypes = $booking->getRoomTypes();
-                    foreach ($roomTypes as $rt) {
-                        $lpId = $rt['loai_phong_id'] ?? null;
-                        if ($lpId && $lpId == $voucher->loai_phong_id) {
-                            $soLuong = (int) ($rt['so_luong'] ?? 1);
-                            $loaiPhong = LoaiPhong::find($lpId);
-                            $unit = 0;
-                            if ($loaiPhong) {
-                                $unit = $loaiPhong->gia_khuyen_mai ?? $loaiPhong->gia_co_ban ?? 0;
-                            }
-                            $applicableTotal += $soLuong * $unit * $soDem;
-                        }
-                    }
-                    $giamGia = round($applicableTotal * $percent, 0);
-                } else {
-                    // Voucher applies to full room total
-                    $giamGia = round($tongTienPhong * $percent, 0);
-                }
+                // Voucher chỉ áp dụng cho tiền phòng (không giảm giá dịch vụ)
+                $giamGia = round($tongTienPhong * ($voucher->gia_tri / 100), 0);
             }
         }
 
@@ -103,20 +80,9 @@ class BookingPriceCalculator
         $tongCong = max(0, $tongTienPhong - $giamGia + $totalServices + $phiPhatSinh);
 
         // 7️⃣ Cập nhật booking
-        // Note: tien_phong stores the FULL room price (before voucher discount)
-        // The voucher discount is only applied to the final tong_tien
-        $bookingUpdate = [
+        $booking->update([
             'tong_tien' => $tongCong,
-        ];
-
-        if (Schema::hasColumn('dat_phong', 'tien_phong')) {
-            $bookingUpdate['tien_phong'] = $tongTienPhong;
-        }
-        if (Schema::hasColumn('dat_phong', 'tien_dich_vu')) {
-            $bookingUpdate['tien_dich_vu'] = $totalServices;
-        }
-
-        $booking->update($bookingUpdate);
+        ]);
 
         // 8️⃣ Cập nhật invoice nếu có
         if ($booking->invoice) {
@@ -134,4 +100,109 @@ class BookingPriceCalculator
             ]);
         }
     }
-} 
+
+    /**
+     * Tính hệ số giá theo ngày (ngày thường / cuối tuần / ngày lễ)
+     */
+    public static function getMultiplierForDate(Carbon $date): float
+    {
+        if (self::isHoliday($date)) {
+            return 1.25; // Ngày lễ: +25%
+        }
+
+        if ($date->isWeekend()) {
+            return 1.15; // Cuối tuần (thứ 7, CN): +15%
+        }
+
+        return 1.0; // Ngày thường
+    }
+
+    /**
+     * Kiểm tra ngày lễ (tạm thởi chỉ dùng các ngày dương lịch cố định)
+     * 01/01, 30/04, 01/05, 02/09
+     */
+    private static function isHoliday(Carbon $date): bool
+    {
+        $year = $date->year;
+
+        $holidays = [
+            Carbon::create($year, 1, 1)->toDateString(),  // 01/01
+            Carbon::create($year, 4, 30)->toDateString(), // 30/04
+            Carbon::create($year, 5, 1)->toDateString(),  // 01/05
+            Carbon::create($year, 9, 2)->toDateString(),  // 02/09
+        ];
+
+        return in_array($date->toDateString(), $holidays, true);
+    }
+
+    /**
+     * Tính tổng tiền phòng cho 1 loại phòng trong khoảng ngày nhận/trả,
+     * áp dụng hệ số theo từng ngày (ngày thường/cuối tuần/lễ)
+     */
+    public static function calculateRoomTypePriceByDateRange(
+        LoaiPhong $loaiPhong,
+        Carbon $checkIn,
+        Carbon $checkOut,
+        int $soLuong
+    ): float {
+        $total = 0.0;
+
+        $current = $checkIn->copy();
+        $end = $checkOut->copy();
+
+        while ($current->lt($end)) {
+            $base = $loaiPhong->gia_khuyen_mai ?? $loaiPhong->gia_co_ban ?? 0;
+
+            if ($base <= 0) {
+                $current->addDay();
+                continue;
+            }
+
+            $multiplier = self::getMultiplierForDate($current);
+
+            $total += $base * $multiplier * $soLuong;
+
+            $current->addDay();
+        }
+
+        return $total;
+    }
+
+    /**
+     * Tính phụ phí khách thêm theo từng ngày, cũng áp dụng multiplier theo ngày
+     */
+    public static function calculateExtraGuestSurcharge(
+        LoaiPhong $loaiPhong,
+        Carbon $checkIn,
+        Carbon $checkOut,
+        int $extraGuests,
+        float $extraFeePercent
+    ): float {
+        if ($extraGuests <= 0 || $extraFeePercent <= 0) {
+            return 0.0;
+        }
+
+        $total = 0.0;
+
+        $current = $checkIn->copy();
+        $end = $checkOut->copy();
+
+        while ($current->lt($end)) {
+            $base = $loaiPhong->gia_khuyen_mai ?? $loaiPhong->gia_co_ban ?? 0;
+
+            if ($base <= 0) {
+                $current->addDay();
+                continue;
+            }
+
+            $multiplier = self::getMultiplierForDate($current);
+
+            $priceForDay = $base * $multiplier;
+            $total += $extraGuests * $priceForDay * $extraFeePercent;
+
+            $current->addDay();
+        }
+
+        return $total;
+    }
+}

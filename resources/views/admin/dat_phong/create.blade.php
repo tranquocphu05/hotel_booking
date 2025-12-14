@@ -85,7 +85,7 @@
                                                                     {{ number_format($loaiPhong->gia_co_ban, 0, ',', '.') }}
                                                                     VNĐ
                                                                 </p>
-                                                            </div> 
+                                                            </div>
                                                         @else
                                                             <p class="text-sm font-medium text-blue-600">
                                                                 {{ number_format($loaiPhong->gia_co_ban, 0, ',', '.') }}
@@ -287,7 +287,7 @@
                             </section>
 
                                 <!-- Chọn dịch vụ -->
-                                
+
                                 <!-- Tom Select based multi-select for services -->
                                 <link href="https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/css/tom-select.css" rel="stylesheet">
                                 <!-- Service cards styling -->
@@ -327,7 +327,7 @@
                                 <input type="hidden" name="tong_tien" id="tong_tien_input" value="0">
                                 <input type="hidden" name="voucher" id="voucher_input" value="">
                                 <input type="hidden" name="voucher_id" id="voucher_id_input" value="">
-                                
+
                                 <!-- Hiển thị tổng tiền -->
                                 <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
                                     <div class="flex justify-between items-center mb-3">
@@ -339,11 +339,22 @@
                                             <span>Giá gốc:</span>
                                             <span id="original_price">0 VNĐ</span>
                                         </div>
-                                        <div class="flex justify-between">
-                                            <span>Giảm giá:</span>
-                                            <span id="discount_amount" class="text-green-600 font-medium">-0 VNĐ</span>
+                                        <div id="discount_info" class="text-sm text-gray-600 mt-1 hidden">
+                                            <div class="flex justify_between">
+                                                <span>Giá gốc:</span>
+                                                <span id="original_price">0 VNĐ</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span>Giảm giá:</span>
+                                                <span id="discount_amount" class="text-green-600">-0 VNĐ</span>
+                                            </div>
                                         </div>
+                                        <div id="pricing_multiplier_info" class="text-xs text-gray-500 mt-1"></div>
                                     </div>
+                                    <p class="mt-2 text-xs text-gray-500">
+                                        Giá phòng được tính theo từng đêm: ngày thường x1.0, cuối tuần x1.15 (tăng 15%) và
+                                        ngày lễ x1.25 (tăng 25%).
+                                    </p>
                                 </div>
                             </section>
 
@@ -556,13 +567,13 @@
                         selectedRoomInputs.forEach(inp => {
                             const ewrap = document.createElement('div'); ewrap.className = 'inline-flex items-center gap-1 mr-2';
                             const ecb = document.createElement('input'); ecb.type = 'checkbox'; ecb.className = 'entry-room-checkbox'; ecb.setAttribute('data-room-id', inp.value);
-                            ecb.value = inp.value; ecb.checked = true; 
-                            ecb.onchange = () => { 
+                            ecb.value = inp.value; ecb.checked = true;
+                            ecb.onchange = () => {
                                 const serviceId = card.getAttribute('data-service-id');
                                 console.log('entry-room-checkbox changed, serviceId=', serviceId);
                                 // Call via window to ensure function exists
                                 setTimeout(() => {
-                                    try { 
+                                    try {
                                         if (typeof window.syncHiddenEntries === 'function') {
                                             window.syncHiddenEntries(serviceId);
                                         }
@@ -1041,7 +1052,125 @@
                     }
                 });
             }
-            // updateTotalPrice sẽ được override sau (xem dưới)
+
+
+
+            // Helpers giống phía client để tính hệ số theo ngày
+            function isHolidayJS(date) {
+                const d = new Date(date.getTime());
+                const year = d.getFullYear();
+                const holidays = [
+                    new Date(year, 0, 1),   // 01/01
+                    new Date(year, 3, 30),  // 30/04 (tháng 3 vì JS bắt đầu từ 0)
+                    new Date(year, 4, 1),   // 01/05
+                    new Date(year, 8, 2),   // 02/09
+                ];
+                return holidays.some(h => h.getDate() === d.getDate() && h.getMonth() === d.getMonth());
+            }
+
+            function getMultiplierForDateJS(date) {
+                if (isHolidayJS(date)) {
+                    return 1.25; // Ngày lễ
+                }
+                const day = date.getDay(); // 0: CN, 6: T7
+                if (day === 0 || day === 6) {
+                    return 1.15; // Cuối tuần
+                }
+                return 1.0; // Ngày thường
+            }
+
+            function updateTotalPrice() {
+                const ngayNhan = document.getElementById('ngay_nhan').value;
+                const ngayTra = document.getElementById('ngay_tra').value;
+
+                const pricingInfoDiv = document.getElementById('pricing_multiplier_info');
+                if (pricingInfoDiv) {
+                    pricingInfoDiv.textContent = '';
+                }
+
+                if (!ngayNhan || !ngayTra) {
+                    document.getElementById('total_price').textContent = formatCurrency(0);
+                    document.getElementById('tong_tien_input').value = 0;
+                    return;
+                }
+
+                const startDate = new Date(ngayNhan);
+                const endDate = new Date(ngayTra);
+                if (isNaN(startDate.getTime()) || isNaN(endDate.getTime()) || endDate <= startDate) {
+                    document.getElementById('total_price').textContent = formatCurrency(0);
+                    document.getElementById('tong_tien_input').value = 0;
+                    return;
+                }
+
+                let totalPrice = 0;
+                let weekdayNights = 0;
+                let weekendNights = 0;
+                let holidayNights = 0;
+
+                // Tính tiền phòng theo từng ngày với multiplier
+                document.querySelectorAll('.room-type-checkbox:checked').forEach(checkbox => {
+                    const roomTypeId = checkbox.value;
+                    const quantityInput = document.getElementById('quantity_' + roomTypeId);
+                    const quantity = parseInt(quantityInput?.value || 1);
+                    const basePrice = parseFloat(checkbox.dataset.price || 0);
+
+                    if (basePrice <= 0 || quantity <= 0) return;
+
+                    let current = new Date(startDate.getTime());
+                    while (current < endDate) {
+                        const multiplier = getMultiplierForDateJS(current);
+                        totalPrice += basePrice * multiplier * quantity;
+
+                        if (isHolidayJS(current)) {
+                            holidayNights += 1;
+                        } else {
+                            const day = current.getDay();
+                            if (day === 0 || day === 6) {
+                                weekendNights += 1;
+                            } else {
+                                weekdayNights += 1;
+                            }
+                        }
+
+                        current.setDate(current.getDate() + 1);
+                    }
+                });
+
+                // Apply voucher discount nếu có
+                const selectedVoucher = document.querySelector('.voucher-radio:checked');
+                let finalTotal = totalPrice;
+
+                if (selectedVoucher) {
+                    const discountValue = parseFloat(selectedVoucher.dataset.value || 0);
+                    let discountAmount = 0;
+
+                    if (discountValue <= 100) {
+                        discountAmount = (totalPrice * discountValue) / 100;
+                    } else {
+                        discountAmount = discountValue;
+                    }
+
+                    finalTotal = totalPrice - discountAmount;
+                    document.getElementById('original_price').textContent = formatCurrency(totalPrice);
+                    document.getElementById('discount_amount').textContent = '-' + formatCurrency(discountAmount);
+                    document.getElementById('discount_info').classList.remove('hidden');
+                } else {
+                    document.getElementById('discount_info').classList.add('hidden');
+                }
+
+                document.getElementById('total_price').textContent = formatCurrency(finalTotal);
+                document.getElementById('tong_tien_input').value = finalTotal;
+
+                // Hiển thị breakdown số đêm
+                if (pricingInfoDiv && (weekdayNights + weekendNights + holidayNights) > 0) {
+                    const parts = [];
+                    if (weekdayNights > 0) parts.push(weekdayNights + ' đêm ngày thường (x1.0)');
+                    if (weekendNights > 0) parts.push(weekendNights + ' đêm cuối tuần (x1.15)');
+                    if (holidayNights > 0) parts.push(holidayNights + ' đêm ngày lễ (x1.25)');
+                    pricingInfoDiv.textContent = 'Chi tiết: ' + parts.join(' · ');
+                }
+            }
+
             function toggleService(checkbox, serviceId) {
                 const quantityContainer = document.getElementById('service_quantity_container_' + serviceId);
                 const hiddenInput = document.getElementById('service_quantity_hidden_' + serviceId);
@@ -1091,23 +1220,33 @@
 
                 const startDate = new Date(ngayNhan);
                 const endDate = new Date(ngayTra);
-                const nights = Math.max(1, Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)));
-
-                // 1. Tính tiền phòng theo loại phòng
+                // 1. Tính tiền phòng theo loại phòng với multiplier theo từng ngày
                 let roomTotalByType = {}; // { loaiPhongId: totalPrice }
                 let roomTotal = 0;
-                document.querySelectorAll('.room-type-checkbox:checked').forEach(checkbox => {
-                    const roomTypeId = checkbox.value;
-                    const quantityInput = document.getElementById('quantity_' + roomTypeId);
-                    const quantity = parseInt(quantityInput?.value || 1);
-                    const price = parseFloat(checkbox.dataset.price || 0);
 
-                    if (price > 0 && quantity > 0) {
-                        const typeTotal = price * nights * quantity;
-                        roomTotalByType[roomTypeId] = typeTotal;
-                        roomTotal += typeTotal;
-                    }
-                });
+                if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime()) && endDate > startDate) {
+                    document.querySelectorAll('.room-type-checkbox:checked').forEach(checkbox => {
+                        const roomTypeId = checkbox.value;
+                        const quantityInput = document.getElementById('quantity_' + roomTypeId);
+                        const quantity = parseInt(quantityInput?.value || 1);
+                        const basePrice = parseFloat(checkbox.dataset.price || 0);
+
+                        if (!basePrice || basePrice <= 0 || !quantity || quantity <= 0) return;
+
+                        let current = new Date(startDate.getTime());
+                        let totalForType = 0;
+                        while (current < endDate) {
+                            const multiplier = getMultiplierForDateJS(current);
+                            totalForType += basePrice * multiplier * quantity;
+                            current.setDate(current.getDate() + 1);
+                        }
+
+                        if (totalForType > 0) {
+                            roomTotalByType[roomTypeId] = totalForType;
+                            roomTotal += totalForType;
+                        }
+                    });
+                }
 
                 // 2. Tính discount từ voucher - chỉ áp dụng cho tiền phòng, respecting loai_phong_id filter
                 const selectedVoucher = document.querySelector('.voucher-radio:checked');
@@ -1117,7 +1256,7 @@
                 if (selectedVoucher) {
                     const discountValue = parseFloat(selectedVoucher.dataset.value || 0);
                     const voucherLoaiPhongId = selectedVoucher.dataset.loaiPhong;
-                    
+
                     let applicableTotal = 0;
                     if (!voucherLoaiPhongId || voucherLoaiPhongId === 'null') {
                         // Voucher applies to all room types
@@ -1126,7 +1265,7 @@
                         // Voucher applies only to specific room type
                         applicableTotal = roomTotalByType[voucherLoaiPhongId] || 0;
                     }
-                    
+
                     if (discountValue <= 100) {
                         // Discount is percentage
                         discount = (applicableTotal * discountValue) / 100;
@@ -1134,7 +1273,7 @@
                         // Discount is fixed amount
                         discount = Math.min(discountValue, applicableTotal);
                     }
-                    
+
                     discountedRoomTotal = roomTotal - discount;
                 }
 
@@ -1142,7 +1281,7 @@
 
                 // 3. Tính tiền dịch vụ (không bị ảnh hưởng bởi voucher)
                 let totalServicePrice = 0;
-                
+
                 function getTotalBookedRooms() {
                     let total = 0;
                     document.querySelectorAll('.room-type-checkbox:checked').forEach(cb => {
@@ -1293,7 +1432,7 @@
                                 const serviceName = option.textContent || option.innerText;
                                 const servicePrice = parseFloat(option.dataset.price || 0);
                                 const unit = option.dataset.unit || 'cái';
-                        
+
 
                                 // card wrapper
                                 const card = document.createElement('div');
@@ -1316,39 +1455,39 @@
                                 const roomSection = document.createElement('div');
                                 roomSection.className = 'bg-blue-50 p-3 rounded-lg mt-3 border border-blue-200';
                                 roomSection.id = 'room_selection_' + serviceId;
-                                
+
                                 const roomToggle = document.createElement('div');
                                 roomToggle.className = 'flex gap-2 mb-2';
-                                
+
                                 const globalRadio = document.createElement('input');
                                 globalRadio.type = 'radio';
                                 globalRadio.name = 'service_room_mode_' + serviceId;
                                 globalRadio.value = 'global';
                                 globalRadio.checked = true;
                                 globalRadio.id = 'global_' + serviceId;
-                                
+
                                 const globalLabel = document.createElement('label');
                                 globalLabel.htmlFor = 'global_' + serviceId;
                                 globalLabel.className = 'text-sm flex items-center gap-2 cursor-pointer';
                                 globalLabel.innerHTML = '<span>Áp dụng tất cả phòng</span>';
-                                
+
                                 const specificRadio = document.createElement('input');
                                 specificRadio.type = 'radio';
                                 specificRadio.name = 'service_room_mode_' + serviceId;
                                 specificRadio.value = 'specific';
                                 specificRadio.id = 'specific_' + serviceId;
-                                
+
                                 const specificLabel = document.createElement('label');
                                 specificLabel.htmlFor = 'specific_' + serviceId;
                                 specificLabel.className = 'text-sm flex items-center gap-2 cursor-pointer';
                                 specificLabel.innerHTML = '<span>Chọn phòng riêng</span>';
-                                
+
                                 roomToggle.appendChild(globalRadio);
                                 roomToggle.appendChild(globalLabel);
                                 roomToggle.appendChild(specificRadio);
                                 roomToggle.appendChild(specificLabel);
                                 roomSection.appendChild(roomToggle);
-                                
+
                                 // Toggle visibility on radio change: show/hide per-entry room containers
                                 globalRadio.onchange = () => {
                                     // hide all per-entry room containers and uncheck any entry-room-checkboxes
@@ -1368,7 +1507,7 @@
                                     syncHiddenEntries(serviceId);
                                     try { updateTotalPrice(); } catch(e){}
                                 };
-                                
+
                                 roomSection.appendChild(document.createElement('div')); // spacer placeholder to keep layout
                                 card.appendChild(roomSection);
 
@@ -1457,7 +1596,7 @@
 
                                     // remove existing entry-hidden inputs for this id
                                     Array.from(document.querySelectorAll('input.entry-hidden[data-service="'+id+'"]')).forEach(n=>n.remove());
-                                    
+
                                     // remove existing phong_ids hidden inputs for this service
                                     Array.from(document.querySelectorAll('input[name="services_data['+id+'][entries][]][phong_ids][]"]')).forEach(n => {
                                         n.remove();
@@ -1471,18 +1610,18 @@
                                     rowsNow.forEach((r, idx)=>{
                                         const dateVal = r.querySelector('input[type=date]')?.value || '';
                                         const qty = parseInt(r.querySelector('input[type=number]')?.value || 1);
-                                        
+
                                         // Collect per-entry selected rooms (from entry-room-checkboxes inside this row)
                                         const entryRoomChecks = Array.from(r.querySelectorAll('.entry-room-checkbox:checked'));
-                                        
+
                                         // If in specific mode and no rooms checked, skip this entry entirely
                                         if (mode === 'specific' && entryRoomChecks.length === 0) {
                                             console.log('syncHiddenEntries service', id, 'entry', idx, 'specific mode but NO rooms checked - SKIP');
                                             return;
                                         }
-                                        
+
                                         total += qty;
-                                        
+
                                         // Create hidden inputs for this entry
                                         const hNgay = document.createElement('input'); hNgay.type='hidden'; hNgay.name='services_data['+id+'][entries]['+idx+'][ngay]'; hNgay.value=dateVal; hNgay.className='entry-hidden'; hNgay.setAttribute('data-service', id);
                                         const hSo = document.createElement('input'); hSo.type='hidden'; hSo.name='services_data['+id+'][entries]['+idx+'][so_luong]'; hSo.value=qty; hSo.className='entry-hidden'; hSo.setAttribute('data-service', id);
@@ -1527,7 +1666,7 @@
                             ts.removeItem(id);
                         };
 
-                        
+
 
                         // When increase/decrease functions run, they already call updateServiceQuantityHidden
                         // but we must ensure hidden inputs exist - renderSelectedServices created them.
