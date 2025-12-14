@@ -132,15 +132,30 @@
                             </button>
                         </div>
 
-                        @if ($errors->any())
+                        @php
+                            // Chỉ hiển thị lỗi chung cho form "Thông tin cá nhân",
+                            // không hiển thị lỗi của form yêu cầu hủy phòng
+                            $profileErrorFields = ['ho_ten', 'email', 'sdt', 'cccd', 'dia_chi'];
+                            $hasProfileErrors = false;
+                            foreach ($profileErrorFields as $field) {
+                                if ($errors->has($field)) {
+                                    $hasProfileErrors = true;
+                                    break;
+                                }
+                            }
+                        @endphp
+
+                        @if ($hasProfileErrors)
                             <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
                                 <div class="flex items-start">
                                     <i class="fas fa-exclamation-circle text-red-500 text-xl mr-3 mt-0.5"></i>
                                     <div>
                                         <h3 class="text-red-800 font-semibold mb-2">Có lỗi xảy ra:</h3>
                                         <ul class="list-disc list-inside text-red-700 text-sm">
-                                            @foreach ($errors->all() as $error)
-                                                <li>{{ $error }}</li>
+                                            @foreach ($profileErrorFields as $field)
+                                                @foreach ($errors->get($field) as $error)
+                                                    <li>{{ $error }}</li>
+                                                @endforeach
                                             @endforeach
                                         </ul>
                                     </div>
@@ -238,8 +253,8 @@
                             document.getElementById('saveButtons').classList.add('hidden');
                         }
 
-                        // ✅ Nếu có lỗi validate, tự bật chế độ chỉnh sửa luôn
-                        @if ($errors->any())
+                        // ✅ Nếu có lỗi validate của form thông tin cá nhân, tự bật chế độ chỉnh sửa luôn
+                        @if ($hasProfileErrors)
                             window.addEventListener('DOMContentLoaded', () => {
                                 toggleEdit();
                             });
@@ -613,7 +628,7 @@
     <!-- Modal hủy đặt phòng -->
     <div id="cancelModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50"
         onclick="closeCancelModalOnOutsideClick(event)">
-        <div class="bg-white rounded-lg shadow-2xl max-w-md w-full mx-4" onclick="event.stopPropagation()">
+        <div class="bg-white rounded-lg shadow-2xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
             <div class="bg-red-500 text-white px-6 py-4 rounded-t-lg flex items-center justify-between">
                 <h3 class="text-xl font-bold flex items-center gap-2">
                     <i class="fas fa-exclamation-triangle"></i>
@@ -624,9 +639,12 @@
                 </button>
             </div>
 
-            <form id="cancelForm" method="POST" action="">
+            <form id="cancelForm" method="POST" action="" novalidate>
                 @csrf
                 @method('POST')
+
+                {{-- Lưu booking_id để có thể mở lại modal khi validate lỗi --}}
+                <input type="hidden" name="booking_id" id="cancel_booking_id" value="{{ old('booking_id') }}">
 
                 <div class="p-6">
                     <p class="text-gray-700 mb-4">
@@ -643,11 +661,55 @@
                         </label>
                         <textarea name="ly_do_huy" id="ly_do_huy" rows="4"
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
-                            placeholder="Vui lòng nhập lý do hủy đặt phòng..." required></textarea>
+                            placeholder="Vui lòng nhập lý do hủy đặt phòng..." required>{{ old('ly_do_huy') }}</textarea>
+                        @error('ly_do_huy')
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
                         <p class="text-xs text-gray-500 mt-1">
                             <i class="fas fa-lightbulb text-yellow-500 mr-1"></i>
                             Ví dụ: Thay đổi kế hoạch, tìm được khách sạn khác, v.v.
                         </p>
+                    </div>
+
+                    <!-- Thông tin tài khoản nhận hoàn tiền -->
+                    <div class="mt-4 grid grid-cols-1 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Tên chủ tài khoản</label>
+                            <input type="text" name="ten_chu_tai_khoan" id="ten_chu_tai_khoan"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                   placeholder="Nguyễn Văn A" value="{{ old('ten_chu_tai_khoan') }}">
+                            @error('ten_chu_tai_khoan')
+                                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Số tài khoản</label>
+                            <input type="text" name="so_tai_khoan" id="so_tai_khoan"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                   placeholder="0123456789" value="{{ old('so_tai_khoan') }}">
+                            @error('so_tai_khoan')
+                                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Tên ngân hàng</label>
+                            <input type="text" name="ten_ngan_hang" id="ten_ngan_hang"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                   placeholder="VD: Vietcombank, BIDV, ACB, ..." value="{{ old('ten_ngan_hang') }}">
+                            @error('ten_ngan_hang')
+                                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Số tiền dự kiến được hoàn</label>
+                            <input type="text" id="so_tien_hoan_display"
+                                   class="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-100 text-gray-700"
+                                   readonly>
+                            <input type="hidden" name="so_tien_hoan" id="so_tien_hoan">
+                        </div>
                     </div>
                 </div>
 
@@ -755,17 +817,35 @@
         });
 
         // Cancel booking modal functions
-        function showCancelModal(bookingId) {
+        function showCancelModal(bookingId, keepValues = false) {
             const modal = document.getElementById('cancelModal');
             const form = document.getElementById('cancelForm');
             const textarea = document.getElementById('ly_do_huy');
             const policyInfo = document.getElementById('cancelPolicyInfo');
+            const bookingIdHidden = document.getElementById('cancel_booking_id');
+            const tenChuTaiKhoanInput = document.getElementById('ten_chu_tai_khoan');
+            const soTaiKhoanInput = document.getElementById('so_tai_khoan');
+            const tenNganHangInput = document.getElementById('ten_ngan_hang');
+            const soTienHoanDisplay = document.getElementById('so_tien_hoan_display');
+            const soTienHoanHidden = document.getElementById('so_tien_hoan');
 
             // Set form action
             form.action = `/profile/booking/${bookingId}/cancel`;
 
-            // Clear textarea
-            textarea.value = '';
+            // Ghi lại booking_id vào hidden input để server có thể mở lại modal đúng booking khi validate lỗi
+            if (bookingIdHidden) {
+                bookingIdHidden.value = bookingId;
+            }
+
+            // Nếu không giữ giá trị (lần mở mới từ danh sách), reset các field
+            if (!keepValues) {
+                textarea.value = '';
+                if (tenChuTaiKhoanInput) tenChuTaiKhoanInput.value = '';
+                if (soTaiKhoanInput) soTaiKhoanInput.value = '';
+                if (tenNganHangInput) tenNganHangInput.value = '';
+                if (soTienHoanDisplay) soTienHoanDisplay.value = '';
+                if (soTienHoanHidden) soTienHoanHidden.value = '';
+            }
 
             // Tìm booking và hiển thị thông tin chính sách hủy
             const bookingItem = document.querySelector(`[data-booking-id="${bookingId}"]`);
@@ -799,6 +879,12 @@
                                 </div>
                             `;
                             policyInfo.classList.remove('hidden');
+
+                            // Hiển thị sẵn số tiền dự kiến hoàn trong input read-only
+                            if (soTienHoanDisplay && soTienHoanHidden && !keepValues) {
+                                soTienHoanDisplay.value = `${new Intl.NumberFormat('vi-VN').format(p.refund_amount)} VNĐ (${p.refund_percentage}%)`;
+                                soTienHoanHidden.value = p.refund_amount;
+                            }
                         } else {
                             policyInfo.innerHTML = `
                                 <div class="bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-4 text-red-700 text-sm">
@@ -965,6 +1051,25 @@
                 closeDetailModal();
             }
         }
+
+        // Nếu có lỗi validate của form hủy phòng, tự động mở lại modal
+        @php
+            $cancelErrorFields = ['ly_do_huy', 'ten_chu_tai_khoan', 'so_tai_khoan', 'ten_ngan_hang', 'ly_do_hoan', 'so_tien_hoan'];
+            $hasCancelErrors = false;
+            foreach ($cancelErrorFields as $field) {
+                if ($errors->has($field)) {
+                    $hasCancelErrors = true;
+                    break;
+                }
+            }
+        @endphp
+
+        @if ($hasCancelErrors && old('booking_id'))
+            window.addEventListener('DOMContentLoaded', () => {
+                // Mở lại modal cho booking có lỗi, giữ nguyên giá trị đã nhập (old())
+                showCancelModal({{ (int) old('booking_id') }}, true);
+            });
+        @endif
     </script>
 
 @endsection

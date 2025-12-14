@@ -53,7 +53,7 @@
 
     <!-- Revenue Overview Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <!-- Total Revenue -->
+        <!-- Total Revenue (theo giá trị booking) -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div class="flex items-center justify-between">
                 <div>
@@ -83,48 +83,48 @@
             @endunless
         </div>
 
-        <!-- Total Bookings -->
+        <!-- Dòng tiền thu (tổng tiền khách đã thanh toán) -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-medium text-gray-600">Tổng đặt phòng</p>
-                    <p class="text-2xl font-bold text-gray-900" data-target="{{ $revenueData['total_bookings'] }}">
-                        {{ $revenueData['total_bookings'] }}
+                    <p class="text-sm font-medium text-gray-600">Tổng tiền thu (theo giao dịch)</p>
+                    <p class="text-2xl font-bold text-gray-900" data-target="{{ $revenueData['total_payments'] ?? 0 }}">
+                        {{ number_format($revenueData['total_payments'] ?? 0, 0, ',', '.') }} VNĐ
                     </p>
                 </div>
                 <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-calendar-check text-blue-600 text-xl"></i>
+                    <i class="fas fa-money-bill-wave text-blue-600 text-xl"></i>
                 </div>
             </div>
         </div>
 
-        <!-- Average Booking Value -->
+        <!-- Dòng tiền hoàn (refund) -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-medium text-gray-600">Giá trị trung bình</p>
-                    <p class="text-2xl font-bold text-gray-900" data-target="{{ $revenueData['average_booking_value'] }}">
-                        {{ number_format($revenueData['average_booking_value'], 0, ',', '.') }} VNĐ
+                    <p class="text-sm font-medium text-gray-600">Tổng tiền hoàn</p>
+                    <p class="text-2xl font-bold text-gray-900" data-target="{{ $revenueData['total_refunds'] ?? 0 }}">
+                        {{ number_format($revenueData['total_refunds'] ?? 0, 0, ',', '.') }} VNĐ
                     </p>
                 </div>
                 <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-chart-line text-purple-600 text-xl"></i>
+                    <i class="fas fa-undo-alt text-purple-600 text-xl"></i>
                 </div>
             </div>
         </div>
 
-        <!-- Previous Month Revenue: Chỉ hiển thị cho Admin -->
+        <!-- Doanh thu ròng = Thu - Hoàn: Chỉ hiển thị cho Admin -->
         @unless(isset($isReceptionist) && $isReceptionist)
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-medium text-gray-600">Tháng trước</p>
-                    <p class="text-2xl font-bold text-gray-900" data-target="{{ $revenueData['previous_month'] }}">
-                        {{ number_format($revenueData['previous_month'], 0, ',', '.') }} VNĐ
+                    <p class="text-sm font-medium text-gray-600">Doanh thu ròng</p>
+                    <p class="text-2xl font-bold text-gray-900" data-target="{{ $revenueData['net_revenue'] ?? 0 }}">
+                        {{ number_format($revenueData['net_revenue'] ?? 0, 0, ',', '.') }} VNĐ
                     </p>
                 </div>
                 <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-history text-orange-600 text-xl"></i>
+                    <i class="fas fa-balance-scale text-orange-600 text-xl"></i>
                 </div>
             </div>
         </div>

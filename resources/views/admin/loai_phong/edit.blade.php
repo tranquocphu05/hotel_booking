@@ -106,9 +106,9 @@
                 <div id="imagePreview" class="hidden">
                     <label class="block text-gray-700 font-medium mb-2 text-sm">Ảnh mới (xem trước):</label>
                     <div class="relative inline-block">
-                        <img id="previewImg" src="" alt="Preview" 
+                        <img id="previewImg" src="" alt="Preview"
                              class="max-w-full h-64 object-cover rounded-lg shadow border border-gray-200">
-                        <button type="button" onclick="removePreview()" 
+                        <button type="button" onclick="removePreview()"
                                 class="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition">
                             <i class="fas fa-times"></i>
                         </button>
@@ -206,13 +206,13 @@
 
     if (input.files && input.files[0]) {
       const reader = new FileReader();
-      
+
       reader.onload = function(e) {
         previewImg.src = e.target.result;
         preview.classList.remove('hidden');
         fileName.textContent = 'File: ' + input.files[0].name;
         fileName.classList.remove('hidden');
-        
+
         // Ẩn ảnh hiện tại nếu có
         if (currentImage) {
           currentImage.style.display = 'none';
@@ -228,11 +228,11 @@
     const fileInput = document.getElementById('anh');
     const fileName = document.getElementById('fileName');
     const currentImage = document.getElementById('currentImage');
-    
+
     preview.classList.add('hidden');
     fileInput.value = '';
     fileName.classList.add('hidden');
-    
+
     // Hiện lại ảnh hiện tại nếu có
     if (currentImage) {
       currentImage.style.display = 'block';
