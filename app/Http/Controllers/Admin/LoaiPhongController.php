@@ -41,7 +41,7 @@ class LoaiPhongController extends Controller
     {
         // Chỉ admin mới được tạo mới
         $this->authorizePermission('loai_phong.create');
-        
+
         $validated = $request->validate([
             'ten_loai' => 'required|string|max:255|unique:loai_phong,ten_loai|regex:/^[\pL\s]+$/u',
             'mo_ta' => 'nullable|string|max:1000|regex:/^[\pL\pN\s.,()!?\-\'":;%&@\/]+$/u',
@@ -91,7 +91,7 @@ class LoaiPhongController extends Controller
     {
         // Nhân viên không được chỉnh sửa giá hoặc xóa
         $this->authorizePermission('loai_phong.edit');
-        
+
         $loaiPhong = LoaiPhong::findOrFail($id);
         return view('admin.loai_phong.edit', compact('loaiPhong'));
     }
@@ -101,7 +101,7 @@ class LoaiPhongController extends Controller
     {
         // Nhân viên không được chỉnh sửa giá
         $this->authorizePermission('loai_phong.edit');
-        
+
         // Nếu là nhân viên, không cho sửa giá
         if ($this->hasRole('nhan_vien')) {
             $request->merge([
@@ -109,7 +109,7 @@ class LoaiPhongController extends Controller
                 'gia_khuyen_mai' => LoaiPhong::findOrFail($id)->gia_khuyen_mai,
             ]);
         }
-        
+
         $validated = $request->validate([
             'ten_loai' => 'required|string|max:255|regex:/^[\pL\s]+$/u',
             'mo_ta' => 'nullable|string|max:1000|regex:/^[\pL\pN\s.,()!?\-\'":;%&@\/]+$/u',
@@ -156,10 +156,10 @@ class LoaiPhongController extends Controller
             $oldTotal = $loaiPhong->so_luong_phong ?? 0;
             $newTotal = $validated['so_luong_phong'];
             $oldAvailable = $loaiPhong->so_luong_trong ?? 0;
-            
+
             // Tính số phòng đang được đặt
             $bookedRooms = $oldTotal - $oldAvailable;
-            
+
             // Cập nhật so_luong_trong = so_luong_phong - số phòng đã đặt
             $validated['so_luong_trong'] = max(0, $newTotal - $bookedRooms);
         }
@@ -177,7 +177,7 @@ class LoaiPhongController extends Controller
     {
         // Nhân viên không được xóa
         $this->authorizePermission('loai_phong.delete');
-        
+
         $loaiPhong = LoaiPhong::findOrFail($id);
         // Không xóa dữ liệu; chuyển trạng thái sang "ngung"
         $loaiPhong->update(['trang_thai' => 'ngung']);
@@ -193,7 +193,7 @@ class LoaiPhongController extends Controller
     {
         // Nhân viên không được thay đổi trạng thái
         $this->authorizePermission('loai_phong.edit');
-        
+
         $loaiPhong = LoaiPhong::findOrFail($id);
         $new = $loaiPhong->trang_thai === 'hoat_dong' ? 'ngung' : 'hoat_dong';
         $loaiPhong->update(['trang_thai' => $new]);
@@ -212,7 +212,7 @@ class LoaiPhongController extends Controller
         Cache::forget('menu_loai_phongs');
         Cache::forget('dashboard_loai_phongs');
         Cache::forget('all_loai_phongs_active');
-        
+
         // Clear all loai_phong detail cache (pattern matching)
         // Note: Laravel cache doesn't support pattern matching natively
         // In production, consider using Redis with tags or cache keys with prefix

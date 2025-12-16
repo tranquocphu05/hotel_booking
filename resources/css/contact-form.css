@@ -162,8 +162,17 @@
     transform: translateY(-1px);
 }
 
+/* Chỉ hiện gạch chân khi focus vào input (không phải hover) */
+.contact-form-input:focus:not(:hover) + .contact-input-border {
+    transform: scaleX(1) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: block !important;
+}
+
 .contact-form-input:focus + .contact-input-border {
-    transform: scaleX(1);
+    display: none !important;
+    transform: scaleX(0) !important;
 }
 
 .contact-form-input--error {
@@ -172,15 +181,10 @@
 }
 
 .contact-input-border {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, #f2a900 0%, #ff6b35 100%);
-    transform: scaleX(0);
-    transition: transform 0.3s ease;
-    border-radius: 0 0 12px 12px;
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    height: 0 !important;
 }
 
 .contact-form-error {
@@ -236,10 +240,55 @@
     box-shadow: 0 4px 15px rgba(242, 169, 0, 0.3);
 }
 
+/* Ẩn gạch chân khi hover vào bất kỳ phần nào trong form group */
+.contact-form-group:hover .contact-input-border {
+    transform: scaleX(0) !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+.contact-form-group:hover .contact-input-wrapper .contact-input-border {
+    transform: scaleX(0) !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
 .contact-form-input:hover {
     border-color: #cbd5e1;
     transform: translateY(-1px);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.contact-form-input:hover + .contact-input-border {
+    transform: scaleX(0) !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+/* Ẩn gạch chân khi hover vào label hoặc icon */
+.contact-form-label:hover ~ .contact-input-wrapper .contact-input-border,
+.contact-label-wrapper:hover ~ .contact-input-wrapper .contact-input-border,
+.contact-label-icon:hover ~ .contact-input-wrapper .contact-input-border {
+    transform: scaleX(0) !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+/* Đảm bảo gạch chân luôn bị ẩn khi hover vào bất kỳ phần nào, trừ khi focus */
+.contact-form-group:hover .contact-input-wrapper .contact-input-border,
+.contact-input-wrapper:hover .contact-input-border {
+    transform: scaleX(0) !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    display: none !important;
+}
+
+/* Chỉ hiện gạch chân khi focus vào input */
+.contact-form-input:focus + .contact-input-border {
+    transform: scaleX(1);
+    opacity: 1;
+    visibility: visible;
+    display: block;
 }
 
 /* Animation for form groups */

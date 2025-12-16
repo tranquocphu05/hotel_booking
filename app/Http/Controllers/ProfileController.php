@@ -129,18 +129,35 @@ class ProfileController extends Controller
     }
 
     /**
-     * Cancel a booking.
-     * Cho phép hủy booking đã thanh toán theo chính sách hủy
+     * Cancel a booking (client side).
+     * Hiện tại CHỈ ghi nhận YÊU CẦU HỦY/HOÀN TIỀN, không hủy ngay.
      */
     public function cancelBooking(Request $request, $id): RedirectResponse
     {
         $request->validate([
-            'ly_do_huy' => 'required|string|min:10|max:500',
-        ], [
-            'ly_do_huy.required' => 'Vui lòng nhập lý do hủy phòng',
-            'ly_do_huy.min' => 'Lý do hủy phải có ít nhất 10 ký tự',
-            'ly_do_huy.max' => 'Lý do hủy không được vượt quá 500 ký tự',
-        ]);
+                'ly_do_huy'          => 'required|string|min:10|max:500',
+                'ten_chu_tai_khoan'  => [
+                    'nullable',
+                    'string',
+                    'max:255',
+                    'regex:/^[A-Za-z ]+$/u', // Chỉ cho chữ cái và khoảng trắng (không dấu)
+                ],
+                'so_tai_khoan'       => [
+                    'nullable',
+                    'regex:/^[0-9]+$/', // Chỉ cho phép chữ số
+                    'max:50',
+                ],
+                'ten_ngan_hang'      => 'nullable|string|max:255',
+                'ly_do_hoan'         => 'nullable|string|max:500',
+                'so_tien_hoan'       => 'nullable|numeric|min:0',
+            ], [
+                'ly_do_huy.required' => 'Vui lòng nhập lý do hủy phòng',
+                'ly_do_huy.min'      => 'Lý do hủy phải có ít nhất 10 ký tự',
+                'ly_do_huy.max'      => 'Lý do hủy không được vượt quá 500 ký tự',
+
+                'ten_chu_tai_khoan.regex' => 'Tên chủ tài khoản chỉ được chứa chữ cái không dấu và khoảng trắng',
+                'so_tai_khoan.regex'      => 'Số tài khoản chỉ được chứa chữ số',
+            ]);
 
         $user = $request->user();
 
@@ -169,215 +186,66 @@ class ProfileController extends Controller
             return Redirect::route('profile.edit')->with('error', 'Chỉ có thể hủy đặt phòng đang chờ xác nhận hoặc đã xác nhận (chưa check-in).');
         }
 
-        // Tính toán chính sách hoàn tiền nếu booking đã thanh toán
+        // Tính toán chính sách hoàn tiền nếu booking đã thanh toán (để hiển thị số tiền dự kiến)
         $refundInfo = null;
         $invoice = $booking->invoice;
         if ($invoice && $invoice->trang_thai === 'da_thanh_toan') {
             $refundInfo = $this->calculateCancellationPolicy($booking);
 
-            // Kiểm tra xem có thể hủy không (ví dụ: đã quá ngày nhận phòng hoặc đã check-in)
+            // Nếu không được phép hủy theo policy (ví dụ: đã quá ngày nhận phòng hoặc đã check-in) thì chặn luôn
             if (!$refundInfo['can_cancel']) {
                 return Redirect::route('profile.edit')->with('error', $refundInfo['message']);
             }
         }
 
-        // Update booking status and free up rooms
+        // CHỈ LƯU YÊU CẦU HỦY/HOÀN TIỀN, KHÔNG HỦY THỰC SỰ
         try {
             DB::transaction(function () use ($booking, $request, $refundInfo) {
-                // Load relationships
-                $booking->load(['phong', 'loaiPhong', 'invoice']);
-
-                // Validate status transition
-                try {
-                    $booking->validateStatusTransition('da_huy');
-                } catch (\Illuminate\Validation\ValidationException $e) {
-                    // Nếu validation fail, throw lại để transaction rollback
-                    throw $e;
+                $bankInfoLines = [];
+                if ($request->filled('ten_chu_tai_khoan')) {
+                    $bankInfoLines[] = 'Chủ tài khoản: ' . $request->ten_chu_tai_khoan;
+                }
+                if ($request->filled('so_tai_khoan')) {
+                    $bankInfoLines[] = 'Số tài khoản: ' . $request->so_tai_khoan;
+                }
+                if ($request->filled('ten_ngan_hang')) {
+                    $bankInfoLines[] = 'Ngân hàng: ' . $request->ten_ngan_hang;
+                }
+                if ($request->filled('ly_do_hoan')) {
+                    $bankInfoLines[] = 'Lý do hoàn: ' . $request->ly_do_hoan;
+                }
+                if ($refundInfo && isset($refundInfo['refund_amount'])) {
+                    $bankInfoLines[] = 'Số tiền dự kiến hoàn theo chính sách: ' . number_format($refundInfo['refund_amount'], 0, ',', '.') . ' VNĐ (' . $refundInfo['refund_percentage'] . '%)';
+                } elseif ($request->filled('so_tien_hoan')) {
+                    $bankInfoLines[] = 'Số tiền dự kiến hoàn (client nhập): ' . number_format($request->so_tien_hoan, 0, ',', '.') . ' VNĐ';
                 }
 
-            // BUG FIX: Use fresh $booking->invoice instead of stale $invoice from outer scope
-            $invoice = $booking->invoice;
-
-            // Xử lý hoàn tiền nếu booking đã thanh toán
-            $ghiChuHoanTien = null;
-            if ($invoice && $invoice->trang_thai === 'da_thanh_toan' && $refundInfo && $refundInfo['refund_amount'] > 0) {
-                // Cập nhật invoice status thành hoàn tiền
-                // con_lai = số tiền đã thanh toán - số tiền hoàn lại
-                // Nếu hoàn đủ hoặc nhiều hơn, thì con_lai = 0 (khách không còn nợ)
-                $daThanhToan = $invoice->da_thanh_toan ?? 0;
-                $conLai = max(0, $daThanhToan - $refundInfo['refund_amount']);
-                
-                $invoice->update([
-                    'trang_thai' => 'hoan_tien',
-                    'con_lai' => $conLai, // Số tiền còn lại sau khi hoàn (0 nếu đã hoàn đủ)
-                ]);
-
-                // Ghi chú về hoàn tiền
-                $ghiChuHoanTien = sprintf(
-                    "Hoàn tiền: %s%% (%s VNĐ). %s",
-                    $refundInfo['refund_percentage'],
-                    number_format($refundInfo['refund_amount'], 0, ',', '.'),
-                    $refundInfo['message']
-                );
-
-                // Tạo bản ghi thanh toán cho hoàn tiền
-                \App\Models\ThanhToan::create([
-                    'hoa_don_id' => $invoice->id,
-                    'so_tien' => -$refundInfo['refund_amount'], // Số âm để thể hiện hoàn tiền
-                    'ngay_thanh_toan' => now(),
-                    'trang_thai' => 'success', // Sử dụng 'success' vì enum chỉ có ['pending','success','fail']
-                    'ghi_chu' => $ghiChuHoanTien,
-                ]);
-            }
-
-            // Update booking status
-            $booking->trang_thai = 'da_huy';
-            $booking->ly_do_huy = $request->ly_do_huy;
-            $booking->ngay_huy = now();
-            $booking->ghi_chu_hoan_tien = $ghiChuHoanTien;
-            $booking->save();
-
-            // Free up room via phong_id (legacy)
-            if ($booking->phong_id && $booking->phong) {
-                // Kiểm tra xem phòng có đang được đặt cho booking khác không
-                $hasOtherBooking = \App\Models\DatPhong::where('id', '!=', $booking->id)
-                    ->whereHas('phongs', function($q) use ($booking) {
-                        $q->where('phong_id', $booking->phong_id);
-                    })
-                    ->where(function($q) use ($booking) {
-                        $q->where('ngay_tra', '>', $booking->ngay_nhan)
-                          ->where('ngay_nhan', '<', $booking->ngay_tra);
-                    })
-                    ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
-                    ->exists();
-
-                if (!$hasOtherBooking) {
-                    $booking->phong->update(['trang_thai' => 'trong']);
+                $noiDungYeuCau = "YÊU CẦU HỦY ĐẶT PHÒNG TỪ KHÁCH HÀNG";
+                $noiDungYeuCau .= "\nLý do hủy: " . $request->ly_do_huy;
+                if (count($bankInfoLines)) {
+                    $noiDungYeuCau .= "\n\nThông tin hoàn tiền khách cung cấp:\n" . implode("\n", $bankInfoLines);
                 }
-            }
 
-            // Free up rooms via pivot table
-            $phongIds = $booking->getPhongIds();
-            foreach ($phongIds as $phongId) {
-                $phong = Phong::find($phongId);
-                if ($phong) {
-                    // Kiểm tra xem phòng có đang được đặt cho booking khác không
-                    $hasOtherBooking = \App\Models\DatPhong::where('id', '!=', $booking->id)
-                        ->whereHas('phongs', function($q) use ($phongId) {
-                            $q->where('phong_id', $phongId);
-                        })
-                        ->where(function($q) use ($booking) {
-                            $q->where('ngay_tra', '>', $booking->ngay_nhan)
-                              ->where('ngay_nhan', '<', $booking->ngay_tra);
-                        })
-                        ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
-                        ->exists();
+                // Lưu lý do hủy do khách nhập (để hiển thị lịch sử) nhưng KHÔNG đổi trạng thái booking
+                $booking->ly_do_huy = $request->ly_do_huy;
 
-                    if (!$hasOtherBooking) {
-                        $phong->update(['trang_thai' => 'trong']);
-                    }
-                }
-            }
-
-            // CRITICAL FIX: Get room types BEFORE detaching (to preserve data for recalculation)
-            $roomTypes = $booking->getRoomTypes();
-
-            // Clear pivot table relationships
-            $booking->phongs()->detach();
-            $booking->roomTypes()->detach();
-
-            // Update so_luong_trong cho tất cả loại phòng trong booking
-            $loaiPhongIdsToUpdate = [];
-            foreach ($roomTypes as $roomType) {
-                if (isset($roomType['loai_phong_id'])) {
-                    $loaiPhongIdsToUpdate[] = $roomType['loai_phong_id'];
-                }
-            }
-            if ($booking->loai_phong_id && !in_array($booking->loai_phong_id, $loaiPhongIdsToUpdate)) {
-                $loaiPhongIdsToUpdate[] = $booking->loai_phong_id;
-            }
-
-            // BUG FIX #3: Recalculate so_luong_trong considering dang_don rooms (consistent with DatPhong model)
-            foreach (array_unique($loaiPhongIdsToUpdate) as $loaiPhongId) {
-                // Đếm phòng 'trong'
-                $trongCount = Phong::where('loai_phong_id', $loaiPhongId)
-                    ->where('trang_thai', 'trong')
-                    ->count();
-
-                // Đếm phòng 'dang_don' không có booking conflict trong 7 ngày tới
-                $today = \Carbon\Carbon::today();
-                $futureDate = $today->copy()->addDays(7);
-
-                $dangDonAvailable = Phong::where('loai_phong_id', $loaiPhongId)
-                    ->where('trang_thai', 'dang_don')
-                    ->get()
-                    ->filter(function($phong) use ($today, $futureDate) {
-                        // Kiểm tra xem phòng có booking conflict trong 7 ngày tới không
-                        $hasConflict = \App\Models\DatPhong::whereHas('phongs', function($q) use ($phong) {
-                                $q->where('phong_id', $phong->id);
-                            })
-                            ->where(function($q) use ($today, $futureDate) {
-                                $q->where('ngay_tra', '>', $today)
-                                  ->where('ngay_nhan', '<', $futureDate);
-                            })
-                            ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
-                            ->exists();
-
-                        // Phòng 'dang_don' được tính nếu không có conflict
-                        return !$hasConflict;
-                    })
-                    ->count();
-
-                // Tổng số phòng available = trong + dang_don (không conflict)
-                $totalAvailable = $trongCount + $dangDonAvailable;
-
-                \App\Models\LoaiPhong::where('id', $loaiPhongId)
-                    ->update(['so_luong_trong' => $totalAvailable]);
-            }
-
-            // Hoàn trả voucher nếu có
-            if ($booking->voucher_id) {
-                $voucher = \App\Models\Voucher::find($booking->voucher_id);
-                if ($voucher) {
-                    $voucher->increment('so_luong');
-                }
-            }
+                // Lưu chi tiết yêu cầu hoàn tiền vào ghi_chu_hoan_tien để admin xem và xử lý
+                $booking->ghi_chu_hoan_tien = $noiDungYeuCau;
+                $booking->save();
             });
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            // Nếu validation fail, redirect với error message
-            return Redirect::route('profile.edit')
-                ->with('error', $e->getMessage() ?? 'Không thể hủy đặt phòng. Vui lòng kiểm tra lại.');
         } catch (\Exception $e) {
-            // Nếu có lỗi khác, log và redirect với error message
-            \Illuminate\Support\Facades\Log::error('Cancel booking error: ' . $e->getMessage(), [
+            // Nếu có lỗi, log và redirect với error message
+            \Illuminate\Support\Facades\Log::error('Cancel booking request error: ' . $e->getMessage(), [
                 'booking_id' => $booking->id ?? null,
                 'user_id' => $user->id ?? null,
                 'exception' => $e
             ]);
             return Redirect::route('profile.edit')
-                ->with('error', 'Có lỗi xảy ra khi hủy đặt phòng. Vui lòng thử lại sau.');
+                ->with('error', 'Có lỗi xảy ra khi gửi yêu cầu hủy đặt phòng. Vui lòng thử lại sau.');
         }
 
-        // Gửi email thông báo hủy booking với thông tin hoàn tiền
-        if ($booking->email) {
-            try {
-                \Illuminate\Support\Facades\Mail::to($booking->email)
-                    ->send(new \App\Mail\BookingCancelled($booking->fresh()->load(['loaiPhong']), $refundInfo));
-            } catch (\Throwable $e) {
-                \Illuminate\Support\Facades\Log::warning('Send booking cancelled mail failed: ' . $e->getMessage());
-            }
-        }
-
-        // Tạo thông báo thành công với thông tin hoàn tiền
-        $message = 'Hủy đặt phòng thành công!';
-        if ($refundInfo && $refundInfo['refund_amount'] > 0) {
-            $message .= ' Số tiền hoàn lại: ' . number_format($refundInfo['refund_amount'], 0, ',', '.') . ' VNĐ (' . $refundInfo['refund_percentage'] . '%). ' . $refundInfo['message'];
-        } elseif ($refundInfo && $refundInfo['refund_amount'] == 0) {
-            $message .= ' ' . $refundInfo['message'];
-        }
-
-        return Redirect::route('profile.edit')->with('success', $message);
+        return Redirect::route('profile.edit')->with('success', 'Đã gửi yêu cầu hủy/hoàn tiền. Bộ phận quản trị sẽ kiểm tra và xác nhận trong thời gian sớm nhất.');
     }
 
     /**
@@ -432,7 +300,7 @@ class ProfileController extends Controller
             $policy['refund_percentage'] = 25;
             $policy['message'] = 'Hoàn 25% tiền đã thanh toán (phí hủy 75%)';
         } else {
-            // Hủy trong ngày: Không hoàn tiền
+            // Hủy đúng ngày nhận phòng: Cho phép hủy nhưng không hoàn tiền
             $policy['refund_percentage'] = 0;
             $policy['message'] = 'Hủy trong ngày nhận phòng không được hoàn tiền';
         }

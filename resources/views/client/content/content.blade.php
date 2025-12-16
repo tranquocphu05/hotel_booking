@@ -860,7 +860,7 @@
                                     <h3 class="text-lg font-bold text-gray-800 mb-2 leading-tight">
                                         {{ $phong->ten_loai ?? 'Loại phòng' }}
                                     </h3>
-                                    
+
                                     {{-- Thông tin phòng trống --}}
                                     <div class="mb-3">
                                         <p class="text-sm text-gray-600">
