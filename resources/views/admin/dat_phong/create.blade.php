@@ -98,7 +98,7 @@
                                                                     {{ number_format($loaiPhong->gia_co_ban, 0, ',', '.') }}
                                                                     VNĐ
                                                                 </p>
-                                                            </div>
+                                                            </div> 
                                                         @else
                                                             <p class="text-sm font-medium text-blue-600">
                                                                 {{ number_format($loaiPhong->gia_co_ban, 0, ',', '.') }}
@@ -346,7 +346,7 @@
                             </section>
 
                                 <!-- Chọn dịch vụ -->
-
+                                
                                 <!-- Tom Select based multi-select for services -->
                                 <link href="https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/css/tom-select.css" rel="stylesheet">
                                 <!-- Service cards styling -->
@@ -698,6 +698,13 @@
                         });
                     });
                 });
+            }
+            function updateQuantityHidden(roomTypeId) {
+                const displayInput = document.getElementById('quantity_' + roomTypeId);
+                const hiddenInput = document.getElementById('quantity_hidden_' + roomTypeId);
+                if (displayInput && hiddenInput) {
+                    hiddenInput.value = displayInput.value;
+                }
             }
             function getMaxAvailable(roomTypeId) {
                 const maxElement = document.getElementById('max_available_' + roomTypeId);
@@ -1742,37 +1749,34 @@
                                 roomSection.id = 'room_selection_' + serviceId;
 
                                 const roomToggle = document.createElement('div');
-                                roomToggle.className = 'flex gap-2 mb-2';
-
+                                roomToggle.className = 'flex gap-2 mb-2';                           
                                 const globalRadio = document.createElement('input');
                                 globalRadio.type = 'radio';
                                 globalRadio.name = 'service_room_mode_' + serviceId;
                                 globalRadio.value = 'global';
                                 globalRadio.checked = true;
-                                globalRadio.id = 'global_' + serviceId;
-
+                                globalRadio.id = 'global_' + serviceId;                                
                                 const globalLabel = document.createElement('label');
                                 globalLabel.htmlFor = 'global_' + serviceId;
                                 globalLabel.className = 'text-sm flex items-center gap-2 cursor-pointer';
-                                globalLabel.innerHTML = '<span>Áp dụng tất cả phòng</span>';
-
+                                globalLabel.innerHTML = '<span>Áp dụng tất cả phòng</span>';                                
                                 const specificRadio = document.createElement('input');
                                 specificRadio.type = 'radio';
                                 specificRadio.name = 'service_room_mode_' + serviceId;
                                 specificRadio.value = 'specific';
                                 specificRadio.id = 'specific_' + serviceId;
-
+                                
                                 const specificLabel = document.createElement('label');
                                 specificLabel.htmlFor = 'specific_' + serviceId;
                                 specificLabel.className = 'text-sm flex items-center gap-2 cursor-pointer';
                                 specificLabel.innerHTML = '<span>Chọn phòng riêng</span>';
-
+                                
                                 roomToggle.appendChild(globalRadio);
                                 roomToggle.appendChild(globalLabel);
                                 roomToggle.appendChild(specificRadio);
                                 roomToggle.appendChild(specificLabel);
                                 roomSection.appendChild(roomToggle);
-
+                                
                                 // Toggle visibility on radio change: show/hide per-entry room containers
                                 globalRadio.onchange = () => {
                                     // hide all per-entry room containers and uncheck any entry-room-checkboxes
@@ -1792,7 +1796,7 @@
                                     syncHiddenEntries(serviceId);
                                     try { updateTotalPrice(); } catch(e){}
                                 };
-
+                                
                                 roomSection.appendChild(document.createElement('div')); // spacer placeholder to keep layout
                                 card.appendChild(roomSection);
 
@@ -1881,7 +1885,7 @@
 
                                     // remove existing entry-hidden inputs for this id
                                     Array.from(document.querySelectorAll('input.entry-hidden[data-service="'+id+'"]')).forEach(n=>n.remove());
-
+                                    
                                     // remove existing phong_ids hidden inputs for this service
                                     Array.from(document.querySelectorAll('input[name="services_data['+id+'][entries][]][phong_ids][]"]')).forEach(n => {
                                         n.remove();
@@ -1895,18 +1899,18 @@
                                     rowsNow.forEach((r, idx)=>{
                                         const dateVal = r.querySelector('input[type=date]')?.value || '';
                                         const qty = parseInt(r.querySelector('input[type=number]')?.value || 1);
-
+                                        
                                         // Collect per-entry selected rooms (from entry-room-checkboxes inside this row)
                                         const entryRoomChecks = Array.from(r.querySelectorAll('.entry-room-checkbox:checked'));
-
+                                        
                                         // If in specific mode and no rooms checked, skip this entry entirely
                                         if (mode === 'specific' && entryRoomChecks.length === 0) {
                                             console.log('syncHiddenEntries service', id, 'entry', idx, 'specific mode but NO rooms checked - SKIP');
                                             return;
                                         }
-
+                                        
                                         total += qty;
-
+                                        
                                         // Create hidden inputs for this entry
                                         const hNgay = document.createElement('input'); hNgay.type='hidden'; hNgay.name='services_data['+id+'][entries]['+idx+'][ngay]'; hNgay.value=dateVal; hNgay.className='entry-hidden'; hNgay.setAttribute('data-service', id);
                                         const hSo = document.createElement('input'); hSo.type='hidden'; hSo.name='services_data['+id+'][entries]['+idx+'][so_luong]'; hSo.value=qty; hSo.className='entry-hidden'; hSo.setAttribute('data-service', id);
@@ -1951,7 +1955,7 @@
                             ts.removeItem(id);
                         };
 
-
+                        
 
                         // When increase/decrease functions run, they already call updateServiceQuantityHidden
                         // but we must ensure hidden inputs exist - renderSelectedServices created them.

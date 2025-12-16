@@ -87,8 +87,35 @@
         $discount = $invoice->giam_gia ?? $computedVoucherDiscount;
 
         $phiPhatSinh = $invoice->phi_phat_sinh ?? 0;
+
+        // Invoice items (detailed lines). If present, use their sum as the authoritative total for display.
+        $invoiceItems = collect();
+        $itemsTotal = 0;
+        if (Schema::hasTable('invoice_items')) {
+            $invoiceItems = $invoice->items()->orderBy('created_at')->get();
+            $itemsTotal = $invoiceItems->sum('amount');
+        }
+
+        // Sum up extra guest fees across all invoices for this booking (if any)
+        $extraGuestTotal = 0;
+        if (Schema::hasTable('invoice_items') && $booking) {
+            $extraGuestTotal = \App\Models\InvoiceItem::where('type', 'extra_guest')
+                ->whereHas('invoice', function ($q) use ($booking) {
+                    $q->where('dat_phong_id', $booking->id);
+                })->sum('amount');
+        }
+
         $calculatedTotal = max(0, $roomTotal - ($discount ?? 0) + ($servicesTotal ?? 0) + ($phiPhatSinh ?? 0));
-        $displayTotal = $invoice->tong_tien ?? $calculatedTotal;
+        // By default show all items, but hide 'extra_guest' on the main invoice
+        $visibleInvoiceItems = $invoiceItems;
+        if (! $invoice->isExtra()) {
+            // For main invoices we do not show 'extra_guest' lines (they belong on EXTRA invoices)
+            $visibleInvoiceItems = $invoiceItems->filter(function ($it) {
+                return ($it->type ?? '') !== 'extra_guest';
+            });
+        }
+        $visibleItemsTotal = $visibleInvoiceItems->sum('amount');
+        $displayTotal = $visibleItemsTotal > 0 ? $visibleItemsTotal : ($invoice->tong_tien ?? $calculatedTotal);
     @endphp
 
     <div class="py-6 bg-gray-100 min-h-screen">
@@ -224,6 +251,36 @@
                             <div class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg py-8 text-center">
                                 <p class="text-gray-500 text-sm">Không có dịch vụ kèm theo</p>
                             </div>
+
+                                {{-- Invoice Items Section --}}
+                                @if(isset($invoiceItems) && $invoiceItems->isNotEmpty())
+                                    <div class="mb-8">
+                                        <h3 class="text-lg font-bold text-gray-900 mb-4 pb-2 border-b-2 border-blue-500">Chi tiết phát sinh</h3>
+                                        <div class="overflow-x-auto">
+                                            <table class="w-full border rounded-lg overflow-hidden">
+                                                <thead>
+                                                    <tr class="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+                                                        <th class="px-6 py-4 text-left font-semibold">Mô tả</th>
+                                                        <th class="px-6 py-4 text-center font-semibold">Loại</th>
+                                                        <th class="px-6 py-4 text-center font-semibold">Đơn giá</th>
+                                                        <th class="px-6 py-4 text-right font-semibold">Thành tiền</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="divide-y divide-gray-200">
+                                                    @foreach($invoiceItems as $it)
+                                                        <tr class="hover:bg-blue-50 transition">
+                                                            <td class="px-6 py-4 text-gray-900">{{ $it->description }}</td>
+                                                            <td class="px-6 py-4 text-center text-gray-700">{{ $it->type }}</td>
+                                                            <td class="px-6 py-4 text-right text-gray-700">{{ number_format($it->unit_price,0,',','.') }} đ</td>
+                                                            <td class="px-6 py-4 text-right font-semibold text-gray-900">{{ number_format($it->amount,0,',','.') }} đ</td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                            <div class="text-right mt-3 font-bold">Tổng phát sinh: {{ number_format($itemsTotal,0,',','.') }} đ</div>
+                                        </div>
+                                    </div>
+                                @endif
                         @else
                             <div class="overflow-x-auto">
                                 <table class="w-full border rounded-lg overflow-hidden">
@@ -266,6 +323,43 @@
                         @endif
                     </div>
 
+                    {{-- Extra guest details for main invoice (only show when not EXTRA and when extra_guest items exist) --}}
+                    @if(! $invoice->isExtra())
+                        @php
+                            $extraGuestItems = isset($invoiceItems) ? $invoiceItems->where('type', 'extra_guest') : collect();
+                            $extraGuestItemsTotal = $extraGuestItems->sum('amount');
+                        @endphp
+
+                        @if($extraGuestItems->isNotEmpty())
+                            <div class="mb-8">
+                                <h3 class="font-bold mb-4">Chi tiết phí thêm người</h3>
+                                <div class="border rounded-lg overflow-hidden">
+                                    <div class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 font-semibold">
+                                        <div class="grid grid-cols-4 gap-4 text-sm">
+                                            <div>Mô tả</div>
+                                            <div class="text-center">Loại</div>
+                                            <div class="text-center">Đơn giá</div>
+                                            <div class="text-right">Thành tiền</div>
+                                        </div>
+                                    </div>
+                                    <div class="p-6 bg-white">
+                                        <div class="space-y-4">
+                                            @foreach($extraGuestItems as $it)
+                                                <div class="grid grid-cols-4 gap-4 items-center text-sm">
+                                                    <div>{{ $it->description ?? $it->name ?? 'Phát sinh' }}</div>
+                                                    <div class="text-center text-gray-600">{{ $it->type ?? '' }}</div>
+                                                    <div class="text-center">{{ number_format((float)($it->unit_price ?? $it->amount), 0, ',', '.') }} đ</div>
+                                                    <div class="text-right font-semibold">{{ number_format((float)$it->amount, 0, ',', '.') }} đ</div>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                        <div class="mt-6 text-right font-bold text-lg">Tổng phát sinh: {{ number_format($extraGuestItemsTotal, 0, ',', '.') }} đ</div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+                    @endif
+
                     <div class="grid md:grid-cols-1 gap-6">
                         <div class="bg-white border rounded-xl p-5 shadow-sm space-y-2">
                             <h3 class="text-base font-bold text-gray-900 mb-4">Tóm tắt thanh toán</h3>
@@ -279,6 +373,20 @@
                                 <span
                                     class="font-semibold text-gray-900">{{ number_format($servicesTotal, 0, ',', '.') }}₫</span>
                             </div>
+
+                            @php
+                                $invoicePhiThemNguoi = $invoice->phi_them_nguoi ?? 0;
+                                // If invoice does not have phi_them_nguoi, fall back to computed extraGuestTotal
+                                $displayPhiThemNguoi = $invoicePhiThemNguoi > 0 ? $invoicePhiThemNguoi : ($extraGuestTotal ?? 0);
+                            @endphp
+
+                            @if ($displayPhiThemNguoi > 0)
+                                <div class="flex justify-between text-sm text-gray-600">
+                                    <span>Phí thêm người</span>
+                                    <span class="font-semibold text-gray-900">{{ number_format($displayPhiThemNguoi, 0, ',', '.') }}₫</span>
+                                </div>
+                            @endif
+
                             @if ($discount > 0)
                                 <div class="flex justify-between text-sm text-red-600">
                                     <span>Giảm giá @if ($voucher)
@@ -374,7 +482,18 @@
                                             }
                                         @endphp
 
-                                        @if ($phiPhatSinh > 0)
+                                        @php
+                                            // Only treat phi_phat_sinh as a "damage" display when there is
+                                            // explicit damage information in the booking notes OR when an
+                                            // invoice item of type 'damage' exists. Otherwise phi_phat_sinh
+                                            // may represent other additional charges (eg. extra_guest).
+                                            $hasDamageNotes = ($loaiThietHai || $lyDoThietHai);
+                                            $hasDamageItem = isset($invoiceItems) && $invoiceItems->contains(function ($it) {
+                                                return in_array($it->type, ['damage', 'thiet_hai']);
+                                            });
+                                        @endphp
+
+                                        @if ($phiPhatSinh > 0 && ($hasDamageNotes || $hasDamageItem))
                                             <div class="border-t border-gray-200 my-2"></div>
                                             <div class="bg-red-50 border-l-4 border-red-500 rounded p-4 mb-2">
                                                 <div class="flex justify-between items-start mb-2">
@@ -434,30 +553,112 @@
                                         </div>
                             </div>
                             {{-- Payment method --}}
-                            <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
-                                <div class="flex justify-between items-center">
-                                    <span class="text-sm text-gray-600">Phương thức thanh toán</span>
-                                    <span
-                                        class="text-sm font-semibold text-gray-900">{{ $invoice->phuong_thuc ?? 'N/A' }}</span>
+                            
+                                <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-sm text-gray-600">Phương thức thanh toán</span>
+                                        <span class="text-sm font-semibold text-gray-900">{{ $invoice->phuong_thuc ?? 'N/A' }}</span>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
+                        
                     </div>
                 @else
-                    {{-- Extra invoice (service-only) summary: show only total quantity and total payment --}}
+                    {{-- Extra invoice summary: show invoice items (extra_guest, services, adjustments) and total payment --}}
                     <div class="mt-8">
                         <div class="bg-white rounded-lg border-2 border-gray-200 shadow-sm overflow-hidden">
                             <div class="p-6 space-y-4">
+                                @php
+                                    $itemsQty = $visibleInvoiceItems->sum('quantity');
+                                @endphp
                                 <div class="flex justify-between items-center py-2">
-                                    <span class="text-gray-700 font-medium">Tổng số lượng dịch vụ</span>
-                                    <span class="text-gray-900 font-semibold text-lg">{{ $servicesQty }}</span>
+                                    <span class="text-gray-700 font-medium">Tổng số lượng mục</span>
+                                    <span class="text-gray-900 font-semibold text-lg">{{ $itemsQty }}</span>
                                 </div>
 
                                 @php
+                                    // For EXTRA invoices, prefer invoice_items as authoritative line items
                                     $tienDichVu = $invoice->tien_dich_vu ?? $servicesTotal;
-                                    $tongCuoiCung = $invoice->tong_tien ?? max(0, $tienDichVu);
+
+                                    // Gather extra_guest items and invoice-level phi_them_nguoi
+                                    $extraGuestItems = isset($invoiceItems) ? $invoiceItems->where('type', 'extra_guest') : collect();
+                                    $extraGuestItemsTotal = $extraGuestItems->sum('amount');
+                                    $invoicePhiThemNguoi = $invoice->phi_them_nguoi ?? 0;
+                                    $displayPhiThemNguoi = $invoicePhiThemNguoi > 0 ? $invoicePhiThemNguoi : ($extraGuestItemsTotal ?? 0);
+
+                                    // If there are no invoice_items but we have an invoice-level phi_them_nguoi,
+                                    // treat that as the effective items total so the amount is visible on the invoice.
+                                    $itemsTotalEffective = $itemsTotal;
+                                    if (empty($itemsTotalEffective) && $displayPhiThemNguoi > 0) {
+                                        $itemsTotalEffective = $displayPhiThemNguoi;
+                                    }
+
+                                    $tongCuoiCung = $invoice->tong_tien ?? max(0, $itemsTotalEffective ?: $tienDichVu);
                                 @endphp
 
+                                @if($visibleInvoiceItems->isNotEmpty())
+                                    <div class="overflow-x-auto">
+                                        <table class="w-full text-sm text-gray-700 table-auto">
+                                            <thead class="bg-gray-100 text-xs text-gray-800 uppercase font-semibold">
+                                                <tr>
+                                                    <th class="px-3 py-2 text-left">Mục</th>
+                                                    <th class="px-3 py-2 text-right">SL</th>
+                                                    <th class="px-3 py-2 text-right">Đơn giá</th>
+                                                    <th class="px-3 py-2 text-right">Thành tiền</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-gray-100">
+                                                @foreach($visibleInvoiceItems as $it)
+                                                    <tr>
+                                                        <td class="px-3 py-2">{{ $it->description ?? ($it->type ?? 'item') }}</td>
+                                                        <td class="px-3 py-2 text-right">{{ $it->quantity }}</td>
+                                                        <td class="px-3 py-2 text-right">{{ number_format($it->unit_price ?? 0, 0, ',', '.') }} đ</td>
+                                                        <td class="px-3 py-2 text-right font-medium">{{ number_format($it->amount ?? 0, 0, ',', '.') }} đ</td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                @endif
+
+                                {{-- Show extra guest details for EXTRA invoices (either itemized or invoice-level) --}}
+                                @if($extraGuestItems->isNotEmpty())
+                                    <div class="mt-4">
+                                        <h4 class="font-bold mb-2">Chi tiết phí thêm người</h4>
+                                        <div class="overflow-x-auto">
+                                            <table class="w-full text-sm text-gray-700 table-auto">
+                                                <thead class="bg-gray-100 text-xs text-gray-800 uppercase font-semibold">
+                                                    <tr>
+                                                        <th class="px-3 py-2 text-left">Mục</th>
+                                                        <th class="px-3 py-2 text-right">SL</th>
+                                                        <th class="px-3 py-2 text-right">Đơn giá</th>
+                                                        <th class="px-3 py-2 text-right">Thành tiền</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="divide-y divide-gray-100">
+                                                    @foreach($extraGuestItems as $it)
+                                                        <tr>
+                                                            <td class="px-3 py-2">{{ $it->description ?? ($it->type ?? 'phí thêm người') }}</td>
+                                                            <td class="px-3 py-2 text-right">{{ $it->quantity ?? 1 }}</td>
+                                                            <td class="px-3 py-2 text-right">{{ number_format($it->unit_price ?? $it->amount, 0, ',', '.') }} đ</td>
+                                                            <td class="px-3 py-2 text-right font-medium">{{ number_format($it->amount ?? 0, 0, ',', '.') }} đ</td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                            <div class="text-right mt-3 font-bold">Tổng phí thêm người: {{ number_format($extraGuestItemsTotal,0,',','.') }} đ</div>
+                                        </div>
+                                    </div>
+                                @elseif($displayPhiThemNguoi > 0)
+                                    <div class="mt-4">
+                                        <h4 class="font-bold mb-2">Chi tiết phí thêm người</h4>
+                                        <div class="p-3 border rounded bg-white">
+                                            <div class="flex justify-between items-center">
+                                                <div class="text-sm text-gray-700">Phí thêm người</div>
+                                                <div class="font-semibold text-gray-900">{{ number_format($displayPhiThemNguoi,0,',','.') }} đ</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
                                 <div class="border-t-2 border-gray-300"></div>
 
                                 <div class="flex justify-between items-center py-3 bg-blue-600 -mx-6 px-6 -mb-6">
