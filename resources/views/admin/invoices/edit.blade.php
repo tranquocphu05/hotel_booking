@@ -8,6 +8,51 @@
     if ($booking && $booking->ngay_nhan && $booking->ngay_tra) {
         $nights = max(1, \Carbon\Carbon::parse($booking->ngay_tra)->diffInDays(\Carbon\Carbon::parse($booking->ngay_nhan)));
     }
+
+    // Invoice items (detailed lines). Use their sum as the authoritative service total when present.
+    $invoiceItems = collect();
+    $itemsTotal = 0;
+    if (Schema::hasTable('invoice_items')) {
+        $invoiceItems = $invoice->items()->orderBy('created_at')->get();
+        $itemsTotal = $invoiceItems->sum('amount');
+    }
+
+    // Separate invoice items into service items and extra_guest items
+    $serviceInvoiceItems = $invoiceItems->filter(function ($it) {
+        return ($it->type ?? '') !== 'extra_guest';
+    });
+    $serviceItemsTotal = $serviceInvoiceItems->sum('amount');
+    $extraGuestInvoiceTotal = $invoiceItems->where('type', 'extra_guest')->sum('amount');
+    // Sum up extra guest fees across all invoices for this booking (if any)
+    $extraGuestTotal = 0;
+    if (Schema::hasTable('invoice_items') && $booking) {
+        $extraGuestTotal = \App\Models\InvoiceItem::where('type', 'extra_guest')
+            ->whereHas('invoice', function ($q) use ($booking) {
+                $q->where('dat_phong_id', $booking->id);
+            })->sum('amount');
+    }
+    // Sum up extra_guest fees on this invoice in case invoice holds them
+    $invoiceExtraGuest = 0;
+    if (Schema::hasTable('invoice_items')) {
+        $invoiceExtraGuest = $invoice->items()->where('type', 'extra_guest')->sum('amount');
+    }
+    // Decide displayed service total and overall total depending on invoice type
+    if ($invoice->isExtra()) {
+        // For EXTRA invoices: service items are those not of type 'extra_guest'
+        $displayServiceTotal = $serviceItemsTotal > 0 ? $serviceItemsTotal : ($currentServiceTotal ?? 0);
+        // Prefer invoice items (detailed lines) for extra_guest; otherwise fall back
+        // to invoice-level `phi_them_nguoi` (EXTRA invoices often store the fee there).
+        $displayExtraGuest = ($invoiceExtraGuest ?? 0) > 0
+            ? $invoiceExtraGuest
+            : ($invoice->phi_them_nguoi ?? 0);
+        $displayTotal = ($displayServiceTotal ?? 0) + ($displayExtraGuest ?? 0);
+    } else {
+        // For PREPAID invoices: combine room, services and extra guest across booking
+        $displayServiceTotal = $serviceItemsTotal > 0 ? $serviceItemsTotal : ($currentServiceTotal ?? 0);
+        $calculatedTotal = max(0, ($roomTotalCalculated ?? 0) + ($displayServiceTotal ?? 0) - ($voucherDiscount ?? 0) + ($extraGuestTotal ?? 0));
+        $displayTotal = $serviceItemsTotal > 0 ? $serviceItemsTotal : ($invoice->tong_tien ?? $calculatedTotal);
+        $displayExtraGuest = $invoiceExtraGuest ?? $extraGuestTotal ?? 0;
+    }
 @endphp
 <div class="container mx-auto px-4 sm:px-8">
     <div class="py-8">
@@ -37,13 +82,13 @@
                     </div>
                     <div>
                         <p class="text-blue-100 text-sm">Tổng thanh toán</p>
-                        <p class="text-2xl font-bold">{{ number_format($invoice->tong_tien, 0, ',', '.') }} VNĐ</p>
+                        <p class="text-2xl font-bold">{{ number_format((float)($invoice->tong_tien ?? 0), 0, ',', '.') }} VNĐ</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        @if ($errors->any())
+        @if (isset($errors) && is_object($errors) && method_exists($errors, 'any') && $errors->any())
             <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
                 <ul>
                     @foreach ($errors->all() as $error)
@@ -182,29 +227,35 @@
                             @if($invoice->isExtra())
                                 <p class="mt-2"><strong>Hóa đơn dịch vụ:</strong> <span class="text-sm text-gray-600">(Giá phòng không được tính trong hóa đơn này)</span></p>
                                 <p class="mt-2"><strong>Giá phòng:</strong> <span id="base_room_total_text" class="text-lg font-semibold text-blue-600">0 VNĐ</span></p>
-                                <p class="mt-2"><strong>Tổng tiền dịch vụ:</strong> <span id="service_total_text" class="text-lg font-semibold text-green-600">{{ number_format($currentServiceTotal,0,',','.') }} VNĐ</span></p>
-                                <p class="mt-3 pt-3 border-t border-blue-200"><strong>Tổng thanh toán:</strong> <span id="total_price" class="text-2xl font-bold text-blue-700">{{ number_format($currentServiceTotal,0,',','.') }} VNĐ</span></p>
+                                <p class="mt-2"><strong>Tổng tiền dịch vụ:</strong> <span id="service_total_text" class="text-lg font-semibold text-green-600">{{ number_format($displayServiceTotal ?? 0,0,',','.') }} VNĐ</span></p>
+                                <p class="mt-3 pt-3 border-t border-blue-200"><strong>Tổng thanh toán:</strong> <span id="total_price" class="text-2xl font-bold text-blue-700">{{ number_format($displayTotal,0,',','.') }} VNĐ</span></p>
                                 <input type="hidden" id="base_room_total" value="0">
                                 <input type="hidden" id="server_nights" value="{{ $nights }}">
                                 <input type="hidden" id="voucher_percent" value="0">
                                 <input type="hidden" id="voucher_amount" value="0">
                                 <input type="hidden" id="tien_phong" name="tien_phong" value="0">
-                                <input type="hidden" id="tien_dich_vu" name="tien_dich_vu" value="{{ $currentServiceTotal }}">
+                                <input type="hidden" id="tien_dich_vu" name="tien_dich_vu" value="{{ $displayServiceTotal ?? 0 }}">
+                                {{-- For EXTRA invoices, do not reuse phi_phat_sinh to carry extra_guest totals (avoids double-counting). Keep phi_phat_sinh for damage fees only. --}}
+                                <input type="hidden" id="phi_phat_sinh" name="phi_phat_sinh" value="{{ $invoice->phi_phat_sinh ?? 0 }}">
+                                <p class="mt-2"><strong>Phí thêm người:</strong> <span id="extra_guest_total_text" class="text-sm font-semibold text-gray-700">{{ number_format($displayExtraGuest ?? 0,0,',','.') }} VNĐ</span></p>
+                                <input type="hidden" id="extra_guest_total" name="phi_them_nguoi" value="{{ ($invoiceExtraGuest ?? 0) > 0 ? $invoiceExtraGuest : ($invoice->phi_them_nguoi ?? ($extraGuestTotal ?? 0)) }}">
                                 <input type="hidden" id="giam_gia" name="giam_gia" value="0">
-                                <input type="hidden" id="tong_tien_input" name="tong_tien" value="{{ $currentServiceTotal }}">
+                                <input type="hidden" id="tong_tien_input" name="tong_tien" value="{{ $displayTotal }}">
                             @else
                                 <p class="mt-2"><strong>Giá phòng (tien_phong):</strong> <span id="base_room_total_text" class="text-lg font-semibold text-blue-600">{{ number_format($roomTotalCalculated,0,',','.') }} VNĐ</span></p>
-                                <p class="mt-2"><strong>Tổng tiền dịch vụ (tien_dich_vu):</strong> <span id="service_total_text" class="text-lg font-semibold text-green-600">{{ number_format($currentServiceTotal,0,',','.') }} VNĐ</span></p>
+                                <p class="mt-2"><strong>Tổng tiền dịch vụ (tien_dich_vu):</strong> <span id="service_total_text" class="text-lg font-semibold text-green-600">{{ number_format($displayServiceTotal ?? 0,0,',','.') }} VNĐ</span></p>
                                 <p class="mt-2"><strong>Giảm giá (giam_gia):</strong> <span id="voucher_discount_text" class="text-sm text-red-600">{{ $voucherPercent > 0 ? ('-' . number_format($voucherDiscount,0,',','.') . ' VNĐ') : '0 VNĐ' }}</span></p>
-                                <p class="mt-3 pt-3 border-t border-blue-200"><strong>Tổng thanh toán (tong_tien):</strong> <span id="total_price" class="text-2xl font-bold text-blue-700">{{ number_format($roomTotalCalculated + $currentServiceTotal - $voucherDiscount,0,',','.') }} VNĐ</span></p>
+                                <p class="mt-2"><strong>Phí phát sinh thêm người (phi_them_nguoi):</strong> <span id="extra_guest_total_text" class="text-sm font-semibold text-gray-700">{{ number_format($extraGuestTotal ?? ($invoice->phi_them_nguoi ?? 0),0,',','.') }} VNĐ</span></p>
+                                <p class="mt-3 pt-3 border-t border-blue-200"><strong>Tổng thanh toán (tong_tien):</strong> <span id="total_price" class="text-2xl font-bold text-blue-700">{{ number_format($displayTotal,0,',','.') }} VNĐ</span></p>
                                 <input type="hidden" id="base_room_total" value="{{ $roomTotalCalculated }}">
                                 <input type="hidden" id="server_nights" value="{{ $nights }}">
                                 <input type="hidden" id="voucher_percent" value="{{ $voucherPercent }}">
                                 <input type="hidden" id="voucher_amount" value="{{ $voucherDiscount }}">
                                 <input type="hidden" id="tien_phong" name="tien_phong" value="{{ $roomTotalCalculated }}">
-                                <input type="hidden" id="tien_dich_vu" name="tien_dich_vu" value="{{ $currentServiceTotal }}">
+                                <input type="hidden" id="tien_dich_vu" name="tien_dich_vu" value="{{ $displayServiceTotal ?? 0 }}">
                                 <input type="hidden" id="giam_gia" name="giam_gia" value="{{ $voucherDiscount }}">
-                                <input type="hidden" id="tong_tien_input" name="tong_tien" value="{{ $roomTotalCalculated + $currentServiceTotal - $voucherDiscount }}">
+                                <input type="hidden" id="extra_guest_total" name="phi_them_nguoi" value="{{ ($invoiceExtraGuest ?? 0) > 0 ? $invoiceExtraGuest : ($invoice->phi_them_nguoi ?? ($extraGuestTotal ?? 0)) }}">
+                                <input type="hidden" id="tong_tien_input" name="tong_tien" value="{{ $displayTotal }}">
                             @endif
                         </div>
 
@@ -703,6 +754,16 @@
                 console.log('updateTotalsFromHidden - service', sid, 'total qty*rooms:', svcTotal, 'price:', price, 'subtotal:', svcTotal * price);
                 servicesTotal += (svcTotal * price);
             });
+            // Read extra guest total (stay_guest extra_fee) from hidden input
+            const extraGuest = parseFloat(document.getElementById('extra_guest_total')?.value || 0);
+            // If a server-provided tien_dich_vu exists (for invoice items), prefer it as the services total
+            // only when there are no client-side service entries present. This allows admins
+            // to change services and see immediate updates when they select/deselect.
+            const serverTienDichVu = parseFloat(document.getElementById('tien_dich_vu')?.value || 0);
+            const entriesExist = container.querySelectorAll('input.entry-hidden[name^="services_data"]').length > 0;
+            if (!entriesExist && !isNaN(serverTienDichVu) && serverTienDichVu > 0) {
+                servicesTotal = serverTienDichVu;
+            }
             // Use server-provided voucher amount (already respects voucher type)
             let voucherAmount = parseFloat(document.getElementById('voucher_amount')?.value || 0);
             if (isExtraInvoice) voucherAmount = 0; // voucher not applied to EXTRA invoices
@@ -710,7 +771,7 @@
             const voucherDiscountText = document.getElementById('voucher_discount_text');
             if (voucherDiscountText) voucherDiscountText.textContent = voucherAmount > 0 ? ('-' + formatCurrency(voucherAmount)) : '0 VNĐ';
 
-            const total = Math.max(0, (baseRoom - voucherAmount) + servicesTotal);
+            const total = Math.max(0, (baseRoom - voucherAmount) + servicesTotal + extraGuest);
             console.log('updateTotalsFromHidden - final: baseRoom:', baseRoom, 'servicesTotal:', servicesTotal, 'total:', total);
             document.getElementById('base_room_total_text').textContent = formatCurrency(baseRoom);
             document.getElementById('service_total_text').textContent = formatCurrency(servicesTotal);
@@ -728,6 +789,11 @@
             
             const giamGiaInput = document.getElementById('giam_gia');
             if (giamGiaInput) giamGiaInput.value = Math.round(voucherAmount);
+            // Set extra guest hidden field (phi_them_nguoi)
+            const extraGuestInput = document.getElementById('extra_guest_total');
+            if (extraGuestInput) extraGuestInput.value = Math.round(extraGuest);
+            const extraGuestText = document.getElementById('extra_guest_total_text');
+            if (extraGuestText) extraGuestText.textContent = formatCurrency(extraGuest);
         }
 
         function formatCurrency(amount) {
