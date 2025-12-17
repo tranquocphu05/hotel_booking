@@ -1009,6 +1009,15 @@
                                                 </span>
                                             </p>
                                         @endif
+
+                                        @if ($booking->invoice->trang_thai === 'hoan_tien' && isset($refundAmount) && $refundAmount > 0)
+                                            <div class="mt-3 flex justify-between text-sm">
+                                                <span class="text-gray-600">Số tiền đã hoàn</span>
+                                                <span class="font-semibold text-red-600">
+                                                    {{ number_format($refundAmount, 0, ',', '.') }} VNĐ
+                                                </span>
+                                            </div>
+                                        @endif
                                     </div>
 
                                     @if ($booking->invoice->trang_thai === 'cho_thanh_toan' && $booking->trang_thai === 'da_xac_nhan')
