@@ -9,6 +9,7 @@ use App\Models\Phong;
 use App\Models\YeuCauDoiPhong as ModelsYeuCauDoiPhong;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 use YeuCauDoiPhong;
@@ -573,7 +574,7 @@ class DatPhong extends Model
     public function getRoomCurrentCounts(int $phongId): array
     {
         if (\Illuminate\Support\Facades\Schema::hasColumn('booking_rooms', 'so_nguoi_lon')) {
-            $row = \DB::table('booking_rooms')
+            $row = DB::table('booking_rooms')
                 ->where('dat_phong_id', $this->id)
                 ->where('phong_id', $phongId)
                 ->first();
@@ -620,7 +621,7 @@ class DatPhong extends Model
         $col = $category === 'adult' ? 'so_nguoi_lon' : ($category === 'child' ? 'so_tre_em' : 'so_em_be');
         if (\Illuminate\Support\Facades\Schema::hasColumn('booking_rooms', $col)) {
             $now = now();
-            \DB::statement(
+            DB::statement(
                 'INSERT INTO booking_rooms (dat_phong_id, phong_id, ' . $col . ', created_at, updated_at) VALUES (?, ?, ?, ?, ?) ' .
                 'ON DUPLICATE KEY UPDATE ' . $col . ' = COALESCE(' . $col . ', 0) + VALUES(' . $col . '), updated_at = VALUES(updated_at)',
                 [$this->id, $phongId, $by, $now, $now]
@@ -646,7 +647,7 @@ class DatPhong extends Model
     {
         $col = $category === 'adult' ? 'so_nguoi_lon' : ($category === 'child' ? 'so_tre_em' : 'so_em_be');
         if (\Illuminate\Support\Facades\Schema::hasColumn('booking_rooms', $col)) {
-            \DB::statement(
+            DB::statement(
                 'UPDATE booking_rooms SET ' . $col . ' = GREATEST(COALESCE(' . $col . ', 0) - ?, 0), updated_at = ? WHERE dat_phong_id = ? AND phong_id = ?',
                 [$by, now(), $this->id, $phongId]
             );
