@@ -51,45 +51,110 @@ class StayGuestController extends Controller
             return back()->with('error', 'Phòng được chọn không thuộc booking này. Vui lòng chọn phòng hợp lệ.');
         }
 
-        // Check capacity: default 2 per room
-        $capacity = 2;
-
-        // Count current people in the room
-        if (\Illuminate\Support\Facades\Schema::hasColumn('stay_guests', 'phong_id')) {
-            $currentStayGuestsCount = $booking->stayGuests()->where('phong_id', $room->id)->count();
-        } else {
-            // If column doesn't exist, fallback to counting all stayGuests for booking (safe fallback)
-            $currentStayGuestsCount = $booking->stayGuests->count();
-        }
-
-        // If booking has exactly one room assigned (legacy / single), include booking->so_nguoi
-        $assignedPhongIds = $booking->getPhongIds();
-        $baseGuestsInRoom = 0;
-        if (count($assignedPhongIds) == 1 && (int)$assignedPhongIds[0] === (int)$room->id) {
-            $baseGuestsInRoom = (int)($booking->so_nguoi ?? 0);
-        }
-
-        // If capacity exceeded, reject
-        if (($baseGuestsInRoom + $currentStayGuestsCount + 1) > $capacity) {
-            return back()->with('error', 'Sức chứa phòng đã đầy (mặc định 2 khách mỗi phòng). Vui lòng chọn phòng khác hoặc liên hệ quản lý.');
-        }
-
-        // Compute age
+        // Compute age for the incoming guest (needed for slot simulation and pricing)
         $age = null;
         if ($request->filled('dob')) {
             try {
                 $age = Carbon::parse($request->dob)->age;
             } catch (\Exception $e) {
-                $age = null;
+                // Try common alternative formats used in the UI (dd/mm/YYYY, dd-mm-YYYY)
+                try {
+                    $d = Carbon::createFromFormat('d/m/Y', $request->dob);
+                    $age = $d->age;
+                } catch (\Exception $e2) {
+                    try {
+                        $d = Carbon::createFromFormat('d-m-Y', $request->dob);
+                        $age = $d->age;
+                    } catch (\Exception $e3) {
+                        // final fallback: try Y-m-d
+                        try {
+                            $d = Carbon::createFromFormat('Y-m-d', $request->dob);
+                            $age = $d->age;
+                        } catch (\Exception $e4) {
+                            $age = null;
+                            Log::warning('StayGuestController: failed to parse dob', ['dob' => $request->dob, 'booking_id' => $booking->id, 'input' => $request->all()]);
+                        }
+                    }
+                }
             }
         }
 
-        // Determine charge rule: <6 free, 6-11 50%, >=12 adult
+        // If age still null but client provided 'age' field, accept it as a fallback
+        if (is_null($age) && $request->filled('age')) {
+            $a = (int) $request->age;
+            if ($a > 0 && $a < 120) {
+                $age = $a;
+                Log::info('StayGuestController: using provided age field as fallback', ['age' => $age, 'booking_id' => $booking->id]);
+            }
+        }
+
+        // If the client supplied a DOB but we could not parse it, ask them to correct the format
+        if ($request->filled('dob') && is_null($age)) {
+            return back()->with('error', 'Không thể xác định tuổi từ ngày sinh đã nhập. Vui lòng sử dụng định dạng YYYY-MM-DD hoặc DD/MM/YYYY.');
+        }
+
+        // NOTE: global feasibility is checked per-room and across checked-in rooms in canAddGuestToRoom.
+        // We no longer rely on booking-level declared totals (`dat_phong.so_*`) for live feasibility checks.
+
+        // Determine guest category for per-room validation and later pricing
+        $guestCategory = 'adult';
+        if (!is_null($age) && $age < 6) {
+            $guestCategory = 'infant';
+        } elseif (!is_null($age) && $age >= 6 && $age <= 12) {
+            $guestCategory = 'child';
+        }
+
+        // Ensure selected room is currently checked-in for this booking
+        $checkedInIds = $booking->getCheckedInPhongs()->pluck('id')->toArray();
+        if (!in_array($room->id, $checkedInIds)) {
+            return back()->with('error', 'Phòng được chọn hiện không trong trạng thái đang lưu trú. Vui lòng chọn phòng đang check-in.');
+        }
+
+        // Per-room validation: ensure adding this guest to the selected room is feasible
+        if (!$booking->canAddGuestToRoom($room->id, $guestCategory)) {
+            return back()->with('error', 'Không thể thêm khách vào phòng này: sẽ vượt quá giới hạn của phòng (mỗi phòng tối đa +1 người lớn hoặc +2 trẻ em hoặc +2 em bé). Vui lòng chọn phòng khác.');
+        }
+
+        // Determine charge rule: <6 free, 6-12 50%, >=13 adult
         $modifier = 1.0;
         if (!is_null($age)) {
             if ($age < 6) {
                 $modifier = 0.0;
-            } elseif ($age >= 6 && $age <= 11) {
+            } elseif ($age >= 6 && $age <= 12) {
+                $modifier = 0.5;
+            } else {
+                $modifier = 1.0;
+            }
+        }
+
+        // NOTE: global feasibility is checked per-room and across checked-in rooms in canAddGuestToRoom.
+        // We no longer rely on booking-level declared totals (`dat_phong.so_*`) for live feasibility checks.
+
+        // Determine guest category for per-room validation and later pricing
+        $guestCategory = 'adult';
+        if (!is_null($age) && $age < 6) {
+            $guestCategory = 'infant';
+        } elseif (!is_null($age) && $age >= 6 && $age <= 12) {
+            $guestCategory = 'child';
+        }
+
+        // Ensure selected room is currently checked-in for this booking
+        $checkedInIds = $booking->getCheckedInPhongs()->pluck('id')->toArray();
+        if (!in_array($room->id, $checkedInIds)) {
+            return back()->with('error', 'Phòng được chọn hiện không trong trạng thái đang lưu trú. Vui lòng chọn phòng đang check-in.');
+        }
+
+        // Per-room validation: ensure adding this guest to the selected room is feasible
+        if (!$booking->canAddGuestToRoom($room->id, $guestCategory)) {
+            return back()->with('error', 'Không thể thêm khách vào phòng này: sẽ vượt quá giới hạn của phòng (mỗi phòng tối đa +1 người lớn hoặc +2 trẻ em hoặc +2 em bé). Vui lòng chọn phòng khác.');
+        }
+
+        // Determine charge rule: <6 free, 6-12 50%, >=13 adult
+        $modifier = 1.0;
+        if (!is_null($age)) {
+            if ($age < 6) {
+                $modifier = 0.0;
+            } elseif ($age >= 6 && $age <= 12) {
                 $modifier = 0.5;
             } else {
                 $modifier = 1.0;
@@ -99,7 +164,11 @@ class StayGuestController extends Controller
         $giaBoSung = $room->gia_bo_sung ?? 0;
         $extraFee = (float) round($giaBoSung * $modifier, 2);
 
-        DB::transaction(function() use ($booking, $room, $request, $age, $extraFee) {
+        // Decide if this guest should be chargeable: only charge when room's base seats are full
+        $baseSeatsRemaining = $booking->getRoomBaseSeatsRemaining($room->id);
+        $isChargeable = $baseSeatsRemaining <= 0;
+
+        DB::transaction(function() use ($booking, $room, $request, $age, $extraFee, $isChargeable) {
             $userId = Auth::id();
 
             // Use full_name or fallback to legacy column 'ten_khach'
@@ -108,7 +177,7 @@ class StayGuestController extends Controller
                 'phong_id' => $room->id,
                 'dob' => $request->dob ? Carbon::parse($request->dob)->toDateString() : null,
                 'age' => $age,
-                'extra_fee' => $extraFee,
+                'extra_fee' => ($isChargeable ? $extraFee : 0),
                 'created_by' => $userId,
                 'created_at' => now(),
             ];
@@ -144,7 +213,7 @@ class StayGuestController extends Controller
             // loai_khach (enum) - required in legacy schema
             if (\Illuminate\Support\Facades\Schema::hasColumn('stay_guests', 'loai_khach')) {
                 if (!is_null($age)) {
-                    $guestData['loai_khach'] = $age < 12 ? 'tre_em' : 'nguoi_lon';
+                    $guestData['loai_khach'] = $age <= 12 ? 'tre_em' : 'nguoi_lon';
                 } else {
                     $guestData['loai_khach'] = 'nguoi_lon';
                 }
@@ -161,94 +230,121 @@ class StayGuestController extends Controller
             // Upsert pivot phu_phi in booking_rooms will be applied after computing the actual $amount below
             // (moved to after invoice item creation so it uses the correct computed amount)
 
-            // Create invoice item for this extra guest
-            // If the main invoice is paid or marked EXTRA, create a separate EXTRA invoice instead
-            $invoice = $booking->invoice;
-            $targetInvoice = null;
-            if ($invoice && !$invoice->isExtra() && !in_array($invoice->trang_thai, ['da_thanh_toan', 'hoan_tien'])) {
-                $targetInvoice = $invoice;
-            } else {
-                // create a new EXTRA invoice for this booking
-                $targetInvoice = \App\Models\Invoice::create([
-                    'dat_phong_id' => $booking->id,
-                    'tong_tien' => 0,
-                    'tien_phong' => 0,
-                    'tien_dich_vu' => 0,
-                    'phi_phat_sinh' => 0,
-                    'giam_gia' => 0,
-                    'trang_thai' => 'cho_thanh_toan',
-                    'invoice_type' => 'EXTRA',
-                ]);
-            }
-
-            if ($targetInvoice) {
-                $sDate = Carbon::parse($startDate);
-                $eDate = Carbon::parse($endDate);
-                $days = max(1, $eDate->diffInDays($sDate));
-                $unitPrice = $extraFee; // per guest per night
-                $amount = round($unitPrice * 1 * $days, 2);
-
-                // Upsert pivot phu_phi in booking_rooms using ON DUPLICATE KEY UPDATE
-                // Increment by the FULL amount for this invoice item (not per-night)
-                $now = now();
-                DB::statement(
-                    'INSERT INTO booking_rooms (dat_phong_id, phong_id, phu_phi, created_at, updated_at) VALUES (?, ?, ?, ?, ?) ' .
-                    'ON DUPLICATE KEY UPDATE phu_phi = COALESCE(phu_phi, 0) + VALUES(phu_phi), updated_at = VALUES(updated_at)',
-                    [$booking->id, $room->id, $amount, $now, $now]
-                );
-
-                $item = InvoiceItem::create([
-                    'invoice_id' => $targetInvoice->id,
-                    'type' => 'extra_guest',
-                    'description' => 'Thêm 1 ' . ($age !== null && $age < 12 ? 'trẻ em' : 'người lớn'),
-                    'quantity' => 1,
-                    'unit_price' => $unitPrice,
-                    'days' => $days,
-                    'amount' => $amount,
-                    'start_date' => $sDate->toDateString(),
-                    'end_date' => $eDate->toDateString(),
-                    'meta' => json_encode(['guest_type' => ($age !== null && $age < 12 ? 'child' : 'adult'), 'age' => $age]),
-                    'created_by' => $userId,
-                    'reason' => $request->reason ?? null,
-                ]);
-
-                // Link invoice item to stay guest for later adjustments
-                if (isset($item->id)) {
-                    $guest->invoice_item_id = $item->id;
-                    $guest->save();
+                // Determine guest category
+                $guestCategory = 'adult';
+                if (!is_null($age) && $age < 6) {
+                    $guestCategory = 'infant';
+                } elseif (!is_null($age) && $age >= 6 && $age <= 12) {
+                    $guestCategory = 'child';
                 }
 
-                // Update booking so_nguoi
-                $booking->increment('so_nguoi', 1);
+                // Update per-room occupancy (booking_rooms) which is the source of truth for live room occupancy
+                $booking->incrementBookingRoomCount($room->id, $guestCategory, 1);
 
-                // Update target invoice totals
-                if ($targetInvoice) {
-                    // Track per-guest totals on the invoice using the new column
-                    if (\Illuminate\Support\Facades\Schema::hasColumn('hoa_don', 'phi_them_nguoi')) {
-                        $targetInvoice->increment('phi_them_nguoi', $amount);
+                // If the guest is chargeable, create invoice item, update pivot and monetary columns
+                if ($isChargeable) {
+                    // If the main invoice is paid or marked EXTRA, create a separate EXTRA invoice instead
+                    $invoice = $booking->invoice;
+                    $targetInvoice = null;
+                    if ($invoice && !$invoice->isExtra() && !in_array($invoice->trang_thai, ['da_thanh_toan', 'hoan_tien'])) {
+                        $targetInvoice = $invoice;
                     } else {
-                        // fallback to phi_phat_sinh for older schemas
-                        $targetInvoice->increment('phi_phat_sinh', $amount);
+                        // create a new EXTRA invoice for this booking
+                        $targetInvoice = \App\Models\Invoice::create([
+                            'dat_phong_id' => $booking->id,
+                            'tong_tien' => 0,
+                            'tien_phong' => 0,
+                            'tien_dich_vu' => 0,
+                            'phi_phat_sinh' => 0,
+                            'giam_gia' => 0,
+                            'trang_thai' => 'cho_thanh_toan',
+                            'invoice_type' => 'EXTRA',
+                        ]);
                     }
-                    $targetInvoice->increment('tong_tien', $amount);
 
-                    // If the booking is still unpaid, update booking totals so the
-                    // UI shows the updated total immediately. Prefer booking.phi_them_nguoi
-                    if (!in_array($booking->trang_thai, ['da_thanh_toan', 'hoan_tien'])) {
-                        if (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'phi_them_nguoi')) {
-                            $booking->increment('phi_them_nguoi', $amount);
-                        } elseif (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'phi_phat_sinh')) {
-                            $booking->increment('phi_phat_sinh', $amount);
+                    if ($targetInvoice) {
+                        $sDate = Carbon::parse($startDate);
+                        $eDate = Carbon::parse($endDate);
+                        $days = max(1, $eDate->diffInDays($sDate));
+                        $unitPrice = $extraFee; // per guest per night
+                        $amount = round($unitPrice * 1 * $days, 2);
+
+                        // Upsert pivot phu_phi in booking_rooms using ON DUPLICATE KEY UPDATE
+                        // Increment by the FULL amount for this invoice item (not per-night)
+                        $now = now();
+                        DB::statement(
+                            'INSERT INTO booking_rooms (dat_phong_id, phong_id, phu_phi, created_at, updated_at) VALUES (?, ?, ?, ?, ?) ' .
+                            'ON DUPLICATE KEY UPDATE phu_phi = COALESCE(phu_phi, 0) + VALUES(phu_phi), updated_at = VALUES(updated_at)',
+                            [$booking->id, $room->id, $amount, $now, $now]
+                        );
+
+                        $item = InvoiceItem::create([
+                            'invoice_id' => $targetInvoice->id,
+                            'type' => 'extra_guest',
+                            'description' => 'Thêm 1 ' . ($age !== null && $age <= 12 ? 'trẻ em' : 'người lớn'),
+                            'quantity' => 1,
+                            'unit_price' => $unitPrice,
+                            'days' => $days,
+                            'amount' => $amount,
+                            'start_date' => $sDate->toDateString(),
+                            'end_date' => $eDate->toDateString(),
+                            'meta' => json_encode(['guest_type' => ($age !== null && $age <= 12 ? 'child' : 'adult'), 'age' => $age]),
+                            'created_by' => $userId,
+                            'reason' => $request->reason ?? null,
+                        ]);
+
+                        // Link invoice item to stay guest for later adjustments
+                        if (isset($item->id)) {
+                            $guest->invoice_item_id = $item->id;
+                            $guest->save();
                         }
+
+                        // Prefer category-specific invoice columns when present
+                        if ($guestCategory === 'child' && \Illuminate\Support\Facades\Schema::hasColumn('hoa_don', 'phu_phi_tre_em')) {
+                            $targetInvoice->increment('phu_phi_tre_em', $amount);
+                        } elseif ($guestCategory === 'infant' && \Illuminate\Support\Facades\Schema::hasColumn('hoa_don', 'phu_phi_em_be')) {
+                            $targetInvoice->increment('phu_phi_em_be', $amount);
+                        } elseif (\Illuminate\Support\Facades\Schema::hasColumn('hoa_don', 'phi_them_nguoi')) {
+                            $targetInvoice->increment('phi_them_nguoi', $amount);
+                        } else {
+                            // fallback to phi_phat_sinh for older schemas
+                            $targetInvoice->increment('phi_phat_sinh', $amount);
+                        }
+
+                        $targetInvoice->increment('tong_tien', $amount);
+
+                        // If the booking is still unpaid, update booking totals so the
+                        // UI shows the updated total immediately. Prefer explicit columns
+                        if (!in_array($booking->trang_thai, ['da_thanh_toan', 'hoan_tien'])) {
+                            if ($guestCategory === 'child') {
+                                if (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'phu_phi_tre_em')) {
+                                    $booking->increment('phu_phi_tre_em', $amount);
+                                } elseif (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'phi_phat_sinh')) {
+                                    $booking->increment('phi_phat_sinh', $amount);
+                                }
+                        } elseif ($guestCategory === 'infant') {
+                            if (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'phu_phi_em_be')) {
+                                $booking->increment('phu_phi_em_be', $amount);
+                            } elseif (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'phi_phat_sinh')) {
+                                $booking->increment('phi_phat_sinh', $amount);
+                            }
+                        } else {
+                            if (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'phi_them_nguoi')) {
+                                $booking->increment('phi_them_nguoi', $amount);
+                            } elseif (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'phi_phat_sinh')) {
+                                $booking->increment('phi_phat_sinh', $amount);
+                            }
+                        }
+
                         if (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'tong_tien')) {
                             $booking->increment('tong_tien', $amount);
                         }
                     }
+                } else {
+                    // If invoice not writable or doesn't exist, still update booking counts (already incremented)
+                    // Nothing further required here because booking columns have been updated above
                 }
-            } else {
-                // If invoice not writable or doesn't exist, still increment booking so_nguoi
-                $booking->increment('so_nguoi', 1);
-            }
+                }
 
             Log::info('Added stay guest', ['booking_id' => $booking->id, 'guest' => $guest->toArray(), 'extra_fee' => $extraFee, 'by' => $userId]);
 
@@ -324,14 +420,14 @@ class StayGuestController extends Controller
                     $adjustItem = InvoiceItem::create([
                         'invoice_id' => $adjustInvoice->id,
                         'type' => 'adjustment',
-                        'description' => 'Giảm 1 ' . (($origItem && $origItem->meta && isset($origItem->meta['guest_type']) && $origItem->meta['guest_type'] === 'child') || ($guest->age && $guest->age < 12) ? 'trẻ em' : 'người lớn') . ' (trả sớm)',
+                        'description' => 'Giảm 1 ' . (($origItem && $origItem->meta && isset($origItem->meta['guest_type']) && $origItem->meta['guest_type'] === 'child') || ($guest->age && $guest->age <= 12) ? 'trẻ em' : 'người lớn') . ' (trả sớm)',
                         'quantity' => -1,
                         'unit_price' => $unitPrice,
                         'days' => $adjustDays,
                         'amount' => -1 * $adjustAmount,
                         'start_date' => $leftDate->toDateString(),
                         'end_date' => $originalEnd->toDateString(),
-                        'meta' => json_encode(['guest_type' => ($guest->age && $guest->age < 12 ? 'child' : 'adult'), 'original_invoice_item_id' => $origItem->id ?? null, 'original_end_date' => $originalEnd->toDateString()]),
+                        'meta' => json_encode(['guest_type' => ($guest->age && $guest->age <= 12 ? 'child' : 'adult'), 'original_invoice_item_id' => $origItem->id ?? null, 'original_end_date' => $originalEnd->toDateString()]),
                         'created_by' => Auth::id(),
                         'reason' => $request->reason ?? null,
                     ]);
@@ -389,25 +485,102 @@ class StayGuestController extends Controller
                         }
                     }
                 } else {
-                    // Decrement the per-guest column if available, otherwise fallback
-                    if (\Illuminate\Support\Facades\Schema::hasColumn('hoa_don', 'phi_them_nguoi')) {
+                    // Decrement the appropriate per-guest column based on guest category
+                    $guestCategory = 'adult';
+                    $gAge = $guest->age;
+                    if (!is_null($gAge) && $gAge < 6) {
+                        $guestCategory = 'infant';
+                    } elseif (!is_null($gAge) && $gAge >= 6 && $gAge <= 12) {
+                        $guestCategory = 'child';
+                    }
+
+                    if ($guestCategory === 'child' && \Illuminate\Support\Facades\Schema::hasColumn('hoa_don', 'phu_phi_tre_em')) {
+                        $invoice->decrement('phu_phi_tre_em', $extraFee);
+                    } elseif ($guestCategory === 'infant' && \Illuminate\Support\Facades\Schema::hasColumn('hoa_don', 'phu_phi_em_be')) {
+                        $invoice->decrement('phu_phi_em_be', $extraFee);
+                    } elseif (\Illuminate\Support\Facades\Schema::hasColumn('hoa_don', 'phi_them_nguoi')) {
                         $invoice->decrement('phi_them_nguoi', $extraFee);
                     } else {
                         $invoice->decrement('phi_phat_sinh', $extraFee);
                     }
+
                     $invoice->decrement('tong_tien', $extraFee);
+
                     if (!in_array($booking->trang_thai, ['da_thanh_toan', 'hoan_tien'])) {
-                        if (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'phi_them_nguoi')) {
-                            $booking->decrement('phi_them_nguoi', $extraFee);
-                        } elseif (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'phi_phat_sinh')) {
+                        if ($guestCategory === 'child') {
+                            if (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'phu_phi_tre_em')) {
+                                $booking->decrement('phu_phi_tre_em', $extraFee);
+                            } elseif (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'phi_phat_sinh')) {
+                                $booking->decrement('phi_phat_sinh', $extraFee);
+                            }
+                        } elseif ($guestCategory === 'infant') {
+                            if (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'phu_phi_em_be')) {
+                                $booking->decrement('phu_phi_em_be', $extraFee);
+                            } elseif (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'phi_phat_sinh')) {
+                                $booking->decrement('phi_phat_sinh', $extraFee);
+                            }
+                        } else {
+                            if (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'phi_them_nguoi')) {
+                                $booking->decrement('phi_them_nguoi', $extraFee);
+                            } elseif (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'phi_phat_sinh')) {
+                                $booking->decrement('phi_phat_sinh', $extraFee);
+                            }
                         }
                     }
                 }
             }
 
-            // Decrement booking so_nguoi
-            $booking->decrement('so_nguoi', 1);
+// Decrement per-room occupancy counters (booking_rooms) - source of truth
+            $roomId = $guest->phong_id;
+            $gAge = $guest->age;
+            if (!is_null($gAge) && $gAge < 6) {
+                $booking->decrementBookingRoomCount($roomId, 'infant', 1);
+            } elseif (!is_null($gAge) && $gAge >= 6 && $gAge <= 12) {
+                $booking->decrementBookingRoomCount($roomId, 'child', 1);
+            } else {
+                // adult (or unknown age) - decrement adult slot
+                $booking->decrementBookingRoomCount($roomId, 'adult', 1);
+            }
 
+            // Normalize booking numeric columns to avoid negatives and ensure consistency
+            $sets = [];
+            if (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'so_tre_em')) {
+                $sets[] = 'so_tre_em = GREATEST(so_tre_em, 0)';
+            }
+            if (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'so_em_be')) {
+                $sets[] = 'so_em_be = GREATEST(so_em_be, 0)';
+            }
+            if (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'so_nguoi')) {
+                $sets[] = 'so_nguoi = GREATEST(so_nguoi, 0)';
+            }
+            if (!empty($sets)) {
+                DB::statement('UPDATE dat_phong SET ' . implode(', ', $sets) . ' WHERE id = ?', [$booking->id]);
+            }
+
+            // Note: do NOT enforce so_nguoi >= so_tre_em + so_em_be because
+            // `so_nguoi` represents number of adults only per booking schema.
+
+            // Normalize monetary/surcharge columns on booking and invoices to avoid negatives
+            $bookingSets = [];
+            if (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'phu_phi_tre_em')) $bookingSets[] = 'phu_phi_tre_em = GREATEST(phu_phi_tre_em, 0)';
+            if (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'phu_phi_em_be')) $bookingSets[] = 'phu_phi_em_be = GREATEST(phu_phi_em_be, 0)';
+            if (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'phi_them_nguoi')) $bookingSets[] = 'phi_them_nguoi = GREATEST(phi_them_nguoi, 0)';
+            if (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'phi_phat_sinh')) $bookingSets[] = 'phi_phat_sinh = GREATEST(phi_phat_sinh, 0)';
+            if (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'tong_tien')) $bookingSets[] = 'tong_tien = GREATEST(tong_tien, 0)';
+            if (!empty($bookingSets)) {
+                DB::statement('UPDATE dat_phong SET ' . implode(', ', $bookingSets) . ' WHERE id = ?', [$booking->id]);
+            }
+
+            // Normalize corresponding invoice rows
+            $invoiceSets = [];
+            if (\Illuminate\Support\Facades\Schema::hasColumn('hoa_don', 'phu_phi_tre_em')) $invoiceSets[] = 'phu_phi_tre_em = GREATEST(phu_phi_tre_em, 0)';
+            if (\Illuminate\Support\Facades\Schema::hasColumn('hoa_don', 'phu_phi_em_be')) $invoiceSets[] = 'phu_phi_em_be = GREATEST(phu_phi_em_be, 0)';
+            if (\Illuminate\Support\Facades\Schema::hasColumn('hoa_don', 'phi_them_nguoi')) $invoiceSets[] = 'phi_them_nguoi = GREATEST(phi_them_nguoi, 0)';
+            if (\Illuminate\Support\Facades\Schema::hasColumn('hoa_don', 'phi_phat_sinh')) $invoiceSets[] = 'phi_phat_sinh = GREATEST(phi_phat_sinh, 0)';
+            if (\Illuminate\Support\Facades\Schema::hasColumn('hoa_don', 'tong_tien')) $invoiceSets[] = 'tong_tien = GREATEST(tong_tien, 0)';
+            if (!empty($invoiceSets)) {
+                DB::statement('UPDATE hoa_don SET ' . implode(', ', $invoiceSets) . ' WHERE dat_phong_id = ?', [$booking->id]);
+            }
             // Delete guest
             $guest->delete();
 

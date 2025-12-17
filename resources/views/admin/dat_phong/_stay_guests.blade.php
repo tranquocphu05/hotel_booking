@@ -95,9 +95,14 @@
                 <label class="text-xs text-gray-600">Phòng</label>
                 <select name="phong_id" required
                     class="mt-1 w-full rounded-lg border-gray-300 p-2">
-                    @foreach ($booking->getAssignedPhongs() as $p)
-                        <option value="{{ $p->id }}">{{ $p->so_phong }}</option>
-                    @endforeach
+                    @php $checkedInRooms = $booking->getCheckedInPhongs(); @endphp
+                    @if ($checkedInRooms->isEmpty())
+                        <option disabled>Không có phòng đang lưu trú</option>
+                    @else
+                        @foreach ($checkedInRooms as $p)
+                            <option value="{{ $p->id }}">{{ $p->so_phong }}</option>
+                        @endforeach
+                    @endif
                 </select>
             </div>
 

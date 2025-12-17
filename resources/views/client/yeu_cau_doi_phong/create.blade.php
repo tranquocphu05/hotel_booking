@@ -253,7 +253,7 @@
                     <i class="fas fa-child text-green-600 text-xl"></i>
                 </div>
                 <span class="text-xs font-semibold text-gray-700">Trẻ em</span>
-                <span class="text-[10px] text-gray-500">(6-11 tuổi)</span>
+                <span class="text-[10px] text-gray-500">(6-12 tuổi)</span>
             </div>
 
             <div class="relative w-full">

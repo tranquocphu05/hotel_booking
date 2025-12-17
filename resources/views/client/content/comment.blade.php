@@ -9,22 +9,10 @@ if (auth()->check()) {
     $user = auth()->user();
 
     // ✅ Kiểm tra xem user đã có đơn đặt phòng của loại phòng này chưa
-    $hasBookingQuery = DatPhong::where('nguoi_dung_id', $user->id)
-        ->whereIn('trang_thai', ['da_tra']); // trạng thái đã hoàn tất
-
-    // Prefer checking via pivot `roomTypes` (booking_room_types). Fall back to legacy column only if it exists.
-    $hasBookingQuery->where(function($q) use ($room) {
-        $q->whereHas('roomTypes', function($qq) use ($room) {
-            // Qualify to pivot column to avoid ambiguous `id` when joined
-            $qq->where('booking_room_types.loai_phong_id', $room->id);
-        });
-
-        if (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'loai_phong_id')) {
-            $q->orWhere('loai_phong_id', $room->id);
-        }
-    });
-
-    $hasBooking = $hasBookingQuery->exists();
+    $hasBooking = DatPhong::where('nguoi_dung_id', $user->id)
+        ->where('loai_phong_id', $room->id)
+        ->whereIn('trang_thai', ['da_tra']) // trạng thái đã hoàn tất
+        ->exists();
 
     // ✅ Kiểm tra user đã đánh giá chưa
     $existing = Comment::where('loai_phong_id', $room->id)

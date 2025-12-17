@@ -47,7 +47,7 @@ class DatPhong extends Model
         'tong_tien',
         'tong_tien_phong',
         'so_nguoi',
-        'so_tre_em',        // Number of children (6-11 years old)
+        'so_tre_em',        // Number of children (6-12 years old)
         'so_em_be',         // Number of infants (0-5 years old)
         'phu_phi_tre_em',   // Surcharge for children
         'phu_phi_em_be',    // Surcharge for infants
@@ -174,6 +174,559 @@ class DatPhong extends Model
     public function getAssignedPhongs()
     {
         return $this->phongs;
+    }
+
+    /**
+     * Get only the rooms that are currently checked in for this booking.
+     * Uses pivot `thoi_gian_checkin` and `thoi_gian_checkout` fields.
+     */
+    public function getCheckedInPhongs()
+    {
+        return $this->phongs->filter(function ($p) {
+            // Consider room checked-in when:
+            // - pivot thoi_gian_checkin is present and thoi_gian_checkout is empty
+            // OR
+            // - booking has a check-in (booking->thoi_gian_checkin) and the room's status is 'dang_thue'
+            $pivotCheckin = !empty($p->pivot->thoi_gian_checkin) && empty($p->pivot->thoi_gian_checkout);
+            $legacyChecked = $this->thoi_gian_checkin && empty($p->pivot->thoi_gian_checkout) && ($p->trang_thai === 'dang_thue');
+            return $pivotCheckin || $legacyChecked;
+        })->values();
+    }
+
+    /**
+     * Check if a given guest composition can be accommodated by this booking
+     * according to slot rules:
+     * - base capacity: 2 persons per room
+     * - each room provides ONE extra slot that can hold either:
+     *   - 1 adult, or
+     *   - 2 children, or
+     *   - 3 infants
+     * This method takes into account already-added stay guests (they consume slots)
+     * and simulates allocation without touching the database.
+     *
+     * @param int $adults
+     * @param int $children
+     * @param int $infants
+     * @return bool
+     */
+    public function canAccommodateGuests(int $adults, int $children, int $infants): bool
+    {
+        $roomCount = count($this->getPhongIds());
+
+        if ($roomCount <= 0) return false; // no rooms
+
+        // Standard capacity
+        $standardCapacity = $roomCount * 2;
+        $totalPeople = $adults + $children + $infants;
+
+        // If total fits within standard capacity, no extras needed
+        if ($totalPeople <= $standardCapacity) return true;
+
+        // Simulate filling the base capacity (priority: adults -> children -> infants)
+        $remainingBase = $standardCapacity;
+        $adultsInBase = min($adults, $remainingBase);
+        $remainingBase -= $adultsInBase;
+
+        $childrenInBase = min($children, $remainingBase);
+        $remainingBase -= $childrenInBase;
+
+        $infantsInBase = min($infants, $remainingBase);
+        $remainingBase -= $infantsInBase;
+
+        $extraAdults = max(0, $adults - $adultsInBase);
+        $extraChildren = max(0, $children - $childrenInBase);
+        $extraInfants = max(0, $infants - $infantsInBase);
+
+        // Slots (one per room)
+        $slots = $roomCount;
+
+        // 1) Allocate extra adults (1 slot each)
+        if ($extraAdults > $slots) {
+            return false; // not enough slots for adults
+        }
+        $slots -= $extraAdults;
+
+        // 2) Allocate extra children (2 per slot)
+        if ($extraChildren > ($slots * 2)) {
+            return false; // not enough capacity for children
+        }
+        // consume slots used by children
+        $slotsUsedByChildren = (int) ceil($extraChildren / 2);
+        $slots -= $slotsUsedByChildren;
+
+        // 3) Allocate extra infants (2 per slot)
+        if ($extraInfants > ($slots * 2)) {
+            return false; // not enough capacity for infants
+        }
+
+        // All extras fit according to priority
+        return true;
+    }
+
+    /**
+     * Validate whether a specific room composition (adults, children, infants)
+     * can be accommodated within a single room according to rules:
+     * - base 2 persons
+     * - one extra slot that holds either 1 adult OR 2 children OR 3 infants
+     */
+    protected function isRoomCompositionValid(int $adults, int $children, int $infants): bool
+    {
+        // Try all ways to seat up to 2 people in the base seats.
+        $maxBase = 2;
+        for ($aBase = 0; $aBase <= min($maxBase, $adults); $aBase++) {
+            for ($cBase = 0; $cBase <= min($maxBase - $aBase, $children); $cBase++) {
+                $iBase = min($maxBase - $aBase - $cBase, $infants);
+
+                $ra = $adults - $aBase;
+                $rc = $children - $cBase;
+                $ri = $infants - $iBase;
+
+                // If nothing remains after base seats, valid
+                if ($ra === 0 && $rc === 0 && $ri === 0) return true;
+
+                // Try extra slot options (slot is exclusive):
+                // - adult: at most 1 adult and no other categories
+                if ($rc === 0 && $ri === 0 && $ra <= 1) return true;
+
+                // - children only: up to 2 children
+                if ($ra === 0 && $ri === 0 && $rc <= 2) return true;
+
+                // - infants only: up to 2 infants
+                if ($ra === 0 && $rc === 0 && $ri <= 2) return true;
+
+                // - mixed children + infants: combined up to 2 (e.g., 1 child + 1 infant)
+                if ($ra === 0 && ($rc + $ri) <= 2 && ($rc + $ri) > 0) return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if the booking can accommodate totals when certain rooms already have
+     * a forced (pre-filled) composition. This runs a small backtracking search
+     * distributing the remaining people across rooms and verifying per-room validity.
+     *
+     * - $forced is an associative array: [phongId => ['adults'=>x,'children'=>y,'infants'=>z], ...]
+     */
+    public function canAccommodateWithForcedAssignments(int $adults, int $children, int $infants, array $forced = []): bool
+    {
+        $rooms = $this->getPhongIds();
+        if (empty($rooms)) return false;
+
+        // Build current occupancy per room from existing stay guests
+        $roomState = [];
+        foreach ($rooms as $rid) {
+            $roomState[$rid] = ['adults' => 0, 'children' => 0, 'infants' => 0];
+        }
+
+        foreach ($this->stayGuests as $g) {
+            $rid = $g->phong_id;
+            if (!isset($roomState[$rid])) continue; // skip guests assigned to rooms not in pivot
+            $age = $g->age;
+            // Age classification: infant <6, child 6-12 (inclusive), adult >=13
+            if (is_null($age) || $age >= 13) $roomState[$rid]['adults']++;
+            elseif ($age >= 6 && $age <= 12) $roomState[$rid]['children']++;
+            else $roomState[$rid]['infants']++;
+        }
+
+        // Merge forced assignments into room state (these are additional counts we want the room to contain)
+        foreach ($forced as $rid => $counts) {
+            if (!isset($roomState[$rid])) return false; // forced room not part of booking
+            $roomState[$rid]['adults'] += $counts['adults'] ?? 0;
+            $roomState[$rid]['children'] += $counts['children'] ?? 0;
+            $roomState[$rid]['infants'] += $counts['infants'] ?? 0;
+            // Early validation: if the forced composition already invalid in that room -> fail early
+            if (!$this->isRoomCompositionValid($roomState[$rid]['adults'], $roomState[$rid]['children'], $roomState[$rid]['infants'])) {
+                return false;
+            }
+        }
+
+        // Compute remaining people to distribute after accounting for current stayGuests and forced.
+        $currentTotals = ['adults' => 0, 'children' => 0, 'infants' => 0];
+        foreach ($roomState as $s) {
+            $currentTotals['adults'] += $s['adults'];
+            $currentTotals['children'] += $s['children'];
+            $currentTotals['infants'] += $s['infants'];
+        }
+
+        $remAdults = $adults - $currentTotals['adults'];
+        $remChildren = $children - $currentTotals['children'];
+        $remInfants = $infants - $currentTotals['infants'];
+
+        // Quick global pruning using room-count based slot model (each room grants one extra slot: 1 adult OR 2 children OR 2 infants)
+        $rooms = count($roomState);
+        $baseCapacity = $rooms * 2;
+        $totalPeople = $adults + $children + $infants;
+        if ($totalPeople <= $baseCapacity) {
+            // fits in base capacity already
+            return true;
+        }
+
+        $usedBase = min($baseCapacity, $currentTotals['adults'] + $currentTotals['children'] + $currentTotals['infants']);
+        $extrasAlready = ($currentTotals['adults'] + $currentTotals['children'] + $currentTotals['infants']) - $usedBase;
+        $remainingSlots = $rooms - max(0, $extrasAlready);
+
+        // Simple upper bounds: if remaining children > remainingSlots*2 or infants > remainingSlots*2, fail fast
+        if ($remAdults > $remainingSlots) return false;
+        if ($remChildren > $remainingSlots * 2) return false;
+        if ($remInfants > $remainingSlots * 2) return false;
+
+        if ($remAdults < 0 || $remChildren < 0 || $remInfants < 0) {
+            // forced/assigned guests already exceed requested totals
+            return false;
+        }
+
+        // Prepare list of rooms and their current occupancy to try to fill the remaining people
+        $roomIds = array_keys($roomState);
+        $n = count($roomIds);
+
+        // Backtracking function: try to assign remaining people starting from room index i
+        $that = $this;
+        $cache = [];
+
+        $dfs = function($i, $ra, $rc, $ri) use (&$dfs, $roomIds, $roomState, $n, $that, &$cache) {
+            $key = implode('|', [$i, $ra, $rc, $ri]);
+            if (isset($cache[$key])) return $cache[$key];
+
+            if ($ra === 0 && $rc === 0 && $ri === 0) return $cache[$key] = true;
+            if ($i >= $n) return $cache[$key] = false;
+
+            $rid = $roomIds[$i];
+            $base = $roomState[$rid];
+
+            // Determine how many additional people we may try adding to this room
+            // Upper bounds: base 2 + extra up to 2 (total max 4)
+            $currentTotal = $base['adults'] + $base['children'] + $base['infants'];
+            $maxTotalForRoom = 4; // base 2 + at most 2 extra (children/infants) or 1 adult
+            $maxAdd = max(0, $maxTotalForRoom - $currentTotal);
+
+            // Try all reasonable allocations of additional adults/children/infants to this room (bounded by remaining and maxAdd)
+            for ($addA = 0; $addA <= min($ra, $maxAdd); $addA++) {
+                for ($addC = 0; $addC <= min($rc, $maxAdd - $addA); $addC++) {
+                    for ($addI = 0; $addI <= min($ri, $maxAdd - $addA - $addC); $addI++) {
+                        // Check that the new composition for the room is valid
+                        $na = $base['adults'] + $addA;
+                        $nc = $base['children'] + $addC;
+                        $ni = $base['infants'] + $addI;
+
+                        if (!$that->isRoomCompositionValid($na, $nc, $ni)) continue;
+
+                        // Recurse to next room
+                        if ($dfs($i + 1, $ra - $addA, $rc - $addC, $ri - $addI)) {
+                            return $cache[$key] = true;
+                        }
+                    }
+                }
+            }
+
+            // Also allow skipping adding more people to this room
+            if ($dfs($i + 1, $ra, $rc, $ri)) return $cache[$key] = true;
+
+            return $cache[$key] = false;
+        };
+
+        return $dfs(0, $remAdults, $remChildren, $remInfants);
+    }
+
+    /**
+     * Convenience: check whether adding a single guest of the given category to the
+     * specified room is possible while keeping the booking valid.
+     * $category: 'adult'|'child'|'infant'
+     */
+    /**
+     * Counts the number of already-added stay guests for a room by category
+     */
+    public function getRoomAddedCounts(int $phongId): array
+    {
+        $counts = ['adults' => 0, 'children' => 0, 'infants' => 0];
+        foreach ($this->stayGuests()->where('phong_id', $phongId)->get() as $g) {
+            $age = $g->age;
+            // Age classification: infant <6, child 6-12 (inclusive), adult >=13
+            if (is_null($age) || $age >= 13) $counts['adults']++;
+            elseif ($age >= 6 && $age <= 12) $counts['children']++;
+            else $counts['infants']++;
+        }
+        return $counts;
+    }
+
+    public function canAddGuestToRoom(int $phongId, string $category): bool
+    {
+        // First, enforce per-room "added extra" rules based on stayGuests already assigned to this room
+        // New rule: extras are mutually exclusive in the following manner:
+        // - If an extra adult exists in the room, you cannot add any more extras (adult/child/infant).
+        // - If an extra child or infant exists, you cannot add an adult; children+infants combined are limited to 2.
+        $added = $this->getRoomAddedCounts($phongId);
+        $combinedCI = $added['children'] + $added['infants'];
+
+        // If an extra adult is already present, disallow any further extras
+        if ($added['adults'] >= 1) {
+            return false;
+        }
+
+        // If there are children/infants already added:
+        if ($combinedCI >= 1) {
+            // cannot add an adult
+            if ($category === 'adult') return false;
+            // cannot exceed 2 combined children+infants
+            if ($combinedCI >= 2) return false;
+            // else adding a child/infant (to reach combined <=2) is allowed
+        }
+
+        // If no extras present yet, normal per-category checks remain below (base seats / global capacity will be checked later)
+
+        // If booking_rooms per-room columns exist, do a precise per-room check
+        if (\Illuminate\Support\Facades\Schema::hasColumn('booking_rooms', 'so_nguoi_lon')) {
+            // Use per-room current counts
+            $curr = $this->getRoomCurrentCounts($phongId);
+
+            // Simulate adding one guest in the requested category
+            $a = $curr['adults'];
+            $c = $curr['children'];
+            $i = $curr['infants'];
+            if ($category === 'adult') $a++;
+            elseif ($category === 'child') $c++;
+            else $i++;
+
+            // Check whether this room can accept the new composition according to rules
+            if (!$this->doesRoomCompositionFit($a, $c, $i)) {
+                return false;
+            }
+
+            // Global check across checked-in rooms: ensure overall capacity among checked-in rooms
+            $checkedInRooms = $this->getCheckedInPhongs();
+            $totalAdults = 0; $totalChildren = 0; $totalInfants = 0;
+            foreach ($checkedInRooms as $p) {
+                $r = $this->getRoomCurrentCounts($p->id);
+                $totalAdults += $r['adults'];
+                $totalChildren += $r['children'];
+                $totalInfants += $r['infants'];
+            }
+
+            // Add the simulated guest totals (they are intended for a checked-in room)
+            if ($category === 'adult') $totalAdults += 1;
+            elseif ($category === 'child') $totalChildren += 1;
+            else $totalInfants += 1;
+
+            // Use the booking-level slot feasibility but only considering checked-in rooms
+            $roomCount = count($checkedInRooms);
+            if ($roomCount <= 0) return false;
+
+            $standardCapacity = $roomCount * 2;
+            $totalPeople = $totalAdults + $totalChildren + $totalInfants;
+            if ($totalPeople <= $standardCapacity) return true;
+
+            // simulate extras allocation similar to canAccommodateGuests
+            $remainingBase = $standardCapacity;
+            $adultsInBase = min($totalAdults, $remainingBase);
+            $remainingBase -= $adultsInBase;
+            $childrenInBase = min($totalChildren, $remainingBase);
+            $remainingBase -= $childrenInBase;
+            $infantsInBase = min($totalInfants, $remainingBase);
+            $remainingBase -= $infantsInBase;
+
+            $extraAdults = max(0, $totalAdults - $adultsInBase);
+            $extraChildren = max(0, $totalChildren - $childrenInBase);
+            $extraInfants = max(0, $totalInfants - $infantsInBase);
+
+            $slots = $roomCount;
+            if ($extraAdults > $slots) return false;
+            $slots -= $extraAdults;
+            if ($extraChildren > ($slots * 2)) return false;
+            $slotsUsedByChildren = (int) ceil($extraChildren / 2);
+            $slots -= $slotsUsedByChildren;
+            if ($extraInfants > ($slots * 2)) return false;
+
+            return true;
+        }
+
+        // Legacy fallback when booking_rooms per-room columns are missing:
+        // 1) If this room still has base seats remaining (determined from booking totals), allow addition.
+        $baseRemaining = $this->getRoomBaseSeatsRemaining($phongId);
+        if ($baseRemaining > 0) {
+            return true;
+        }
+
+        // 2) Otherwise enforce per-room extra-slot constraints based on already-added stay guests
+        $added = $this->getRoomAddedCounts($phongId);
+        if ($category === 'adult') {
+            if ($added['adults'] >= 1) return false; // slot already used by adult
+        } else {
+            if (($added['children'] + $added['infants']) >= 2) return false;
+        }
+
+        // 3) As a final safety net, ensure booking-level totals can accommodate this extra guest
+        $totalChildren = (int)($this->so_tre_em ?? 0);
+        $totalInfants = (int)($this->so_em_be ?? 0);
+        $totalAdults = (int)($this->so_nguoi ?? 0);
+        if ($category === 'adult') $totalAdults += 1;
+        elseif ($category === 'child') $totalChildren += 1;
+        else $totalInfants += 1;
+
+        return $this->canAccommodateGuests($totalAdults, $totalChildren, $totalInfants);
+    }
+
+    /**
+     * Get current per-room counts, preferring booking_rooms pivot columns when available.
+     * Falls back to distributing booking-level totals across rooms (legacy behavior) if columns are missing.
+     */
+    public function getRoomCurrentCounts(int $phongId): array
+    {
+        if (\Illuminate\Support\Facades\Schema::hasColumn('booking_rooms', 'so_nguoi_lon')) {
+            $row = \DB::table('booking_rooms')
+                ->where('dat_phong_id', $this->id)
+                ->where('phong_id', $phongId)
+                ->first();
+            if ($row) {
+                return [
+                    'adults' => (int) ($row->so_nguoi_lon ?? 0),
+                    'children' => (int) ($row->so_tre_em ?? 0),
+                    'infants' => (int) ($row->so_em_be ?? 0),
+                ];
+            }
+            return ['adults' => 0, 'children' => 0, 'infants' => 0];
+        }
+
+        // Legacy fallback: distribute booking totals deterministically across assigned rooms
+        $initialAdults = (int)($this->so_nguoi ?? 0);
+        $initialChildren = (int)($this->so_tre_em ?? 0);
+        $initialInfants = (int)($this->so_em_be ?? 0);
+        $roomIds = $this->getPhongIds();
+        $n = count($roomIds);
+        if ($n === 0) return ['adults' => 0, 'children' => 0, 'infants' => 0];
+
+        $aBase = intdiv($initialAdults, $n); $aRem = $initialAdults % $n;
+        $cBase = intdiv($initialChildren, $n); $cRem = $initialChildren % $n;
+        $iBase = intdiv($initialInfants, $n); $iRem = $initialInfants % $n;
+
+        $map = [];
+        foreach ($roomIds as $idx => $rid) {
+            $map[$rid] = [
+                'adults' => $aBase + ($idx < $aRem ? 1 : 0),
+                'children' => $cBase + ($idx < $cRem ? 1 : 0),
+                'infants' => $iBase + ($idx < $iRem ? 1 : 0),
+            ];
+        }
+        return $map[$phongId] ?? ['adults' => 0, 'children' => 0, 'infants' => 0];
+    }
+
+    /**
+     * Atomically increment booking_rooms counters for a room (creates pivot row if missing).
+     * If the booking_rooms columns are not present, log a warning and fallback to incrementing
+     * booking-level totals to preserve behavior (administrators should run migration to enable per-room counts).
+     */
+    public function incrementBookingRoomCount(int $phongId, string $category, int $by = 1): void
+    {
+        $col = $category === 'adult' ? 'so_nguoi_lon' : ($category === 'child' ? 'so_tre_em' : 'so_em_be');
+        if (\Illuminate\Support\Facades\Schema::hasColumn('booking_rooms', $col)) {
+            $now = now();
+            \DB::statement(
+                'INSERT INTO booking_rooms (dat_phong_id, phong_id, ' . $col . ', created_at, updated_at) VALUES (?, ?, ?, ?, ?) ' .
+                'ON DUPLICATE KEY UPDATE ' . $col . ' = COALESCE(' . $col . ', 0) + VALUES(' . $col . '), updated_at = VALUES(updated_at)',
+                [$this->id, $phongId, $by, $now, $now]
+            );
+            return;
+        }
+
+        // Fallback: increment booking-level totals (deprecated behavior)
+        Log::warning('incrementBookingRoomCount: booking_rooms columns missing, falling back to dat_phong counters', ['booking_id' => $this->id, 'phong_id' => $phongId, 'category' => $category]);
+        if ($category === 'adult' && \Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'so_nguoi')) {
+            $this->increment('so_nguoi', $by);
+        } elseif ($category === 'child' && \Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'so_tre_em')) {
+            $this->increment('so_tre_em', $by);
+        } elseif ($category === 'infant' && \Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'so_em_be')) {
+            $this->increment('so_em_be', $by);
+        }
+    }
+
+    /**
+     * Atomically decrement booking_rooms counters for a room (never below zero).
+     */
+    public function decrementBookingRoomCount(int $phongId, string $category, int $by = 1): void
+    {
+        $col = $category === 'adult' ? 'so_nguoi_lon' : ($category === 'child' ? 'so_tre_em' : 'so_em_be');
+        if (\Illuminate\Support\Facades\Schema::hasColumn('booking_rooms', $col)) {
+            \DB::statement(
+                'UPDATE booking_rooms SET ' . $col . ' = GREATEST(COALESCE(' . $col . ', 0) - ?, 0), updated_at = ? WHERE dat_phong_id = ? AND phong_id = ?',
+                [$by, now(), $this->id, $phongId]
+            );
+            return;
+        }
+
+        // Fallback: decrement booking-level totals (deprecated behavior)
+        Log::warning('decrementBookingRoomCount: booking_rooms columns missing, falling back to dat_phong counters', ['booking_id' => $this->id, 'phong_id' => $phongId, 'category' => $category]);
+        if ($category === 'adult' && \Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'so_nguoi')) {
+            $this->decrement('so_nguoi', $by);
+        } elseif ($category === 'child' && \Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'so_tre_em')) {
+            $this->decrement('so_tre_em', $by);
+        } elseif ($category === 'infant' && \Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'so_em_be')) {
+            $this->decrement('so_em_be', $by);
+        }
+    }
+
+    /**
+     * Determine whether a given composition fits into a single room according to rules.
+     */
+    public function doesRoomCompositionFit(int $adults, int $children, int $infants): bool
+    {
+        $total = $adults + $children + $infants;
+        if ($total <= 2) return true;
+        $base = min(2, $total);
+        for ($aInBase = 0; $aInBase <= min($adults, $base); $aInBase++) {
+            for ($cInBase = 0; $cInBase <= min($children, $base - $aInBase); $cInBase++) {
+                $iInBase = $base - $aInBase - $cInBase;
+                if ($iInBase > $infants) continue;
+                $leftA = $adults - $aInBase;
+                $leftC = $children - $cInBase;
+                $leftI = $infants - $iInBase;
+                if ($leftA <= 1 && $leftC == 0 && $leftI == 0) return true;
+                if ($leftA == 0 && ($leftC + $leftI) <= 2) return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Return how many stay guests are already assigned to a room
+     */
+    public function getRoomStayGuestCount(int $phongId): int
+    {
+        return (int) $this->stayGuests()->where('phong_id', $phongId)->count();
+    }
+
+    /**
+     * How many base seats (of the 2 base persons) remain free in a room
+     */
+    public function getRoomBaseSeatsRemaining(int $phongId): int
+    {
+        // If booking_rooms per-room columns exist, use them as source of truth
+        if (\Illuminate\Support\Facades\Schema::hasColumn('booking_rooms', 'so_nguoi_lon')) {
+            $r = $this->getRoomCurrentCounts($phongId);
+            $totalInRoom = $r['adults'] + $r['children'] + $r['infants'];
+            return max(0, 2 - $totalInRoom);
+        }
+
+        // Legacy fallback: count stayGuests assigned to this room
+        $stayCount = $this->getRoomStayGuestCount($phongId);
+
+        // Compute original booking occupants by category (so_nguoi = adults, so_tre_em = children, so_em_be = infants)
+        $initialAdults = (int)($this->so_nguoi ?? 0);
+        $initialChildren = (int)($this->so_tre_em ?? 0);
+        $initialInfants = (int)($this->so_em_be ?? 0);
+        $totalInitial = $initialAdults + $initialChildren + $initialInfants;
+
+        // Distribute initial booked people across rooms filling up to 2 per room deterministically by pivot order
+        $roomIds = $this->getPhongIds();
+        $initialPerRoom = [];
+        $rem = $totalInitial;
+        foreach ($roomIds as $rid) {
+            $take = min(2, $rem);
+            $initialPerRoom[$rid] = $take;
+            $rem -= $take;
+        }
+
+        $used = ($initialPerRoom[$phongId] ?? 0) + $stayCount;
+        return max(0, 2 - $used);
     }
 
     /**

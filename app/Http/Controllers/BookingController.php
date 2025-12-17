@@ -346,8 +346,9 @@ class BookingController extends Controller
             $firstLoaiPhongId = $roomDetails[0]['loai_phong_id'];
 
             // Tạo 1 booking duy nhất chứa tất cả các loại phòng
-            $bookingData = [
+            $booking = DatPhong::create([
                 'nguoi_dung_id'   => $user?->id,
+                'loai_phong_id'   => $firstLoaiPhongId, // Loại phòng chính (cho backward compatibility)
                 'so_luong_da_dat' => $totalSoLuong,     // Tổng số lượng phòng
                 'phong_id'        => null,              // Không gán phòng ở đây, sẽ dùng bảng trung gian
                 'ngay_dat'        => now(),
@@ -365,14 +366,7 @@ class BookingController extends Controller
                 'email'           => $data['email'],
                 'sdt'             => $data['phone'] ?? null,
                 'cccd'            => $data['cccd'],
-            ];
-
-            // Backwards-compat: only write legacy `loai_phong_id` if column exists
-            if (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'loai_phong_id')) {
-                $bookingData['loai_phong_id'] = $firstLoaiPhongId;
-            }
-
-            $booking = DatPhong::create($bookingData);
+            ]);
 
             // Lưu room types vào pivot table
             $roomTypesData = [];

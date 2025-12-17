@@ -74,22 +74,11 @@ class CommentController extends Controller
 
         $userId = Auth::id();
 
-        // ✅ Kiểm tra xem user đã đặt phòng thành công chưa (dùng pivot `roomTypes` khi có)
-        $hasBookingQuery = DatPhong::where('nguoi_dung_id', $userId)
-            ->whereIn('trang_thai', ['da_xac_nhan', 'da_tra']);
-
-        $hasBookingQuery->where(function($q) use ($request) {
-            $q->whereHas('roomTypes', function($qq) use ($request) {
-                // Qualify to pivot column to avoid ambiguous `id` when joined
-                $qq->where('booking_room_types.loai_phong_id', $request->loai_phong_id);
-            });
-
-            if (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'loai_phong_id')) {
-                $q->orWhere('loai_phong_id', $request->loai_phong_id);
-            }
-        });
-
-        $hasBooking = $hasBookingQuery->exists();
+        // ✅ Kiểm tra xem user đã đặt phòng thành công chưa
+        $hasBooking = DatPhong::where('nguoi_dung_id', $userId)
+            ->where('loai_phong_id', $request->loai_phong_id)
+            ->whereIn('trang_thai', ['da_xac_nhan', 'da_tra'])
+            ->exists();
 
         if (!$hasBooking) {
             return redirect()->back()->with('error', 'Bạn chỉ có thể đánh giá sau khi đã đặt phòng thành công.');
@@ -148,22 +137,11 @@ class CommentController extends Controller
             ->where('nguoi_dung_id', Auth::id())
             ->firstOrFail();
 
-        // ✅ Kiểm tra xem user đã đặt phòng thành công chưa (dùng pivot `roomTypes` khi có)
-        $hasBookingQuery = DatPhong::where('nguoi_dung_id', Auth::id())
-            ->whereIn('trang_thai', ['da_xac_nhan', 'da_tra']);
-
-        $hasBookingQuery->where(function($q) use ($comment) {
-            $q->whereHas('roomTypes', function($qq) use ($comment) {
-                // Qualify to pivot column to avoid ambiguous `id` when joined
-                $qq->where('booking_room_types.loai_phong_id', $comment->loai_phong_id);
-            });
-
-            if (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'loai_phong_id')) {
-                $q->orWhere('loai_phong_id', $comment->loai_phong_id);
-            }
-        });
-
-        $hasBooking = $hasBookingQuery->exists();
+        // ✅ Kiểm tra xem user đã đặt phòng thành công chưa
+        $hasBooking = DatPhong::where('nguoi_dung_id', Auth::id())
+            ->where('loai_phong_id', $comment->loai_phong_id)
+            ->whereIn('trang_thai', ['da_xac_nhan', 'da_tra'])
+            ->exists();
 
         if (!$hasBooking) {
             return redirect()->back()->with('error', 'Bạn chỉ có thể cập nhật đánh giá sau khi đã đặt phòng thành công.');

@@ -154,8 +154,9 @@ class BookingSeeder extends Seeder
                 }
 
                 // Create booking
-                $bookingData = [
+                $booking = DatPhong::create([
                     'nguoi_dung_id' => $user->id,
+                    'loai_phong_id' => $loaiPhong->id,
                     'so_luong_da_dat' => $data['so_luong'],
                     'ngay_dat' => Carbon::now()->subHours(rand(1, 48)),
                     'ngay_nhan' => $data['ngay_nhan'],
@@ -172,13 +173,7 @@ class BookingSeeder extends Seeder
                     'ngay_huy' => $data['ngay_huy'] ?? null,
                     'thoi_gian_checkin' => $data['thoi_gian_checkin'] ?? null,
                     'thoi_gian_checkout' => $data['thoi_gian_checkout'] ?? null,
-                ];
-
-                if (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'loai_phong_id')) {
-                    $bookingData['loai_phong_id'] = $loaiPhong->id;
-                }
-
-                $booking = DatPhong::create($bookingData);
+                ]);
 
                 // Sync room types to pivot table
                 if (isset($data['multi_room_types'])) {

@@ -9,7 +9,7 @@ return new class extends Migration
     /**
      * Run the migrations.
      * 
-     * Adds fields for tracking children (6-11 years) and infants (0-5 years)
+     * Adds fields for tracking children (6-12 years) and infants (0-5 years)
      * along with their surcharges for hotel bookings.
      */
     public function up(): void
@@ -18,8 +18,8 @@ return new class extends Migration
             // Rename so_nguoi to so_nguoi_lon (adults) for clarity
             // We'll keep so_nguoi as is for backward compatibility and add new fields
             
-            // Number of children (6-11 years old)
-            $table->integer('so_tre_em')->default(0)->after('so_nguoi')->comment('Number of children (6-11 years)');
+            // Number of children (6-12 years old)
+            $table->integer('so_tre_em')->default(0)->after('so_nguoi')->comment('Number of children (6-12 years)');
             
             // Number of infants (0-5 years old) 
             $table->integer('so_em_be')->default(0)->after('so_tre_em')->comment('Number of infants (0-5 years)');

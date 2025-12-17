@@ -74,7 +74,7 @@ class BookingManager {
         // Capacity and surcharge config
         this.maxAdultsPerRoom = 2; // fixed capacity per room
         this.extraFeePercent = 0.2; // 20% of nightly room price per extra adult
-        this.childFeePercent = 0.1; // 10% of nightly room price per child (6-11)
+        this.childFeePercent = 0.5; // 50% of nightly room price per child (6-12)
         this.infantFeePercent = 0.05; // 5% of nightly room price per infant (0-5)
 
         // Initialize
@@ -166,7 +166,7 @@ class BookingManager {
     }
 
     // Render per-room guest selector rows for a room type card
-    // Now includes separate selectors for Adults (Người lớn), Children (Trẻ em 6-11), and Infants (Em bé 0-5)
+    // Now includes separate selectors for Adults (Người lớn), Children (Trẻ em 6-12), and Infants (Em bé 0-5)
     renderGuestRows(roomId) {
         const container = document.getElementById(
             `room_card_guest_rows_${roomId}`
@@ -232,9 +232,9 @@ class BookingManager {
                             </select>
                         </div>
 
-                        <!-- Children (Trẻ em 6-11 tuổi) -->
+                        <!-- Children (Trẻ em 6-12 tuổi) -->
                         <div class="flex-1">
-                            <div class="text-sm text-gray-700 mb-1">Trẻ em (6-11 tuổi)</div>
+                            <div class="text-sm text-gray-700 mb-1">Trẻ em (6-12 tuổi)</div>
                             <select id="${childrenRowId}"
                                     class="w-full border border-gray-300 rounded px-2 py-1 text-sm bg-white appearance-none cursor-pointer"
                                     data-room-id="${roomId}"

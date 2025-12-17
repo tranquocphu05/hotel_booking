@@ -234,12 +234,12 @@
                                             </select>
                                         </div>
                                         
-                                        {{-- Trẻ em (6-11 tuổi) --}}
+                                        {{-- Trẻ em (6-12 tuổi) --}}
                                         <div class="text-center">
                                             <div class="w-16 h-16 mx-auto mb-2 bg-green-100 rounded-full flex items-center justify-center">
                                                 <i class="fas fa-child text-green-500 text-2xl"></i>
                                             </div>
-                                            <label for="total_children" class="block text-sm font-medium text-gray-700 mb-2">Trẻ em (6-11)</label>
+                                            <label for="total_children" class="block text-sm font-medium text-gray-700 mb-2">Trẻ em (6-12)</label>
                                             <select id="total_children" 
                                                 class="w-full border-2 border-green-300 rounded-md py-2 px-3 text-center text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-green-400 appearance-none bg-white"
                                                 onchange="updateAllRoomGuests('children')">
