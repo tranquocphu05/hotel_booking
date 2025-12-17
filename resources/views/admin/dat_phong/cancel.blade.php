@@ -79,6 +79,29 @@
                                 </div>
                             @endif
                         </div>
+
+                        {{-- Thông tin tài khoản nhận hoàn tiền (nếu khách đã cung cấp khi gửi yêu cầu hủy) --}}
+                        @if(isset($bankAccountInfo) && ( $bankAccountInfo['ten_chu_tai_khoan'] || $bankAccountInfo['so_tai_khoan'] || $bankAccountInfo['ten_ngan_hang'] ))
+                            <div class="mb-6 bg-white border border-green-200 rounded-lg p-5">
+                                <h3 class="text-md font-semibold text-green-800 mb-3 flex items-center">
+                                    <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m4 0h1M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    Thông tin tài khoản nhận hoàn tiền
+                                </h3>
+                                <div class="space-y-2 text-sm text-gray-700">
+                                    @if($bankAccountInfo['ten_chu_tai_khoan'])
+                                        <p><span class="font-medium">Chủ tài khoản:</span> {{ $bankAccountInfo['ten_chu_tai_khoan'] }}</p>
+                                    @endif
+                                    @if($bankAccountInfo['so_tai_khoan'])
+                                        <p><span class="font-medium">Số tài khoản:</span> {{ $bankAccountInfo['so_tai_khoan'] }}</p>
+                                    @endif
+                                    @if($bankAccountInfo['ten_ngan_hang'])
+                                        <p><span class="font-medium">Ngân hàng:</span> {{ $bankAccountInfo['ten_ngan_hang'] }}</p>
+                                    @endif
+                                </div>
+                            </div>
+                        @endif
                     @else
                         {{-- Thông báo: Booking chờ xác nhận chưa thanh toán nên không cần hoàn tiền --}}
                         <div class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
