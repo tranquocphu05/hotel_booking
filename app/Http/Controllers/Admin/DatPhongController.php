@@ -100,7 +100,29 @@ class DatPhongController extends Controller
             $cancellationPolicy = $this->calculateCancellationPolicy($booking);
         }
 
-        return view('admin.dat_phong.cancel', compact('booking', 'cancellationPolicy'));
+        // Lấy thông tin tài khoản ngân hàng khách (nếu khách đã gửi trong yêu cầu hủy trước đó)
+        $bankAccountInfo = [
+            'ten_chu_tai_khoan' => null,
+            'so_tai_khoan'      => null,
+            'ten_ngan_hang'     => null,
+        ];
+
+        if (!empty($booking->ghi_chu_hoan_tien)) {
+            $lines = preg_split("/(\r\n|\n|\r)/", $booking->ghi_chu_hoan_tien);
+            foreach ($lines as $line) {
+                $line = trim($line);
+
+                if (stripos($line, 'Chủ tài khoản:') === 0) {
+                    $bankAccountInfo['ten_chu_tai_khoan'] = trim(substr($line, strlen('Chủ tài khoản:')));
+                } elseif (stripos($line, 'Số tài khoản:') === 0) {
+                    $bankAccountInfo['so_tai_khoan'] = trim(substr($line, strlen('Số tài khoản:')));
+                } elseif (stripos($line, 'Ngân hàng:') === 0) {
+                    $bankAccountInfo['ten_ngan_hang'] = trim(substr($line, strlen('Ngân hàng:')));
+                }
+            }
+        }
+
+        return view('admin.dat_phong.cancel', compact('booking', 'cancellationPolicy', 'bankAccountInfo'));
     }
 
     public function submitCancel(Request $request, $id)
@@ -349,7 +371,8 @@ class DatPhongController extends Controller
             'services',
             'bookingServices',
             'step3Complete',
-            'step3Date'
+            'step3Date',
+            'refundAmount'
         ));
     }
 
