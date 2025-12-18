@@ -341,9 +341,6 @@
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                            <div id="room_card_guest_rows_{{ $option->id }}" class="mt-2 hidden space-y-2">
-                                                                <!-- JS will render per-room guest selectors here when quantity > 0 -->
-                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -397,6 +394,10 @@
                                                             </div>
                                                         </div>
                                                     </div>
+                                                </div>
+                                                <!-- Guest rows riêng ở dưới cùng -->
+                                                <div id="room_card_guest_rows_{{ $option->id }}" class="w-full hidden mt-2 mb-4 mx-auto px-6 py-4 bg-gray-50 rounded-2xl">
+                                                    <!-- JS will render per-room guest selectors here when quantity > 0 -->
                                                 </div>
                                             </article>
                                         @endforeach

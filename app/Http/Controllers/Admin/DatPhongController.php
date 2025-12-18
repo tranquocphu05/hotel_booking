@@ -371,8 +371,7 @@ class DatPhongController extends Controller
             'services',
             'bookingServices',
             'step3Complete',
-            'step3Date',
-            'refundAmount'
+            'step3Date'
         ));
     }
 
