@@ -15,7 +15,12 @@ return new class() extends Migration
     {
         if (Schema::hasTable('stay_guests') && !Schema::hasColumn('stay_guests', 'phi_them_nguoi')) {
             Schema::table('stay_guests', function (Blueprint $table) {
-                $table->decimal('phi_them_nguoi', 10, 2)->default(0)->after('phu_phi_them')->comment('Phí thêm người (per-guest)')->nullable();
+                // If legacy column 'phu_phi_them' exists, place after it; otherwise simply add column
+                if (Schema::hasColumn('stay_guests', 'phu_phi_them')) {
+                    $table->decimal('phi_them_nguoi', 10, 2)->default(0)->after('phu_phi_them')->comment('Phí thêm người (per-guest)')->nullable();
+                } else {
+                    $table->decimal('phi_them_nguoi', 10, 2)->default(0)->comment('Phí thêm người (per-guest)')->nullable();
+                }
             });
         }
     }

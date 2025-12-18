@@ -29,6 +29,8 @@ class Invoice extends Model
         'phuong_thuc',
         'trang_thai',
         'invoice_type',
+        // Optional note field added for adjustments/refunds
+        'ghi_chu',
     ];
 
     protected $casts = [
