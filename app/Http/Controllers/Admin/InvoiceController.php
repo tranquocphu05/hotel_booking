@@ -292,48 +292,40 @@ class InvoiceController extends Controller
             }
         }
         
-        return view('admin.invoices.edit', compact(
-            'invoice', 'booking', 'bookingServices', 'bookingServicesServer', 'roomTotalCalculated', 'currentServiceTotal', 'voucherDiscount', 'services', 'assignedRooms'
-        ));
-        // Get assigned rooms list with loaiPhong info for the JS
-        // Use the booking pivot helper so we correctly read booking_rooms (or legacy phong_ids)
-        $assignedRooms = [];
-        $phongIds = $booking ? $booking->getPhongIds() : [];
-        if (is_string($phongIds)) {
-            $phongIds = json_decode($phongIds, true);
-        }
-        if (is_array($phongIds) && !empty($phongIds)) {
-            $assignedRooms = Phong::whereIn('id', $phongIds)
-                ->with('loaiPhong:id,ten_loai')
-                ->get()
-                ->map(function($room) {
-                    return [
-                        'id' => $room->id,
-                        'so_phong' => $room->so_phong,
-                        'ten_loai' => $room->loaiPhong ? $room->loaiPhong->ten_loai : 'N/A',
-                    ];
-                })
-                ->toArray();
-        }
-
-        // Also include any rooms referenced directly by booking services (phong_id)
-        // so the UI can render checkboxes for rooms that may not be attached via pivot.
+        // Compute extra guest total from stay_guests (if any)
+        $extraGuestTotal = 0;
         try {
-            $bsRoomIds = $bookingServices->pluck('phong_id')->filter()->unique()->toArray();
-            $existingIds = array_column($assignedRooms, 'id') ?: [];
-            $missing = array_diff($bsRoomIds, $existingIds);
-            if (!empty($missing)) {
-                $more = Phong::whereIn('id', $missing)->with('loaiPhong:id,ten_loai')->get()->map(function($room) {
-                    return [
-                        'id' => $room->id,
-                        'so_phong' => $room->so_phong,
-                        'ten_loai' => $room->loaiPhong ? $room->loaiPhong->ten_loai : 'N/A',
-                    ];
-                })->toArray();
-                $assignedRooms = array_merge($assignedRooms, $more);
+            if ($booking) {
+                $booking->loadMissing('stayGuests');
+                $extraGuestTotal = $booking->stayGuests->sum(function ($g) {
+                    return floatval($g->phi_them_nguoi ?? $g->extra_fee ?? $g->phu_phi_them ?? 0);
+                });
             }
         } catch (\Throwable $e) {
-            // ignore if bookingServices is not a collection or other issues
+            $extraGuestTotal = 0;
+        }
+
+        // Ensure supporting lookup data exists for view (avoid undefined variables)
+        // Load active LoaiPhong collection keyed by id for quick lookups in calculations/views
+        $loaiPhongs = \App\Models\LoaiPhong::where('trang_thai', 'hoat_dong')->get()->keyBy('id');
+
+        // Assigned room ids and simple room map for JS/labels used in the edit view
+        $assignedPhongIds = [];
+        $roomMap = [];
+        if ($booking) {
+            $assignedPhongIds = $booking->getPhongIds();
+            if (is_string($assignedPhongIds)) {
+                $assignedPhongIds = json_decode($assignedPhongIds, true);
+            }
+            if (!is_array($assignedPhongIds)) {
+                $assignedPhongIds = [];
+            }
+            if (!empty($assignedPhongIds)) {
+                $phongs = \App\Models\Phong::whereIn('id', $assignedPhongIds)->get();
+                foreach ($phongs as $p) {
+                    $roomMap[$p->id] = $p->so_phong ?? $p->ten_phong ?? $p->id;
+                }
+            }
         }
 
         // Calculate room total properly from booking data (same as show.blade.php)
@@ -355,7 +347,11 @@ class InvoiceController extends Controller
                 $unit = 0;
                 if ($loaiPhongId && isset($loaiPhongs[$loaiPhongId])) {
                     $lp = $loaiPhongs[$loaiPhongId];
-                    $unit = $lp->gia_khuyen_mai ?? $lp->gia_co_ban ?? 0;
+                    if (is_object($lp)) {
+                        $unit = $lp->gia_khuyen_mai ?? $lp->gia_co_ban ?? 0;
+                    } else {
+                        $unit = ($lp['gia_khuyen_mai'] ?? $lp['gia_co_ban'] ?? 0);
+                    }
                 }
                 $roomTotalCalculated += $unit * $nights * $soLuong;
             }
@@ -386,7 +382,11 @@ class InvoiceController extends Controller
                             $unit = 0;
                             if ($lpId && isset($loaiPhongs[$lpId])) {
                                 $lp = $loaiPhongs[$lpId];
-                                $unit = $lp->gia_khuyen_mai ?? $lp->gia_co_ban ?? 0;
+                                if (is_object($lp)) {
+                                    $unit = $lp->gia_khuyen_mai ?? $lp->gia_co_ban ?? 0;
+                                } else {
+                                    $unit = ($lp['gia_khuyen_mai'] ?? $lp['gia_co_ban'] ?? 0);
+                                }
                             }
                             $applicableTotal += $unit * $soLuong * $nights;
                         }
@@ -421,7 +421,8 @@ class InvoiceController extends Controller
             'nights',
             'roomTotalCalculated',
             'currentServiceTotal',
-            'voucherDiscount'
+            'voucherDiscount',
+            'extraGuestTotal'
         ));
     }
 
@@ -576,8 +577,53 @@ class InvoiceController extends Controller
                     }
                 }
 
-                // Set invoice total to services total ONLY for EXTRA invoices
-                $invoice->tong_tien = $totalServices;
+                // Compute extra-guest amount in one place and use it once to avoid double-counting.
+                $invoiceExtraGuest = 0;
+                try {
+                    if (\Illuminate\Support\Facades\Schema::hasTable('invoice_items')) {
+                        $invoiceExtraGuest = \App\Models\InvoiceItem::where('invoice_id', $invoice->id)
+                            ->where('type', 'extra_guest')
+                            ->sum('amount');
+                    }
+                } catch (\Throwable $e) {
+                    $invoiceExtraGuest = 0;
+                }
+
+                // Allow admin to pass 'phi_phat_sinh' (damage) or 'phi_them_nguoi' (extra guests)
+                $submittedPhiPhatSinh = $request->input('phi_phat_sinh', null);
+                $submittedPhiThemNguoi = $request->input('phi_them_nguoi', null);
+
+                // Save damage fee separately but DO NOT add it to the service total
+                if ($submittedPhiPhatSinh !== null) {
+                    $invoice->phi_phat_sinh = $submittedPhiPhatSinh;
+                }
+
+                // Decide authoritative extra guest amount (preference order):
+                // 1) explicitly submitted value in form
+                // 2) invoice_items of type 'extra_guest' (detailed lines)
+                // 3) existing invoice.phi_them_nguoi (legacy / persisted)
+                // 4) aggregate from booking stay guests
+                $extraGuestAmount = 0;
+                if ($submittedPhiThemNguoi !== null) {
+                    $extraGuestAmount = floatval($submittedPhiThemNguoi);
+                } elseif ($invoiceExtraGuest > 0) {
+                    $extraGuestAmount = floatval($invoiceExtraGuest);
+                } elseif (!empty($invoice->phi_them_nguoi)) {
+                    $extraGuestAmount = floatval($invoice->phi_them_nguoi);
+                } else {
+                    $extraGuestAmount = floatval($extraGuestTotal ?? 0);
+                }
+
+                // Persist the chosen extra guest amount on the invoice (do not double-add)
+                $invoice->phi_them_nguoi = $extraGuestAmount;
+
+                // Clarify semantics: For EXTRA invoices the official total should be
+                // service subtotal + extra guest fee. Damage fees are stored on
+                // invoice->phi_phat_sinh but NOT included in the main total here
+                // (avoids accidental double-counting). Store service subtotal
+                // into tien_dich_vu and compute tong_tien accordingly.
+                $invoice->tien_dich_vu = $totalServices; // only service rows
+                $invoice->tong_tien = ($totalServices + floatval($invoice->phi_them_nguoi ?? 0));
                 $invoice->save();
             } else {
                 // Existing behavior for non-EXTRA invoices (booking-scoped services)
@@ -733,11 +779,26 @@ class InvoiceController extends Controller
                 $svcRows = BookingService::where('dat_phong_id', $booking->id)
                     ->where('invoice_id', $invoice->id)
                     ->get();
-                $totalServices = $svcRows->reduce(function($carry, $item){
+                $serviceSum = $svcRows->reduce(function($carry, $item){
                     return $carry + (($item->quantity ?? 0) * ($item->unit_price ?? 0));
                 }, 0);
-                $invoice->tong_tien = $totalServices;
+                // Use stored phi_them_nguoi if present (may have been provided via form or invoice_items)
+                $invoice->tien_dich_vu = $serviceSum;
+                $invoice->tong_tien = ($serviceSum + floatval($invoice->phi_them_nguoi ?? 0));
                 $invoice->save();
+            }
+            // If the form submitted a tong_tien (for example editing an EXTRA invoice that only
+            // contains invoice_items instead of BookingService rows), prefer the submitted total
+            // if services_data wasn't present. This allows admins to edit the total price directly
+            // in the form even when the invoice doesn't have BookingService rows.
+            if (!$request->filled('services_data') && $request->filled('tong_tien')) {
+                $submittedTotal = $request->input('tong_tien', 0);
+                $invoice->tong_tien = $submittedTotal;
+                // Also store service and extra-guest breakdown if provided in the form
+                $invoice->tien_dich_vu = $request->input('tien_dich_vu', 0);
+                $invoice->phi_phat_sinh = $request->input('phi_phat_sinh', 0);
+                $invoice->save();
+                try { Log::info('InvoiceController:update - EXTRA invoice used submitted tong_tien', ['invoice_id' => $invoice->id, 'submitted' => $submittedTotal]); } catch (\Throwable $e) {}
             }
             // For EXTRA invoices, no need to update booking - they don't affect it
         } else {
@@ -750,6 +811,7 @@ class InvoiceController extends Controller
                 $invoice->giam_gia = $request->input('giam_gia', 0);
                 $invoice->tien_phong = $request->input('tien_phong', 0);
                 $invoice->tien_dich_vu = $request->input('tien_dich_vu', 0);
+                $invoice->phi_phat_sinh = $request->input('phi_phat_sinh', 0);
                 
                 // Update booking totals from invoice (sync invoice values to booking)
                 // Extract room price, service price from invoice data
@@ -758,6 +820,7 @@ class InvoiceController extends Controller
                 $booking->update([
                     'tien_phong' => $request->input('tien_phong', 0),
                     'tien_dich_vu' => $request->input('tien_dich_vu', 0),
+                    'phi_phat_sinh' => $request->input('phi_phat_sinh', 0),
                     'tong_tien' => $submittedTotal,
                 ]);
                 
@@ -1008,8 +1071,13 @@ class InvoiceController extends Controller
             }
         }
 
-        // Set invoice total to services total ONLY (do not include room price)
-        $new->tong_tien = $totalServices;
+        // Set invoice totals: service subtotal and total = services + extra_guest (if provided)
+        $new->tien_dich_vu = $totalServices;
+        $submittedExtraGuest = $request->input('phi_them_nguoi', null);
+        if ($submittedExtraGuest !== null) {
+            $new->phi_them_nguoi = floatval($submittedExtraGuest);
+        }
+        $new->tong_tien = ($totalServices + floatval($new->phi_them_nguoi ?? 0));
         $new->save();
 
         return redirect()->route('admin.invoices.show', $new->id)->with('success', 'Hóa đơn phát sinh đã được tạo và lưu (chỉ tính tiền dịch vụ).');

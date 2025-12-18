@@ -92,16 +92,25 @@
             <td class="px-3 py-2 text-center font-medium">
               @php
                   $booking = $inv->datPhong;
-                  if($booking) {
-                      $roomTypes = $booking->getRoomTypes();
-                      if(count($roomTypes) > 1) {
+                    if($booking) {
+                        $roomTypes = $booking->getRoomTypes();
+                        if(count($roomTypes) > 1) {
                           echo count($roomTypes) . ' loại phòng';
+                        } else if (count($roomTypes) === 1) {
+                          // When booking has a single room type but legacy loai_phong_id may be null
+                          $roomTypeId = $roomTypes[0]['loai_phong_id'] ?? null;
+                          $typeName = $booking->loaiPhong ? $booking->loaiPhong->ten_loai : null;
+                          if (!$typeName && $roomTypeId) {
+                            $lp = \App\Models\LoaiPhong::find($roomTypeId);
+                            $typeName = $lp ? $lp->ten_loai : null;
+                          }
+                          echo $typeName ?? 'N/A';
+                        } else {
+                          echo 'N/A';
+                        }
                       } else {
-                          echo $booking->loaiPhong ? $booking->loaiPhong->ten_loai : 'N/A';
+                        echo 'N/A';
                       }
-                  } else {
-                      echo 'N/A';
-                  }
               @endphp
             </td>
 

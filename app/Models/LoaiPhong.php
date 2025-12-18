@@ -23,7 +23,7 @@ class LoaiPhong extends Model
         'so_luong_danh_gia',
         'trang_thai',
         'anh',
-        'phi_tre_em',        // Surcharge rate per child per night (6-11 years old)
+        'phi_tre_em',        // Surcharge rate per child per night (6-12 years old)
         'phi_em_be',         // Surcharge rate per infant per night (0-5 years old)
     ];
 

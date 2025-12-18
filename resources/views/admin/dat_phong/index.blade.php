@@ -192,6 +192,7 @@
                                         <td class="px-4 py-3 text-center text-gray-700 whitespace-nowrap text-sm">
                                             {{ date('d/m/Y', strtotime($booking->ngay_tra)) }}
                                         </td>
+                                        {{-- <td class="px-4 py-3 text-center text-gray-700 whitespace-nowrap">{{ $booking->so_nguoi }}</td> --}}
                                         <td class="px-4 py-3 text-center text-gray-700 whitespace-nowrap text-sm">
                                             <div class="font-medium">{{ $booking->so_nguoi ?? 0 }} NL</div>
                                             @if(($booking->so_tre_em ?? 0) > 0)
@@ -246,7 +247,7 @@
                                             @endif
                                         </td>
                                         <td class="px-4 py-3">
-                                            <div class="flex items-center justify-center space-x-2">
+                                            <div class="flex items-center justify-center gap-1">
                                                 <a href="{{ route('admin.dat_phong.show', $booking->id) }}" title="Xem chi tiết"
                                                     class="inline-flex items-center justify-center w-7 h-7 rounded hover:bg-blue-50 text-blue-600 hover:text-blue-700 transition text-xs">
                                                     <i class="fas fa-eye"></i>
