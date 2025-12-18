@@ -83,10 +83,9 @@ class ThanhToanController extends Controller
             }
         }
         
-        // Tính lại phụ phí trẻ em và em bé
-        // Phụ phí trẻ em = 10% giá phòng/đêm, em bé = 5% giá phòng/đêm
-        $childFeePercent = 0.1; // 10% cho trẻ em
-        $infantFeePercent = 0.05; // 5% cho em bé
+        // Tính lại phụ phí trẻ em và em bé (ước tính nếu thiếu dữ liệu trong DB)
+        // Chính sách mới: Trẻ em = 150,000 VNĐ / người / đêm, Em bé = miễn phí
+        // Ở đây chỉ dùng để ước lượng trong trường hợp booking cũ chưa có phu_phi_tre_em / phu_phi_em_be.
         $phuPhiTreEm = 0;
         $phuPhiEmBe = 0;
         
@@ -96,10 +95,9 @@ class ThanhToanController extends Controller
                 $soLuong = $roomType['so_luong'] ?? 1;
                 $lp = \App\Models\LoaiPhong::find($roomType['loai_phong_id']);
                 if ($lp) {
-                    $pricePerNight = $lp->gia_khuyen_mai ?? $lp->gia_co_ban ?? 0;
-                    // Phụ phí trẻ em = 10%, em bé = 5% giá phòng/đêm
-                    $childFeeRate = $pricePerNight * $childFeePercent;
-                    $infantFeeRate = $pricePerNight * $infantFeePercent;
+                    // Áp dụng giá cố định cho phụ phí thay vì % theo giá phòng
+                    $childFeeRate = 150000; // 150K / trẻ em / đêm
+                    $infantFeeRate = 0;     // Em bé miễn phí
                     
                     // Phân bổ số trẻ em và em bé cho loại phòng này (giả sử phân bổ đều)
                     $totalRooms = $roomTypes->sum(function($item) { return $item['so_luong'] ?? 1; });
@@ -114,10 +112,9 @@ class ThanhToanController extends Controller
             // Fallback: Tính từ loại phòng chính
             $lp = $datPhong->loaiPhong;
             if ($lp) {
-                $pricePerNight = $lp->gia_khuyen_mai ?? $lp->gia_co_ban ?? 0;
-                // Phụ phí trẻ em = 10%, em bé = 5% giá phòng/đêm
-                $childFeeRate = $pricePerNight * $childFeePercent;
-                $infantFeeRate = $pricePerNight * $infantFeePercent;
+                // Áp dụng giá cố định: 150K/trẻ em/đêm, em bé miễn phí
+                $childFeeRate = 150000;
+                $infantFeeRate = 0;
                 
                 $phuPhiTreEm = ($datPhong->so_tre_em ?? 0) * $childFeeRate * $nights;
                 $phuPhiEmBe = ($datPhong->so_em_be ?? 0) * $infantFeeRate * $nights;
