@@ -232,9 +232,9 @@ class BookingManager {
                             </select>
                         </div>
 
-                        <!-- Children (Trẻ em 6-12 tuổi) -->
+                        <!-- Children (Trẻ em 6-11 tuổi) -->
                         <div class="flex-1">
-                            <div class="text-sm text-gray-700 mb-1">Trẻ em (6-12 tuổi)</div>
+                            <div class="text-sm text-gray-700 mb-1">Trẻ em (6-11 tuổi)</div>
                             <select id="${childrenRowId}"
                                     class="w-full border border-gray-300 rounded px-2 py-1 text-sm bg-white appearance-none cursor-pointer"
                                     data-room-id="${roomId}"
