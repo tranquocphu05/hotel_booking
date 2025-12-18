@@ -225,13 +225,10 @@
                                                 <i class="fas fa-user text-blue-500 text-2xl"></i>
                                             </div>
                                             <label for="total_adults" class="block text-sm font-medium text-gray-700 mb-2">Người lớn</label>
-                                            <select id="total_adults" 
+                                            <input type="number" id="total_adults" name="so_nguoi" min="1" max="20" step="1"
                                                 class="w-full border-2 border-blue-300 rounded-md py-2 px-3 text-center text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400 appearance-none bg-white"
-                                                onchange="updateAllRoomGuests('adults')">
-                                                @for($i = 0; $i <= 4; $i++)
-                                                    <option value="{{ $i }}" {{ $i == 2 ? 'selected' : '' }}>{{ $i }}</option>
-                                                @endfor
-                                            </select>
+                                                value="{{ old('so_nguoi', 2) }}" oninput="updateAllRoomGuests('adults')">
+                                            
                                         </div>
                                         
                                         {{-- Trẻ em (6-12 tuổi) --}}
@@ -240,13 +237,9 @@
                                                 <i class="fas fa-child text-green-500 text-2xl"></i>
                                             </div>
                                             <label for="total_children" class="block text-sm font-medium text-gray-700 mb-2">Trẻ em (6-12)</label>
-                                            <select id="total_children" 
+                                            <input type="number" id="total_children" name="so_tre_em" min="0" max="10" step="1"
                                                 class="w-full border-2 border-green-300 rounded-md py-2 px-3 text-center text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-green-400 appearance-none bg-white"
-                                                onchange="updateAllRoomGuests('children')">
-                                                @for($i = 0; $i <= 2; $i++)
-                                                    <option value="{{ $i }}">{{ $i }}</option>
-                                                @endfor
-                                            </select>
+                                                value="{{ old('so_tre_em', 0) }}" oninput="updateAllRoomGuests('children')"> 
                                         </div>
                                         
                                         {{-- Em bé (0-5 tuổi) --}}
@@ -255,16 +248,13 @@
                                                 <i class="fas fa-baby text-pink-500 text-2xl"></i>
                                             </div>
                                             <label for="total_infants" class="block text-sm font-medium text-gray-700 mb-2">Em bé (0-5)</label>
-                                            <select id="total_infants" 
+                                            <input type="number" id="total_infants" name="so_em_be" min="0" max="5" step="1"
                                                 class="w-full border-2 border-pink-300 rounded-md py-2 px-3 text-center text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-pink-400 appearance-none bg-white"
-                                                onchange="updateAllRoomGuests('infants')">
-                                                @for($i = 0; $i <= 2; $i++)
-                                                    <option value="{{ $i }}">{{ $i }}</option>
-                                                @endfor
-                                            </select>
+                                                value="{{ old('so_em_be', 0) }}" oninput="updateAllRoomGuests('infants')">
                                         </div>
                                     </div>
                                 </div>
+                                <p id="guest_limit_error" class="mt-2 text-sm text-red-600 hidden"></p>
                             </section>
 
                             <!-- Chọn mã giảm giá -->
@@ -790,12 +780,13 @@
                     console.log('updateAllRoomGuests: totalInput not found for type', type);
                     return;
                 }
-                
-                const totalValue = parseInt(totalInput.value) || 0;
+
+                // Read current totals (use inputs if present)
+                let adultsVal = parseInt(document.getElementById('total_adults')?.value || 0);
+                let childrenVal = parseInt(document.getElementById('total_children')?.value || 0);
+                let infantsVal = parseInt(document.getElementById('total_infants')?.value || 0);
                 const selectedRoomTypes = Array.from(document.querySelectorAll('.room-type-checkbox:checked'));
-                
-                console.log('updateAllRoomGuests called:', { type, totalValue, selectedRoomTypesCount: selectedRoomTypes.length });
-                
+
                 if (selectedRoomTypes.length === 0) {
                     // Nếu không có phòng nào được chọn, đặt tất cả hidden inputs về 0
                     document.querySelectorAll('input[id*="_hidden_' + type + '"]').forEach(input => {
@@ -803,11 +794,11 @@
                             input.value = 0;
                         }
                     });
-                    console.log('No rooms selected, resetting all hidden inputs for', type);
+                    document.getElementById('guest_limit_error')?.classList.add('hidden');
                     updateTotalPrice();
                     return;
                 }
-                
+
                 // Tính tổng số lượng phòng
                 let totalQuantity = 0;
                 selectedRoomTypes.forEach(checkbox => {
@@ -816,10 +807,46 @@
                     const quantity = parseInt(quantityInput?.value || 1);
                     totalQuantity += quantity;
                 });
-                
-                console.log('Total quantity:', totalQuantity);
-                
-                // Phân bổ đều cho tất cả loại phòng đã chọn
+
+                // Compute units (1 adult = 2 units, 1 child = 1 unit, 1 infant = 1 unit)
+                const inputVal = parseInt(totalInput.value) || 0;
+                if (type === 'adults') adultsVal = inputVal;
+                if (type === 'children') childrenVal = inputVal;
+                if (type === 'infants') infantsVal = inputVal;
+
+                const totalUnits = (adultsVal * 2) + childrenVal + infantsVal;
+                const baseUnits = totalQuantity * 4; // 2 adults * 2 units
+                const maxUnits = totalQuantity * 6; // base + extra (per room +2 units)
+
+                if (totalUnits > maxUnits) {
+                    // Cap the input to allowed max for this type
+                    const otherUnits = totalUnits - ((type === 'adults') ? (adultsVal * 2) : (type === 'children' ? childrenVal : infantsVal));
+                    const availableUnits = Math.max(0, maxUnits - otherUnits);
+                    let allowedValue = 0;
+                    if (type === 'adults') {
+                        allowedValue = Math.floor(availableUnits / 2);
+                    } else {
+                        allowedValue = Math.floor(availableUnits);
+                    }
+                    // Update the input to allowed value
+                    totalInput.value = allowedValue;
+                    // Show helper error
+                    const err = document.getElementById('guest_limit_error');
+                    if (err) {
+                        err.textContent = `Giới hạn tối đa cho số khách theo số phòng đã chọn: ${maxUnits / 2} người lớn tương đương (tương đương ${maxUnits} đơn vị).`; 
+                        err.classList.remove('hidden');
+                    }
+                    // Update the local var to allowed
+                    if (type === 'adults') adultsVal = allowedValue;
+                    if (type === 'children') childrenVal = allowedValue;
+                    if (type === 'infants') infantsVal = allowedValue;
+                } else {
+                    document.getElementById('guest_limit_error')?.classList.add('hidden');
+                }
+
+                console.log('updateAllRoomGuests called:', { type, adultsVal, childrenVal, infantsVal, totalQuantity });
+
+                // Phân bổ đều cho tất cả loại phòng đã chọn (based on current values after cap)
                 selectedRoomTypes.forEach(checkbox => {
                     const roomTypeId = checkbox.value;
                     const hiddenInput = document.getElementById(type + '_hidden_' + roomTypeId);
@@ -827,18 +854,20 @@
                         // Tính số khách cho loại phòng này dựa trên số lượng phòng
                         const quantityInput = document.getElementById('quantity_' + roomTypeId);
                         const quantity = parseInt(quantityInput?.value || 1);
-                        
+
+                        // Determine totalValue to distribute
+                        let totalValueToDistribute = (type === 'adults') ? adultsVal : (type === 'children' ? childrenVal : infantsVal);
+
                         // Phân bổ theo tỷ lệ số lượng phòng
-                        const guestForRoom = totalQuantity > 0 ? Math.round((totalValue * quantity) / totalQuantity) : 0;
+                        const guestForRoom = totalQuantity > 0 ? Math.round((totalValueToDistribute * quantity) / totalQuantity) : 0;
                         hiddenInput.value = guestForRoom;
                         console.log(`Updated ${type}_hidden_${roomTypeId}:`, guestForRoom, 'for quantity', quantity);
                     } else {
                         console.warn(`Hidden input not found: ${type}_hidden_${roomTypeId}`);
                     }
                 });
-                
+
                 // Cập nhật tổng tiền sau khi phân bổ
-                console.log('Calling updateTotalPrice after updating guests');
                 updateTotalPrice();
             }
             
@@ -1066,15 +1095,21 @@
 
                 // Khởi tạo giá trị ban đầu cho số khách
                 syncAllGuests();
+
+                // Ensure per-room hidden inputs are synced right before submit so server gets same counts as preview
+                document.getElementById('bookingForm')?.addEventListener('submit', function() {
+                    syncAllGuests();
+                    updateTotalPrice();
+                });
                 
-                // Thêm event listener cho các dropdown số khách
-                document.getElementById('total_adults')?.addEventListener('change', function() {
+                // Thêm event listener cho các trường số khách (sử dụng input để cập nhật ngay)
+                document.getElementById('total_adults')?.addEventListener('input', function() {
                     updateAllRoomGuests('adults');
                 });
-                document.getElementById('total_children')?.addEventListener('change', function() {
+                document.getElementById('total_children')?.addEventListener('input', function() {
                     updateAllRoomGuests('children');
                 });
-                document.getElementById('total_infants')?.addEventListener('change', function() {
+                document.getElementById('total_infants')?.addEventListener('input', function() {
                     updateAllRoomGuests('infants');
                 });
                 
@@ -1088,17 +1123,17 @@
                 const totalInfantsSelect = document.getElementById('total_infants');
                 
                 if (totalAdultsSelect) {
-                    totalAdultsSelect.addEventListener('change', function() {
+                    totalAdultsSelect.addEventListener('input', function() {
                         updateAllRoomGuests('adults');
                     });
                 }
                 if (totalChildrenSelect) {
-                    totalChildrenSelect.addEventListener('change', function() {
+                    totalChildrenSelect.addEventListener('input', function() {
                         updateAllRoomGuests('children');
                     });
                 }
                 if (totalInfantsSelect) {
-                    totalInfantsSelect.addEventListener('change', function() {
+                    totalInfantsSelect.addEventListener('input', function() {
                         updateAllRoomGuests('infants');
                     });
                 }
@@ -1411,37 +1446,18 @@
                     totalChildren += children;
                     totalInfants += infants;
 
-                    const capacity = quantity * maxAdultsPerRoom;
-                    const extraGuests = Math.max(0, adults - capacity);
-                    
-                    console.log(`Room ${roomTypeId}: capacity=${capacity}, extraGuests=${extraGuests}`);
-
+                    // compute totals for type (prices only). surcharge calculations will be computed globally later based on totals
                     let current = new Date(startDate.getTime());
                     let totalForType = 0;
-                    let extraFeeForType = 0;
-                    let childFeeForType = 0;
-                    let infantFeeForType = 0;
-                    
+                    let extraFeeForType = 0; // not computed per type here
+                    let childFeeForType = 0; // not computed per type here
+                    let infantFeeForType = 0; // not computed per type here
+
                     while (current < endDate) {
                         const multiplier = getMultiplierForDateJS(current);
                         const priceForDay = basePrice * multiplier;
-                        
+
                         totalForType += priceForDay * quantity;
-
-                        // Phụ phí người lớn vượt
-                        if (extraGuests > 0) {
-                            extraFeeForType += extraGuests * priceForDay * extraFeePercent;
-                        }
-
-                        // Phụ phí trẻ em
-                        if (children > 0) {
-                            childFeeForType += children * priceForDay * childFeePercent;
-                        }
-
-                        // Phụ phí em bé
-                        if (infants > 0) {
-                            infantFeeForType += infants * priceForDay * infantFeePercent;
-                        }
 
                         if (isHolidayJS(current)) {
                             holidayNights += 1;
@@ -1490,6 +1506,52 @@
                     }
                 } else {
                     guestSummary.classList.add('hidden');
+                }
+
+                // Now compute extra-capacity-based surcharges based on totals and rooms
+                const totalSoLuong = Array.from(document.querySelectorAll('.room-type-checkbox:checked')).reduce((acc, cb) => {
+                    const q = parseInt(document.getElementById('quantity_' + cb.value)?.value || 1);
+                    return acc + q;
+                }, 0);
+
+                // Units approach: adult=2 units, child=1 unit, infant=1 unit
+                const unitsTotal = (totalAdults * 2) + totalChildren + totalInfants;
+                const baseUnits = totalSoLuong * 4;
+                const maxUnits = totalSoLuong * 6;
+
+                let extraAdultsCount = 0;
+                let extraChildrenCount = 0;
+                let extraInfantsCount = 0;
+
+                // Reset surcharge totals (we will compute only extra counts)
+                totalExtraFee = 0;
+                totalChildFee = 0;
+                totalInfantFee = 0;
+
+                if (unitsTotal > baseUnits && totalSoLuong > 0) {
+                    // allocate base units prioritizing adults
+                    const adultsUnits = totalAdults * 2;
+                    const adultsExtraUnits = Math.max(0, adultsUnits - baseUnits);
+                    let unitsRemainingBase = Math.max(0, baseUnits - adultsUnits);
+
+                    const childrenAssignedUnits = Math.min(totalChildren, unitsRemainingBase);
+                    const childrenExtra = Math.max(0, totalChildren - childrenAssignedUnits);
+                    unitsRemainingBase -= childrenAssignedUnits;
+
+                    const infantsAssignedUnits = Math.min(totalInfants, unitsRemainingBase);
+                    const infantsExtra = Math.max(0, totalInfants - infantsAssignedUnits);
+
+                    extraAdultsCount = Math.floor(adultsExtraUnits / 2);
+                    extraChildrenCount = childrenExtra;
+                    extraInfantsCount = infantsExtra;
+
+                    // Distribute surcharge proportional to room revenue
+                    if (totalSoLuong > 0 && roomTotal > 0) {
+                        const perRoomShare = roomTotal / totalSoLuong; // includes nights
+                        totalExtraFee = extraAdultsCount * perRoomShare * extraFeePercent;
+                        totalChildFee = extraChildrenCount * perRoomShare * childFeePercent;
+                        totalInfantFee = extraInfantsCount * perRoomShare * infantFeePercent;
+                    }
                 }
 
                 const surchargeSummary = document.getElementById('surcharge_summary');
