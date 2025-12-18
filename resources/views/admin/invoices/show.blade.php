@@ -132,8 +132,13 @@
                                 d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z">
                             </path>
                         </svg>
-                        In hóa đơn
+                        Print
                     </a>
+                    @if ($invoice->trang_thai === 'da_thanh_toan')
+                        <button id="open_adjust_modal" type="button" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-6 rounded-lg flex items-center gap-2 transition">
+                            Remove Service
+                        </button>
+                    @endif
                     @if (!in_array($invoice->trang_thai, ['da_thanh_toan', 'hoan_tien']))
                         <a href="{{ route('admin.invoices.edit', $invoice->id) }}"
                             class="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-6 rounded-lg flex items-center gap-2 transition">
@@ -148,11 +153,7 @@
                     @if ($invoice->trang_thai === 'da_thanh_toan' && !$invoice->isExtra())
                         <a href="{{ route('admin.invoices.create_extra', $invoice->id) }}"
                             class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg flex items-center gap-2 transition">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
-                                </path>
-                            </svg>
-                            Thêm hóa đơn dịch vụ phát sinh
+                            Add Extra Service
                         </a>
                     @endif
 
@@ -163,15 +164,69 @@
                                 d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
                             </path>
                         </svg>
-                        Xuất Excel
+                        Export Excel
                     </a>
 
                     <a href="{{ route('admin.invoices.index') }}"
                         class="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-6 rounded-lg transition">
-                        Quay lại
+                        Back
                     </a>
                 </div>
             </div>
+
+            <!-- Adjustment modal (hidden) -->
+            <div id="adjust_modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+                <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+                    <h3 class="text-lg font-semibold mb-4">Bớt dịch vụ</h3>
+                    <form id="adjust_form" method="POST" action="{{ route('admin.invoices.adjust', $invoice->id) }}">
+                        @csrf
+                        <div class="grid grid-cols-1 gap-2">
+                            <div>
+                                <label class="text-sm font-medium">Dịch vụ</label>
+                                <link href="https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/css/tom-select.css" rel="stylesheet">
+                                <select id="adjust_booking_services" name="booking_services[]" multiple class="w-full border rounded px-2 py-1">
+                                    @foreach($bookingServiceOptions ?? [] as $opt)
+                                        <option value="{{ $opt['id'] }}" data-remaining="{{ $opt['remaining'] }}" data-used_at="{{ $opt['used_at'] }}" data-phong-id="{{ $opt['phong_id'] ?? '' }}" data-so-phong="{{ $opt['so_phong'] ?? '' }}" data-service-name="{{ $opt['service_name'] }}" data-unit-price="{{ $opt['unit_price'] }}">{{ $opt['service_name'] }} — Phòng: {{ $opt['so_phong'] ?? '-' }} — {{ $opt['used_at_display'] }}</option>
+                                    @endforeach
+                                </select>
+                                <div id="adjust_items_container" class="mt-2 space-y-3"></div>
+                            </div> 
+                            <div>
+                                <label class="text-sm font-medium">Hoàn tiền (tuỳ chọn)</label>
+                                <div class="mt-2">
+                                    <label class="text-sm">Phương thức hoàn tiền</label>
+                                    <select id="adjust_refund_method" name="refund_method" class="w-full border rounded px-2 py-1 mb-2">
+                                        <option value="tien_mat">Tiền mặt</option>
+                                        <option value="chuyen_khoan">Chuyển khoản</option>
+                                
+                                    </select>
+                                    <div id="adjust_refund_bank_fields" class="space-y-2">
+                                        <input id="adjust_refund_account_number" type="text" name="refund_account_number" placeholder="Số tài khoản" class="w-full border rounded px-2 py-1 mb-2">
+                                        <input id="adjust_refund_account_name" type="text" name="refund_account_name" placeholder="Tên chủ tài khoản" class="w-full border rounded px-2 py-1 mb-2">
+                                        <input id="adjust_refund_bank_name" type="text" name="refund_bank_name" placeholder="Ngân hàng" class="w-full border rounded px-2 py-1">
+                                    </div>
+                                </div>
+                            </div>                           
+                            <div>
+                                <label class="text-sm font-medium">Ghi chú</label>
+                                <input type="text" name="note" class="w-full border rounded px-2 py-1" placeholder="Lý do ví dụ: Khách không dùng">
+                            </div>
+                            <div class="mt-2">
+                                <label class="text-sm font-medium">Tổng bớt</label>
+                                <div id="adjust_total_display" class="text-lg font-semibold text-red-600">0 đ</div>
+                            </div>
+                            <div class="flex items-center justify-between mt-4">
+                                <div class="text-sm text-gray-500">&nbsp;</div>
+                                <div class="flex items-center gap-2">
+                                    <button type="button" id="adjust_cancel_btn" class="px-4 py-2 rounded border">Hủy</button>
+                                    <button type="submit" class="px-4 py-2 rounded bg-red-600 text-white">Xác nhận</button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             {{-- Main Invoice Card --}}
             <div class="bg-white rounded-lg shadow-lg overflow-hidden">
 
@@ -305,7 +360,12 @@
                                                 $subtotal = $qty * $unitPrice;
                                             @endphp
                                             <tr class="hover:bg-blue-50 transition">
-                                                <td class="px-6 py-4 text-gray-900">{{ $name }}</td>
+                                                <td class="px-6 py-4 text-gray-900">
+                                                    <div>{{ $name }}</div>
+                                                    @if($s->note)
+                                                        <div class="text-xs text-gray-500 italic mt-1">{{ $s->note }}</div>
+                                                    @endif
+                                                </td>
                                                 <td class="px-6 py-4 text-center text-gray-700">
                                                     {{ $s->phong ? $s->phong->so_phong ?? $s->phong->id : $s->phong_id ?? '-' }}
                                                 </td>
@@ -397,8 +457,9 @@
                                 </div>
                             @endif
 
-                            <div class="pt-4 border-t border-gray-200 space-y-4">
-                                <div class="grid grid-cols-3 items-center gap-4">
+                            <div class="pt-4 border-t border-gray-200 space-y-4">                                    @if($invoice->ghi_chu)
+                                        <div class="text-sm text-gray-700 italic">Ghi chú: {{ $invoice->ghi_chu }}</div>
+                                    @endif                                <div class="grid grid-cols-3 items-center gap-4">
                                     <h3 class="text-base font-bold text-gray-900">
                                         Chi tiết hóa đơn
                                     </h3>
@@ -676,4 +737,353 @@
             </div>
         </div>
     </div>
+<script>
+    (function(){
+        // Protect modal JS from uncaught exceptions so the rest of the page keeps working
+        function safe(fn, ctx){
+            return function(){
+                try { return fn.apply(ctx || this, arguments); }
+                catch (e) { console.error('Invoice adjust modal error', e); }
+            };
+        }
+
+        // Small currency formatter used by this modal (keeps format like "0 đ")
+        function formatCurrency(amount) {
+            try {
+                const v = Number(amount) || 0;
+                return v.toLocaleString('vi-VN') + ' đ';
+            } catch (e) {
+                return (amount || 0) + ' đ';
+            }
+        }
+
+        const openBtn = document.getElementById('open_adjust_modal');
+        const modal = document.getElementById('adjust_modal');
+        const cancelBtn = document.getElementById('adjust_cancel_btn');
+        const bookingServicesSelect = document.getElementById('adjust_booking_services');
+        const itemsContainer = document.getElementById('adjust_items_container');
+        const refundCb = document.getElementById('adjust_create_refund_cb');
+        const refundFields = document.getElementById('refund_fields');
+
+        function openModal(){ modal.classList.remove('hidden'); }
+        function closeModal(){ modal.classList.add('hidden'); }
+
+        if (openBtn) openBtn.addEventListener('click', openModal);
+        if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+
+        // TomSelect loader and init
+        function loadTomSelectAndInit(cb) {
+            if (window.TomSelect) return cb();
+            if (!document.querySelector('link[href*="tom-select"]')) {
+                const link = document.createElement('link');
+                link.href = 'https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/css/tom-select.css';
+                link.rel = 'stylesheet';
+                document.head.appendChild(link);
+            }
+            const s = document.createElement('script');
+            s.src = 'https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/js/tom-select.complete.min.js';
+            s.onload = cb;
+            document.body.appendChild(s);
+        }
+
+        function findOptionByValue(val) {
+            if (!bookingServicesSelect) return null;
+            return bookingServicesSelect.querySelector('option[value="' + val + '"]');
+        }
+
+        function createAdjustRow(id, opt) {
+            const rem = parseInt(opt.dataset.remaining || 0, 10);
+            const used_at = opt.dataset.used_at || '';
+            const phongId = opt.dataset.phongId || '';
+            const soPhong = opt.dataset.soPhong || '';
+            const svcName = opt.dataset.serviceName || '';
+            const unitPrice = parseFloat(opt.dataset.unitPrice || 0);
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'adjust-item border rounded p-3 bg-gray-50';
+            wrapper.setAttribute('data-id', id);
+
+            // Header
+            const header = document.createElement('div');
+            header.className = 'flex justify-between items-center mb-1';
+            const title = document.createElement('div');
+            title.className = 'text-sm font-semibold';
+            title.innerHTML = svcName + ' <span class="text-xs text-gray-500"> — Phòng: ' + soPhong + '</span> <span class="text-xs text-gray-500"> — Ngày: ' + used_at + '</span>';
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'remove-adjust-item px-2 py-1 text-sm text-red-600';
+            removeBtn.textContent = 'Xoá';
+            header.appendChild(title);
+            header.appendChild(removeBtn);
+            wrapper.appendChild(header);
+
+            // Hidden booking_service_id
+            const hidden = document.createElement('input');
+            hidden.type = 'hidden';
+            hidden.name = 'adjustments[' + id + '][booking_service_id]';
+            hidden.value = id;
+            wrapper.appendChild(hidden);
+
+            // Grid container
+            const grid = document.createElement('div');
+            grid.className = 'grid grid-cols-2 gap-2 mb-1';
+
+            // ID column
+            const idCol = document.createElement('div');
+            const idLabel = document.createElement('label');
+            idLabel.className = 'text-xs';
+            idLabel.textContent = 'ID';
+            const idInput = document.createElement('input');
+            idInput.type = 'text';
+            idInput.className = 'w-full border rounded px-2 py-1 bg-gray-100';
+            idInput.readOnly = true;
+            idInput.name = 'adjustments[' + id + '][phong_id]';
+            idInput.value = phongId;
+            idCol.appendChild(idLabel);
+            idCol.appendChild(idInput);
+            grid.appendChild(idCol);
+
+            // Quantity column
+            const qtyCol = document.createElement('div');
+            const qtyLabel = document.createElement('label');
+            qtyLabel.className = 'text-xs';
+            qtyLabel.textContent = 'Số lượng';
+            const qtyInput = document.createElement('input');
+            qtyInput.type = 'number';
+            qtyInput.min = 1;
+            qtyInput.max = rem;
+            qtyInput.value = rem > 0 ? 1 : 0;
+            qtyInput.name = 'adjustments[' + id + '][quantity]';
+            qtyInput.className = 'w-full border rounded px-2 py-1 adjust-qty';
+            qtyInput.dataset.max = rem;
+            qtyInput.dataset.unitPrice = unitPrice;
+            const hint = document.createElement('div');
+            hint.className = 'text-xs text-gray-500 mt-1';
+            hint.textContent = 'Có thể bớt tối đa: ' + rem;
+            qtyCol.appendChild(qtyLabel);
+            qtyCol.appendChild(qtyInput);
+            qtyCol.appendChild(hint);
+            grid.appendChild(qtyCol);
+
+            wrapper.appendChild(grid);
+
+            // Subtotal display
+            const subtotalWrap = document.createElement('div');
+            subtotalWrap.className = 'text-right text-sm text-gray-600';
+            
+            wrapper.appendChild(subtotalWrap);
+
+            // Remove handler
+            removeBtn.addEventListener('click', safe(function(){
+                try {
+                    if (window.TomSelect && bookingServicesSelect && bookingServicesSelect._tom_select) {
+                        bookingServicesSelect._tom_select.removeItem(id);
+                    } else {
+                        const opt = findOptionByValue(id);
+                        if (opt) opt.selected = false;
+                    }
+                    wrapper.remove();
+                    updateAdjustTotal();
+                } catch (err) { console.error('remove handler error', err); }
+            }));
+
+            // qty change handler
+            qtyInput.addEventListener('input', safe(function(){
+                try {
+                    let val = parseInt(qtyInput.value || 0, 10);
+                    const max = parseInt(qtyInput.dataset.max || 0, 10);
+                    if (isNaN(val) || val < 1) val = 1;
+                    if (val > max) val = max;
+                    qtyInput.value = val;
+                    const unit = parseFloat(qtyInput.dataset.unitPrice || unitPrice || 0);
+                    const subtotalEl = wrapper.querySelector('.line-subtotal');
+                    if (subtotalEl) subtotalEl.textContent = formatCurrency(unit * val);
+                    updateAdjustTotal();
+                } catch (err) { console.error('qty change handler error', err); }
+            }));
+
+            // ensure total updates when row is created
+            updateAdjustTotal();
+
+            return wrapper;
+        }
+
+        function updateSelectedItems(values) {
+            try {
+                // Normalize values to an array of string ids
+                let sel = [];
+                if (Array.isArray(values)) {
+                    sel = values.map(v => {
+                        if (v && typeof v === 'object' && 'value' in v) return String(v.value);
+                        return String(v || '');
+                    }).map(s => s.trim()).filter(Boolean);
+                } else if (values) {
+                    sel = String(values).split(',').map(s => s.trim()).filter(Boolean);
+                } else {
+                    sel = [];
+                }
+
+                // Add new
+                sel.forEach(id => {
+                    if (!itemsContainer.querySelector('.adjust-item[data-id="' + id + '"]')) {
+                        const opt = findOptionByValue(id);
+                        if (!opt) return;
+                        const row = createAdjustRow(id, opt);
+                        itemsContainer.appendChild(row);
+                    }
+                });
+
+                // Remove unselected
+                const existing = Array.from(itemsContainer.querySelectorAll('.adjust-item'));
+                existing.forEach(node => {
+                    const id = node.getAttribute('data-id');
+                    if (sel.indexOf(id) === -1) node.remove();
+                });
+
+                // update total after adding/removing rows
+                updateAdjustTotal();
+            } catch (err) { console.error('updateSelectedItems error', err); }
+        }
+
+        // Recompute the overall total of removed services and update UI
+        function updateAdjustTotal() {
+            try {
+                const items = Array.from(itemsContainer.querySelectorAll('.adjust-item'));
+                let total = 0;
+                items.forEach(it => {
+                    try {
+                        const qtyEl = it.querySelector('.adjust-qty');
+                        const qty = parseInt(qtyEl ? qtyEl.value || 0 : 0, 10);
+                        let unit = NaN;
+                        if (qtyEl && qtyEl.dataset && qtyEl.dataset.unitPrice) unit = parseFloat(qtyEl.dataset.unitPrice || NaN);
+
+                        // Fallback to option dataset
+                        if ((isNaN(unit) || unit === 0) && bookingServicesSelect) {
+                            const bsId = it.getAttribute('data-id');
+                            if (bsId) {
+                                const opt = bookingServicesSelect.querySelector('option[value="' + bsId + '"]');
+                                if (opt) unit = parseFloat(opt.dataset.unitPrice || 0);
+                            }
+                        }
+
+                        if (!isNaN(qty) && !isNaN(unit)) total += qty * unit;
+                    } catch (inner) { console.error('line total calc error', inner); }
+                });
+                const display = document.getElementById('adjust_total_display');
+                if (display) display.textContent = formatCurrency(total);
+            } catch (err) { console.error('updateAdjustTotal error', err); }
+        }
+
+        if (bookingServicesSelect) {
+            loadTomSelectAndInit(function(){
+                try {
+                    const ts = new TomSelect(bookingServicesSelect, { plugins:['remove_button'], persist:false, create:false, onChange: function(vals){ updateSelectedItems(vals); }});
+                    // keep reference for remove convenience
+                    bookingServicesSelect._tom_select = ts;
+                    // initialize rows for any options that are already selected
+                    const initial = Array.from(bookingServicesSelect.selectedOptions).map(o => o.value);
+                    if (initial.length) updateSelectedItems(initial);
+                } catch (e) {
+                    // fallback: bind native change
+                    bookingServicesSelect.addEventListener('change', function(){
+                        const values = Array.from(bookingServicesSelect.selectedOptions).map(o => o.value);
+                        updateSelectedItems(values);
+                    });
+                }
+            });
+        }
+
+        if (refundCb) {
+            refundCb.addEventListener('change', function(){
+                if (refundCb.checked) refundFields.classList.remove('hidden'); else refundFields.classList.add('hidden');
+            });
+        }
+
+        // Show/hide bank/account inputs based on refund method (hide for tiền mặt)
+        const refundMethodEl = document.getElementById('adjust_refund_method');
+        const refundBankFields = document.getElementById('adjust_refund_bank_fields');
+        function updateRefundBankFields() {
+            if (!refundMethodEl || !refundBankFields) return;
+            const inputs = refundBankFields.querySelectorAll('input');
+            if (refundMethodEl.value === 'tien_mat') {
+                refundBankFields.classList.add('hidden');
+                // clear bank inputs when hidden and remove required flag
+                inputs.forEach(i => { i.value = ''; i.removeAttribute('required'); });
+            } else {
+                refundBankFields.classList.remove('hidden');
+                // If method is bank transfer, mark bank fields required
+                if (refundMethodEl.value === 'chuyen_khoan') {
+                    inputs.forEach(i => i.setAttribute('required', 'required'));
+                } else {
+                    inputs.forEach(i => i.removeAttribute('required'));
+                }
+            }
+        }
+        if (refundMethodEl) {
+            refundMethodEl.addEventListener('change', updateRefundBankFields);
+            // init on load
+            updateRefundBankFields();
+        }
+
+        // form validation for batch items
+        const form = document.getElementById('adjust_form');
+        if (form) {
+            form.addEventListener('submit', function(e){
+                // If a refund method is selected, signal the server to create RefundService rows
+                try {
+                    if (refundMethodEl && refundMethodEl.value) {
+                        let createRefundInput = form.querySelector('input[name="create_refund"]');
+                        if (!createRefundInput) {
+                            createRefundInput = document.createElement('input');
+                            createRefundInput.type = 'hidden';
+                            createRefundInput.name = 'create_refund';
+                            createRefundInput.value = '1';
+                            form.appendChild(createRefundInput);
+                        } else {
+                            createRefundInput.value = '1';
+                        }
+                    }
+                } catch (err) { console.error('set create_refund failed', err); }
+
+                // If refund method is bank transfer, ensure bank details are provided client-side
+                try {
+                    if (refundMethodEl && refundMethodEl.value === 'chuyen_khoan') {
+                        const acct = document.getElementById('adjust_refund_account_number');
+                        const name = document.getElementById('adjust_refund_account_name');
+                        const bank = document.getElementById('adjust_refund_bank_name');
+                        const missing = [];
+                        if (!acct || !acct.value.trim()) missing.push('Số tài khoản');
+                        if (!name || !name.value.trim()) missing.push('Tên chủ tài khoản');
+                        if (!bank || !bank.value.trim()) missing.push('Ngân hàng');
+                        if (missing.length) {
+                            e.preventDefault();
+                            alert('Vui lòng cung cấp: ' + missing.join(', ') + ' khi chọn phương thức chuyển khoản.');
+                            return;
+                        }
+                    }
+                } catch (err) { console.error('refund bank client validation error', err); }
+
+                // Debug: log adjustments payload in console so admins can copy it when reporting issues
+                try {
+                    const debugAdjust = Array.from(itemsContainer.querySelectorAll('.adjust-item')).map(it => ({
+                        booking_service_id: it.getAttribute('data-id'),
+                        quantity: (it.querySelector('.adjust-qty') || {}).value || 0
+                    }));
+                    console.debug('Submitting adjustments', debugAdjust);
+                } catch (err) { /* ignore */ }
+
+                const items = Array.from(itemsContainer.querySelectorAll('.adjust-item'));
+                if (items.length === 0) { e.preventDefault(); alert('Vui lòng chọn ít nhất một dịch vụ để bớt.'); return; }
+                for (const it of items) {
+                    const qtyEl = it.querySelector('.adjust-qty');
+                    if (!qtyEl) { e.preventDefault(); alert('Số lượng không hợp lệ.'); return; }
+                    const val = parseInt(qtyEl.value || 0, 10);
+                    const max = parseInt(qtyEl.dataset.max || 0, 10);
+                    if (val <= 0 || val > max) { e.preventDefault(); alert('Số lượng không hợp lệ hoặc vượt quá khả dụng (' + max + ').'); return; }
+                }
+            });
+        }
+    })();
+</script>
+
 @endsection

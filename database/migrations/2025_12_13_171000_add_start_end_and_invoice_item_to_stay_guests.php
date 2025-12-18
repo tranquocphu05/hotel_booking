@@ -13,7 +13,12 @@ return new class extends Migration
     {
         Schema::table('stay_guests', function (Blueprint $table) {
             if (!Schema::hasColumn('stay_guests', 'start_date')) {
-                $table->date('start_date')->nullable()->after('ngay_them');
+                // prefer to place after created_at (ngay_them column may not exist in fresh installs)
+                if (Schema::hasColumn('stay_guests', 'created_at')) {
+                    $table->date('start_date')->nullable()->after('created_at');
+                } else {
+                    $table->date('start_date')->nullable();
+                }
             }
             if (!Schema::hasColumn('stay_guests', 'end_date')) {
                 $table->date('end_date')->nullable()->after('start_date');

@@ -5,6 +5,8 @@ use App\Models\BookingService;
 use Illuminate\Http\Request;
 use App\Models\Invoice;
 use App\Models\Service;
+use App\Models\ThanhToan;
+use App\Models\RefundService;
 use App\Models\User;
 use App\Models\Phong;
 use App\Models\DatPhong;
@@ -94,7 +96,345 @@ class InvoiceController extends Controller
                 return ($bs->quantity ?? 0) * ($bs->unit_price ?? 0);
             });
         }
-        return view('admin.invoices.show', compact('invoice', 'services', 'serviceTotal'));
+        // Compute remaining removable quantity per service across the booking
+        $serviceAvailability = [];
+        $roomMap = [];
+        $bookingServiceOptions = [];
+        if ($booking) {
+            $allSvcRows = BookingService::where('dat_phong_id', $booking->id)->get()->groupBy('service_id');
+            foreach ($allSvcRows as $svcId => $rows) {
+                $pos = $rows->where('quantity', '>', 0)->sum('quantity');
+                $neg = $rows->where('quantity', '<', 0)->sum('quantity'); // negative number
+                $remaining = $pos + $neg; // remaining positive usage
+                $serviceAvailability[$svcId] = max(0, intval($remaining));
+            }
+
+            // Prepare room map for modal dropdown (id => so_phong)
+            $phongIds = $booking->getPhongIds();
+            if (is_string($phongIds)) {
+                $phongIds = json_decode($phongIds, true) ?: [];
+            }
+            $phongIds = is_array($phongIds) ? array_filter($phongIds) : [];
+            if (!empty($phongIds)) {
+                $roomMap = Phong::whereIn('id', $phongIds)->pluck('so_phong', 'id')->toArray();
+            }
+
+            // Build per-booking-service options (only positive original rows, exclude fully adjusted ones)
+            $svcRows = BookingService::where('dat_phong_id', $booking->id)
+                ->where(function($q) use ($invoice) {
+                    if ($invoice->invoice_type === 'EXTRA') {
+                        $q->where('invoice_id', $invoice->id);
+                    } else {
+                        $q->whereNull('invoice_id')->orWhere('invoice_id', $invoice->id);
+                    }
+                })->get();
+
+            foreach ($svcRows as $row) {
+                // only consider original positive quantities as selectable
+                if (!isset($row->quantity) || $row->quantity <= 0) continue;
+
+                // Sum negative adjustments that match same service, room and date
+                $negSum = BookingService::where('dat_phong_id', $booking->id)
+                    ->where('service_id', $row->service_id)
+                    ->where('phong_id', $row->phong_id)
+                    ->whereDate('used_at', date('Y-m-d', strtotime($row->used_at)))
+                    ->where('quantity', '<', 0)
+                    ->sum('quantity');
+
+                $remaining = max(0, intval($row->quantity + $negSum));
+                if ($remaining <= 0) continue; // already fully adjusted
+
+                $svc = $row->service;
+                $bookingServiceOptions[] = [
+                    'id' => $row->id,
+                    'service_id' => $row->service_id,
+                    'service_name' => $svc ? ($svc->name ?? 'Dịch vụ') : ($row->service_name ?? 'Dịch vụ'),
+                    'so_phong' => $row->phong ? ($row->phong->so_phong ?? $row->phong_id) : $row->phong_id,
+                    'phong_id' => $row->phong_id,
+                    'used_at' => date('Y-m-d', strtotime($row->used_at)),
+                    'used_at_display' => date('d/m/Y', strtotime($row->used_at)),
+                    'remaining' => $remaining,
+                    'unit_price' => $row->unit_price ?? 0,
+                ];
+            }
+        }
+
+        return view('admin.invoices.show', compact('invoice', 'services', 'serviceTotal', 'serviceAvailability', 'roomMap', 'bookingServiceOptions'));
+    }
+
+    /**
+     * Handle single adjustment (bớt dịch vụ) submitted from the invoice show modal.
+     */
+    public function adjust(Request $request, Invoice $invoice)
+    {
+        $request->validate([
+            // Accept either single row (legacy) or batch 'adjustments' array
+            'booking_service_id' => 'nullable|integer|exists:booking_services,id',
+            'quantity' => 'nullable|integer|min:1',
+            'adjustments' => 'nullable|array',
+            'adjustments.*.booking_service_id' => 'required_with:adjustments|integer|exists:booking_services,id',
+            'adjustments.*.quantity' => 'required_with:adjustments|integer|min:1',
+            'adjustments.*.used_at' => 'nullable|date',
+            'adjustments.*.note' => 'nullable|string|max:500',
+            'create_refund' => 'nullable|in:0,1',
+            'refund_method' => 'nullable|in:tien_mat,chuyen_khoan,cong_thanh_toan',
+            // When refund method is bank transfer, require full bank details
+            'refund_account_number' => 'required_if:refund_method,chuyen_khoan|string|max:200',
+            'refund_account_name' => 'required_if:refund_method,chuyen_khoan|string|max:200',
+            'refund_bank_name' => 'required_if:refund_method,chuyen_khoan|string|max:200',
+        ]);
+
+        $booking = $invoice->datPhong;
+        if (!$booking) {
+            return redirect()->back()->with('error', 'Đặt phòng không tồn tại.');
+        }
+
+        // Only allow adjustments for paid invoices
+        if (($invoice->trang_thai ?? '') !== 'da_thanh_toan') {
+            return redirect()->back()->with('error', 'Chỉ hóa đơn đã thanh toán mới được phép bớt dịch vụ.');
+        }
+
+        // Read batch adjustments early so we can decide whether to run legacy single-row validation
+        $adjustments = $request->input('adjustments', null);
+
+        // If this is NOT a batch request, validate the single booking_service inputs
+        if (!is_array($adjustments) || count($adjustments) === 0) {
+            $origId = intval($request->input('booking_service_id'));
+            $qty = intval($request->input('quantity'));
+
+            $original = BookingService::find($origId);
+            if (!$original || ($original->dat_phong_id ?? null) != ($booking->id ?? null)) {
+                return redirect()->back()->with('error', 'Dòng dịch vụ không hợp lệ.');
+            }
+
+            // Determine remaining for this exact booking service (match by service_id, phong_id, used_at)
+            $pos = $original->quantity > 0 ? intval($original->quantity) : 0;
+            $neg = BookingService::where('dat_phong_id', $booking->id)
+                ->where('service_id', $original->service_id)
+                ->where('phong_id', $original->phong_id)
+                ->whereDate('used_at', date('Y-m-d', strtotime($original->used_at)))
+                ->where('quantity', '<', 0)
+                ->sum('quantity');
+            $remaining = max(0, intval($pos + $neg));
+
+            if ($qty > $remaining) {
+                return redirect()->back()->with('error', "Số lượng giảm không được vượt quá số lượng đã đặt ({$remaining}).");
+            }
+        }
+
+        // Support batch adjustments if 'adjustments' array is provided
+        if (is_array($adjustments) && count($adjustments) > 0) {
+            // Log incoming payload for debugging when admins report "Dòng dịch vụ không hợp lệ"
+            try { Log::info('InvoiceController:adjust received adjustments', ['invoice_id' => $invoice->id, 'payload' => $adjustments]); } catch (\Throwable $_) {}
+
+            // Normalize adjustments into sequential array (helps when input keys are booking_service ids)
+            $normalized = [];
+            foreach ($adjustments as $k => $v) {
+                if (is_array($v) && isset($v['booking_service_id'])) {
+                    $normalized[] = [
+                        'booking_service_id' => intval($v['booking_service_id']),
+                        'quantity' => intval($v['quantity'] ?? 0),
+                        'used_at' => $v['used_at'] ?? null,
+                        'note' => $v['note'] ?? null,
+                    ];
+                } else {
+                    // Handle scalar/legacy submissions gracefully
+                    $asInt = intval($v);
+                    $qty = intval($request->input("adjustments.$k.quantity", 0));
+                    if ($asInt > 0 && $qty <= 0) {
+                        // when a scalar id is provided, default quantity to 1 if not present
+                        $qty = 1;
+                    }
+                    $normalized[] = [
+                        'booking_service_id' => $asInt,
+                        'quantity' => $qty,
+                        'used_at' => null,
+                        'note' => null,
+                    ];
+                }
+            }
+            $adjustments = $normalized;
+
+            DB::beginTransaction();
+            try {
+                $totalAdjustAmount = 0;
+                $notes = [];
+
+                foreach ($adjustments as $key => $adj) {
+                    $adjBsId = intval($adj['booking_service_id'] ?? $key);
+                    $adjQty = intval($adj['quantity'] ?? 0);
+                    if ($adjQty <= 0) continue;
+
+                    $orig = BookingService::find($adjBsId);
+                    if (!$orig || ($orig->dat_phong_id ?? null) != ($booking->id ?? null)) {
+                        throw new \Exception('Dòng dịch vụ không hợp lệ cho id: ' . $adjBsId);
+                    }
+
+                    $pos = $orig->quantity > 0 ? intval($orig->quantity) : 0;
+                    $neg = BookingService::where('dat_phong_id', $booking->id)
+                        ->where('service_id', $orig->service_id)
+                        ->where('phong_id', $orig->phong_id)
+                        ->whereDate('used_at', date('Y-m-d', strtotime($adj['used_at'] ?? $orig->used_at)))
+                        ->where('quantity', '<', 0)
+                        ->sum('quantity');
+                    $remainingForRow = max(0, intval($pos + $neg));
+
+                    if ($adjQty > $remainingForRow) {
+                        throw new \Exception("Số lượng giảm không được vượt quá số lượng đã đặt ({$remainingForRow}) cho dịch vụ id {$adjBsId}.");
+                    }
+
+                    $unit = $orig && $orig->unit_price ? $orig->unit_price : (Service::find($orig->service_id)->price ?? 0);
+
+                    // Avoid duplicate unique key error: if a negative adjustment row already exists for the same
+                    // dat_phong/service/used_at/phong/invoice, update its quantity instead of inserting
+                    $usedDate = date('Y-m-d', strtotime($adj['used_at'] ?? $orig->used_at));
+                    $existingNeg = BookingService::where('dat_phong_id', $booking->id)
+                        ->where('service_id', $orig->service_id)
+                        ->where('phong_id', $orig->phong_id)
+                        ->whereDate('used_at', $usedDate)
+                        ->where('invoice_id', $invoice->id)
+                        ->first();
+
+                    if ($existingNeg) {
+                        // extend the negative quantity
+                        $existingNeg->quantity = intval($existingNeg->quantity) - abs($adjQty);
+                        $existingNeg->note = trim(((string)$existingNeg->note ?: '') . ' ' . ($adj['note'] ?? ($request->input('note') ?? 'Dịch vụ dư – khách không dùng')));
+                        $existingNeg->save();
+                        try { Log::info('InvoiceController:adjust merged into existing negative row', ['existing_id' => $existingNeg->id, 'invoice_id' => $invoice->id, 'adj_qty' => $adjQty]); } catch (\Throwable $_) {}
+                        $amt = -1 * abs($adjQty) * ($existingNeg->unit_price ?? $unit);
+                    } else {
+                        $bs = BookingService::create([
+                            'dat_phong_id' => $booking->id,
+                            'phong_id' => $orig->phong_id,
+                            'invoice_id' => $invoice->id,
+                            'service_id' => $orig->service_id,
+                            'quantity' => -1 * abs($adjQty),
+                            'unit_price' => $unit,
+                            'used_at' => $usedDate,
+                            'note' => $adj['note'] ?? ($request->input('note') ?? 'Dịch vụ dư – khách không dùng'),
+                        ]);
+
+                        $amt = ($bs->quantity * $bs->unit_price); // negative
+                    }
+
+                    $totalAdjustAmount += $amt;
+                    $svcName = optional(Service::find($orig->service_id))->name ?? 'Dịch vụ';
+                    $notes[] = "Hoàn {$adjQty} x {$svcName} (Phòng: " . ($orig->phong->so_phong ?? $orig->phong_id) . ", ngày: " . $usedDate . ")";
+                }
+
+                if ($totalAdjustAmount !== 0) {
+                    $invoice->tong_tien = max(0, ($invoice->tong_tien ?? 0) + $totalAdjustAmount);
+                    $invoice->ghi_chu = trim(((string)$invoice->ghi_chu ?: '') . ' ' . implode('; ', $notes));
+                    $invoice->save();
+                }
+
+                // Optionally create refund records with bank info
+                if ($request->input('create_refund')) {
+                    $adjustRows = $adjustments;
+                    $totalRefundSum = 0;
+
+                    foreach ($adjustRows as $k => $a) {
+                        $rowBsId = intval($a['booking_service_id'] ?? $k);
+                        $rowQty = intval($a['quantity'] ?? 0);
+                        if ($rowQty <= 0) continue;
+                        $origRow = BookingService::find($rowBsId);
+                        if (!$origRow) continue;
+
+                        $unit = $origRow && $origRow->unit_price ? $origRow->unit_price : (Service::find($origRow->service_id)->price ?? 0);
+                        $totalForRow = round($unit * $rowQty, 2);
+
+                        RefundService::create([
+                            'hoa_don_id' => $invoice->id,
+                            'dat_phong_id' => $booking->id,
+                            'booking_service_id' => $rowBsId,
+                            'booking_room_ids' => json_encode([['id' => $origRow->phong_id, 'quantity' => $rowQty]]),
+                            'total_refund' => $totalForRow,
+                            'refund_method' => in_array($request->input('refund_method'), ['tien_mat','chuyen_khoan','cong_thanh_toan']) ? $request->input('refund_method') : 'tien_mat',
+                            'refund_status' => 'cho_xu_ly',
+                            'bank_account_number' => $request->input('refund_account_number'),
+                            'bank_account_name' => $request->input('refund_account_name'),
+                            'bank_name' => $request->input('refund_bank_name'),
+                            'note' => $request->input('note') ?? null,
+                            'created_by' => auth()->id() ?? null,
+                        ]);
+
+                        $totalRefundSum += $totalForRow;
+                    }
+
+                    if ($totalRefundSum > 0) {
+                        // Append refund note to invoice and save (no ThanhToan created here)
+                        $invoice->ghi_chu = trim(((string)$invoice->ghi_chu ?: '') . ' Hoàn tiền: ' . number_format($totalRefundSum,0,',','.') . ' đ. ' . ($request->input('refund_bank_name') ? 'Ngân hàng: '.$request->input('refund_bank_name') : ''));
+                        $invoice->save();
+                    }
+                }
+
+                DB::commit();
+            } catch (\Throwable $e) {
+                DB::rollBack();
+                try { Log::error('InvoiceController:adjust batch failed - ' . $e->getMessage()); } catch (\Throwable $_) {}
+                return redirect()->back()->with('error', 'Lỗi khi lưu điều chỉnh: ' . $e->getMessage());
+            }
+
+            return redirect()->back()->with('success', 'Bớt dịch vụ đã được lưu thành công.');
+        }
+
+        // fallback: single-row behavior (legacy single-selection)
+        DB::beginTransaction();
+        try {
+            // Determine unit price from the original row if possible
+            $unit = $original && $original->unit_price ? $original->unit_price : (Service::find($original->service_id)->price ?? 0);
+
+            $bs = BookingService::create([
+                'dat_phong_id' => $booking->id,
+                'phong_id' => $original->phong_id,
+                'invoice_id' => $invoice->id,
+                'service_id' => $original->service_id,
+                'quantity' => -1 * abs($qty),
+                'unit_price' => $unit,
+                'used_at' => date('Y-m-d', strtotime($original->used_at)),
+                'note' => $request->input('note') ?? 'Dịch vụ dư – khách không dùng',
+            ]);
+
+            $adjustAmount = ($bs->quantity * $bs->unit_price); // negative value
+
+            // Update invoice total and append note
+            $invoice->tong_tien = max(0, ($invoice->tong_tien ?? 0) + $adjustAmount);
+            // Use original service name for clarity (avoid undefined variable)
+            $svcName = optional(Service::find($original->service_id))->name ?? 'Dịch vụ';
+            $append = "Hoàn {$qty} x {$svcName}.";
+            $invoice->ghi_chu = trim(((string)$invoice->ghi_chu ?: '') . ' ' . $append);
+            $invoice->save();
+
+            // Optionally create refund service records (do not create ThanhToan automatically)
+            if ($request->input('create_refund')) {
+                // Auto-calculate refund amount as unit price * removed quantity
+                $refundAmount = round($unit * $qty, 2);
+                if ($refundAmount > 0) {
+                    RefundService::create([
+                        'hoa_don_id' => $invoice->id,
+                        'dat_phong_id' => $booking->id,
+                        'booking_service_id' => $original->id,
+                        'booking_room_ids' => json_encode([['id' => $original->phong_id, 'quantity' => $qty]]),
+                        'total_refund' => $refundAmount,
+                        'refund_method' => in_array($request->input('refund_method'), ['tien_mat','chuyen_khoan','cong_thanh_toan']) ? $request->input('refund_method') : 'tien_mat',
+                        'refund_status' => 'cho_xu_ly',
+                        'bank_account_number' => $request->input('refund_account_number'),
+                        'bank_account_name' => $request->input('refund_account_name'),
+                        'bank_name' => $request->input('refund_bank_name'),
+                        'note' => $request->input('note') ?? null,
+                        'created_by' => auth()->id() ?? null,
+                    ]);
+                }
+            }
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            try { Log::error('InvoiceController:adjust failed - ' . $e->getMessage()); } catch (\Throwable $_) {}
+            return redirect()->back()->with('error', 'Lỗi khi lưu điều chỉnh: ' . $e->getMessage());
+        }
+
+        return redirect()->back()->with('success', 'Bớt dịch vụ đã được lưu thành công.');
     }
 
     /**

@@ -672,6 +672,7 @@
 
 .room-card {
     display: flex;
+    flex-wrap: wrap;
     background: #fff;
     border-radius: 16px;
     border: 1px solid #f1f5f9;
@@ -680,7 +681,8 @@
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     min-height: 200px;
     padding: 16px;
-    gap: 8px;
+    padding-bottom: 0;
+    gap: 16px;
     align-items: flex-start;
 }
 
@@ -711,8 +713,8 @@
 
 .room-card__selection-area {
     width: 100%;
-    min-width: 320px;
-    max-width: 450px;
+    min-width: 240px;
+    max-width: 280px;
     display: flex;
     flex-direction: column;
 }
