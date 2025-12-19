@@ -634,14 +634,25 @@ class DatPhongController extends Controller
             'days_until_checkin'=> $daysUntilCheckin,
         ];
 
-        // Nếu đã quá ngày nhận phòng, không cho hủy (coi như đã check-in)
+        // Nếu đã check-in thực tế (thoi_gian_checkin có giá trị) => không cho hủy theo chính sách
+        if (!empty($booking->thoi_gian_checkin)) {
+            $totalPaid = $booking->invoice ? $booking->invoice->tong_tien : $booking->tong_tien;
+            $policy['can_cancel']        = false;
+            $policy['refund_percentage'] = 0;
+            $policy['refund_amount']     = 0;
+            $policy['penalty_amount']    = $totalPaid;
+            $policy['message']           = 'Không thể hủy booking đã check-in. Vui lòng thực hiện check-out trước.';
+            return $policy;
+        }
+
+        // Nếu đã qua ngày nhận phòng nhưng CHƯA check-in: vẫn cho hủy nhưng không hoàn tiền
         if ($daysUntilCheckin < 0) {
             $totalPaid = $booking->invoice ? $booking->invoice->tong_tien : $booking->tong_tien;
-            $policy['can_cancel']     = false;
+            $policy['can_cancel']        = true;
             $policy['refund_percentage'] = 0;
-            $policy['refund_amount']  = 0;
-            $policy['penalty_amount'] = $totalPaid;
-            $policy['message']        = 'Không thể hủy sau ngày nhận phòng (khách đã check-in)';
+            $policy['refund_amount']     = 0;
+            $policy['penalty_amount']    = $totalPaid;
+            $policy['message']           = 'Hủy sau ngày nhận phòng: không hoàn tiền (phí hủy 100%).';
             return $policy;
         }
 

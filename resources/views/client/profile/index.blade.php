@@ -454,15 +454,79 @@
                                             @endphp
 
                                             <!-- Action buttons -->
-                                            <div class="flex justify-end gap-3">
+                                            <div class="flex justify-end gap-3 items-start">
                                                 {{-- Nút xem chi tiết (luôn có) --}}
                                                 <button onclick="showBookingDetail({{ $booking->id }})"
-                                                    class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors font-medium flex items-center gap-2">
+                                                    class="self-start bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors font-medium flex items-center gap-2">
                                                     <i class="fas fa-eye"></i>
                                                     Xem chi tiết
                                                 </button>
 
-                                                {{-- Hủy đặt phòng: chỉ khi CHƯA checkin (giữ logic cũ) --}}
+                                                {{-- Đánh giá phòng: chỉ khi đã trả phòng (da_tra) --}}
+                                                @if ($booking->trang_thai === 'da_tra')
+                                                    @php
+                                                        // Lấy danh sách loại phòng trong booking
+                                                        $roomTypesForReview = $booking->getRoomTypes();
+                                                        if ($roomTypesForReview instanceof \Illuminate\Support\Collection) {
+                                                            $roomTypesForReview = $roomTypesForReview->toArray();
+                                                        }
+
+                                                        $reviewRoomOptions = [];
+
+                                                        if (is_array($roomTypesForReview) && count($roomTypesForReview) > 0) {
+                                                            foreach ($roomTypesForReview as $rt) {
+                                                                if (!isset($rt['loai_phong_id'])) {
+                                                                    continue;
+                                                                }
+                                                                $lp = \App\Models\LoaiPhong::find($rt['loai_phong_id']);
+                                                                if ($lp) {
+                                                                    $reviewRoomOptions[] = [
+                                                                        'id' => $lp->id,
+                                                                        'name' => $lp->ten_loai,
+                                                                    ];
+                                                                }
+                                                            }
+                                                        } elseif ($booking->loai_phong_id && $booking->loaiPhong) {
+                                                            // Backward: chỉ có một loại phòng gắn trực tiếp
+                                                            $reviewRoomOptions[] = [
+                                                                'id' => $booking->loaiPhong->id,
+                                                                'name' => $booking->loaiPhong->ten_loai,
+                                                            ];
+                                                        }
+                                                    @endphp
+
+                                                    @if (count($reviewRoomOptions) <= 1 && !empty($reviewRoomOptions))
+                                                        {{-- Chỉ một loại phòng: nút đơn --}}
+                                                        <a href="{{ route('client.phong.show', $reviewRoomOptions[0]['id']) }}#reviews"
+                                                            class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition-colors font-medium flex items-center gap-2">
+                                                            <i class="fas fa-star"></i>
+                                                            Đánh giá phòng
+                                                        </a>
+                                                    @elseif(count($reviewRoomOptions) > 1)
+                                                        {{-- Nhiều loại phòng: bấm nút để xổ danh sách loại phòng muốn đánh giá --}}
+                                                        <div class="relative">
+                                                            <button type="button"
+                                                                onclick="toggleReviewMenu({{ $booking->id }})"
+                                                                class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition-colors font-medium flex items-center gap-2">
+                                                                <i class="fas fa-star"></i>
+                                                                Đánh giá phòng
+                                                                <i class="fas fa-chevron-down text-xs"></i>
+                                                            </button>
+                                                            <div id="reviewMenu-{{ $booking->id }}"
+                                                                class="mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-20 hidden">
+                                                                @foreach ($reviewRoomOptions as $opt)
+                                                                    <a href="{{ route('client.phong.show', $opt['id']) }}#reviews"
+                                                                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+                                                                        <i class="fas fa-bed text-blue-500"></i>
+                                                                        <span>{{ $opt['name'] }}</span>
+                                                                    </a>
+                                                                @endforeach
+                                                            </div>
+                                                        </div>
+                                                    @endif
+                                                @endif
+
+                                                {{-- Hủy đặt phòng: chỉ khi CHƯA checkin --}}
                                                 @if (in_array($booking->trang_thai, ['cho_xac_nhan', 'da_xac_nhan']) && !$booking->thoi_gian_checkin)
                                                     <button onclick="showCancelModal({{ $booking->id }})"
                                                         class="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg transition-colors font-medium flex items-center gap-2">
@@ -1126,6 +1190,25 @@
                 showCancelModal({{ (int) old('booking_id') }}, true);
             });
         @endif
+
+        // Toggle menu chọn loại phòng để đánh giá (khi booking có nhiều loại phòng)
+        function toggleReviewMenu(bookingId) {
+            const menu = document.getElementById('reviewMenu-' + bookingId);
+            if (!menu) return;
+
+            const isHidden = menu.classList.contains('hidden');
+
+            // Ẩn tất cả menu khác trước
+            document.querySelectorAll('[id^="reviewMenu-"]').forEach(el => {
+                el.classList.add('hidden');
+            });
+
+            if (isHidden) {
+                menu.classList.remove('hidden');
+            } else {
+                menu.classList.add('hidden');
+            }
+        }
     </script>
 
 @endsection
