@@ -115,141 +115,18 @@
                                             Loại: {{ optional(optional($item->datPhong)->loaiPhong)->ten_loai ?? 'N/A' }}
                                         </p>
                                         @php
-                                            // Tính phí đổi phòng tổng (bao gồm phụ phí thêm người)
                                             $phiDoiPhongCoBan = $item->phi_doi_phong ?? 0;
-                                            $tongPhiDoiPhong = $phiDoiPhongCoBan;
-                                            
-                                            // Biến để lưu thông tin chi tiết
-                                            $extraAdults = 0;
-                                            $extraChildren = 0;
-                                            $extraInfants = 0;
-                                            $phuPhiNguoiLon = 0;
-                                            $phuPhiTreEm = 0;
-                                            $phuPhiEmBe = 0;
-                                            
-                                            // Tính phụ phí thêm người nếu có
-                                            // SỬ DỤNG SỐ NGƯỜI BAN ĐẦU (trước khi approve) để tính phụ phí
-                                            if ($item->datPhong && $item->phongMoi && $item->phongMoi->loaiPhong) {
-                                                $booking = $item->datPhong;
-                                                $loaiPhongMoi = $item->phongMoi->loaiPhong;
-                                                $soNguoiMoi = $item->so_nguoi_moi ?? null;
-                                                $soTreEmMoi = $item->so_tre_em_moi ?? null;
-                                                $soEmBeMoi = $item->so_em_be_moi ?? null;
-                                                
-                                                // Lấy số người ban đầu (trước khi approve) từ yêu cầu
-                                                // Nếu chưa có (trường hợp cũ), lấy từ booking hiện tại
-                                                $soNguoiBanDau = $item->so_nguoi_ban_dau ?? ($booking->so_nguoi ?? 2);
-                                                $soTreEmBanDau = $item->so_tre_em_ban_dau ?? ($booking->so_tre_em ?? 0);
-                                                $soEmBeBanDau = $item->so_em_be_ban_dau ?? ($booking->so_em_be ?? 0);
-                                                
-                                                if ($booking->ngay_nhan && $booking->ngay_tra) {
-                                                    $checkIn = \Carbon\Carbon::parse($booking->ngay_nhan);
-                                                    $checkOut = \Carbon\Carbon::parse($booking->ngay_tra);
-                                                    
-                                                    // Phụ phí thêm người lớn (so sánh với số người ban đầu)
-                                                    if ($soNguoiMoi !== null && $soNguoiMoi > $soNguoiBanDau) {
-                                                        $extraAdults = $soNguoiMoi - $soNguoiBanDau;
-                                                        // Tính phụ phí người lớn theo giá cố định 300k/người/đêm (BookingPriceCalculator đã dùng fixed-fee, tham số % giữ nguyên nhưng không còn dùng)
-                                                        $phuPhiNguoiLon = \App\Services\BookingPriceCalculator::calculateExtraGuestSurcharge(
-                                                            $loaiPhongMoi,
-                                                            $checkIn,
-                                                            $checkOut,
-                                                            $extraAdults,
-                                                            0 // percent không còn sử dụng
-                                                        );
-                                                        $tongPhiDoiPhong += $phuPhiNguoiLon;
-                                                    }
-                                                    
-                                                    // Phụ phí thêm trẻ em (so sánh với số trẻ em ban đầu)
-                                                    if ($soTreEmMoi !== null && $soTreEmMoi > $soTreEmBanDau) {
-                                                        $extraChildren = $soTreEmMoi - $soTreEmBanDau;
-                                                        // Tính phụ phí trẻ em theo giá cố định 150k/người/đêm
-                                                        $phuPhiTreEm = \App\Services\BookingPriceCalculator::calculateChildSurcharge(
-                                                            $loaiPhongMoi,
-                                                            $checkIn,
-                                                            $checkOut,
-                                                            $extraChildren,
-                                                            0
-                                                        );
-                                                        $tongPhiDoiPhong += $phuPhiTreEm;
-                                                    }
-                                                    
-                                                    // Phụ phí thêm em bé (so sánh với số em bé ban đầu)
-                                                    if ($soEmBeMoi !== null && $soEmBeMoi > $soEmBeBanDau) {
-                                                        $extraInfants = $soEmBeMoi - $soEmBeBanDau;
-                                                        // Em bé miễn phí theo policy mới, BookingPriceCalculator sẽ luôn trả 0
-                                                        $phuPhiEmBe = \App\Services\BookingPriceCalculator::calculateInfantSurcharge(
-                                                            $loaiPhongMoi,
-                                                            $checkIn,
-                                                            $checkOut,
-                                                            $extraInfants,
-                                                            0
-                                                        );
-                                                        $tongPhiDoiPhong += $phuPhiEmBe;
-                                                    }
-                                                }
-                                            }
                                         @endphp
-                                        
-                                        {{-- Hiển thị chi tiết số người thêm --}}
-                                        @if($extraAdults > 0 || $extraChildren > 0 || $extraInfants > 0)
-                                            <div class="text-xs text-gray-600 mt-2 space-y-1">
-                                                <p class="font-semibold text-gray-700">Thêm khách:</p>
-                                                @if($extraAdults > 0)
-                                                    <p class="text-gray-600">
-                                                        +{{ $extraAdults }} người lớn
-                                                        @if($phuPhiNguoiLon > 0)
-                                                            <span class="text-orange-600 font-semibold">
-                                                                ({{ number_format($phuPhiNguoiLon, 0, ',', '.') }} VNĐ)
-                                                            </span>
-                                                        @endif
-                                                    </p>
-                                                @endif
-                                                @if($extraChildren > 0)
-                                                    <p class="text-gray-600">
-                                                        +{{ $extraChildren }} trẻ em
-                                                        @if($phuPhiTreEm > 0)
-                                                            <span class="text-orange-600 font-semibold">
-                                                                ({{ number_format($phuPhiTreEm, 0, ',', '.') }} VNĐ)
-                                                            </span>
-                                                        @endif
-                                                    </p>
-                                                @endif
-                                                @if($extraInfants > 0)
-                                                    <p class="text-gray-600">
-                                                        +{{ $extraInfants }} em bé
-                                                        @if($phuPhiEmBe > 0)
-                                                            <span class="text-orange-600 font-semibold">
-                                                                ({{ number_format($phuPhiEmBe, 0, ',', '.') }} VNĐ)
-                                                            </span>
-                                                        @endif
-                                                    </p>
-                                                @endif
-                                            </div>
-                                        @endif
-                                        
-                                        {{-- Hiển thị phí đổi phòng --}}
-                                        @if($tongPhiDoiPhong > 0)
+
+                                        {{-- Chỉ hiển thị phí đổi phòng cơ bản, không xử lý thêm khách nữa --}}
+                                        @if($phiDoiPhongCoBan > 0)
                                             <p class="text-xs font-semibold text-orange-600 mt-2">
-                                                Phí đổi phòng: {{ number_format($tongPhiDoiPhong, 0, ',', '.') }} VNĐ
+                                                Phí đổi phòng: {{ number_format($phiDoiPhongCoBan, 0, ',', '.') }} VNĐ
                                             </p>
-                                            @if($tongPhiDoiPhong > $phiDoiPhongCoBan)
-                                                <p class="text-xs text-gray-500 mt-0.5">
-                                                    (Phí cơ bản: {{ number_format($phiDoiPhongCoBan, 0, ',', '.') }} VNĐ + Phụ phí thêm người)
-                                                </p>
-                                            @endif
                                         @else
-                                            {{-- Chỉ hiển thị "Miễn phí" nếu không có phụ phí thêm người --}}
-                                            @if($extraAdults == 0 && $extraChildren == 0 && $extraInfants == 0)
-                                                <p class="text-xs font-semibold text-green-600 mt-2">
-                                                    Phí đổi phòng: Miễn phí
-                                                </p>
-                                            @else
-                                                {{-- Nếu có thêm người nhưng tổng phí = 0 (không nên xảy ra), vẫn hiển thị 0 VNĐ --}}
-                                                <p class="text-xs font-semibold text-orange-600 mt-2">
-                                                    Phí đổi phòng: 0 VNĐ
-                                                </p>
-                                            @endif
+                                            <p class="text-xs font-semibold text-green-600 mt-2">
+                                                Phí đổi phòng: Miễn phí
+                                            </p>
                                         @endif
                                     </div>
                                 </div>
