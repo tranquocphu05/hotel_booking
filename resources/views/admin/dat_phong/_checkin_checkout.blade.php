@@ -34,7 +34,7 @@
                     Vui lòng gán phòng trước khi check-in
                 </p>
             </div>
-        @elseif($booking->trang_thai !== 'da_xac_nhan')
+        @elseif(!in_array($booking->trang_thai, ['da_xac_nhan', 'da_tra']))
             {{-- CANNOT CHECK-IN YET (booking chưa ở trạng thái đã xác nhận) --}}
             <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
                 <svg class="w-12 h-12 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

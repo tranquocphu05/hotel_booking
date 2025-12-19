@@ -78,6 +78,12 @@
 
       <tbody class="divide-y divide-gray-100">
         @forelse($invoices as $inv)
+          @php
+              $__type = strtoupper(trim($inv->invoice_type ?? ''));
+          @endphp
+          @if($__type === 'EXTRA' && (float)($inv->tong_tien ?? 0) == 0)
+              @continue
+          @endif
           <tr class="hover:bg-gray-50 transition">
             <td class="px-3 py-2 text-center font-semibold text-gray-900">#{{ $inv->id }}</td>
 

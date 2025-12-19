@@ -323,6 +323,7 @@ class InvoiceController extends Controller
                 }
 
                 if ($totalAdjustAmount !== 0) {
+                    // Cập nhật tổng tiền theo chênh lệch và ghi chú (hành vi cũ)
                     $invoice->tong_tien = max(0, ($invoice->tong_tien ?? 0) + $totalAdjustAmount);
                     $invoice->ghi_chu = trim(((string)$invoice->ghi_chu ?: '') . ' ' . implode('; ', $notes));
                     $invoice->save();
@@ -397,35 +398,12 @@ class InvoiceController extends Controller
 
             $adjustAmount = ($bs->quantity * $bs->unit_price); // negative value
 
-            // Update invoice total and append note
+            // Cập nhật tổng tiền theo chênh lệch và ghi chú (hành vi cũ)
             $invoice->tong_tien = max(0, ($invoice->tong_tien ?? 0) + $adjustAmount);
-            // Use original service name for clarity (avoid undefined variable)
             $svcName = optional(Service::find($original->service_id))->name ?? 'Dịch vụ';
             $append = "Hoàn {$qty} x {$svcName}.";
             $invoice->ghi_chu = trim(((string)$invoice->ghi_chu ?: '') . ' ' . $append);
             $invoice->save();
-
-            // Optionally create refund service records (do not create ThanhToan automatically)
-            if ($request->input('create_refund')) {
-                // Auto-calculate refund amount as unit price * removed quantity
-                $refundAmount = round($unit * $qty, 2);
-                if ($refundAmount > 0) {
-                    RefundService::create([
-                        'hoa_don_id' => $invoice->id,
-                        'dat_phong_id' => $booking->id,
-                        'booking_service_id' => $original->id,
-                        'booking_room_ids' => json_encode([['id' => $original->phong_id, 'quantity' => $qty]]),
-                        'total_refund' => $refundAmount,
-                        'refund_method' => in_array($request->input('refund_method'), ['tien_mat','chuyen_khoan','cong_thanh_toan']) ? $request->input('refund_method') : 'tien_mat',
-                        'refund_status' => 'cho_xu_ly',
-                        'bank_account_number' => $request->input('refund_account_number'),
-                        'bank_account_name' => $request->input('refund_account_name'),
-                        'bank_name' => $request->input('refund_bank_name'),
-                        'note' => $request->input('note') ?? null,
-                        'created_by' => auth()->id() ?? null,
-                    ]);
-                }
-            }
 
             DB::commit();
         } catch (\Throwable $e) {

@@ -153,12 +153,23 @@
             @php
                 $services = collect();
                 if ($booking) {
-                    // Load related service and room (phong) so we can show room number
-                    $services = \App\Models\BookingService::with(['service', 'phong'])
-                        ->where('dat_phong_id', $booking->id)
-                        ->orderBy('used_at')
-                        ->get();
+                    // Chỉ lấy đúng các dịch vụ thuộc hóa đơn hiện tại (giống logic trong InvoiceController@show)
+                    $query = \App\Models\BookingService::with(['service', 'phong'])
+                        ->where('dat_phong_id', $booking->id);
+
+                    if ($invoice->invoice_type === 'EXTRA') {
+                        // Hóa đơn phát sinh: chỉ lấy dịch vụ gắn với invoice hiện tại
+                        $query->where('invoice_id', $invoice->id);
+                    } else {
+                        // Hóa đơn chính: lấy dịch vụ booking-level (invoice_id null) hoặc gắn với invoice chính
+                        $query->where(function($q) use ($invoice) {
+                            $q->whereNull('invoice_id')->orWhere('invoice_id', $invoice->id);
+                        });
+                    }
+
+                    $services = $query->orderBy('used_at')->get();
                 }
+
                 $servicesTotal = $services->reduce(function($carry, $item){
                     return $carry + (($item->quantity ?? 0) * ($item->unit_price ?? 0));
                 }, 0);
