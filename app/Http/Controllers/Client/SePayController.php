@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
+use App\Mail\AdminBookingEvent;
+use App\Mail\BookingConfirmed;
+use App\Mail\InvoicePaid;
 use App\Models\DatPhong;
 use App\Models\Invoice;
 use App\Models\ThanhToan;
@@ -11,6 +14,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 class SePayController extends Controller
 {
@@ -211,6 +215,61 @@ class SePayController extends Controller
                     'ghi_chu' => 'SePay - TxnID: ' . ($webhookData['id'] ?? 'N/A') . ' - Ref: ' . ($webhookData['reference_code'] ?? 'N/A'),
                 ]);
             });
+
+            // Reload booking from database to get latest status after transaction
+            $datPhong->refresh();
+            $datPhong->load('loaiPhong', 'invoice');
+            
+            Log::info('SePay: Payment successful, sending emails', [
+                'booking_id' => $datPhong->id,
+                'booking_status' => $datPhong->trang_thai,
+                'invoice_status' => $invoice->trang_thai,
+                'client_email' => $datPhong->email,
+            ]);
+
+            // Send email to client - ALWAYS send when payment is successful
+            if ($datPhong->email) {
+                try {
+                    // Always send confirmation email when payment is successful
+                    // Check booking status to send appropriate email
+                    if ($datPhong->trang_thai === 'da_xac_nhan') {
+                        // Booking confirmed - send confirmation email
+                        Mail::to($datPhong->email)->send(new BookingConfirmed($datPhong));
+                        Log::info('SePay: Sent BookingConfirmed email to client', ['email' => $datPhong->email]);
+                    } else {
+                        // Payment successful but booking not confirmed yet - send invoice paid email
+                        Mail::to($datPhong->email)->send(new InvoicePaid($datPhong));
+                        Log::info('SePay: Sent InvoicePaid email to client', ['email' => $datPhong->email]);
+                    }
+                } catch (\Throwable $e) {
+                    Log::error('SePay: Failed to send client payment confirmation email', [
+                        'booking_id' => $datPhong->id,
+                        'email' => $datPhong->email,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                    ]);
+                }
+            } else {
+                Log::warning('SePay: Booking has no email address', ['booking_id' => $datPhong->id]);
+            }
+
+            // Send email to admin: payment successful
+            try {
+                $adminEmails = \App\Models\User::where('vai_tro', 'admin')
+                    ->where('trang_thai', 'hoat_dong')
+                    ->pluck('email')
+                    ->filter()
+                    ->all();
+                if (!empty($adminEmails)) {
+                    Mail::to($adminEmails)->send(new AdminBookingEvent($datPhong, 'paid'));
+                    Log::info('SePay: Sent payment notification email to admin', ['admin_count' => count($adminEmails)]);
+                }
+            } catch (\Throwable $e) {
+                Log::error('SePay: Failed to send admin payment notification email', [
+                    'booking_id' => $datPhong->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
 
             Log::info('SePay: Payment successful', [
                 'booking_id' => $bookingId,

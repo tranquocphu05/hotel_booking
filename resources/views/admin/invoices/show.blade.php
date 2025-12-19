@@ -31,11 +31,24 @@
         $services = collect();
         if ($booking) {
             // Load service and room so we can display room number in the table
-            $services = \App\Models\BookingService::with(['service', 'phong'])
-                ->where('dat_phong_id', $booking->id)
-                ->where('invoice_id', $invoice->id)
-                ->orderBy('used_at')
-                ->get();
+            // For EXTRA invoices: only show services for this invoice
+            // For PREPAID invoices: show all booking services (invoice_id NULL or matches main invoice)
+            if ($invoice->invoice_type === 'EXTRA') {
+                $services = \App\Models\BookingService::with(['service', 'phong'])
+                    ->where('dat_phong_id', $booking->id)
+                    ->where('invoice_id', $invoice->id)
+                    ->orderBy('used_at')
+                    ->get();
+            } else {
+                // PREPAID: show all booking services
+                $services = \App\Models\BookingService::with(['service', 'phong'])
+                    ->where('dat_phong_id', $booking->id)
+                    ->where(function($q) use ($invoice) {
+                        $q->whereNull('invoice_id')->orWhere('invoice_id', $invoice->id);
+                    })
+                    ->orderBy('used_at')
+                    ->get();
+            }
         }
 
         $servicesTotal = $services->reduce(function ($carry, $item) {
@@ -170,18 +183,27 @@
             <div id="adjust_modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
                 <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
                     <h3 class="text-lg font-semibold mb-4">Bớt dịch vụ</h3>
-                    <form id="adjust_form" method="POST" action="{{ route('admin.invoices.adjust', $invoice->id) }}">
+                    <form id="adjust_form" method="POST" action="{{ route('admin.invoices.adjust', $invoice->id) }}" onsubmit="console.log('Form onsubmit triggered');">
                         @csrf
+                        @method('POST')
                         <div class="grid grid-cols-1 gap-2">
                             <div>
                                 <label class="text-sm font-medium">Dịch vụ</label>
-                                <link href="https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/css/tom-select.css" rel="stylesheet">
-                                <select id="adjust_booking_services" name="booking_services[]" multiple class="w-full border rounded px-2 py-1">
-                                    @foreach($bookingServiceOptions ?? [] as $opt)
-                                        <option value="{{ $opt['id'] }}" data-remaining="{{ $opt['remaining'] }}" data-used_at="{{ $opt['used_at'] }}" data-phong-id="{{ $opt['phong_id'] ?? '' }}" data-so-phong="{{ $opt['so_phong'] ?? '' }}" data-service-name="{{ $opt['service_name'] }}" data-unit-price="{{ $opt['unit_price'] }}">{{ $opt['service_name'] }} — Phòng: {{ $opt['so_phong'] ?? '-' }} — {{ $opt['used_at_display'] }}</option>
-                                    @endforeach
+                                <select id="adjust_booking_services" class="w-full border rounded px-2 py-1" style="padding: 8px;">
+                                    <option value="">-- Chọn dịch vụ để bớt --</option>
+                                    @if(isset($bookingServiceOptions) && count($bookingServiceOptions) > 0)
+                                        @foreach($bookingServiceOptions as $opt)
+                                            <option value="{{ $opt['id'] }}" data-remaining="{{ $opt['remaining'] }}" data-used_at="{{ $opt['used_at'] }}" data-phong-id="{{ $opt['phong_id'] ?? '' }}" data-so-phong="{{ $opt['so_phong'] ?? '' }}" data-service-name="{{ $opt['service_name'] }}" data-unit-price="{{ $opt['unit_price'] }}">{{ $opt['service_name'] }} — Phòng: {{ $opt['so_phong'] ?? '-' }} — {{ $opt['used_at_display'] }}</option>
+                                        @endforeach
+                                    @else
+                                        <option value="" disabled>Không có dịch vụ nào để bớt</option>
+                                    @endif
                                 </select>
-                                <div id="adjust_items_container" class="mt-2 space-y-3"></div>
+                                <div class="text-xs text-gray-500 mt-1">Chọn dịch vụ từ danh sách để tự động thêm vào danh sách bớt</div>
+                                @if(!isset($bookingServiceOptions) || count($bookingServiceOptions) === 0)
+                                    <div class="text-sm text-yellow-600 mt-1">⚠ Không có dịch vụ nào để bớt. Tất cả dịch vụ đã được điều chỉnh hoặc không có dịch vụ trong hóa đơn này.</div>
+                                @endif
+                                <div id="adjust_items_container" class="mt-3 space-y-3"></div>
                             </div> 
                             <div>
                                 <label class="text-sm font-medium">Hoàn tiền (tuỳ chọn)</label>
@@ -192,10 +214,10 @@
                                         <option value="chuyen_khoan">Chuyển khoản</option>
                                 
                                     </select>
-                                    <div id="adjust_refund_bank_fields" class="space-y-2">
-                                        <input id="adjust_refund_account_number" type="text" name="refund_account_number" placeholder="Số tài khoản" class="w-full border rounded px-2 py-1 mb-2">
-                                        <input id="adjust_refund_account_name" type="text" name="refund_account_name" placeholder="Tên chủ tài khoản" class="w-full border rounded px-2 py-1 mb-2">
-                                        <input id="adjust_refund_bank_name" type="text" name="refund_bank_name" placeholder="Ngân hàng" class="w-full border rounded px-2 py-1">
+                                    <div id="adjust_refund_bank_fields" class="space-y-2 hidden">
+                                        <input id="adjust_refund_account_number" type="text" name="refund_account_number" placeholder="Số tài khoản" class="w-full border rounded px-2 py-1 mb-2" value="">
+                                        <input id="adjust_refund_account_name" type="text" name="refund_account_name" placeholder="Tên chủ tài khoản" class="w-full border rounded px-2 py-1 mb-2" value="">
+                                        <input id="adjust_refund_bank_name" type="text" name="refund_bank_name" placeholder="Ngân hàng" class="w-full border rounded px-2 py-1" value="">
                                     </div>
                                 </div>
                             </div>                           
@@ -757,26 +779,39 @@
         const refundCb = document.getElementById('adjust_create_refund_cb');
         const refundFields = document.getElementById('refund_fields');
 
-        function openModal(){ modal.classList.remove('hidden'); }
-        function closeModal(){ modal.classList.add('hidden'); }
+        function openModal(){ 
+            modal.classList.remove('hidden'); 
+            console.log('Modal opened');
+            
+            // Reset form khi mở modal
+            if (itemsContainer) {
+                itemsContainer.innerHTML = '';
+            }
+            if (bookingServicesSelect) {
+                // Reset to placeholder option
+                bookingServicesSelect.value = '';
+                
+                // Log options count
+                console.log('Options in select:', bookingServicesSelect.options.length);
+            }
+            updateAdjustTotal();
+        }
+        function closeModal(){ 
+            modal.classList.add('hidden'); 
+            // Reset form khi đóng modal
+            if (itemsContainer) {
+                itemsContainer.innerHTML = '';
+            }
+            if (bookingServicesSelect) {
+                // Reset to placeholder
+                bookingServicesSelect.value = '';
+            }
+            updateAdjustTotal();
+        }
 
         if (openBtn) openBtn.addEventListener('click', openModal);
         if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
 
-        // TomSelect loader and init
-        function loadTomSelectAndInit(cb) {
-            if (window.TomSelect) return cb();
-            if (!document.querySelector('link[href*="tom-select"]')) {
-                const link = document.createElement('link');
-                link.href = 'https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/css/tom-select.css';
-                link.rel = 'stylesheet';
-                document.head.appendChild(link);
-            }
-            const s = document.createElement('script');
-            s.src = 'https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/js/tom-select.complete.min.js';
-            s.onload = cb;
-            document.body.appendChild(s);
-        }
 
         function findOptionByValue(val) {
             if (!bookingServicesSelect) return null;
@@ -784,12 +819,23 @@
         }
 
         function createAdjustRow(id, opt) {
+            if (!opt) {
+                console.error('createAdjustRow: option is null for id', id);
+                return null;
+            }
+            
             const rem = parseInt(opt.dataset.remaining || 0, 10);
             const used_at = opt.dataset.used_at || '';
             const phongId = opt.dataset.phongId || '';
             const soPhong = opt.dataset.soPhong || '';
             const svcName = opt.dataset.serviceName || '';
             const unitPrice = parseFloat(opt.dataset.unitPrice || 0);
+            
+            console.log('createAdjustRow', {id, rem, unitPrice, svcName});
+            
+            if (!unitPrice || unitPrice <= 0) {
+                console.warn('createAdjustRow: unitPrice is invalid', unitPrice);
+            }
 
             const wrapper = document.createElement('div');
             wrapper.className = 'adjust-item border rounded p-3 bg-gray-50';
@@ -809,18 +855,19 @@
             header.appendChild(removeBtn);
             wrapper.appendChild(header);
 
-            // Hidden booking_service_id
+            // Hidden booking_service_id - sẽ được reindex sau
             const hidden = document.createElement('input');
             hidden.type = 'hidden';
-            hidden.name = 'adjustments[' + id + '][booking_service_id]';
+            hidden.name = 'adjustments[0][booking_service_id]'; // Temporary, sẽ được reindex
             hidden.value = id;
+            hidden.className = 'adjust-booking-service-id';
             wrapper.appendChild(hidden);
 
             // Grid container
             const grid = document.createElement('div');
             grid.className = 'grid grid-cols-2 gap-2 mb-1';
 
-            // ID column
+            // ID column (read-only display, không cần name vì không gửi lên server)
             const idCol = document.createElement('div');
             const idLabel = document.createElement('label');
             idLabel.className = 'text-xs';
@@ -829,7 +876,7 @@
             idInput.type = 'text';
             idInput.className = 'w-full border rounded px-2 py-1 bg-gray-100';
             idInput.readOnly = true;
-            idInput.name = 'adjustments[' + id + '][phong_id]';
+            // Không đặt name để không gửi lên server
             idInput.value = phongId;
             idCol.appendChild(idLabel);
             idCol.appendChild(idInput);
@@ -845,10 +892,11 @@
             qtyInput.min = 1;
             qtyInput.max = rem;
             qtyInput.value = rem > 0 ? 1 : 0;
-            qtyInput.name = 'adjustments[' + id + '][quantity]';
+            qtyInput.name = 'adjustments[0][quantity]'; // Temporary, sẽ được reindex
             qtyInput.className = 'w-full border rounded px-2 py-1 adjust-qty';
             qtyInput.dataset.max = rem;
             qtyInput.dataset.unitPrice = unitPrice;
+            qtyInput.dataset.bookingServiceId = id;
             const hint = document.createElement('div');
             hint.className = 'text-xs text-gray-500 mt-1';
             hint.textContent = 'Có thể bớt tối đa: ' + rem;
@@ -861,20 +909,21 @@
 
             // Subtotal display
             const subtotalWrap = document.createElement('div');
-            subtotalWrap.className = 'text-right text-sm text-gray-600';
-            
+            subtotalWrap.className = 'text-right text-sm text-gray-600 line-subtotal';
+            const initialQty = rem > 0 ? 1 : 0;
+            subtotalWrap.textContent = formatCurrency(unitPrice * initialQty);
             wrapper.appendChild(subtotalWrap);
 
             // Remove handler
             removeBtn.addEventListener('click', safe(function(){
                 try {
-                    if (window.TomSelect && bookingServicesSelect && bookingServicesSelect._tom_select) {
-                        bookingServicesSelect._tom_select.removeItem(id);
-                    } else {
-                        const opt = findOptionByValue(id);
-                        if (opt) opt.selected = false;
-                    }
+                    // Unselect option in native select
+                    const opt = findOptionByValue(id);
+                    if (opt) opt.selected = false;
+                    
+                    // Remove row from container
                     wrapper.remove();
+                    reindexAdjustItems();
                     updateAdjustTotal();
                 } catch (err) { console.error('remove handler error', err); }
             }));
@@ -895,13 +944,22 @@
             }));
 
             // ensure total updates when row is created
-            updateAdjustTotal();
+            // Reindex ngay sau khi tạo row (không dùng setTimeout để đảm bảo đồng bộ)
+            // Note: wrapper chưa được append vào DOM nên cần reindex sau khi append
+            // Sẽ được gọi từ updateSelectedItems sau khi append
 
             return wrapper;
         }
 
         function updateSelectedItems(values) {
             try {
+                console.log('updateSelectedItems called with', values);
+                
+                if (!itemsContainer) {
+                    console.error('itemsContainer not found');
+                    return;
+                }
+                
                 // Normalize values to an array of string ids
                 let sel = [];
                 if (Array.isArray(values)) {
@@ -915,74 +973,237 @@
                     sel = [];
                 }
 
-                // Add new
-                sel.forEach(id => {
-                    if (!itemsContainer.querySelector('.adjust-item[data-id="' + id + '"]')) {
-                        const opt = findOptionByValue(id);
-                        if (!opt) return;
-                        const row = createAdjustRow(id, opt);
-                        itemsContainer.appendChild(row);
-                    }
-                });
+                console.log('Normalized selected IDs', sel);
+
+                // This function is kept for compatibility but not used with new single-select approach
+                // The new approach uses addSelectedService() function instead
 
                 // Remove unselected
                 const existing = Array.from(itemsContainer.querySelectorAll('.adjust-item'));
                 existing.forEach(node => {
                     const id = node.getAttribute('data-id');
-                    if (sel.indexOf(id) === -1) node.remove();
+                    if (sel.indexOf(id) === -1) {
+                        console.log('Removing row for id', id);
+                        node.remove();
+                    }
                 });
 
                 // update total after adding/removing rows
                 updateAdjustTotal();
-            } catch (err) { console.error('updateSelectedItems error', err); }
+            } catch (err) { 
+                console.error('updateSelectedItems error', err); 
+            }
+        }
+
+        // Reindex tất cả adjust items để đảm bảo name attributes đúng format
+        function reindexAdjustItems() {
+            try {
+                if (!itemsContainer) {
+                    console.error('itemsContainer not found in reindexAdjustItems');
+                    return;
+                }
+                
+                const items = Array.from(itemsContainer.querySelectorAll('.adjust-item'));
+                console.log('Reindexing', items.length, 'items');
+                
+                items.forEach((item, index) => {
+                    // Tìm input bằng nhiều cách
+                    const bookingServiceIdInput = item.querySelector('.adjust-booking-service-id') ||
+                                                  item.querySelector('input[type="hidden"]') ||
+                                                  Array.from(item.querySelectorAll('input')).find(inp => inp.name && inp.name.includes('booking_service_id'));
+                    
+                    const qtyInput = item.querySelector('.adjust-qty') ||
+                                    item.querySelector('input[type="number"]') ||
+                                    Array.from(item.querySelectorAll('input')).find(inp => inp.name && inp.name.includes('quantity'));
+                    
+                    if (bookingServiceIdInput) {
+                        const oldName = bookingServiceIdInput.name;
+                        const newName = 'adjustments[' + index + '][booking_service_id]';
+                        bookingServiceIdInput.name = newName;
+                        console.log(`Reindexed booking_service_id: ${oldName} -> ${newName}, value: ${bookingServiceIdInput.value}`);
+                        
+                        // Đảm bảo input có value hợp lệ
+                        if (!bookingServiceIdInput.value || bookingServiceIdInput.value === '0' || bookingServiceIdInput.value === '') {
+                            console.error('Invalid booking_service_id value in item', index, bookingServiceIdInput.value);
+                        }
+                    } else {
+                        console.error('Could not find booking_service_id input in item', index, item);
+                    }
+                    
+                    if (qtyInput) {
+                        const oldName = qtyInput.name;
+                        const newName = 'adjustments[' + index + '][quantity]';
+                        qtyInput.name = newName;
+                        console.log(`Reindexed quantity: ${oldName} -> ${newName}, value: ${qtyInput.value}`);
+                        
+                        // Đảm bảo input có value hợp lệ
+                        const qtyVal = parseInt(qtyInput.value || 0, 10);
+                        if (!qtyVal || qtyVal <= 0) {
+                            console.error('Invalid quantity value in item', index, qtyInput.value);
+                        }
+                    } else {
+                        console.error('Could not find quantity input in item', index, item);
+                    }
+                });
+                
+                console.log('Reindexed', items.length, 'adjust items successfully');
+            } catch (err) {
+                console.error('reindexAdjustItems error', err);
+            }
         }
 
         // Recompute the overall total of removed services and update UI
         function updateAdjustTotal() {
             try {
+                if (!itemsContainer) {
+                    console.error('itemsContainer not found in updateAdjustTotal');
+                    return;
+                }
+                
                 const items = Array.from(itemsContainer.querySelectorAll('.adjust-item'));
                 let total = 0;
-                items.forEach(it => {
+                
+                console.log('updateAdjustTotal: processing', items.length, 'items');
+                
+                items.forEach((it, idx) => {
                     try {
                         const qtyEl = it.querySelector('.adjust-qty');
-                        const qty = parseInt(qtyEl ? qtyEl.value || 0 : 0, 10);
+                        if (!qtyEl) {
+                            console.warn('No quantity input found in item', idx);
+                            return;
+                        }
+                        
+                        const qty = parseInt(qtyEl.value || 0, 10);
+                        if (isNaN(qty) || qty <= 0) {
+                            console.log('Item', idx, 'has invalid quantity:', qtyEl.value);
+                            return;
+                        }
+                        
                         let unit = NaN;
-                        if (qtyEl && qtyEl.dataset && qtyEl.dataset.unitPrice) unit = parseFloat(qtyEl.dataset.unitPrice || NaN);
+                        // Try to get unit price from dataset
+                        if (qtyEl.dataset && qtyEl.dataset.unitPrice) {
+                            unit = parseFloat(qtyEl.dataset.unitPrice);
+                            console.log('Item', idx, 'unit price from dataset:', unit);
+                        }
 
                         // Fallback to option dataset
                         if ((isNaN(unit) || unit === 0) && bookingServicesSelect) {
                             const bsId = it.getAttribute('data-id');
                             if (bsId) {
                                 const opt = bookingServicesSelect.querySelector('option[value="' + bsId + '"]');
-                                if (opt) unit = parseFloat(opt.dataset.unitPrice || 0);
+                                if (opt && opt.dataset.unitPrice) {
+                                    unit = parseFloat(opt.dataset.unitPrice);
+                                    console.log('Item', idx, 'unit price from option:', unit);
+                                }
                             }
                         }
 
-                        if (!isNaN(qty) && !isNaN(unit)) total += qty * unit;
-                    } catch (inner) { console.error('line total calc error', inner); }
+                        if (!isNaN(qty) && !isNaN(unit) && unit > 0) {
+                            const itemTotal = qty * unit;
+                            total += itemTotal;
+                            console.log('Item', idx, 'total:', itemTotal, '(qty:', qty, 'x unit:', unit, ')');
+                        } else {
+                            console.warn('Item', idx, 'has invalid qty or unit:', {qty, unit});
+                        }
+                    } catch (inner) {
+                        console.error('line total calc error for item', idx, inner);
+                    }
                 });
+
+                console.log('updateAdjustTotal: calculated total:', total);
+
                 const display = document.getElementById('adjust_total_display');
-                if (display) display.textContent = formatCurrency(total);
-            } catch (err) { console.error('updateAdjustTotal error', err); }
+                if (display) {
+                    display.textContent = formatCurrency(total);
+                    // Thêm class để highlight khi có giá trị
+                    if (total > 0) {
+                        display.classList.remove('text-gray-400');
+                        display.classList.add('text-red-600', 'font-bold');
+                    } else {
+                        display.classList.remove('text-red-600', 'font-bold');
+                        display.classList.add('text-gray-400');
+                    }
+                } else {
+                    console.error('adjust_total_display element not found');
+                }
+            } catch (err) { 
+                console.error('updateAdjustTotal error', err); 
+            }
         }
 
+        // Function to add selected service (must be accessible globally)
+        window.addSelectedService = function() {
+            if (!bookingServicesSelect || !itemsContainer) {
+                console.error('Required elements not found');
+                return false;
+            }
+            
+            const selectedValue = bookingServicesSelect.value;
+            if (!selectedValue || selectedValue === '') {
+                return false;
+            }
+            
+            // Check if already added
+            const existing = itemsContainer.querySelector('.adjust-item[data-id="' + selectedValue + '"]');
+            if (existing) {
+                // Already added, just reset select
+                bookingServicesSelect.value = '';
+                return false;
+            }
+            
+            const opt = findOptionByValue(selectedValue);
+            if (!opt) {
+                console.error('Option not found for value', selectedValue);
+                return false;
+            }
+            
+            console.log('Adding service:', selectedValue);
+            const row = createAdjustRow(selectedValue, opt);
+            if (row) {
+                itemsContainer.appendChild(row);
+                reindexAdjustItems();
+                updateAdjustTotal();
+                
+                // Reset select to placeholder
+                bookingServicesSelect.value = '';
+                return true;
+            }
+            return false;
+        };
+        
         if (bookingServicesSelect) {
-            loadTomSelectAndInit(function(){
-                try {
-                    const ts = new TomSelect(bookingServicesSelect, { plugins:['remove_button'], persist:false, create:false, onChange: function(vals){ updateSelectedItems(vals); }});
-                    // keep reference for remove convenience
-                    bookingServicesSelect._tom_select = ts;
-                    // initialize rows for any options that are already selected
-                    const initial = Array.from(bookingServicesSelect.selectedOptions).map(o => o.value);
-                    if (initial.length) updateSelectedItems(initial);
-                } catch (e) {
-                    // fallback: bind native change
-                    bookingServicesSelect.addEventListener('change', function(){
-                        const values = Array.from(bookingServicesSelect.selectedOptions).map(o => o.value);
-                        updateSelectedItems(values);
-                    });
+            console.log('bookingServicesSelect found, options count:', bookingServicesSelect.options.length);
+            
+            // Kiểm tra xem có options không
+            if (bookingServicesSelect.options.length <= 1) { // <= 1 because first option is placeholder
+                console.warn('No service options found in bookingServicesSelect!');
+            } else {
+                console.log('Service options found:', Array.from(bookingServicesSelect.options).slice(1).map(opt => ({
+                    value: opt.value,
+                    text: opt.text,
+                    remaining: opt.dataset.remaining,
+                    unitPrice: opt.dataset.unitPrice
+                })));
+            }
+            
+            // Auto-add service when select changes (immediately)
+            bookingServicesSelect.addEventListener('change', function() {
+                const selectedValue = bookingServicesSelect.value;
+                if (selectedValue && selectedValue !== '') {
+                    // Check if already added
+                    const existing = itemsContainer.querySelector('.adjust-item[data-id="' + selectedValue + '"]');
+                    if (!existing) {
+                        // Auto-add immediately
+                        console.log('Auto-adding service on change:', selectedValue);
+                        window.addSelectedService();
+                    } else {
+                        // Already added, reset select
+                        bookingServicesSelect.value = '';
+                    }
                 }
             });
+        } else {
+            console.error('bookingServicesSelect element not found! Check if element ID is correct.');
         }
 
         if (refundCb) {
@@ -1020,7 +1241,10 @@
         // form validation for batch items
         const form = document.getElementById('adjust_form');
         if (form) {
+            console.log('Form found, attaching submit listener');
+            
             form.addEventListener('submit', function(e){
+                console.log('Form submit event triggered');
                 // If a refund method is selected, signal the server to create RefundService rows
                 try {
                     if (refundMethodEl && refundMethodEl.value) {
@@ -1052,26 +1276,290 @@
                             alert('Vui lòng cung cấp: ' + missing.join(', ') + ' khi chọn phương thức chuyển khoản.');
                             return;
                         }
+                    } else {
+                        // Nếu không phải chuyển khoản, xóa các trường refund account để không gửi lên server
+                        const acct = document.getElementById('adjust_refund_account_number');
+                        const name = document.getElementById('adjust_refund_account_name');
+                        const bank = document.getElementById('adjust_refund_bank_name');
+                        if (acct) acct.removeAttribute('name');
+                        if (name) name.removeAttribute('name');
+                        if (bank) bank.removeAttribute('name');
                     }
                 } catch (err) { console.error('refund bank client validation error', err); }
 
                 // Debug: log adjustments payload in console so admins can copy it when reporting issues
                 try {
-                    const debugAdjust = Array.from(itemsContainer.querySelectorAll('.adjust-item')).map(it => ({
-                        booking_service_id: it.getAttribute('data-id'),
-                        quantity: (it.querySelector('.adjust-qty') || {}).value || 0
-                    }));
-                    console.debug('Submitting adjustments', debugAdjust);
-                } catch (err) { /* ignore */ }
+                    const debugAdjust = Array.from(itemsContainer.querySelectorAll('.adjust-item')).map(it => {
+                        const qtyEl = it.querySelector('.adjust-qty');
+                        const hiddenId = it.querySelector('input[name*="[booking_service_id]"]');
+                        return {
+                            booking_service_id: hiddenId ? hiddenId.value : it.getAttribute('data-id'),
+                            quantity: qtyEl ? parseInt(qtyEl.value || 0, 10) : 0,
+                            element: it
+                        };
+                    });
+                    console.log('Submitting adjustments', debugAdjust);
+                    
+                    // Verify form data before submit
+                    const formData = new FormData(form);
+                    console.log('Form data entries:');
+                    for (let [key, value] of formData.entries()) {
+                        console.log(key, '=', value);
+                    }
+                } catch (err) { 
+                    console.error('Debug logging error', err); 
+                }
 
-                const items = Array.from(itemsContainer.querySelectorAll('.adjust-item'));
-                if (items.length === 0) { e.preventDefault(); alert('Vui lòng chọn ít nhất một dịch vụ để bớt.'); return; }
-                for (const it of items) {
+                // Đảm bảo reindex trước khi kiểm tra
+                reindexAdjustItems();
+                
+                let items = Array.from(itemsContainer.querySelectorAll('.adjust-item'));
+                console.log('Form submit - items found:', items.length);
+                
+                // Nếu chưa có items nhưng có dịch vụ được chọn trong select, tự động thêm
+                if (items.length === 0) {
+                    const selectedValue = bookingServicesSelect ? bookingServicesSelect.value : '';
+                    if (selectedValue && selectedValue !== '') {
+                        console.log('No items found but service selected, auto-adding...');
+                        if (window.addSelectedService && window.addSelectedService()) {
+                            // Re-check items after adding
+                            reindexAdjustItems();
+                            items = Array.from(itemsContainer.querySelectorAll('.adjust-item'));
+                            console.log('Items after auto-add:', items.length);
+                            if (items.length === 0) {
+                                e.preventDefault();
+                                alert('Vui lòng chọn ít nhất một dịch vụ để bớt.');
+                                return;
+                            }
+                        } else {
+                            e.preventDefault();
+                            alert('Vui lòng chọn ít nhất một dịch vụ để bớt.');
+                            return;
+                        }
+                    } else {
+                        e.preventDefault();
+                        alert('Vui lòng chọn ít nhất một dịch vụ để bớt.');
+                        return;
+                    }
+                }
+                
+                // Đảm bảo tất cả items có dữ liệu hợp lệ
+                let hasInvalidItems = false;
+                items.forEach((it, idx) => {
                     const qtyEl = it.querySelector('.adjust-qty');
-                    if (!qtyEl) { e.preventDefault(); alert('Số lượng không hợp lệ.'); return; }
+                    const hiddenId = it.querySelector('.adjust-booking-service-id') || it.querySelector('input[name*="booking_service_id"]');
+                    
+                    if (!qtyEl || !hiddenId) {
+                        console.error('Missing inputs in item', idx);
+                        hasInvalidItems = true;
+                        return;
+                    }
+                    
+                    const qty = parseInt(qtyEl.value || 0, 10);
+                    const bsId = hiddenId.value;
+                    
+                    if (!qty || qty <= 0 || !bsId || bsId === '0') {
+                        console.error('Invalid data in item', idx, {qty, bsId});
+                        hasInvalidItems = true;
+                    }
+                });
+                
+                if (hasInvalidItems) {
+                    e.preventDefault();
+                    alert('Vui lòng kiểm tra lại số lượng và dịch vụ đã chọn.');
+                    return;
+                }
+                
+                // Validate và log để debug
+                let hasError = false;
+                const validItems = [];
+                
+                for (const it of items) {
+                    // Tìm input bằng nhiều cách để đảm bảo tìm được
+                    const qtyEl = it.querySelector('.adjust-qty') || it.querySelector('input[type="number"]');
+                    const hiddenId = it.querySelector('.adjust-booking-service-id') || 
+                                    it.querySelector('input[name*="booking_service_id"]') ||
+                                    it.querySelector('input[type="hidden"]');
+                    
+                    console.log('Checking item', {
+                        item: it,
+                        hasQtyEl: !!qtyEl,
+                        hasHiddenId: !!hiddenId,
+                        itemHTML: it.outerHTML.substring(0, 200)
+                    });
+                    
+                    if (!qtyEl) { 
+                        console.error('Quantity input not found in item', it);
+                        e.preventDefault(); 
+                        alert('Số lượng không hợp lệ.'); 
+                        hasError = true;
+                        return; 
+                    }
+                    
+                    if (!hiddenId) {
+                        console.error('Booking service ID input not found in item', it);
+                        console.error('Item HTML:', it.innerHTML);
+                        e.preventDefault();
+                        alert('Lỗi: Không tìm thấy ID dịch vụ.');
+                        hasError = true;
+                        return;
+                    }
+                    
                     const val = parseInt(qtyEl.value || 0, 10);
-                    const max = parseInt(qtyEl.dataset.max || 0, 10);
-                    if (val <= 0 || val > max) { e.preventDefault(); alert('Số lượng không hợp lệ hoặc vượt quá khả dụng (' + max + ').'); return; }
+                    const max = parseInt(qtyEl.dataset.max || qtyEl.getAttribute('max') || 0, 10);
+                    const bookingServiceId = hiddenId.value || hiddenId.getAttribute('value');
+                    
+                    console.log('Validating item', {
+                        bookingServiceId, 
+                        val, 
+                        max,
+                        qtyElName: qtyEl.name,
+                        hiddenIdName: hiddenId.name
+                    });
+                    
+                    if (!bookingServiceId || bookingServiceId === '0') {
+                        console.error('Invalid booking service ID', bookingServiceId);
+                        e.preventDefault();
+                        alert('Lỗi: ID dịch vụ không hợp lệ.');
+                        hasError = true;
+                        return;
+                    }
+                    
+                    if (val <= 0 || val > max) { 
+                        console.error('Invalid quantity', {val, max, item: it});
+                        e.preventDefault(); 
+                        alert('Số lượng không hợp lệ hoặc vượt quá khả dụng (' + max + ').'); 
+                        hasError = true;
+                        return; 
+                    }
+                    
+                    validItems.push({
+                        booking_service_id: bookingServiceId,
+                        quantity: val
+                    });
+                }
+                
+                if (!hasError && validItems.length > 0) {
+                    console.log('Form will submit with valid items:', validItems);
+                    
+                    // Đảm bảo form có đầy đủ dữ liệu trước khi submit
+                    console.log('Final form check before submit');
+                    const finalFormData = new FormData(form);
+                    const adjustmentsInForm = [];
+                    for (let [key, value] of finalFormData.entries()) {
+                        if (key.includes('adjustments') && key.includes('booking_service_id')) {
+                            const indexMatch = key.match(/adjustments\[(\d+)\]/);
+                            if (indexMatch) {
+                                const idx = indexMatch[1];
+                                const qty = finalFormData.get(`adjustments[${idx}][quantity]`);
+                                adjustmentsInForm.push({
+                                    index: idx,
+                                    booking_service_id: value,
+                                    quantity: qty
+                                });
+                            }
+                        }
+                    }
+                    console.log('Adjustments found in form:', adjustmentsInForm);
+                    
+                    if (adjustmentsInForm.length === 0) {
+                        console.error('No adjustments found in form data!');
+                        console.error('Form HTML:', form.innerHTML.substring(0, 500));
+                        e.preventDefault();
+                        alert('Lỗi: Không tìm thấy dữ liệu dịch vụ trong form. Vui lòng thử lại.');
+                        return;
+                    }
+                    
+                    // Đảm bảo reindex và fix names TRƯỚC KHI submit
+                    reindexAdjustItems();
+                    
+                    const itemsAfterReindex = Array.from(itemsContainer.querySelectorAll('.adjust-item'));
+                    console.log('Items after reindex:', itemsAfterReindex.length);
+                    
+                    if (itemsAfterReindex.length === 0) {
+                        e.preventDefault();
+                        alert('Vui lòng chọn ít nhất một dịch vụ để bớt.');
+                        return;
+                    }
+                    
+                    // Fix names và verify data - đảm bảo tuần tự từ 0
+                    let allValid = true;
+                    itemsAfterReindex.forEach((it, idx) => {
+                        const qtyEl = it.querySelector('.adjust-qty');
+                        const hiddenId = it.querySelector('.adjust-booking-service-id') || it.querySelector('input[name*="booking_service_id"]');
+                        
+                        if (!qtyEl || !hiddenId) {
+                            console.error('Missing inputs in item', idx);
+                            allValid = false;
+                            return;
+                        }
+                        
+                        // Force correct names với index tuần tự từ 0
+                        const qtyName = 'adjustments[' + idx + '][quantity]';
+                        const idName = 'adjustments[' + idx + '][booking_service_id]';
+                        
+                        qtyEl.name = qtyName;
+                        hiddenId.name = idName;
+                        
+                        const qty = parseInt(qtyEl.value || 0, 10);
+                        const bsId = hiddenId.value;
+                        
+                        console.log('Item', idx, ':', {
+                            qtyName: qtyEl.name,
+                            qtyValue: qty,
+                            idName: hiddenId.name,
+                            idValue: bsId,
+                            qtyElExists: !!qtyEl,
+                            hiddenIdExists: !!hiddenId
+                        });
+                        
+                        if (!qty || qty <= 0 || !bsId || bsId === '0' || bsId === '') {
+                            console.error('Invalid data in item', idx, {qty, bsId});
+                            allValid = false;
+                        }
+                    });
+                    
+                    if (!allValid) {
+                        e.preventDefault();
+                        alert('Lỗi: Dữ liệu dịch vụ không hợp lệ. Vui lòng kiểm tra lại số lượng.');
+                        return;
+                    }
+                    
+                    // Kiểm tra FormData sau khi fix - đảm bảo có dữ liệu
+                    const finalFormDataCheck = new FormData(form);
+                    const adjustmentsFound = [];
+                    console.log('Final FormData entries:');
+                    for (let [key, value] of finalFormDataCheck.entries()) {
+                        console.log('  ', key, '=', value);
+                        if (key.startsWith('adjustments[') && key.includes('][booking_service_id]')) {
+                            const idxMatch = key.match(/adjustments\[(\d+)\]/);
+                            if (idxMatch) {
+                                const idx = idxMatch[1];
+                                const qty = finalFormDataCheck.get(`adjustments[${idx}][quantity]`);
+                                if (qty && value) {
+                                    adjustmentsFound.push({idx, booking_service_id: value, quantity: qty});
+                                }
+                            }
+                        }
+                    }
+                    
+                    console.log('Adjustments found in FormData:', adjustmentsFound);
+                    
+                    if (adjustmentsFound.length === 0) {
+                        e.preventDefault();
+                        console.error('No adjustments found in FormData!');
+                        alert('Lỗi: Không tìm thấy dữ liệu dịch vụ trong form. Vui lòng thử lại.');
+                        return;
+                    }
+                    
+                    // Không preventDefault - cho phép form submit
+                    console.log('Form submission allowed - submitting now with', adjustmentsFound.length, 'adjustments');
+                } else if (!hasError) {
+                    e.preventDefault();
+                    alert('Không có dịch vụ hợp lệ để xóa.');
+                    return;
+                } else {
+                    console.error('Form submission prevented due to errors');
                 }
             });
         }
