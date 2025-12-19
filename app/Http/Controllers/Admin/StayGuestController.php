@@ -375,7 +375,7 @@ class StayGuestController extends Controller
             ->with('success', 'Đã thêm khách thành công.');
     }
 
-    public function destroy(Request $request, $datPhongId, $guestId)
+public function destroy(Request $request, $datPhongId, $guestId)
     {
         $booking = DatPhong::with(['phongs', 'stayGuests', 'invoice'])->findOrFail($datPhongId);
         $guest = StayGuest::findOrFail($guestId);
@@ -481,71 +481,124 @@ class StayGuestController extends Controller
                     ->update(['phu_phi' => 0]);
             }
 
-            // Decrement invoice totals where appropriate.
-            $invoice = $booking->invoice;
-            if ($invoice && !$invoice->isExtra() && !in_array($invoice->trang_thai, ['da_thanh_toan', 'hoan_tien'])) {
-                if ($adjustAmount > 0) {
-                    // If adjustment was applied to the booking invoice, it has already been decremented above.
-                    if (!isset($adjustInvoice) || $adjustInvoice->id !== $invoice->id) {
-                        if ($origItem && ($origItem->type ?? '') === 'extra_guest' && \Illuminate\Support\Facades\Schema::hasColumn('hoa_don', 'phi_them_nguoi')) {
-                            $invoice->decrement('phi_them_nguoi', $adjustAmount);
-                        } else {
-                            $invoice->decrement('phi_phat_sinh', $adjustAmount);
-                        }
-                        $invoice->decrement('tong_tien', $adjustAmount);
-                        if (!in_array($booking->trang_thai, ['da_thanh_toan', 'hoan_tien'])) {
-                            if ($origItem && ($origItem->type ?? '') === 'extra_guest' && \Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'phi_them_nguoi')) {
-                                $booking->decrement('phi_them_nguoi', $adjustAmount);
-                            } elseif (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'phi_phat_sinh')) {
-                                $booking->decrement('phi_phat_sinh', $adjustAmount);
-                            }
-                            if (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'tong_tien')) {
-                                $booking->decrement('tong_tien', $adjustAmount);
-                            }
-                        }
-                    }
+            // Decrement invoice totals where appropriate and ensure booking totals are reduced by the correct amount.
+            $removeAmount = $adjustAmount > 0 ? $adjustAmount : ($origItem->amount ?? $extraFee);
+
+            // Determine guest category for booking-level decrements
+            $guestCategory = 'adult';
+            $gAge = $guest->age;
+            if (!is_null($gAge) && $gAge < 6) {
+                $guestCategory = 'infant';
+            } elseif (!is_null($gAge) && $gAge >= 6 && $gAge <= 12) {
+                $guestCategory = 'child';
+            }
+
+            // Try to adjust the original invoice item if it exists and the invoice is writable
+            $origInvoice = null;
+            if ($origItem && ($origItem->invoice_id ?? null)) {
+                $origInvoice = \App\Models\Invoice::find($origItem->invoice_id);
+            }
+
+            if ($origItem && $origInvoice && !in_array($origInvoice->trang_thai, ['da_thanh_toan', 'hoan_tien'])) {
+                // Remove original invoice item and subtract its amount from that invoice
+                $amt = $origItem->amount ?? $removeAmount;
+
+                if (($origItem->type ?? '') === 'extra_guest' && \Illuminate\Support\Facades\Schema::hasColumn('hoa_don', 'phi_them_nguoi')) {
+                    $origInvoice->decrement('phi_them_nguoi', $amt);
                 } else {
-                    // Decrement the appropriate per-guest column based on guest category
-                    $guestCategory = 'adult';
-                    $gAge = $guest->age;
-                    if (!is_null($gAge) && $gAge < 6) {
-                        $guestCategory = 'infant';
-                    } elseif (!is_null($gAge) && $gAge >= 6 && $gAge <= 12) {
-                        $guestCategory = 'child';
-                    }
+                    $origInvoice->decrement('phi_phat_sinh', $amt);
+                }
+                $origInvoice->decrement('tong_tien', $amt);
 
-                    if ($guestCategory === 'child' && \Illuminate\Support\Facades\Schema::hasColumn('hoa_don', 'phu_phi_tre_em')) {
-                        $invoice->decrement('phu_phi_tre_em', $extraFee);
-                    } elseif ($guestCategory === 'infant' && \Illuminate\Support\Facades\Schema::hasColumn('hoa_don', 'phu_phi_em_be')) {
-                        $invoice->decrement('phu_phi_em_be', $extraFee);
-                    } elseif (\Illuminate\Support\Facades\Schema::hasColumn('hoa_don', 'phi_them_nguoi')) {
-                        $invoice->decrement('phi_them_nguoi', $extraFee);
+                // delete the original invoice item (we're removing the charge)
+                try {
+                    $origItem->delete();
+                } catch (\Exception $e) {
+                    Log::warning('Failed to delete original invoice item while removing stay guest', ['item_id' => $origItem->id, 'error' => $e->getMessage()]);
+                }
+
+                // Also decrement booking totals if booking is not finalized
+                if (!in_array($booking->trang_thai, ['da_thanh_toan', 'hoan_tien'])) {
+                    if ($guestCategory === 'child' && \Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'phu_phi_tre_em')) {
+                        $booking->decrement('phu_phi_tre_em', $amt);
+                    } elseif ($guestCategory === 'infant' && \Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'phu_phi_em_be')) {
+                        $booking->decrement('phu_phi_em_be', $amt);
+                    } elseif (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'phi_them_nguoi')) {
+                        $booking->decrement('phi_them_nguoi', $amt);
                     } else {
-                        $invoice->decrement('phi_phat_sinh', $extraFee);
+                        $booking->decrement('phi_phat_sinh', $amt);
                     }
 
-                    $invoice->decrement('tong_tien', $extraFee);
+                    if (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'tong_tien')) {
+                        $booking->decrement('tong_tien', $amt);
+                    }
+                }
+            } else {
+                // Could not remove original item directly (no original item or invoice not writable)
+                // Create a negative adjustment invoice item on a writable invoice so totals reflect removal.
+                $targetInvoice = null;
+                if ($origInvoice && !in_array($origInvoice->trang_thai, ['da_thanh_toan', 'hoan_tien'])) {
+                    $targetInvoice = $origInvoice;
+                } elseif ($booking->invoice && !$booking->invoice->isExtra() && !in_array($booking->invoice->trang_thai, ['da_thanh_toan', 'hoan_tien'])) {
+                    $targetInvoice = $booking->invoice;
+                } else {
+                    $targetInvoice = \App\Models\Invoice::create([
+                        'dat_phong_id' => $booking->id,
+                        'tong_tien' => 0,
+                        'tien_phong' => 0,
+                        'tien_dich_vu' => 0,
+                        'phi_phat_sinh' => 0,
+                        'giam_gia' => 0,
+                        'trang_thai' => 'cho_thanh_toan',
+                        'invoice_type' => 'EXTRA',
+                    ]);
+                }
 
-                    if (!in_array($booking->trang_thai, ['da_thanh_toan', 'hoan_tien'])) {
-                        if ($guestCategory === 'child') {
-                            if (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'phu_phi_tre_em')) {
-                                $booking->decrement('phu_phi_tre_em', $extraFee);
-                            } elseif (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'phi_phat_sinh')) {
-                                $booking->decrement('phi_phat_sinh', $extraFee);
-                            }
-                        } elseif ($guestCategory === 'infant') {
-                            if (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'phu_phi_em_be')) {
-                                $booking->decrement('phu_phi_em_be', $extraFee);
-                            } elseif (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'phi_phat_sinh')) {
-                                $booking->decrement('phi_phat_sinh', $extraFee);
-                            }
+                if ($targetInvoice) {
+                    $adjItem = InvoiceItem::create([
+                        'invoice_id' => $targetInvoice->id,
+                        'type' => 'adjustment',
+                        'description' => 'Điều chỉnh - Xoá phụ phí khách thêm',
+                        'quantity' => -1,
+                        'unit_price' => $removeAmount,
+                        'days' => 1,
+                        'amount' => -1 * $removeAmount,
+                        'start_date' => now()->toDateString(),
+                        'end_date' => now()->toDateString(),
+                        'meta' => json_encode(['guest_type' => ($guestCategory === 'child' ? 'child' : ($guestCategory === 'infant' ? 'infant' : 'adult')), 'original_invoice_item_id' => $origItem->id ?? null]),
+                        'created_by' => Auth::id(),
+                        'reason' => $request->reason ?? null,
+                    ]);
+
+                    if ($adjItem) {
+                        if ($guestCategory === 'child' && \Illuminate\Support\Facades\Schema::hasColumn('hoa_don', 'phu_phi_tre_em')) {
+                            $targetInvoice->decrement('phu_phi_tre_em', $removeAmount);
+                        } elseif ($guestCategory === 'infant' && \Illuminate\Support\Facades\Schema::hasColumn('hoa_don', 'phu_phi_em_be')) {
+                            $targetInvoice->decrement('phu_phi_em_be', $removeAmount);
+                        } elseif (\Illuminate\Support\Facades\Schema::hasColumn('hoa_don', 'phi_them_nguoi')) {
+                            $targetInvoice->decrement('phi_them_nguoi', $removeAmount);
                         } else {
-                            if (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'phi_them_nguoi')) {
-                                $booking->decrement('phi_them_nguoi', $extraFee);
-                            } elseif (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'phi_phat_sinh')) {
-                                $booking->decrement('phi_phat_sinh', $extraFee);
-                            }
+                            $targetInvoice->decrement('phi_phat_sinh', $removeAmount);
                         }
+
+                        $targetInvoice->decrement('tong_tien', $removeAmount);
+                    }
+                }
+
+                // Ensure booking totals also reflect removal if booking not finalized
+                if (!in_array($booking->trang_thai, ['da_thanh_toan', 'hoan_tien'])) {
+                    if ($guestCategory === 'child' && \Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'phu_phi_tre_em')) {
+                        $booking->decrement('phu_phi_tre_em', $removeAmount);
+                    } elseif ($guestCategory === 'infant' && \Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'phu_phi_em_be')) {
+                        $booking->decrement('phu_phi_em_be', $removeAmount);
+                    } elseif (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'phi_them_nguoi')) {
+                        $booking->decrement('phi_them_nguoi', $removeAmount);
+                    } else {
+                        $booking->decrement('phi_phat_sinh', $removeAmount);
+                    }
+
+                    if (\Illuminate\Support\Facades\Schema::hasColumn('dat_phong', 'tong_tien')) {
+                        $booking->decrement('tong_tien', $removeAmount);
                     }
                 }
             }
@@ -578,7 +631,7 @@ class StayGuestController extends Controller
             }
 
             // Note: do NOT enforce so_nguoi >= so_tre_em + so_em_be because
-            // `so_nguoi` represents number of adults only per booking schema.
+            // so_nguoi represents number of adults only per booking schema.
 
             // Normalize monetary/surcharge columns on booking and invoices to avoid negatives
             $bookingSets = [];
