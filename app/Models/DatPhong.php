@@ -1013,10 +1013,8 @@ class DatPhong extends Model
             if ($booking->isDirty('trang_thai')) {
                 $oldStatus = $booking->getOriginal('trang_thai');
                 $newStatus = $booking->trang_thai;
-                $soLuong = $booking->so_luong_da_dat ?? 1;
 
-                // Recalculate so_luong_trong dựa trên số phòng thực tế có trang_thai = 'trong'
-                // Recalculate cho TẤT CẢ loại phòng trong booking
+                // Thu thập danh sách loại phòng cần cập nhật
                 $roomTypes = $booking->getRoomTypes();
                 $loaiPhongIdsToUpdate = [];
 
@@ -1031,15 +1029,7 @@ class DatPhong extends Model
                     $loaiPhongIdsToUpdate[] = $booking->loai_phong_id;
                 }
 
-                // Recalculate cho tất cả
-                foreach (array_unique($loaiPhongIdsToUpdate) as $loaiPhongId) {
-                    $trongCount = \App\Models\Phong::where('loai_phong_id', $loaiPhongId)
-                        ->where('trang_thai', 'trong')
-                        ->count();
-                    LoaiPhong::where('id', $loaiPhongId)
-                        ->update(['so_luong_trong' => $trongCount]);
-                }
-
+                // Cập nhật trạng thái phòng (sử dụng DB facade để tránh trigger Phong observer trùng lặp)
                 // Load relationships
                 $booking->load(['phong']);
 
@@ -1052,31 +1042,22 @@ class DatPhong extends Model
                             in_array($newStatus, ['da_huy', 'tu_choi', 'thanh_toan_that_bai'])
                             && in_array($oldStatus, ['cho_xac_nhan', 'da_xac_nhan'])
                         ) {
-                            $phong->update(['trang_thai' => 'trong']);
+                            // Sử dụng DB facade để update trực tiếp, tránh trigger observer
+                            \Illuminate\Support\Facades\DB::table('phong')
+                                ->where('id', $phong->id)
+                                ->update(['trang_thai' => 'trong']);
                         }
-                        // Khi booking hoàn thành (check-out) -> phòng chuyển về "dang_don" để dọn dẹp
-                        // Logic nghiệp vụ: Sau checkout, phòng không còn được khách sử dụng,
-                        // nên không thể giữ ở trạng thái 'dang_thue' (đang thuê)
-                        // Phòng cần được dọn dẹp trước khi sử dụng lại (kể cả có booking tương lai)
-                        // Khi booking hoàn thành (check-out) -> phòng chuyển về "trong" (bỏ qua bước dọn dẹp)
+                        // Khi booking hoàn thành (check-out) -> phòng chuyển về "trong"
                         elseif ($newStatus === 'da_tra' && $oldStatus !== 'da_tra') {
-                            // Sau checkout, phòng về 'trong' ngay lập tức theo yêu cầu
-                            $phong->update(['trang_thai' => 'trong']);
-
-                            // Recalculate so_luong_trong cho loại phòng
-                            $loaiPhongId = $phong->loai_phong_id;
-                            if ($loaiPhongId) {
-                                $trongCount = \App\Models\Phong::where('loai_phong_id', $loaiPhongId)
-                                    ->where('trang_thai', 'trong')
-                                    ->count();
-                                \App\Models\LoaiPhong::where('id', $loaiPhongId)
-                                    ->update(['so_luong_trong' => $trongCount]);
-                            }
+                            // Sử dụng DB facade để update trực tiếp, tránh trigger observer
+                            \Illuminate\Support\Facades\DB::table('phong')
+                                ->where('id', $phong->id)
+                                ->update(['trang_thai' => 'trong']);
                         }
                     }
                 }
 
-                // Update Phong status via phong_ids JSON
+                // Update Phong status via phong_ids (pivot table)
                 $assignedPhongs = $booking->getAssignedPhongs();
                 foreach ($assignedPhongs as $phong) {
                     // Khi booking bị hủy/từ chối -> phòng chuyển về "trống"
@@ -1084,8 +1065,7 @@ class DatPhong extends Model
                         in_array($newStatus, ['da_huy', 'tu_choi', 'thanh_toan_that_bai'])
                         && in_array($oldStatus, ['cho_xac_nhan', 'da_xac_nhan'])
                     ) {
-                        // CRITICAL FIX: Kiểm tra xem phòng có đang được đặt cho booking khác không
-                        // Sử dụng pivot table thay vì JSON field
+                        // CRITICAL: Kiểm tra xem phòng có đang được đặt cho booking khác không
                         $hasOtherBooking = \App\Models\DatPhong::where('id', '!=', $booking->id)
                             ->whereHas('phongs', function ($q) use ($phong) {
                                 $q->where('phong_id', $phong->id);
@@ -1098,68 +1078,30 @@ class DatPhong extends Model
                             ->exists();
 
                         if (!$hasOtherBooking) {
-                            $phong->update(['trang_thai' => 'trong']);
+                            // Sử dụng DB facade để update trực tiếp, tránh trigger observer
+                            \Illuminate\Support\Facades\DB::table('phong')
+                                ->where('id', $phong->id)
+                                ->update(['trang_thai' => 'trong']);
                         }
                     }
-                    // Khi booking hoàn thành (check-out) -> phòng chuyển về "dang_don" để dọn dẹp
-                    // Logic nghiệp vụ: Sau checkout, phòng không còn được khách sử dụng,
-                    // nên không thể giữ ở trạng thái 'dang_thue' (đang thuê)
-                    // Khi booking hoàn thành (check-out) -> phòng chuyển về "trong" (bỏ qua bước dọn dẹp)
+                    // Khi booking hoàn thành (check-out) -> phòng chuyển về "trong"
                     elseif ($newStatus === 'da_tra' && $oldStatus !== 'da_tra') {
-                        // Sau checkout, phòng về 'trong' ngay lập tức theo yêu cầu
-                        $phong->update(['trang_thai' => 'trong']);
-
-                        // Recalculate so_luong_trong cho loại phòng
-                        $loaiPhongId = $phong->loai_phong_id;
-                        if ($loaiPhongId) {
-                            $trongCount = \App\Models\Phong::where('loai_phong_id', $loaiPhongId)
-                                ->where('trang_thai', 'trong')
-                                ->count();
-                            \App\Models\LoaiPhong::where('id', $loaiPhongId)
-                                ->update(['so_luong_trong' => $trongCount]);
-                        }
+                        // Sử dụng DB facade để update trực tiếp, tránh trigger observer
+                        \Illuminate\Support\Facades\DB::table('phong')
+                            ->where('id', $phong->id)
+                            ->update(['trang_thai' => 'trong']);
                     }
                 }
 
-                // Recalculate so_luong_trong based on actual room status
-                // FIX: Tính cả phòng 'dang_don' nếu không có booking conflict trong tương lai
-                if (in_array($newStatus, ['da_huy', 'tu_choi', 'thanh_toan_that_bai', 'da_tra'])) {
-                    foreach (array_unique($loaiPhongIdsToUpdate) as $loaiPhongId) {
-                        // Đếm phòng 'trong'
-                        $trongCount = \App\Models\Phong::where('loai_phong_id', $loaiPhongId)
-                            ->where('trang_thai', 'trong')
-                            ->count();
-
-                        // Đếm phòng 'dang_don' không có booking conflict trong 7 ngày tới
-                        $today = Carbon::today();
-                        $futureDate = $today->copy()->addDays(7);
-
-                        $dangDonAvailable = \App\Models\Phong::where('loai_phong_id', $loaiPhongId)
-                            ->where('trang_thai', 'dang_don')
-                            ->get()
-                            ->filter(function ($phong) use ($today, $futureDate) {
-                                // Kiểm tra xem phòng có booking conflict trong 7 ngày tới không
-                                $hasConflict = \App\Models\DatPhong::whereHas('phongs', function ($q) use ($phong) {
-                                    $q->where('phong_id', $phong->id);
-                                })
-                                    ->where(function ($q) use ($today, $futureDate) {
-                                    $q->where('ngay_tra', '>', $today)
-                                        ->where('ngay_nhan', '<', $futureDate);
-                                })
-                                    ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
-                                    ->exists();
-
-                                // Phòng 'dang_don' được tính nếu không có conflict
-                                return !$hasConflict;
-                            })
-                            ->count();
-
-                        // Tổng số phòng available = trong + dang_don (không conflict)
-                        $totalAvailable = $trongCount + $dangDonAvailable;
-
-                        LoaiPhong::where('id', $loaiPhongId)
-                            ->update(['so_luong_trong' => $totalAvailable]);
-                    }
+                // Tính lại so_luong_trong MỘT LẦN tại cuối cho tất cả loại phòng liên quan
+                // Logic chuẩn hóa: Chỉ đếm phòng có trang_thai = 'trong'
+                foreach (array_unique($loaiPhongIdsToUpdate) as $loaiPhongId) {
+                    $trongCount = \App\Models\Phong::where('loai_phong_id', $loaiPhongId)
+                        ->where('trang_thai', 'trong')
+                        ->count();
+                    
+                    LoaiPhong::where('id', $loaiPhongId)
+                        ->update(['so_luong_trong' => $trongCount]);
                 }
             }
         });
@@ -1179,39 +1121,14 @@ class DatPhong extends Model
                 $loaiPhongIdsToUpdate[] = $booking->loai_phong_id;
             }
 
+            // Logic chuẩn hóa: Chỉ đếm phòng có trang_thai = 'trong'
             foreach (array_unique($loaiPhongIdsToUpdate) as $loaiPhongId) {
-                // Đếm phòng 'trong'
                 $trongCount = \App\Models\Phong::where('loai_phong_id', $loaiPhongId)
                     ->where('trang_thai', 'trong')
                     ->count();
 
-                // Đếm phòng 'dang_don' không có booking conflict trong 7 ngày tới
-                $today = Carbon::today();
-                $futureDate = $today->copy()->addDays(7);
-
-                $dangDonAvailable = \App\Models\Phong::where('loai_phong_id', $loaiPhongId)
-                    ->where('trang_thai', 'dang_don')
-                    ->get()
-                    ->filter(function ($phong) use ($today, $futureDate) {
-                        $hasConflict = \App\Models\DatPhong::whereHas('phongs', function ($q) use ($phong) {
-                            $q->where('phong_id', $phong->id);
-                        })
-                            ->where(function ($q) use ($today, $futureDate) {
-                                $q->where('ngay_tra', '>', $today)
-                                    ->where('ngay_nhan', '<', $futureDate);
-                            })
-                            ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
-                            ->exists();
-
-                        return !$hasConflict;
-                    })
-                    ->count();
-
-                // Tổng số phòng available
-                $totalAvailable = $trongCount + $dangDonAvailable;
-
                 LoaiPhong::where('id', $loaiPhongId)
-                    ->update(['so_luong_trong' => $totalAvailable]);
+                    ->update(['so_luong_trong' => $trongCount]);
             }
         });
     }
@@ -1245,45 +1162,19 @@ class DatPhong extends Model
 
     /**
      * Recalculate so_luong_trong for a room type based on actual room status
-     * FIX: Tính cả phòng 'dang_don' nếu không có booking conflict trong tương lai
+     * Logic chuẩn hóa: Chỉ đếm phòng có trang_thai = 'trong'
      *
      * @param int $loaiPhongId
      * @return void
      */
     protected static function recalculateSoLuongTrong(int $loaiPhongId): void
     {
-        // Đếm phòng 'trong'
         $trongCount = \App\Models\Phong::where('loai_phong_id', $loaiPhongId)
             ->where('trang_thai', 'trong')
             ->count();
 
-        // Đếm phòng 'dang_don' không có booking conflict trong 7 ngày tới
-        $today = Carbon::today();
-        $futureDate = $today->copy()->addDays(7);
-
-        $dangDonAvailable = \App\Models\Phong::where('loai_phong_id', $loaiPhongId)
-            ->where('trang_thai', 'dang_don')
-            ->get()
-            ->filter(function ($phong) use ($today, $futureDate) {
-                $hasConflict = \App\Models\DatPhong::whereHas('phongs', function ($q) use ($phong) {
-                    $q->where('phong_id', $phong->id);
-                })
-                    ->where(function ($q) use ($today, $futureDate) {
-                        $q->where('ngay_tra', '>', $today)
-                            ->where('ngay_nhan', '<', $futureDate);
-                    })
-                    ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
-                    ->exists();
-
-                return !$hasConflict;
-            })
-            ->count();
-
-        // Tổng số phòng available = trong + dang_don (không conflict)
-        $totalAvailable = $trongCount + $dangDonAvailable;
-
         LoaiPhong::where('id', $loaiPhongId)
-            ->update(['so_luong_trong' => $totalAvailable]);
+            ->update(['so_luong_trong' => $trongCount]);
     }
     public function getTrangThaiLabelAttribute()
     {

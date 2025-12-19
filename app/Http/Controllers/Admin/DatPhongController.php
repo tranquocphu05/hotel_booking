@@ -3351,11 +3351,30 @@ class DatPhongController extends Controller
                     }
                 }
 
-                // Update room status to 'dang_don' cho từng phòng được chọn (chỉ những phòng hợp lệ)
+                // Update room status to 'trong' ngay sau checkout để phòng có thể đặt được cho những ngày tiếp theo
+                // (Hệ thống cho phép đặt trước, nếu để 'dang_don' quá lâu sẽ mất lượt đặt)
                 foreach ($phongsToCheckout as $phong) {
                     if (!is_null($phong->pivot->thoi_gian_checkin) && is_null($phong->pivot->thoi_gian_checkout)) {
-                        // Cập nhật trạng thái phòng tổng
-                        $phong->update(['trang_thai' => 'dang_don']);
+                        // CRITICAL: Kiểm tra xem phòng có đang được đặt cho booking khác trong tương lai không
+                        // Nếu có, giữ nguyên trạng thái để tránh conflict
+                        $hasOtherBooking = DatPhong::where('id', '!=', $booking->id)
+                            ->whereHas('phongs', function ($q) use ($phong) {
+                                $q->where('phong_id', $phong->id);
+                            })
+                            ->where(function ($q) use ($booking) {
+                                $q->where('ngay_tra', '>', $booking->ngay_nhan)
+                                    ->where('ngay_nhan', '<', $booking->ngay_tra);
+                            })
+                            ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
+                            ->exists();
+
+                        // Chỉ chuyển về 'trong' nếu không có booking conflict
+                        if (!$hasOtherBooking) {
+                            // Sử dụng DB facade để update trực tiếp, tránh trigger observer trùng lặp
+                            \Illuminate\Support\Facades\DB::table('phong')
+                                ->where('id', $phong->id)
+                                ->update(['trang_thai' => 'trong']);
+                        }
 
                         // Cập nhật thông tin theo từng phòng trên pivot
                         $booking->phongs()->updateExistingPivot($phong->id, [
