@@ -995,6 +995,24 @@
                                             {{ number_format((float) $booking->tong_tien, 0, ',', '.') }} VNĐ</dd>
                                     </div>
                                 </div>
+                                @if ($booking->invoice && $booking->invoice->trang_thai === 'hoan_tien')
+                                    @php
+                                        $refundAmount = \App\Models\ThanhToan::where('hoa_don_id', $booking->invoice->id)
+                                            ->where('trang_thai', 'success')
+                                            ->where('so_tien', '<', 0)
+                                            ->sum('so_tien');
+                                    @endphp
+                                    @if ($refundAmount < 0)
+                                        <div class="pt-2 border-t border-gray-200 mt-2">
+                                            <div class="flex justify-between text-sm">
+                                                <dt class="text-gray-600">Đã hoàn cho khách</dt>
+                                                <dd class="font-semibold text-red-600">
+                                                    -{{ number_format(abs($refundAmount), 0, ',', '.') }} VNĐ
+                                                </dd>
+                                            </div>
+                                        </div>
+                                    @endif
+                                @endif
                             </dl>
 
                             @if ($booking->invoice)

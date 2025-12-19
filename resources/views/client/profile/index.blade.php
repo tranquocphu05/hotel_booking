@@ -273,9 +273,11 @@
                                         // Danh sách phòng đã gán cho booking (số phòng, tầng, ghi chú)
                                         $assignedRooms = $booking->getAssignedPhongs()->map(function($phong) {
                                             return [
-                                                'so_phong' => $phong->so_phong,
-                                                'tang'     => $phong->tang,
-                                                'ghi_chu'  => $phong->ghi_chu,
+                                                'so_phong'  => $phong->so_phong,
+                                                'tang'      => $phong->tang,
+                                                'ghi_chu'   => $phong->ghi_chu,
+                                                // Gắn đúng tên loại phòng cho từng phòng cụ thể
+                                                'ten_loai'  => optional($phong->loaiPhong)->ten_loai,
                                             ];
                                         });
                                     @endphp
@@ -1005,7 +1007,7 @@
                             <div class="text-lg font-bold text-gray-900 mb-1">${room.so_phong ?? 'N/A'}</div>
                             <div class="flex flex-wrap items-center text-xs text-gray-600 gap-x-3 gap-y-1">
                                 <span class="flex items-center">
-                                    <i class="fas fa-bed mr-1 text-blue-500"></i>${data.roomName || 'Phòng'}
+                                    <i class="fas fa-bed mr-1 text-blue-500"></i>${room.ten_loai || data.roomName || 'Phòng'}
                                 </span>
                                 <span class="flex items-center">
                                     <i class="fas fa-layer-group mr-1 text-green-500"></i>Tầng ${room.tang ?? 'N/A'}
