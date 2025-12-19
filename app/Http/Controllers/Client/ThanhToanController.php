@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
+use App\Mail\AdminBookingEvent;
+use App\Mail\BookingConfirmed;
+use App\Mail\InvoicePaid;
 use App\Models\DatPhong;
 use App\Models\Invoice;
 use App\Models\ThanhToan;
@@ -10,6 +13,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class ThanhToanController extends Controller
@@ -598,9 +602,11 @@ class ThanhToanController extends Controller
 
         // Bug #5 Fix: Update booking status
         $booking = $invoice->datPhong;
+        $bookingUpdated = false;
         if ($booking && $booking->trang_thai === 'cho_xac_nhan') {
             $booking->validateStatusTransition('da_xac_nhan');
             $booking->update(['trang_thai' => 'da_xac_nhan']);
+            $bookingUpdated = true;
         }
 
         // Create payment record
@@ -610,6 +616,63 @@ class ThanhToanController extends Controller
             'ngay_thanh_toan' => Carbon::now(),
             'trang_thai' => 'success',
         ]);
+
+        // Reload booking from database to get latest status after transaction
+        if ($booking) {
+            $booking->refresh();
+            $booking->load('loaiPhong', 'invoice');
+            
+            Log::info('VNPay: Payment successful, sending emails', [
+                'booking_id' => $booking->id,
+                'booking_status' => $booking->trang_thai,
+                'invoice_status' => $invoice->trang_thai,
+                'client_email' => $booking->email,
+            ]);
+
+            // Send email to client - ALWAYS send when payment is successful
+            if ($booking->email) {
+                try {
+                    // Always send confirmation email when payment is successful
+                    // Check booking status to send appropriate email
+                    if ($booking->trang_thai === 'da_xac_nhan') {
+                        // Booking confirmed - send confirmation email
+                        Mail::to($booking->email)->send(new BookingConfirmed($booking));
+                        Log::info('VNPay: Sent BookingConfirmed email to client', ['email' => $booking->email]);
+                    } else {
+                        // Payment successful but booking not confirmed yet - send invoice paid email
+                        Mail::to($booking->email)->send(new InvoicePaid($booking));
+                        Log::info('VNPay: Sent InvoicePaid email to client', ['email' => $booking->email]);
+                    }
+                } catch (\Throwable $e) {
+                    Log::error('VNPay: Failed to send client payment confirmation email', [
+                        'booking_id' => $booking->id,
+                        'email' => $booking->email,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                    ]);
+                }
+            } else {
+                Log::warning('VNPay: Booking has no email address', ['booking_id' => $booking->id]);
+            }
+
+            // Send email to admin: payment successful
+            try {
+                $adminEmails = \App\Models\User::where('vai_tro', 'admin')
+                    ->where('trang_thai', 'hoat_dong')
+                    ->pluck('email')
+                    ->filter()
+                    ->all();
+                if (!empty($adminEmails)) {
+                    Mail::to($adminEmails)->send(new AdminBookingEvent($booking, 'paid'));
+                    Log::info('VNPay: Sent payment notification email to admin', ['admin_count' => count($adminEmails)]);
+                }
+            } catch (\Throwable $e) {
+                Log::error('VNPay: Failed to send admin payment notification email', [
+                    'booking_id' => $booking->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
     }
 
     /**

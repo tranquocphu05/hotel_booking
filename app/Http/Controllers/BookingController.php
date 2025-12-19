@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Mail\AdminBookingEvent;
+use App\Mail\BookingReceived;
 use App\Models\DatPhong;
 use App\Models\Invoice;
 use App\Models\LoaiPhong;
@@ -474,6 +475,15 @@ class BookingController extends Controller
 
         // Use the single booking for redirect
         $datPhong = $bookings[0];
+
+        // Send email to client: booking received (waiting for payment)
+        if ($datPhong->email) {
+            try {
+                Mail::to($datPhong->email)->send(new BookingReceived($datPhong->load('loaiPhong')));
+            } catch (\Throwable $e) {
+                Log::warning('Send client booking received mail failed: ' . $e->getMessage());
+            }
+        }
 
         // Send email to admin: new booking (waiting for confirmation)
         try {
