@@ -161,8 +161,23 @@ class StayGuestController extends Controller
             }
         }
 
-        $giaBoSung = $room->gia_bo_sung ?? 0;
-        $extraFee = (float) round($giaBoSung * $modifier, 2);
+        // Giá cố định theo độ tuổi:
+        // - Người lớn (≥12 tuổi): 300.000đ
+        // - Trẻ em (6-11 tuổi): 150.000đ
+        // - Em bé (0-5 tuổi): Miễn phí
+        $extraFee = 0;
+        if (!is_null($age)) {
+            if ($age >= 12) {
+                $extraFee = 300000; // Người lớn
+            } elseif ($age >= 6 && $age <= 11) {
+                $extraFee = 150000; // Trẻ em
+            } else {
+                $extraFee = 0; // Em bé miễn phí
+            }
+        } else {
+            // Nếu không có tuổi, mặc định tính như người lớn
+            $extraFee = 300000;
+        }
 
         // Decide if this guest should be chargeable: only charge when room's base seats are full
         $baseSeatsRemaining = $booking->getRoomBaseSeatsRemaining($room->id);
@@ -281,14 +296,19 @@ class StayGuestController extends Controller
                         $item = InvoiceItem::create([
                             'invoice_id' => $targetInvoice->id,
                             'type' => 'extra_guest',
-                            'description' => 'Thêm 1 ' . ($age !== null && $age <= 12 ? 'trẻ em' : 'người lớn'),
+                            'description' => 'Thêm 1 ' . ($age !== null && $age <= 12 ? 'trẻ em' : 'người lớn') . ' - Phòng ' . $room->so_phong,
                             'quantity' => 1,
                             'unit_price' => $unitPrice,
                             'days' => $days,
                             'amount' => $amount,
                             'start_date' => $sDate->toDateString(),
                             'end_date' => $eDate->toDateString(),
-                            'meta' => json_encode(['guest_type' => ($age !== null && $age <= 12 ? 'child' : 'adult'), 'age' => $age]),
+                            'meta' => json_encode([
+                                'guest_type' => ($age !== null && $age <= 12 ? 'child' : 'adult'),
+                                'age' => $age,
+                                'phong_id' => $room->id,
+                                'so_phong' => $room->so_phong,
+                            ]),
                             'created_by' => $userId,
                             'reason' => $request->reason ?? null,
                         ]);

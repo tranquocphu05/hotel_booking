@@ -92,30 +92,66 @@
             <td class="px-3 py-2 text-center font-medium">
               @php
                   $booking = $inv->datPhong;
-                    if($booking) {
-                        $roomTypes = $booking->getRoomTypes();
-                        if(count($roomTypes) > 1) {
-                          echo count($roomTypes) . ' loại phòng';
-                        } else if (count($roomTypes) === 1) {
-                          // When booking has a single room type but legacy loai_phong_id may be null
+                  $isExtra = strtoupper(trim($inv->invoice_type ?? '')) === 'EXTRA';
+                  $typeName = 'N/A';
+                  $roomNumbersText = '';
+                  
+                  // Lấy tên loại phòng từ booking
+                  if ($booking) {
+                      $roomTypes = $booking->getRoomTypes();
+                      if (count($roomTypes) > 1) {
+                          $typeName = count($roomTypes) . ' loại phòng';
+                      } else if (count($roomTypes) === 1) {
                           $roomTypeId = $roomTypes[0]['loai_phong_id'] ?? null;
                           $typeName = $booking->loaiPhong ? $booking->loaiPhong->ten_loai : null;
                           if (!$typeName && $roomTypeId) {
-                            $lp = \App\Models\LoaiPhong::find($roomTypeId);
-                            $typeName = $lp ? $lp->ten_loai : null;
+                              $lp = \App\Models\LoaiPhong::find($roomTypeId);
+                              $typeName = $lp ? $lp->ten_loai : null;
                           }
-                          echo $typeName ?? 'N/A';
-                        } else {
-                          echo 'N/A';
-                        }
-                      } else {
-                        echo 'N/A';
+                          $typeName = $typeName ?? 'N/A';
                       }
+                  }
+                  
+                  // Nếu là hóa đơn phát sinh, thêm số phòng cụ thể
+                  if ($isExtra) {
+                      $extraItems = $inv->items()->where('type', 'extra_guest')->get();
+                      $roomNumbers = [];
+                      foreach ($extraItems as $item) {
+                          $meta = is_array($item->meta) ? $item->meta : json_decode($item->meta ?? '{}', true);
+                          if (!empty($meta['so_phong'])) {
+                              $roomNumbers[$meta['so_phong']] = true;
+                          }
+                      }
+                      if (!empty($roomNumbers)) {
+                          $roomNumbersText = '(Phòng ' . implode(', ', array_keys($roomNumbers)) . ')';
+                      }
+                  }
+                  
+                  echo $typeName;
+                  if ($roomNumbersText) {
+                      echo '<br><span class="text-xs text-gray-500">' . $roomNumbersText . '</span>';
+                  }
               @endphp
             </td>
 
             <td class="px-3 py-2 text-center font-medium">
-              {{ $inv->datPhong ? ($inv->datPhong->so_luong_da_dat ?? 1) : 1 }} phòng
+              @php
+                  $isExtra = strtoupper(trim($inv->invoice_type ?? '')) === 'EXTRA';
+                  if ($isExtra) {
+                      // Hóa đơn phát sinh: đếm số phòng từ invoice items
+                      $extraItems = $inv->items()->where('type', 'extra_guest')->get();
+                      $roomNumbers = [];
+                      foreach ($extraItems as $item) {
+                          $meta = is_array($item->meta) ? $item->meta : json_decode($item->meta ?? '{}', true);
+                          if (!empty($meta['so_phong'])) {
+                              $roomNumbers[$meta['so_phong']] = true;
+                          }
+                      }
+                      echo count($roomNumbers) > 0 ? count($roomNumbers) . ' phòng' : '1 phòng';
+                  } else {
+                      echo ($inv->datPhong ? ($inv->datPhong->so_luong_da_dat ?? 1) : 1) . ' phòng';
+                  }
+              @endphp
             </td>
 
             <td class="px-3 py-2 text-center text-blue-600 font-semibold">

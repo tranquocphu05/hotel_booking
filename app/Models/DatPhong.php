@@ -451,120 +451,84 @@ class DatPhong extends Model
         return $counts;
     }
 
+    /**
+     * Lấy số khách đã khai báo ban đầu từ client booking (trong booking_rooms)
+     * Chỉ tính trẻ em và em bé vì đây là số "thêm" so với người lớn cơ bản
+     */
+    public function getRoomInitialCounts(int $phongId): array
+    {
+        $counts = ['adults' => 0, 'children' => 0, 'infants' => 0];
+        
+        if (\Illuminate\Support\Facades\Schema::hasColumn('booking_rooms', 'so_tre_em')) {
+            $row = DB::table('booking_rooms')
+                ->where('dat_phong_id', $this->id)
+                ->where('phong_id', $phongId)
+                ->first();
+            if ($row) {
+                // Chỉ đếm trẻ em và em bé từ booking ban đầu
+                // Người lớn không tính vì họ là khách chính, không phải khách thêm
+                $counts['children'] = (int) ($row->so_tre_em ?? 0);
+                $counts['infants'] = (int) ($row->so_em_be ?? 0);
+            }
+        }
+        
+        return $counts;
+    }
+
     public function canAddGuestToRoom(int $phongId, string $category): bool
     {
-        // First, enforce per-room "added extra" rules based on stayGuests already assigned to this room
-        // New rule: extras are mutually exclusive in the following manner:
-        // - If an extra adult exists in the room, you cannot add any more extras (adult/child/infant).
-        // - If an extra child or infant exists, you cannot add an adult; children+infants combined are limited to 2.
+        // Lấy số khách khai báo ban đầu từ booking_rooms
+        $initial = $this->getRoomCurrentCounts($phongId);
+        
+        // Lấy số khách đã thêm SAU check-in (stayGuests)
         $added = $this->getRoomAddedCounts($phongId);
-        $combinedCI = $added['children'] + $added['infants'];
 
-        // If an extra adult is already present, disallow any further extras
-        if ($added['adults'] >= 1) {
-            return false;
-        }
+        // Quy tắc sức chứa phòng:
+        // - Sức chứa cơ bản: 2 người
+        // - Tối đa extra: +1 người lớn, +2 trẻ em, +2 em bé
+        // - Tổng tối đa: 2 + 1 + 2 + 2 = 7 người
+        $baseCapacity = 2;
+        $maxExtraAdults = 1;
+        $maxExtraChildren = 2;
+        $maxExtraInfants = 2;
 
-        // If there are children/infants already added:
-        if ($combinedCI >= 1) {
-            // cannot add an adult
-            if ($category === 'adult') return false;
-            // cannot exceed 2 combined children+infants
-            if ($combinedCI >= 2) return false;
-            // else adding a child/infant (to reach combined <=2) is allowed
-        }
-
-        // If no extras present yet, normal per-category checks remain below (base seats / global capacity will be checked later)
-
-        // If booking_rooms per-room columns exist, do a precise per-room check
-        if (\Illuminate\Support\Facades\Schema::hasColumn('booking_rooms', 'so_nguoi_lon')) {
-            // Use per-room current counts
-            $curr = $this->getRoomCurrentCounts($phongId);
-
-            // Simulate adding one guest in the requested category
-            $a = $curr['adults'];
-            $c = $curr['children'];
-            $i = $curr['infants'];
-            if ($category === 'adult') $a++;
-            elseif ($category === 'child') $c++;
-            else $i++;
-
-            // Check whether this room can accept the new composition according to rules
-            if (!$this->doesRoomCompositionFit($a, $c, $i)) {
+        // Tính tổng số người hiện tại
+        $totalAdults = $initial['adults'] + $added['adults'];
+        $totalChildren = $initial['children'] + $added['children'];
+        $totalInfants = $initial['infants'] + $added['infants'];
+        
+        // Tính số người vượt quá base capacity
+        $remainingBase = $baseCapacity;
+        $adultsInBase = min($totalAdults, $remainingBase);
+        $remainingBase -= $adultsInBase;
+        $childrenInBase = min($totalChildren, $remainingBase);
+        $remainingBase -= $childrenInBase;
+        $infantsInBase = min($totalInfants, $remainingBase);
+        
+        // Số extra hiện tại (đã vượt quá base)
+        $currentExtraAdults = $totalAdults - $adultsInBase;
+        $currentExtraChildren = $totalChildren - $childrenInBase;
+        $currentExtraInfants = $totalInfants - $infantsInBase;
+        
+        // Kiểm tra nếu thêm 1 khách mới có vượt quá giới hạn không
+        if ($category === 'adult') {
+            // Thêm 1 người lớn: kiểm tra extra adults không vượt quá max
+            if ($currentExtraAdults >= $maxExtraAdults) {
                 return false;
             }
-
-            // Global check across checked-in rooms: ensure overall capacity among checked-in rooms
-            $checkedInRooms = $this->getCheckedInPhongs();
-            $totalAdults = 0; $totalChildren = 0; $totalInfants = 0;
-            foreach ($checkedInRooms as $p) {
-                $r = $this->getRoomCurrentCounts($p->id);
-                $totalAdults += $r['adults'];
-                $totalChildren += $r['children'];
-                $totalInfants += $r['infants'];
+        } elseif ($category === 'child') {
+            // Thêm 1 trẻ em: kiểm tra extra children không vượt quá max
+            if ($currentExtraChildren >= $maxExtraChildren) {
+                return false;
             }
-
-            // Add the simulated guest totals (they are intended for a checked-in room)
-            if ($category === 'adult') $totalAdults += 1;
-            elseif ($category === 'child') $totalChildren += 1;
-            else $totalInfants += 1;
-
-            // Use the booking-level slot feasibility but only considering checked-in rooms
-            $roomCount = count($checkedInRooms);
-            if ($roomCount <= 0) return false;
-
-            $standardCapacity = $roomCount * 2;
-            $totalPeople = $totalAdults + $totalChildren + $totalInfants;
-            if ($totalPeople <= $standardCapacity) return true;
-
-            // simulate extras allocation similar to canAccommodateGuests
-            $remainingBase = $standardCapacity;
-            $adultsInBase = min($totalAdults, $remainingBase);
-            $remainingBase -= $adultsInBase;
-            $childrenInBase = min($totalChildren, $remainingBase);
-            $remainingBase -= $childrenInBase;
-            $infantsInBase = min($totalInfants, $remainingBase);
-            $remainingBase -= $infantsInBase;
-
-            $extraAdults = max(0, $totalAdults - $adultsInBase);
-            $extraChildren = max(0, $totalChildren - $childrenInBase);
-            $extraInfants = max(0, $totalInfants - $infantsInBase);
-
-            $slots = $roomCount;
-            if ($extraAdults > $slots) return false;
-            $slots -= $extraAdults;
-            if ($extraChildren > ($slots * 2)) return false;
-            $slotsUsedByChildren = (int) ceil($extraChildren / 2);
-            $slots -= $slotsUsedByChildren;
-            if ($extraInfants > ($slots * 2)) return false;
-
-            return true;
-        }
-
-        // Legacy fallback when booking_rooms per-room columns are missing:
-        // 1) If this room still has base seats remaining (determined from booking totals), allow addition.
-        $baseRemaining = $this->getRoomBaseSeatsRemaining($phongId);
-        if ($baseRemaining > 0) {
-            return true;
-        }
-
-        // 2) Otherwise enforce per-room extra-slot constraints based on already-added stay guests
-        $added = $this->getRoomAddedCounts($phongId);
-        if ($category === 'adult') {
-            if ($added['adults'] >= 1) return false; // slot already used by adult
         } else {
-            if (($added['children'] + $added['infants']) >= 2) return false;
+            // Thêm 1 em bé: kiểm tra extra infants không vượt quá max
+            if ($currentExtraInfants >= $maxExtraInfants) {
+                return false;
+            }
         }
-
-        // 3) As a final safety net, ensure booking-level totals can accommodate this extra guest
-        $totalChildren = (int)($this->so_tre_em ?? 0);
-        $totalInfants = (int)($this->so_em_be ?? 0);
-        $totalAdults = (int)($this->so_nguoi ?? 0);
-        if ($category === 'adult') $totalAdults += 1;
-        elseif ($category === 'child') $totalChildren += 1;
-        else $totalInfants += 1;
-
-        return $this->canAccommodateGuests($totalAdults, $totalChildren, $totalInfants);
+        
+        return true;
     }
 
     /**
@@ -670,21 +634,40 @@ class DatPhong extends Model
      */
     public function doesRoomCompositionFit(int $adults, int $children, int $infants): bool
     {
+        // Quy tắc mới: mỗi phòng có sức chứa cơ bản 2 người
+        // Có thể thêm tối đa: +1 người lớn VÀ +2 trẻ em VÀ +2 em bé
+        // Tổng tối đa = 2 (cơ bản) + 1 (người lớn thêm) + 2 (trẻ em thêm) + 2 (em bé thêm) = 7 người
+        
+        $baseCapacity = 2; // Sức chứa cơ bản của phòng
+        $maxExtraAdults = 1;
+        $maxExtraChildren = 2;
+        $maxExtraInfants = 2;
+        
         $total = $adults + $children + $infants;
-        if ($total <= 2) return true;
-        $base = min(2, $total);
-        for ($aInBase = 0; $aInBase <= min($adults, $base); $aInBase++) {
-            for ($cInBase = 0; $cInBase <= min($children, $base - $aInBase); $cInBase++) {
-                $iInBase = $base - $aInBase - $cInBase;
-                if ($iInBase > $infants) continue;
-                $leftA = $adults - $aInBase;
-                $leftC = $children - $cInBase;
-                $leftI = $infants - $iInBase;
-                if ($leftA <= 1 && $leftC == 0 && $leftI == 0) return true;
-                if ($leftA == 0 && ($leftC + $leftI) <= 2) return true;
-            }
-        }
-        return false;
+        
+        // Nếu tổng <= sức chứa cơ bản, luôn OK
+        if ($total <= $baseCapacity) return true;
+        
+        // Tính số người vượt quá sức chứa cơ bản
+        // Ưu tiên người lớn vào base trước, sau đó trẻ em, cuối cùng em bé
+        $remainingBase = $baseCapacity;
+        $adultsInBase = min($adults, $remainingBase);
+        $remainingBase -= $adultsInBase;
+        $childrenInBase = min($children, $remainingBase);
+        $remainingBase -= $childrenInBase;
+        $infantsInBase = min($infants, $remainingBase);
+        
+        // Số người thêm (vượt quá base)
+        $extraAdults = $adults - $adultsInBase;
+        $extraChildren = $children - $childrenInBase;
+        $extraInfants = $infants - $infantsInBase;
+        
+        // Kiểm tra từng loại không vượt quá giới hạn
+        if ($extraAdults > $maxExtraAdults) return false;
+        if ($extraChildren > $maxExtraChildren) return false;
+        if ($extraInfants > $maxExtraInfants) return false;
+        
+        return true;
     }
 
     /**
