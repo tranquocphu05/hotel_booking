@@ -225,7 +225,7 @@
                                                 <i class="fas fa-user text-blue-500 text-2xl"></i>
                                             </div>
                                             <label for="total_adults" class="block text-sm font-medium text-gray-700 mb-2">Người lớn</label>
-                                            <input type="number" id="total_adults" name="so_nguoi" min="1" max="20" step="1"
+                                            <input type="number" id="total_adults" name="so_nguoi" min="1" max="3" step="1"
                                                 class="w-full border-2 border-blue-300 rounded-md py-2 px-3 text-center text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400 appearance-none bg-white"
                                                 value="{{ old('so_nguoi', 2) }}" oninput="updateAllRoomGuests('adults')">
                                             
@@ -237,7 +237,7 @@
                                                 <i class="fas fa-child text-green-500 text-2xl"></i>
                                             </div>
                                             <label for="total_children" class="block text-sm font-medium text-gray-700 mb-2">Trẻ em (6-12)</label>
-                                            <input type="number" id="total_children" name="so_tre_em" min="0" max="10" step="1"
+                                            <input type="number" id="total_children" name="so_tre_em" min="0" max="2" step="1"
                                                 class="w-full border-2 border-green-300 rounded-md py-2 px-3 text-center text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-green-400 appearance-none bg-white"
                                                 value="{{ old('so_tre_em', 0) }}" oninput="updateAllRoomGuests('children')"> 
                                         </div>
@@ -248,7 +248,7 @@
                                                 <i class="fas fa-baby text-pink-500 text-2xl"></i>
                                             </div>
                                             <label for="total_infants" class="block text-sm font-medium text-gray-700 mb-2">Em bé (0-5)</label>
-                                            <input type="number" id="total_infants" name="so_em_be" min="0" max="5" step="1"
+                                            <input type="number" id="total_infants" name="so_em_be" min="0" max="2" step="1"
                                                 class="w-full border-2 border-pink-300 rounded-md py-2 px-3 text-center text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-pink-400 appearance-none bg-white"
                                                 value="{{ old('so_em_be', 0) }}" oninput="updateAllRoomGuests('infants')">
                                         </div>
@@ -808,41 +808,15 @@
                     totalQuantity += quantity;
                 });
 
-                // Compute units (1 adult = 2 units, 1 child = 1 unit, 1 infant = 1 unit)
                 const inputVal = parseInt(totalInput.value) || 0;
+
+                // Cập nhật giá trị theo loại đang chỉnh
                 if (type === 'adults') adultsVal = inputVal;
                 if (type === 'children') childrenVal = inputVal;
                 if (type === 'infants') infantsVal = inputVal;
 
-                const totalUnits = (adultsVal * 2) + childrenVal + infantsVal;
-                const baseUnits = totalQuantity * 4; // 2 adults * 2 units
-                const maxUnits = totalQuantity * 6; // base + extra (per room +2 units)
-
-                if (totalUnits > maxUnits) {
-                    // Cap the input to allowed max for this type
-                    const otherUnits = totalUnits - ((type === 'adults') ? (adultsVal * 2) : (type === 'children' ? childrenVal : infantsVal));
-                    const availableUnits = Math.max(0, maxUnits - otherUnits);
-                    let allowedValue = 0;
-                    if (type === 'adults') {
-                        allowedValue = Math.floor(availableUnits / 2);
-                    } else {
-                        allowedValue = Math.floor(availableUnits);
-                    }
-                    // Update the input to allowed value
-                    totalInput.value = allowedValue;
-                    // Show helper error
-                    const err = document.getElementById('guest_limit_error');
-                    if (err) {
-                        err.textContent = `Giới hạn tối đa cho số khách theo số phòng đã chọn: ${maxUnits / 2} người lớn tương đương (tương đương ${maxUnits} đơn vị).`; 
-                        err.classList.remove('hidden');
-                    }
-                    // Update the local var to allowed
-                    if (type === 'adults') adultsVal = allowedValue;
-                    if (type === 'children') childrenVal = allowedValue;
-                    if (type === 'infants') infantsVal = allowedValue;
-                } else {
-                    document.getElementById('guest_limit_error')?.classList.add('hidden');
-                }
+                // Không kiểm tra capacity tổng nữa, giới hạn tối đa sẽ do min/max từng input (3 NL, 2 TE, 2 EB) đảm bảo
+                document.getElementById('guest_limit_error')?.classList.add('hidden');
 
                 console.log('updateAllRoomGuests called:', { type, adultsVal, childrenVal, infantsVal, totalQuantity });
 
@@ -1517,7 +1491,6 @@
                 // Units approach: adult=2 units, child=1 unit, infant=1 unit
                 const unitsTotal = (totalAdults * 2) + totalChildren + totalInfants;
                 const baseUnits = totalSoLuong * 4;
-                const maxUnits = totalSoLuong * 6;
 
                 let extraAdultsCount = 0;
                 let extraChildrenCount = 0;
@@ -1545,13 +1518,14 @@
                     extraChildrenCount = childrenExtra;
                     extraInfantsCount = infantsExtra;
 
-                    // Distribute surcharge proportional to room revenue
-                    if (totalSoLuong > 0 && roomTotal > 0) {
-                        const perRoomShare = roomTotal / totalSoLuong; // includes nights
-                        totalExtraFee = extraAdultsCount * perRoomShare * extraFeePercent;
-                        totalChildFee = extraChildrenCount * perRoomShare * childFeePercent;
-                        totalInfantFee = extraInfantsCount * perRoomShare * infantFeePercent;
-                    }
+                    // Tính số đêm
+                    const oneDayMs = 24 * 60 * 60 * 1000;
+                    const nights = Math.max(1, Math.round((endDate - startDate) / oneDayMs));
+
+                    // Phụ phí cố định: 300k/người lớn/đêm, 150k/trẻ em/đêm, em bé miễn phí
+                    totalExtraFee = extraAdultsCount * 300000 * nights;
+                    totalChildFee = extraChildrenCount * 150000 * nights;
+                    totalInfantFee = 0;
                 }
 
                 const surchargeSummary = document.getElementById('surcharge_summary');

@@ -1030,15 +1030,19 @@ class DatPhongController extends Controller
         $totalChildren = $reqTotalChildren;
         $totalInfants = $reqTotalInfants;
 
-        $totalUnits = ($totalAdults * 2) + $totalChildren + $totalInfants;
-        $maxUnits = $totalSoLuong * 6; // base + extra
+        // Giới hạn sức chứa cho cập nhật: tối đa 7 khách/phòng
+        $totalPeople = $totalAdults + $totalChildren + $totalInfants;
+        $maxPeople   = $totalSoLuong * 7;
 
-        if ($totalUnits > $maxUnits) {
-            return back()->withErrors(['so_nguoi' => 'Tổng số khách vượt quá sức chứa tối đa theo số phòng đã chọn. Tối đa: ' . ($maxUnits/2) . ' người lớn tương đương.'])->withInput();
+        if ($totalPeople > $maxPeople) {
+            return back()->withErrors([
+                'so_nguoi' => 'Tổng số khách vượt quá sức chứa tối đa theo số phòng đã chọn. Tối đa: ' . $maxPeople . ' khách (7 khách/phòng).',
+            ])->withInput();
         }
 
-        // compute extra counts
-        $baseUnits = $totalSoLuong * 4;
+        // Vẫn giữ units để tính phụ phí vượt sức chứa
+        $totalUnits = ($totalAdults * 2) + $totalChildren + $totalInfants;
+        $baseUnits  = $totalSoLuong * 4;
         $totalExtraFee = $totalChildFee = $totalInfantFee = 0;
         if ($totalUnits > $baseUnits) {
             $adultsUnits = $totalAdults * 2;
@@ -2016,13 +2020,19 @@ class DatPhongController extends Controller
 
         // Compute surcharges based on totals using units approach (adult=2, child=1, infant=1)
         $totalSoLuong = array_sum(array_column($roomDetails, 'so_luong'));
+        // Giới hạn sức chứa: tối đa 7 khách (người lớn + trẻ em + em bé) cho mỗi phòng
+        $totalPeople = $totalGuests + $totalChildren + $totalInfants;
+        $maxPeople  = $totalSoLuong * 7;
+
+        if ($totalPeople > $maxPeople) {
+            return back()->withErrors([
+                'so_nguoi' => 'Tổng số khách vượt quá sức chứa tối đa theo số phòng đã chọn. Tối đa: ' . $maxPeople . ' khách (7 khách/phòng).',
+            ])->withInput();
+        }
+
+        // Vẫn dùng units để phân bổ phụ phí vượt sức chứa (nhưng không còn dùng để chặn tổng số khách)
         $totalUnits = ($totalGuests * 2) + $totalChildren + $totalInfants;
         $baseUnits = $totalSoLuong * 4;
-        $maxUnits = $totalSoLuong * 6;
-
-        if ($totalUnits > $maxUnits) {
-            return back()->withErrors(['so_nguoi' => 'Tổng số khách vượt quá sức chứa tối đa theo số phòng đã chọn.'])->withInput();
-        }
 
         $totalExtraFee = 0;
         $totalChildFee = 0;
@@ -2229,18 +2239,21 @@ class DatPhongController extends Controller
             }
         }
 
-        // Validate totals against room capacity (units: adult=2, child=1, infant=1)
+        // Validate totals against room capacity: tối đa 7 khách (người lớn + trẻ em + em bé) mỗi phòng
         $totalAdults = (int) ($request->input('so_nguoi') ?? 0);
         $totalChildren = (int) ($request->input('so_tre_em') ?? 0);
         $totalInfants = (int) ($request->input('so_em_be') ?? 0);
-        $totalUnits = ($totalAdults * 2) + $totalChildren + $totalInfants;
-        $maxUnits = $totalSoLuong * 6; // base 4 + extra 2 units per room
+        $totalPeople = $totalAdults + $totalChildren + $totalInfants;
+        $maxPeople   = $totalSoLuong * 7; // 7 khách/phòng
 
-        if ($totalUnits > $maxUnits) {
-            return back()->withErrors(['so_nguoi' => 'Tổng số khách vượt quá sức chứa tối đa theo số phòng đã chọn. Tối đa: ' . ($maxUnits/2) . ' người lớn tương đương.'])->withInput();
+        if ($totalPeople > $maxPeople) {
+            return back()->withErrors([
+                'so_nguoi' => 'Tổng số khách vượt quá sức chứa tối đa theo số phòng đã chọn. Tối đa: ' . $maxPeople . ' khách (7 khách/phòng).',
+            ])->withInput();
         }
 
-        // Compute extra surcharge counts (only for units exceeding base capacity) and calculate per-type surcharges
+        // Units vẫn dùng để tính phụ phí vượt sức chứa (không dùng để chặn tổng số khách)
+        $totalUnits = ($totalAdults * 2) + $totalChildren + $totalInfants;
         $baseUnits = $totalSoLuong * 4; // 2 adults * 2 units
         $extraAdultsCount = $extraChildrenCount = $extraInfantsCount = 0;
         $totalExtraFee = $totalChildFee = $totalInfantFee = 0;

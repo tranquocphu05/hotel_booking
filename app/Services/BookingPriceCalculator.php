@@ -169,7 +169,7 @@ class BookingPriceCalculator
     }
 
     /**
-     * Tính phụ phí khách thêm theo từng ngày, cũng áp dụng multiplier theo ngày
+     * Tính phụ phí khách thêm: giá cố định mỗi người mỗi đêm, KHÔNG áp dụng multiplier ngày lễ/cuối tuần
      */
     public static function calculateExtraGuestSurcharge(
         LoaiPhong $loaiPhong,
@@ -178,36 +178,29 @@ class BookingPriceCalculator
         int $extraGuests,
         float $extraFeePercent
     ): float {
-        if ($extraGuests <= 0 || $extraFeePercent <= 0) {
+        // Giữ nguyên signature (extraFeePercent) để không ảnh hưởng các chỗ gọi cũ,
+        // nhưng chuyển sang tính theo giá cố định mỗi người mỗi đêm.
+        if ($extraGuests <= 0) {
             return 0.0;
         }
 
         $total = 0.0;
 
-        $current = $checkIn->copy();
-        $end = $checkOut->copy();
-
-        while ($current->lt($end)) {
-            $base = $loaiPhong->gia_khuyen_mai ?? $loaiPhong->gia_co_ban ?? 0;
-
-            if ($base <= 0) {
-                $current->addDay();
-                continue;
-            }
-
-            $multiplier = self::getMultiplierForDate($current);
-
-            $priceForDay = $base * $multiplier;
-            $total += $extraGuests * $priceForDay * $extraFeePercent;
-
-            $current->addDay();
+        // Số đêm lưu trú
+        $nights = $checkIn->diffInDays($checkOut);
+        if ($nights <= 0) {
+            return 0.0;
         }
+
+        // Giá cố định cho người lớn: 300,000 VNĐ / người / đêm (không nhân multiplier)
+        $basePerAdultPerNight = 300000;
+        $total = $extraGuests * $basePerAdultPerNight * $nights;
 
         return $total;
     }
 
     /**
-     * Tính phụ phí trẻ em theo từng ngày, áp dụng multiplier theo ngày
+     * Tính phụ phí trẻ em: giá cố định mỗi người mỗi đêm, KHÔNG áp dụng multiplier ngày lễ/cuối tuần
      */
     public static function calculateChildSurcharge(
         LoaiPhong $loaiPhong,
@@ -216,30 +209,22 @@ class BookingPriceCalculator
         int $childrenCount,
         float $childFeePercent
     ): float {
-        if ($childrenCount <= 0 || $childFeePercent <= 0) {
+        // Chuyển sang tính theo giá cố định cho trẻ em, giữ nguyên signature để tránh breaking change.
+        if ($childrenCount <= 0) {
             return 0.0;
         }
 
         $total = 0.0;
 
-        $current = $checkIn->copy();
-        $end = $checkOut->copy();
-
-        while ($current->lt($end)) {
-            $base = $loaiPhong->gia_khuyen_mai ?? $loaiPhong->gia_co_ban ?? 0;
-
-            if ($base <= 0) {
-                $current->addDay();
-                continue;
-            }
-
-            $multiplier = self::getMultiplierForDate($current);
-
-            $priceForDay = $base * $multiplier;
-            $total += $childrenCount * $priceForDay * $childFeePercent;
-
-            $current->addDay();
+        // Số đêm lưu trú
+        $nights = $checkIn->diffInDays($checkOut);
+        if ($nights <= 0) {
+            return 0.0;
         }
+
+        // Giá cố định cho trẻ em: 150,000 VNĐ / người / đêm (không nhân multiplier)
+        $basePerChildPerNight = 150000;
+        $total = $childrenCount * $basePerChildPerNight * $nights;
 
         return $total;
     }
@@ -254,31 +239,12 @@ class BookingPriceCalculator
         int $infantsCount,
         float $infantFeePercent
     ): float {
-        if ($infantsCount <= 0 || $infantFeePercent <= 0) {
+        // Em bé được miễn phí hoàn toàn theo yêu cầu.
+        if ($infantsCount <= 0) {
             return 0.0;
         }
-
-        $total = 0.0;
-
-        $current = $checkIn->copy();
-        $end = $checkOut->copy();
-
-        while ($current->lt($end)) {
-            $base = $loaiPhong->gia_khuyen_mai ?? $loaiPhong->gia_co_ban ?? 0;
-
-            if ($base <= 0) {
-                $current->addDay();
-                continue;
-            }
-
-            $multiplier = self::getMultiplierForDate($current);
-
-            $priceForDay = $base * $multiplier;
-            $total += $infantsCount * $priceForDay * $infantFeePercent;
-
-            $current->addDay();
-        }
-
-        return $total;
+        
+        // Dù có multiplier theo ngày lễ/cuối tuần, em bé vẫn miễn phí nên tổng luôn = 0.
+        return 0.0;
     }
 }

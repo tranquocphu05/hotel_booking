@@ -73,9 +73,10 @@ class BookingManager {
         this.roomTypeOptionsHtml = "";
         // Capacity and surcharge config
         this.maxAdultsPerRoom = 2; // fixed capacity per room
-        this.extraFeePercent = 0.2; // 20% of nightly room price per extra adult
-        this.childFeePercent = 0.5; // 50% of nightly room price per child (6-12)
-        this.infantFeePercent = 0.05; // 5% of nightly room price per infant (0-5)
+        // Các biến percent giữ lại để không phá vỡ code cũ, nhưng logic mới dùng giá cố định
+        this.extraFeePercent = 0.2; // legacy: không còn được dùng trong tính toán
+        this.childFeePercent = 0.5; // legacy
+        this.infantFeePercent = 0.05; // legacy
 
         // Initialize
         this.init();
@@ -228,7 +229,6 @@ class BookingManager {
                                 <option value="1">1</option>
                                 <option value="2">2</option>
                                 <option value="3">3</option>
-                                <option value="4">4</option>
                             </select>
                         </div>
 
@@ -774,7 +774,7 @@ class BookingManager {
                         sumAdults - capacity
                     );
 
-                    // Duyệt từng ngày để áp dụng multiplier giống server
+                    // Duyệt từng ngày để áp dụng multiplier cho GIÁ PHÒNG, nhưng phụ phí thêm người là cố định, không nhân multiplier
                     const current = new Date(checkinDate.getTime());
                     while (current < checkoutDate) {
                         const m = this.getMultiplierForDate(current);
@@ -789,32 +789,21 @@ class BookingManager {
                         // Tiền phòng cơ bản theo hệ số ngày
                         totalBeforeDiscountAmount += price * m * quantity;
 
-                        // Phụ phí khách vượt (nếu có), áp dụng cùng multiplier theo ngày
+                        // Phụ phí khách vượt: giá cố định 300,000 VND / người lớn / đêm, KHÔNG áp dụng multiplier
                         if (extraGuestsForType > 0) {
+                            const basePerAdultPerNight = 300000;
                             totalExtraFee +=
-                                extraGuestsForType *
-                                price *
-                                this.extraFeePercent *
-                                m;
+                                extraGuestsForType * basePerAdultPerNight;
                         }
 
-                        // Phụ phí trẻ em (nếu có), áp dụng cùng multiplier theo ngày
+                        // Phụ phí trẻ em: giá cố định 150,000 VND / trẻ em / đêm, KHÔNG áp dụng multiplier
                         if (sumChildren > 0) {
-                            totalChildFee +=
-                                sumChildren *
-                                price *
-                                this.childFeePercent *
-                                m;
+                            const basePerChildPerNight = 150000;
+                            totalChildFee += sumChildren * basePerChildPerNight;
                         }
 
-                        // Phụ phí em bé (nếu có), áp dụng cùng multiplier theo ngày
-                        if (sumInfants > 0) {
-                            totalInfantFee +=
-                                sumInfants *
-                                price *
-                                this.infantFeePercent *
-                                m;
-                        }
+                        // Phụ phí em bé: miễn phí hoàn toàn, không cộng thêm gì
+                        // totalInfantFee luôn = 0 theo policy mới
 
                         current.setDate(current.getDate() + 1);
                     }
@@ -1031,7 +1020,7 @@ class BookingManager {
                     const price =
                         parseFloat(quantityInput.dataset.roomPrice) || 0;
                     const roomId = quantityInput.dataset.roomId;
-                    // Calculate child and infant fee rates as percentage of room price (5%)
+                    // Legacy: child/infant fee rates theo % giá phòng (không còn dùng trong tính toán chính)
                     const childFeeRate = price * this.childFeePercent;
                     const infantFeeRate = price * this.infantFeePercent;
                     const adultsSel = document.getElementById(
@@ -1091,46 +1080,37 @@ class BookingManager {
                         sumAdults - capacity
                     );
 
-                    // Tính phụ phí theo từng ngày với multiplier (giống server)
-                    const { checkinValue, checkoutValue } = this.getDatesAndDays();
+                    // Tính phụ phí thêm người theo số đêm, KHÔNG nhân multiplier
+                    const { checkinValue, checkoutValue } =
+                        this.getDatesAndDays();
                     const checkinDate = new Date(checkinValue);
                     const checkoutDate = new Date(checkoutValue);
-                    
+
                     let extraFeeForType = 0;
                     let childFeeForType = 0;
                     let infantFeeForType = 0;
 
-                    const current = new Date(checkinDate.getTime());
-                    while (current < checkoutDate) {
-                        const m = this.getMultiplierForDate(current);
-                        const priceForDay = price * m;
+                    const oneDayMs = 24 * 60 * 60 * 1000;
+                    const nights = Math.max(
+                        1,
+                        Math.round((checkoutDate - checkinDate) / oneDayMs)
+                    );
 
-                        // Phụ phí người lớn vượt
-                        if (extraGuestsForType > 0) {
-                            extraFeeForType +=
-                                extraGuestsForType *
-                                priceForDay *
-                                this.extraFeePercent;
-                        }
-
-                        // Phụ phí trẻ em
-                        if (sumChildren > 0) {
-                            childFeeForType +=
-                                sumChildren *
-                                priceForDay *
-                                this.childFeePercent;
-                        }
-
-                        // Phụ phí em bé
-                        if (sumInfants > 0) {
-                            infantFeeForType +=
-                                sumInfants *
-                                priceForDay *
-                                this.infantFeePercent;
-                        }
-
-                        current.setDate(current.getDate() + 1);
+                    // Phụ phí người lớn vượt: 300,000 VND / người / đêm (không nhân multiplier)
+                    if (extraGuestsForType > 0) {
+                        const basePerAdultPerNight = 300000;
+                        extraFeeForType =
+                            extraGuestsForType * basePerAdultPerNight * nights;
                     }
+
+                    // Phụ phí trẻ em: 150,000 VND / người / đêm (không nhân multiplier)
+                    if (sumChildren > 0) {
+                        const basePerChildPerNight = 150000;
+                        childFeeForType =
+                            sumChildren * basePerChildPerNight * nights;
+                    }
+
+                    // Phụ phí em bé: miễn phí
 
                     roomsSummary.push({
                         name: roomName,

@@ -173,7 +173,7 @@
                                         <label for="total_adults" class="block text-sm font-medium text-gray-700 mb-2">Người lớn</label>
                                         <input type="number" name="so_nguoi" id="total_adults"
                                             class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                                            value="{{ old('so_nguoi', $booking->so_nguoi ?? 1) }}" min="1" max="20" required
+                                            value="{{ old('so_nguoi', $booking->so_nguoi ?? 1) }}" min="1" max="3" required
                                             oninput="updateAllRoomGuests('adults'); syncAllGuests && syncAllGuests(); if (window.computeTotals) window.computeTotals();">
 
                                         @error('so_nguoi')
@@ -184,7 +184,7 @@
                                         <label for="total_children" class="block text-sm font-medium text-gray-700 mb-2">Trẻ em (6-12)</label>
                                         <input type="number" name="so_tre_em" id="total_children"
                                             class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-400 focus:border-transparent text-sm"
-                                            value="{{ old('so_tre_em', $booking->so_tre_em ?? 0) }}" min="0" max="10"
+                                            value="{{ old('so_tre_em', $booking->so_tre_em ?? 0) }}" min="0" max="2"
                                             oninput="updateAllRoomGuests('children'); syncAllGuests && syncAllGuests(); if (window.computeTotals) window.computeTotals();">
                                         @error('so_tre_em')
                                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -193,7 +193,7 @@
                                         <label for="total_infants" class="block text-sm font-medium text-gray-700 mb-2 mt-3">Em bé (0-5)</label>
                                         <input type="number" name="so_em_be" id="total_infants"
                                             class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-pink-400 focus:border-transparent text-sm"
-                                            value="{{ old('so_em_be', $booking->so_em_be ?? 0) }}" min="0" max="5"
+                                            value="{{ old('so_em_be', $booking->so_em_be ?? 0) }}" min="0" max="2"
                                             oninput="updateAllRoomGuests('infants'); syncAllGuests && syncAllGuests(); if (window.computeTotals) window.computeTotals();">
                                         <p id="guest_limit_error" class="mt-2 text-sm text-red-600 hidden"></p>
                                         @error('so_em_be')
@@ -2201,9 +2201,6 @@
                 }, 0);
 
                 const maxAdultsPerRoom = 2;
-                const extraFeePercent = 0.2; // 20%
-                const childFeePercent = 0.1; // 10%
-                const infantFeePercent = 0.05; // 5%
 
                 let totalExtraFee = 0;
                 let totalChildFee = 0;
@@ -2212,7 +2209,7 @@
                 const unitsTotal = (totalAdults * 2) + totalChildren + totalInfants;
                 const baseUnits = totalSoLuong * 4;
 
-                if (unitsTotal > baseUnits && totalSoLuong > 0 && roomTotal > 0) {
+                if (unitsTotal > baseUnits && totalSoLuong > 0) {
                     const adultsUnits = totalAdults * 2;
                     const adultsExtraUnits = Math.max(0, adultsUnits - baseUnits);
                     let unitsRemainingBase = Math.max(0, baseUnits - adultsUnits);
@@ -2228,66 +2225,10 @@
                     const extraChildrenCount = childrenExtra;
                     const extraInfantsCount = infantsExtra;
 
-                    // Better distribution: allocate extra counts per room type and compute per-type surcharge
-                    // Build maps: roomTotalByType and qtyByType
-                    const roomTotalByType = {}; // loaiId -> total price for that loai (includes qty & nights)
-                    const qtyByType = {}; // loaiId -> total quantity
-                    document.querySelectorAll('.room-item').forEach(item => {
-                        const idx = item.getAttribute('data-room-index');
-                        const select = item.querySelector('.room-type-select');
-                        const qtyInput = item.querySelector('input[data-room-index]');
-                        if (!select || !select.value) return;
-                        const roomTypeId = select.value;
-                        const quantity = parseInt(qtyInput?.value || 1);
-                        const priceInput = document.getElementById(`room_gia_rieng_${idx}`);
-                        const rowTotal = parseFloat(priceInput?.value || 0);
-
-                        roomTotalByType[roomTypeId] = (roomTotalByType[roomTypeId] || 0) + rowTotal;
-                        qtyByType[roomTypeId] = (qtyByType[roomTypeId] || 0) + quantity;
-                    });
-
-                    const typeIds = Object.keys(qtyByType);
-
-                    // Helper: distribute counts proportional to quantity (rounded, rest to last)
-                    function distributeCount(totalCount) {
-                        const distribution = {};
-                        let remaining = totalCount;
-                        typeIds.forEach((tid, i) => {
-                            const soLuong = qtyByType[tid] || 0;
-                            let val = 0;
-                            if (i < typeIds.length - 1) {
-                                val = Math.round(totalCount * (soLuong / Math.max(1, totalSoLuong)));
-                            } else {
-                                val = remaining;
-                            }
-                            distribution[tid] = val;
-                            remaining -= val;
-                        });
-                        return distribution;
-                    }
-
-                    const distAdults = distributeCount(extraAdultsCount);
-                    const distChildren = distributeCount(extraChildrenCount);
-                    const distInfants = distributeCount(extraInfantsCount);
-
-                    // Compute per-type fees using per-room average (roomTotalByType / qtyByType)
-                    totalExtraFee = 0;
-                    totalChildFee = 0;
+                    // Tính phụ phí cố định theo số đêm, không áp dụng multiplier hay % giá phòng
+                    totalExtraFee = extraAdultsCount * 300000 * nights;
+                    totalChildFee = extraChildrenCount * 150000 * nights;
                     totalInfantFee = 0;
-
-                    typeIds.forEach(tid => {
-                        const qty = qtyByType[tid] || 1;
-                        const totalForType = roomTotalByType[tid] || 0;
-                        const perRoomBase = (qty > 0) ? (totalForType / qty) : 0;
-
-                        const aCount = distAdults[tid] || 0;
-                        const cCount = distChildren[tid] || 0;
-                        const fCount = distInfants[tid] || 0;
-
-                        totalExtraFee += aCount * perRoomBase * extraFeePercent;
-                        totalChildFee += cCount * perRoomBase * childFeePercent;
-                        totalInfantFee += fCount * perRoomBase * infantFeePercent;
-                    });
                 }
 
                 // Update surcharge UI
@@ -2424,9 +2365,7 @@
                 if (servicePriceElement) servicePriceElement.textContent = formatCurrency(totalServicePrice);
                 totalPriceElement.textContent = formatCurrency(finalTotal);
                 tongTienInput.value = finalTotal;
-            };
-
-// Small helper: distribute top-level guest totals into per-room hidden inputs (if any)
+                // Small helper: distribute top-level guest totals into per-room hidden inputs (if any)
                 function updateAllRoomGuests(type) {
                     try {
                         // Read current totals
@@ -2437,7 +2376,6 @@
                         // Collect room rows and total room count
                         const roomItems = Array.from(document.querySelectorAll('.room-item'));
                         if (!roomItems.length) {
-                            // No rooms selected: hide any previous error and just return
                             document.getElementById('guest_limit_error')?.classList.add('hidden');
                             return;
                         }
@@ -2455,39 +2393,9 @@
                         if (type === 'children') childrenVal = inputVal;
                         if (type === 'infants') infantsVal = inputVal;
 
-                        // Units method: adult=2, child=1, infant=1
-                        const totalUnits = (adultsVal * 2) + childrenVal + infantsVal;
-                        const baseUnits = totalQuantity * 4; // 2 adults * 2 units
-                        const maxUnits = totalQuantity * 6; // base + extra (per room +2 units)
-
-                        if (totalUnits > maxUnits) {
-                            // Cap the input to allowed max for this type
-                            const otherUnits = totalUnits - ((type === 'adults') ? (adultsVal * 2) : (type === 'children' ? childrenVal : infantsVal));
-                            const availableUnits = Math.max(0, maxUnits - otherUnits);
-                            let allowedValue = 0;
-                            if (type === 'adults') {
-                                allowedValue = Math.floor(availableUnits / 2);
-                            } else {
-                                allowedValue = Math.floor(availableUnits);
-                            }
-
-                            // Update the input to allowed value
-                            if (totalInput) totalInput.value = allowedValue;
-
-                            // Show helper error
-                            const err = document.getElementById('guest_limit_error');
-                            if (err) {
-                                err.textContent = `Giới hạn tối đa cho số khách theo số phòng đã chọn: ${maxUnits / 2} người lớn tương đương (tương đương ${maxUnits} đơn vị).`;
-                                err.classList.remove('hidden');
-                            }
-
-                            // Update local values to allowed
-                            if (type === 'adults') adultsVal = allowedValue;
-                            if (type === 'children') childrenVal = allowedValue;
-                            if (type === 'infants') infantsVal = allowedValue;
-                        } else {
-                            document.getElementById('guest_limit_error')?.classList.add('hidden');
-                        }
+                        // Không kiểm tra capacity bằng units ở phía client nữa,
+                        // giới hạn tối đa do min/max từng input (3 NL, 2 TE, 2 EB) và backend đảm bảo.
+                        document.getElementById('guest_limit_error')?.classList.add('hidden');
 
                         // Distribute values proportionally by room quantity (used when syncAllGuests constructs rooms[])
                         let remainingAdults = adultsVal;

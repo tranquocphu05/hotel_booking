@@ -149,12 +149,13 @@
                                                     // Phụ phí thêm người lớn (so sánh với số người ban đầu)
                                                     if ($soNguoiMoi !== null && $soNguoiMoi > $soNguoiBanDau) {
                                                         $extraAdults = $soNguoiMoi - $soNguoiBanDau;
+                                                        // Tính phụ phí người lớn theo giá cố định 300k/người/đêm (BookingPriceCalculator đã dùng fixed-fee, tham số % giữ nguyên nhưng không còn dùng)
                                                         $phuPhiNguoiLon = \App\Services\BookingPriceCalculator::calculateExtraGuestSurcharge(
                                                             $loaiPhongMoi,
                                                             $checkIn,
                                                             $checkOut,
                                                             $extraAdults,
-                                                            0.20 // 20%
+                                                            0 // percent không còn sử dụng
                                                         );
                                                         $tongPhiDoiPhong += $phuPhiNguoiLon;
                                                     }
@@ -162,12 +163,13 @@
                                                     // Phụ phí thêm trẻ em (so sánh với số trẻ em ban đầu)
                                                     if ($soTreEmMoi !== null && $soTreEmMoi > $soTreEmBanDau) {
                                                         $extraChildren = $soTreEmMoi - $soTreEmBanDau;
+                                                        // Tính phụ phí trẻ em theo giá cố định 150k/người/đêm
                                                         $phuPhiTreEm = \App\Services\BookingPriceCalculator::calculateChildSurcharge(
                                                             $loaiPhongMoi,
                                                             $checkIn,
                                                             $checkOut,
                                                             $extraChildren,
-                                                            0.10 // 10%
+                                                            0
                                                         );
                                                         $tongPhiDoiPhong += $phuPhiTreEm;
                                                     }
@@ -175,12 +177,13 @@
                                                     // Phụ phí thêm em bé (so sánh với số em bé ban đầu)
                                                     if ($soEmBeMoi !== null && $soEmBeMoi > $soEmBeBanDau) {
                                                         $extraInfants = $soEmBeMoi - $soEmBeBanDau;
+                                                        // Em bé miễn phí theo policy mới, BookingPriceCalculator sẽ luôn trả 0
                                                         $phuPhiEmBe = \App\Services\BookingPriceCalculator::calculateInfantSurcharge(
                                                             $loaiPhongMoi,
                                                             $checkIn,
                                                             $checkOut,
                                                             $extraInfants,
-                                                            0.05 // 5%
+                                                            0
                                                         );
                                                         $tongPhiDoiPhong += $phuPhiEmBe;
                                                     }
