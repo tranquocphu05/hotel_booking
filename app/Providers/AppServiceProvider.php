@@ -25,8 +25,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Chia sẻ danh sách loại phòng cho menu client-nav (cached 1 giờ)
-        View::composer('partials.client-nav', function ($view) {
+        // Chia sẻ danh sách loại phòng cho menu client-nav và header search form (cached 1 giờ)
+        View::composer(['partials.client-nav', 'client.header.header'], function ($view) {
             $menuLoaiPhongs = Cache::remember('menu_loai_phongs', 3600, function () {
                 return LoaiPhong::where('trang_thai', 'hoat_dong')
                     ->orderBy('ten_loai')

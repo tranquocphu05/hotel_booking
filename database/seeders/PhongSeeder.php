@@ -88,8 +88,18 @@ class PhongSeeder extends Seeder
             }
         }
 
+        // Tính lại số lượng phòng trống cho tất cả loại phòng sau khi seed
+        foreach ($loaiPhongs as $loaiPhong) {
+            $trongCount = Phong::where('loai_phong_id', $loaiPhong->id)
+                ->where('trang_thai', 'trong')
+                ->count();
+            
+            $loaiPhong->update(['so_luong_trong' => $trongCount]);
+        }
+
         $totalRooms = Phong::count();
         $this->command->info("Đã seed {$totalRooms} phòng thành công!");
+        $this->command->info("Đã cập nhật số lượng phòng trống cho tất cả loại phòng!");
     }
 
     /**
