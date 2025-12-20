@@ -120,6 +120,23 @@ class RevenueController extends Controller
             ->orderBy('ngay', 'desc')
             ->get();
 
+        // Lấy các booking bị hủy trong khoảng thời gian
+        $cancelledBookings = DatPhong::with(['loaiPhong', 'user'])
+            ->where('trang_thai', 'da_huy')
+            ->whereBetween('ngay_dat', [$startDateParsed ?? $startDate, $endDateParsed ?? $endDate])
+            ->orderBy('ngay_dat', 'desc')
+            ->paginate(10, ['*'], 'cancelled_page');
+
+        // Tính tổng doanh thu tiềm năng bị mất do hủy
+        $totalCancelledRevenue = DatPhong::where('trang_thai', 'da_huy')
+            ->whereBetween('ngay_dat', [$startDateParsed ?? $startDate, $endDateParsed ?? $endDate])
+            ->sum('tong_tien');
+
+        // Số lượng booking bị hủy
+        $cancelledCount = DatPhong::where('trang_thai', 'da_huy')
+            ->whereBetween('ngay_dat', [$startDateParsed ?? $startDate, $endDateParsed ?? $endDate])
+            ->count();
+
         return view('admin.revenue.index', [
             'revenueData' => $revenueData,
             'paidBookings' => $paidBookings,
@@ -133,7 +150,10 @@ class RevenueController extends Controller
             'today' => $today->format('Y-m-d'),
             'yesterday' => $yesterday->format('Y-m-d'),
             'dailyRevenues' => $dailyRevenues,
-            'isReceptionist' => $isReceptionist, // Truyền flag để view biết là lễ tân
+            'isReceptionist' => $isReceptionist,
+            'cancelledBookings' => $cancelledBookings,
+            'totalCancelledRevenue' => $totalCancelledRevenue,
+            'cancelledCount' => $cancelledCount,
         ]);
     }
 

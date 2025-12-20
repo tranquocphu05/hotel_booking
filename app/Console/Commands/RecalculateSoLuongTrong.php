@@ -55,7 +55,7 @@ class RecalculateSoLuongTrong extends Command
         // Check each room type
         foreach ($loaiPhongs as $loaiPhong) {
             $trongCountActual = Phong::where('loai_phong_id', $loaiPhong->id)
-                ->where('trang_thai', 'trong')
+                ->whereIn('trang_thai', ['trong', 'dang_don'])
                 ->count();
             
             $trongCountDB = $loaiPhong->so_luong_trong;
@@ -149,7 +149,7 @@ class RecalculateSoLuongTrong extends Command
                 if ($detail['need_update']) {
                     $loaiPhong = LoaiPhong::find($detail['id']);
                     $trongCountActual = Phong::where('loai_phong_id', $loaiPhong->id)
-                        ->where('trang_thai', 'trong')
+                        ->whereIn('trang_thai', ['trong', 'dang_don'])
                         ->count();
                     
                     if ($loaiPhong->so_luong_trong == $trongCountActual) {

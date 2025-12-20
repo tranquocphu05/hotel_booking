@@ -283,6 +283,136 @@
 </div>
 @endunless
 
+<!-- Đặt phòng bị hủy: Chỉ hiển thị cho Admin -->
+@unless(isset($isReceptionist) && $isReceptionist)
+<div class="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <!-- Header -->
+    <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-red-50 to-orange-50">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-times-circle text-red-500 text-lg"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900">Đặt phòng bị hủy</h3>
+                    <p class="text-sm text-gray-500">Trong khoảng thời gian đã chọn</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-6">
+                <!-- Số lượng -->
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-red-600">{{ $cancelledCount ?? 0 }}</p>
+                    <p class="text-xs text-gray-500 uppercase tracking-wide">Đơn hủy</p>
+                </div>
+                <!-- Tổng tiền -->
+                <div class="text-center pl-6 border-l border-gray-200">
+                    <p class="text-lg font-bold text-red-600">{{ number_format($totalCancelledRevenue ?? 0, 0, ',', '.') }}₫</p>
+                    <p class="text-xs text-gray-500 uppercase tracking-wide">Doanh thu mất</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if(($cancelledCount ?? 0) > 0)
+    <!-- Table -->
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                    <th class="text-left py-3 px-4 font-medium text-gray-600">Mã đơn</th>
+                    <th class="text-left py-3 px-4 font-medium text-gray-600">Loại phòng</th>
+                    <th class="text-left py-3 px-4 font-medium text-gray-600">Khách hàng</th>
+                    <th class="text-center py-3 px-4 font-medium text-gray-600">Ngày nhận/trả</th>
+                    <th class="text-right py-3 px-4 font-medium text-gray-600">Giá trị</th>
+                    <th class="text-left py-3 px-4 font-medium text-gray-600">Lý do hủy</th>
+                    <th class="text-center py-3 px-4 font-medium text-gray-600"></th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                @foreach($cancelledBookings ?? [] as $booking)
+                <tr class="hover:bg-red-50/30 transition-colors">
+                    <!-- Mã đơn -->
+                    <td class="py-3 px-4">
+                        <span class="font-mono text-xs bg-gray-100 px-2 py-1 rounded">#{{ $booking->id }}</span>
+                    </td>
+                    
+                    <!-- Loại phòng -->
+                    <td class="py-3 px-4">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 bg-red-100 rounded flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-bed text-red-500 text-xs"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-900 text-sm">{{ $booking->loaiPhong->ten_loai ?? 'N/A' }}</p>
+                                <p class="text-xs text-gray-500">{{ $booking->so_luong_da_dat ?? 1 }} phòng • {{ $booking->so_nguoi ?? 0 }} người</p>
+                            </div>
+                        </div>
+                    </td>
+                    
+                    <!-- Khách hàng -->
+                    <td class="py-3 px-4">
+                        <p class="font-medium text-gray-900 text-sm">{{ $booking->username ?? $booking->user?->name ?? 'Khách vãng lai' }}</p>
+                        <p class="text-xs text-gray-500">{{ $booking->email ?? $booking->user?->email ?? '-' }}</p>
+                    </td>
+                    
+                    <!-- Ngày nhận/trả -->
+                    <td class="py-3 px-4 text-center">
+                        <div class="inline-flex items-center gap-1 text-xs">
+                            <span class="bg-gray-100 px-2 py-1 rounded">{{ \Carbon\Carbon::parse($booking->ngay_nhan_phong)->format('d/m') }}</span>
+                            <i class="fas fa-arrow-right text-gray-300 text-[10px]"></i>
+                            <span class="bg-gray-100 px-2 py-1 rounded">{{ \Carbon\Carbon::parse($booking->ngay_tra_phong)->format('d/m') }}</span>
+                        </div>
+                    </td>
+                    
+                    <!-- Giá trị -->
+                    <td class="py-3 px-4 text-right">
+                        <p class="font-semibold text-red-600 line-through">{{ number_format($booking->tong_tien, 0, ',', '.') }}₫</p>
+                    </td>
+                    
+                    <!-- Lý do hủy -->
+                    <td class="py-3 px-4">
+                        @if($booking->ly_do_huy)
+                            <p class="text-xs text-gray-600 max-w-[200px] truncate" title="{{ $booking->ly_do_huy }}">
+                                {{ $booking->ly_do_huy }}
+                            </p>
+                        @else
+                            <span class="text-xs text-gray-400 italic">Không có</span>
+                        @endif
+                    </td>
+                    
+                    <!-- Actions -->
+                    <td class="py-3 px-4 text-center">
+                        <a href="{{ route('admin.dat_phong.show', $booking->id) }}" 
+                           class="inline-flex items-center justify-center w-8 h-8 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors"
+                           title="Xem chi tiết">
+                            <i class="fas fa-eye text-xs"></i>
+                        </a>
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+
+    @if(isset($cancelledBookings) && $cancelledBookings->hasPages())
+        <div class="px-6 py-4 border-t border-gray-200 bg-gray-50">
+            {{ $cancelledBookings->appends(request()->except('cancelled_page'))->links() }}
+        </div>
+    @endif
+
+    @else
+    <!-- Empty State -->
+    <div class="text-center py-12">
+        <div class="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+            <i class="fas fa-check text-green-500 text-xl"></i>
+        </div>
+        <p class="text-gray-600 font-medium">Không có đơn đặt phòng nào bị hủy</p>
+        <p class="text-sm text-gray-400 mt-1">Tất cả đơn đặt phòng đều được xử lý thành công</p>
+    </div>
+    @endif
+</div>
+@endunless
+
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

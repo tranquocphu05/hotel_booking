@@ -108,7 +108,7 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsStaff
     Route::put('loai_phong/{id}/toggle-status', [LoaiPhongController::class, 'toggleStatus'])->name('loai_phong.toggle');
     Route::resource('service', ServiceController::class); 
     Route::resource('phong', \App\Http\Controllers\Admin\PhongController::class)->names('phong');
-    Route::put('phong/{id}/update-status', [\App\Http\Controllers\Admin\PhongController::class, 'updateStatus'])->name('phong.update-status');
+    Route::patch('phong/{id}/update-status', [\App\Http\Controllers\Admin\PhongController::class, 'updateStatus'])->name('phong.update_status');
     Route::resource('invoices', InvoiceController::class)->names('invoices');
     Route::get('/invoices/{invoice}/export', [InvoiceController::class, 'export'])->name('invoices.export');
     Route::get('/invoices/{invoice}/export-combined', [InvoiceController::class, 'exportCombined'])->name('invoices.export_combined');
