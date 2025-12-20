@@ -329,7 +329,6 @@
                                 <p class="text-xl font-bold text-red-600">0%</p>
                             </div>
                         </div>
-
                     </div>
 
                     @if ($cancellationPolicy['can_cancel'])
@@ -362,9 +361,135 @@
 
                     {{-- THÔNG TIN PHÒNG --}}
                     <div class="bg-white rounded-xl shadow border border-gray-100 overflow-hidden">
-                        <div class="p-4 border-b bg-gray-50">
+                        <div class="p-4 border-b bg-gray-50 flex items-center justify-between gap-3">
                             <h3 class="text-lg font-semibold text-gray-900">Thông tin phòng</h3>
+                            @if ($booking->trang_thai === 'da_xac_nhan' && $booking->thoi_gian_checkin && !$booking->thoi_gian_checkout)
+                                <button type="button" onclick="toggleChangeRoomForm()"
+                                    class="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg shadow-sm transition whitespace-nowrap">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                    </svg>
+                                    Đổi phòng
+                                </button>
+                            @endif
                         </div>
+
+                        {{-- CHANGE ROOM FORM (Accordion like services) --}}
+                        @if ($booking->trang_thai === 'da_xac_nhan' && $booking->thoi_gian_checkin && !$booking->thoi_gian_checkout)
+                            <div id="changeRoomForm" class="hidden border-b bg-purple-50 border-purple-200 p-4">
+                                <h4 class="font-medium text-gray-900 mb-3">Đổi phòng</h4>
+                                <form method="POST" action="{{ route('admin.dat-phong.change-room', $booking->id) }}" class="space-y-4">
+                                    @csrf
+
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Phòng hiện tại <span class="text-red-500">*</span></label>
+                                        <select name="phong_cu_id" id="phong_cu_id" required
+                                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white">
+                                            @php
+                                                $currentRooms = $booking->phongs && $booking->phongs->count() ? $booking->phongs : collect();
+                                                if ($currentRooms->isEmpty() && $booking->phong) {
+                                                    $currentRooms = collect([$booking->phong]);
+                                                }
+                                            @endphp
+                                            @foreach ($currentRooms as $p)
+                                                @php
+                                                    $oldRate = $p->loaiPhong->gia_khuyen_mai ?? $p->loaiPhong->gia_co_ban ?? 0;
+                                                @endphp
+                                                <option value="{{ $p->id }}" data-old-rate="{{ $oldRate }}">
+                                                    {{ $p->ten_phong ?? ('Phòng #' . $p->id) }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Phòng muốn đổi sang <span class="text-red-500">*</span></label>
+
+                                        @if (empty($availableRoomsForRoomChange) || $availableRoomsForRoomChange->isEmpty())
+                                            <div class="p-4 bg-white rounded-lg border border-purple-200 text-sm text-gray-600">
+                                                Hiện không còn phòng trống trong khoảng thời gian này.
+                                            </div>
+                                        @else
+                                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                @foreach ($availableRoomsForRoomChange->groupBy('loai_phong_id') as $loaiPhongId => $rooms)
+                                                    @php
+                                                        $lp = $rooms->first()->loaiPhong;
+                                                        $newRate = $lp->gia_khuyen_mai ?? $lp->gia_co_ban ?? 0;
+                                                        $roomImg = !empty($lp->anh) ? asset($lp->anh) : asset('img/room/room-1.jpg');
+                                                    @endphp
+                                                    <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                                                        <div class="relative h-28 overflow-hidden">
+                                                            <img src="{{ $roomImg }}" class="w-full h-full object-cover" alt="{{ $lp->ten_loai ?? 'Phòng' }}">
+                                                            <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
+                                                            <div class="absolute bottom-2 left-3 right-3">
+                                                                <p class="text-white font-semibold text-sm">{{ $lp->ten_loai ?? 'N/A' }}</p>
+                                                                <p class="text-white text-xs">{{ number_format($newRate, 0, ',', '.') }} VNĐ/đêm</p>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="p-3 space-y-2">
+                                                            <select class="room-select-dropdown w-full border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring focus:ring-purple-200 focus:border-purple-400 bg-white"
+                                                                data-loai-phong-id="{{ $loaiPhongId }}"
+                                                                data-new-rate="{{ $newRate }}">
+                                                                <option value="">-- Chọn phòng --</option>
+                                                                @foreach ($rooms as $room)
+                                                                    <option value="{{ $room->id }}">
+                                                                        {{ $room->ten_phong ?? ('Phòng #' . $room->id) }}@if ($room->tang) - Tầng {{ $room->tang }} @endif
+                                                                    </option>
+                                                                @endforeach
+                                                            </select>
+
+                                                            <div class="text-xs text-gray-600">
+                                                                <span class="font-medium">Phí đổi phòng:</span>
+                                                                <span id="fee_preview_{{ $loaiPhongId }}" class="font-semibold text-purple-700">-</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+
+                                            <input type="hidden" name="phong_moi_id" id="phong_moi_id" value="" required>
+                                            <div id="phi_doi_phong_display" class="hidden mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                                <p class="text-sm font-semibold text-blue-900 mb-2">Tổng phí đổi phòng:</p>
+                                                <p class="text-lg font-bold text-blue-600" id="phi_doi_phong_amount">0 VNĐ</p>
+                                                <p class="text-xs text-gray-600 mt-2">Miễn phí nếu chênh lệch giá ≤ 100.000 VNĐ, nếu > 100.000 VNĐ thì tính theo chênh lệch giá × số đêm.</p>
+                                            </div>
+                                        @endif
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Lý do đổi phòng <span class="text-red-500">*</span></label>
+                                        <textarea name="ly_do" rows="3" required
+                                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                            placeholder="Ví dụ: Phòng có vấn đề về tiếng ồn, muốn tầng cao hơn...">{{ old('ly_do') }}</textarea>
+                                    </div>
+
+                                    <div class="flex flex-col sm:flex-row gap-2">
+                                        <button type="submit"
+                                            class="flex-1 sm:flex-none inline-flex items-center justify-center px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition shadow-sm">
+                                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                            </svg>
+                                            Xác nhận đổi phòng
+                                        </button>
+                                        <button type="button" onclick="toggleChangeRoomForm()"
+                                            class="sm:flex-none inline-flex items-center justify-center px-5 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-lg transition">
+                                            Hủy
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        @elseif ($booking->trang_thai === 'da_xac_nhan' && !$booking->thoi_gian_checkin)
+                            <div class="border-b p-4 bg-yellow-50 border-yellow-200">
+                                <p class="text-sm text-yellow-800">
+                                    <svg class="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                    Chỉ có thể đổi phòng sau khi khách check-in
+                                </p>
+                            </div>
+                        @endif
 
                         <div class="p-4 space-y-4">
 
@@ -1118,3 +1243,88 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('changeRoomForm');
+            const phongMoiHidden = document.getElementById('phong_moi_id');
+            const phongCuSelect = document.getElementById('phong_cu_id');
+            const feeBox = document.getElementById('phi_doi_phong_display');
+            const feeAmount = document.getElementById('phi_doi_phong_amount');
+            const nights = parseInt('{{ $nightsForRoomChange ?? 1 }}') || 1;
+
+            function clearOtherDropdowns(exceptDropdown) {
+                document.querySelectorAll('.room-select-dropdown').forEach(dd => {
+                    if (dd !== exceptDropdown) dd.value = '';
+                });
+            }
+
+            function formatVnd(amount) {
+                return new Intl.NumberFormat('vi-VN').format(Math.round(amount)) + ' VNĐ';
+            }
+
+            function computeFee() {
+                if (!feeBox || !feeAmount || !phongCuSelect) return;
+                const oldRate = parseFloat(phongCuSelect.options[phongCuSelect.selectedIndex]?.getAttribute('data-old-rate') || '0');
+
+                const threshold = 100000;
+
+                // Update fee label on EVERY card immediately (based on current room)
+                document.querySelectorAll('.room-select-dropdown').forEach(dd => {
+                    const loaiPhongId = dd.getAttribute('data-loai-phong-id');
+                    const newRateForCard = parseFloat(dd.getAttribute('data-new-rate') || '0');
+                    const diffForCard = Math.max(0, (newRateForCard - oldRate) * nights);
+                    const feeForCard = diffForCard <= threshold ? 0 : diffForCard;
+                    const previewEl = loaiPhongId ? document.getElementById('fee_preview_' + loaiPhongId) : null;
+                    if (previewEl) {
+                        previewEl.textContent = feeForCard === 0 ? 'Miễn phí' : formatVnd(feeForCard);
+                    }
+                });
+
+                // Total fee display: only show when a new room is selected
+                const selectedDropdown = Array.from(document.querySelectorAll('.room-select-dropdown')).find(dd => dd.value);
+                if (!selectedDropdown || !selectedDropdown.value) {
+                    feeBox.classList.add('hidden');
+                    if (feeAmount) feeAmount.textContent = '0 VNĐ';
+                    return;
+                }
+
+                const newRate = parseFloat(selectedDropdown.getAttribute('data-new-rate') || '0');
+                const diff = Math.max(0, (newRate - oldRate) * nights);
+                const fee = diff <= threshold ? 0 : diff;
+                feeAmount.textContent = fee === 0 ? 'Miễn phí' : formatVnd(fee);
+                feeBox.classList.remove('hidden');
+            }
+
+            window.toggleChangeRoomForm = function() {
+                if (!form) return;
+                form.classList.toggle('hidden');
+                if (!form.classList.contains('hidden')) {
+                    phongCuSelect?.focus();
+                }
+            }
+
+            phongCuSelect?.addEventListener('change', function() {
+                computeFee();
+            });
+
+            // Initial render: show fee labels on cards even before selecting a new room
+            computeFee();
+
+            document.querySelectorAll('.room-select-dropdown').forEach(dd => {
+                dd.addEventListener('change', function() {
+                    if (!phongMoiHidden) return;
+                    if (!this.value) {
+                        phongMoiHidden.value = '';
+                        computeFee();
+                        return;
+                    }
+                    clearOtherDropdowns(this);
+                    phongMoiHidden.value = this.value;
+                    computeFee();
+                });
+            });
+        });
+    </script>
+@endpush

@@ -22,6 +22,7 @@ use App\Models\Service;
 use App\Models\ThanhToan;
 use App\Traits\HasRolePermissions;
 use App\Services\BookingPriceCalculator;
+use App\Models\YeuCauDoiPhong;
 
 class DatPhongController extends Controller
 {
@@ -316,7 +317,7 @@ class DatPhongController extends Controller
 
     public function show($id)
     {
-        $booking = DatPhong::with(['loaiPhong', 'voucher', 'phong', 'services.service', 'stayGuests.phong'])->findOrFail($id);
+        $booking = DatPhong::with(['loaiPhong', 'voucher', 'phong', 'phongs.loaiPhong', 'services.service', 'stayGuests.phong'])->findOrFail($id);
 
         // Lấy danh sách phòng trống của loại phòng này cho khoảng thời gian booking
         // Loại trừ các phòng đã được gán cho booking này
@@ -331,6 +332,28 @@ class DatPhongController extends Controller
             )->reject(function ($phong) use ($assignedPhongIds) {
                 return in_array($phong->id, $assignedPhongIds);
             })->values();
+        }
+
+        // Danh sách phòng trống cho đổi phòng (giống client): cho phép đổi sang bất kỳ loại phòng nào
+        $availableRoomsForRoomChange = collect();
+        $nightsForRoomChange = 1;
+        if ($booking->ngay_nhan && $booking->ngay_tra) {
+            $nightsForRoomChange = max(1, \Carbon\Carbon::parse($booking->ngay_nhan)->diffInDays(\Carbon\Carbon::parse($booking->ngay_tra)));
+
+            $assignedPhongIdsForRoomChange = $booking->getPhongIds();
+
+            $availableRoomsForRoomChange = Phong::query()
+                ->with('loaiPhong')
+                ->whereIn('trang_thai', ['trong', 'dang_don'])
+                ->whereNotIn('id', $assignedPhongIdsForRoomChange)
+                ->whereDoesntHave('bookings', function ($q) use ($booking) {
+                    $q->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
+                        ->where('ngay_tra', '>', $booking->ngay_nhan)
+                        ->where('ngay_nhan', '<', $booking->ngay_tra);
+                })
+                ->orderBy('loai_phong_id')
+                ->orderBy('ten_phong')
+                ->get();
         }
 
         // Tính chính sách hủy nếu booking đã xác nhận
@@ -384,6 +407,8 @@ class DatPhongController extends Controller
         return view('admin.dat_phong.show', compact(
             'booking',
             'availableRooms',
+            'availableRoomsForRoomChange',
+            'nightsForRoomChange',
             'availableRoomsByLoaiPhong',
             'cancellationPolicy',
             'services',
@@ -3443,4 +3468,249 @@ class DatPhongController extends Controller
             return redirect()->back()->with('error', 'Có lỗi xảy ra khi check-out. Vui lòng thử lại.');
         }
     }
+
+    /**
+     * Đổi phòng trực tiếp từ admin
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Models\DatPhong  $booking
+     * @return \Illuminate\Http\Response
+     */
+    public function changeRoom(Request $request, DatPhong $booking)
+    {
+        // Kiểm tra quyền (project không dùng $this->authorize())
+        if ($this->hasRole('admin')) {
+            // admin: full access
+        } elseif ($this->hasRole('le_tan')) {
+            $this->authorizePermission('phong.change_room');
+        } elseif ($this->hasRole('nhan_vien')) {
+            $this->authorizePermission('room_change.process');
+        } else {
+            abort(403, 'Bạn không có quyền thực hiện hành động này.');
+        }
+
+        // Chỉ khi đã xác nhận + đã checkin + chưa checkout (giống client)
+        if (
+            $booking->trang_thai !== 'da_xac_nhan' ||
+            !$booking->thoi_gian_checkin ||
+            $booking->thoi_gian_checkout
+        ) {
+            return back()->with('error', 'Chỉ có thể đổi phòng khi đặt phòng đã được xác nhận, đã check-in và chưa check-out.');
+        }
+
+        // Validate input 
+        $request->validate([
+            'phong_cu_id' => 'required|exists:phong,id',
+            'phong_moi_id' => 'required|exists:phong,id|different:phong_cu_id',
+            'ly_do' => [
+                'required',
+                'string',
+                'min:10',
+                'max:500',
+                function ($attribute, $value, $fail) {
+                    $trimmed = trim((string) $value);
+
+                    if (preg_match('/^[^A-Za-zÀ-ỹ0-9]/u', $trimmed)) {
+                        $fail('Lý do đổi phòng không được bắt đầu bằng ký tự đặc biệt.');
+                        return;
+                    }
+
+                    if (preg_match('/^[0-9\s]+$/u', $trimmed)) {
+                        $fail('Lý do đổi phòng không thể chỉ gồm chữ số.');
+                        return;
+                    }
+
+                    if (preg_match('/^[\p{P}\p{S}\s]+$/u', $trimmed)) {
+                        $fail('Lý do đổi phòng không thể chỉ gồm ký tự đặc biệt.');
+                        return;
+                    }
+
+                    if (!preg_match('/\p{L}/u', $trimmed)) {
+                        $fail('Lý do đổi phòng phải chứa ít nhất một ký tự chữ.');
+                    }
+                },
+            ],
+        ], [
+            'phong_cu_id.required' => 'Vui lòng chọn phòng hiện tại.',
+            'phong_moi_id.required' => 'Vui lòng chọn phòng muốn đổi sang.',
+            'phong_moi_id.different' => 'Phòng mới phải khác phòng hiện tại.',
+            'ly_do.required' => 'Vui lòng nhập lý do đổi phòng.',
+            'ly_do.min' => 'Lý do đổi phòng phải có ít nhất 10 ký tự.',
+        ]);
+
+        $booking->load('phongs');
+        $phongCuId = (int) $request->input('phong_cu_id');
+
+        // Kiểm tra phòng cũ có thuộc booking không (giống client)
+        $belongsToBooking = $booking->phongs->contains('id', $phongCuId) || ((int) ($booking->phong_id ?? 0) === $phongCuId);
+        if (!$belongsToBooking) {
+            return back()
+                ->with('error', 'Phòng hiện tại không thuộc đặt phòng này.')
+                ->withInput();
+        }
+
+        try {
+            DB::transaction(function () use ($request, $booking) {
+                $booking = DatPhong::where('id', $booking->id)->lockForUpdate()->firstOrFail();
+                $oldTotal = (float) ($booking->tong_tien ?? 0);
+
+                $isSingleRoomBooking = (int) ($booking->so_luong_da_dat ?? 1) <= 1;
+
+                $phongMoi = Phong::with('loaiPhong')
+                    ->where('id', $request->input('phong_moi_id'))
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                $phongCu = Phong::with('loaiPhong')
+                    ->where('id', $request->input('phong_cu_id'))
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                // Check availability trong khoảng ngày booking (giống client)
+                if (!$phongMoi->isAvailableInPeriod($booking->ngay_nhan, $booking->ngay_tra, $booking->id)) {
+                    throw new \RuntimeException('Phòng mới bạn chọn đã có khách khác đặt trong khoảng thời gian này, vui lòng chọn phòng khác.');
+                }
+
+                // Không cho đổi sang phòng đã thuộc booking này (tránh duplicate pivot)
+                if ($booking->phongs()->where('phong_id', $phongMoi->id)->exists() || ((int) ($booking->phong_id ?? 0) === (int) $phongMoi->id)) {
+                    throw new \RuntimeException('Phòng mới đã thuộc đặt phòng này. Vui lòng chọn phòng khác.');
+                }
+
+                // Tính số đêm và phí đổi phòng (giống client)
+                $nights = max(1, \Carbon\Carbon::parse($booking->ngay_nhan)->diffInDays(\Carbon\Carbon::parse($booking->ngay_tra)));
+                $giaPhongCu = $phongCu->loaiPhong->gia_khuyen_mai ?? $phongCu->loaiPhong->gia_co_ban ?? 0;
+                $tongGiaPhongCu = $giaPhongCu * $nights;
+                $giaPhongMoi = $phongMoi->loaiPhong->gia_khuyen_mai ?? $phongMoi->loaiPhong->gia_co_ban ?? 0;
+                $tongGiaPhongMoi = $giaPhongMoi * $nights;
+                $chenhLechGia = max(0, $tongGiaPhongMoi - $tongGiaPhongCu);
+
+                $phiDoiPhongMacDinh = 100000;
+                $phiDoiPhong = $chenhLechGia <= $phiDoiPhongMacDinh ? 0 : $chenhLechGia;
+
+                // Tạo record đổi phòng (admin duyệt ngay)
+                YeuCauDoiPhong::create([
+                    'dat_phong_id' => $booking->id,
+                    'phong_cu_id' => $phongCu->id,
+                    'phong_moi_id' => $phongMoi->id,
+                    'ly_do' => $request->input('ly_do'),
+                    'phi_doi_phong' => $phiDoiPhong,
+                    'trang_thai' => 'da_duyet',
+                    'nguoi_duyet' => auth()->id(),
+                    'ghi_chu_admin' => 'Đổi phòng trực tiếp bởi quản trị viên',
+                ]);
+
+                // Cập nhật phòng cho booking: ưu tiên pivot booking_rooms
+                if ($booking->phongs()->where('phong_id', $phongCu->id)->exists()) {
+                    $booking->phongs()->detach($phongCu->id);
+                }
+
+                // Attach phòng mới và đánh dấu như đã check-in để không phá luồng check-out
+                $booking->phongs()->syncWithoutDetaching([
+                    $phongMoi->id => [
+                        'thoi_gian_checkin' => $booking->thoi_gian_checkin ?? now(),
+                        'trang_thai_phong' => 'da_checkin',
+                    ],
+                ]);
+
+                // Legacy: nếu booking dùng phong_id
+                if ((int) ($booking->phong_id ?? 0) === (int) $phongCu->id) {
+                    $booking->phong_id = $phongMoi->id;
+                }
+
+                // Đồng bộ booking_room_types (nếu đang dùng pivot)
+                $hasRoomTypesPivot = $booking->roomTypes()->exists();
+
+                // Nếu booking 1 phòng: cập nhật loai_phong_id/pivot để UI hiển thị đúng loại phòng + giá theo phòng mới
+                // (Nếu không làm bước này, trang show sẽ vẫn lấy $booking->loaiPhong cũ nên hiển thị sai dù phòng đã đổi)
+                if ($isSingleRoomBooking) {
+                    $booking->loai_phong_id = $phongMoi->loai_phong_id;
+
+                    // Nếu đang dùng pivot booking_room_types và booking chỉ có 1 loại phòng (so_luong = 1)
+                    // thì sync lại pivot sang loại phòng mới để tiền phòng/invoice nhất quán.
+                    if ($hasRoomTypesPivot) {
+                        $currentRoomTypes = $booking->roomTypes()->get();
+                        if ($currentRoomTypes->count() === 1 && (int) ($currentRoomTypes->first()->pivot->so_luong ?? 0) === 1) {
+                            $oldGiaRieng = $currentRoomTypes->first()->pivot->gia_rieng ?? 0;
+                            $booking->syncRoomTypes([
+                                $phongMoi->loai_phong_id => [
+                                    'so_luong' => 1,
+                                    'gia_rieng' => $oldGiaRieng,
+                                ],
+                            ]);
+                        }
+                    }
+                }
+
+                // Cộng phí đổi phòng vào phụ phí phát sinh
+                // Nếu booking 1 phòng và ta đã đổi loai_phong_id/pivot sang phòng mới,
+                // thì tổng tiền sẽ thay đổi theo giá phòng mới qua recalcTotal => tránh cộng phí đổi phòng để không bị tính 2 lần.
+                if (!$isSingleRoomBooking) {
+                    $booking->phi_phat_sinh = ($booking->phi_phat_sinh ?? 0) + $phiDoiPhong;
+                }
+                $booking->save();
+
+                // Recalc tổng tiền
+                \App\Services\BookingPriceCalculator::recalcTotal($booking);
+
+                // Quy tắc: đổi xuống phòng rẻ hơn thì không giảm tổng thanh toán
+                $booking->refresh();
+                $newTotal = (float) ($booking->tong_tien ?? 0);
+                if ($newTotal < $oldTotal) {
+                    $booking->phi_phat_sinh = ($booking->phi_phat_sinh ?? 0) + ($oldTotal - $newTotal);
+                    $booking->save();
+                    \App\Services\BookingPriceCalculator::recalcTotal($booking);
+                    $booking->refresh();
+                }
+
+                // Cập nhật trạng thái phòng (an toàn: chỉ set 'trong' nếu không còn booking đang ở khác)
+                $hasOtherActiveStayInOldRoom = DatPhong::where('id', '!=', $booking->id)
+                    ->where('trang_thai', 'da_xac_nhan')
+                    ->whereNotNull('thoi_gian_checkin')
+                    ->whereNull('thoi_gian_checkout')
+                    ->where(function ($q) use ($phongCu) {
+                        $q->where('phong_id', $phongCu->id)
+                            ->orWhereHas('phongs', function ($sub) use ($phongCu) {
+                                $sub->where('booking_rooms.phong_id', $phongCu->id);
+                            });
+                    })
+                    ->exists();
+
+                if (!$hasOtherActiveStayInOldRoom) {
+                    $phongCu->update(['trang_thai' => 'trong']);
+                }
+                $phongMoi->update(['trang_thai' => 'dang_thue']);
+
+                // Ghi log
+                if (function_exists('activity')) {
+                    activity()
+                        ->causedBy(auth()->user())
+                        ->performedOn($booking)
+                        ->withProperties([
+                            'phong_cu' => $phongCu->ten_phong,
+                            'phong_moi' => $phongMoi->ten_phong,
+                            'ly_do' => $request->input('ly_do'),
+                            'phi_doi_phong' => $phiDoiPhong,
+                        ])
+                        ->log('Đã đổi phòng từ ' . $phongCu->ten_phong . ' sang ' . $phongMoi->ten_phong);
+                } else {
+                    Log::info('Đã đổi phòng (admin)', [
+                        'booking_id' => $booking->id,
+                        'phong_cu_id' => $phongCu->id,
+                        'phong_moi_id' => $phongMoi->id,
+                        'ly_do' => $request->input('ly_do'),
+                        'phi_doi_phong' => $phiDoiPhong,
+                        'staff_id' => auth()->id(),
+                    ]);
+                }
+            });
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage())->withInput();
+        } catch (\Throwable $e) {
+            \Log::error('Lỗi khi đổi phòng (admin): ' . $e->getMessage());
+            return back()->with('error', 'Có lỗi xảy ra khi đổi phòng. Vui lòng thử lại.')->withInput();
+        }
+
+        return back()->with('success', 'Đổi phòng thành công!');
+    }
+
 }

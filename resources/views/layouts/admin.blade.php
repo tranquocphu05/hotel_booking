@@ -1162,6 +1162,8 @@
         }
     </style>
     
+    @yield('modals')
+    
     @stack('scripts')
     
     <script>
