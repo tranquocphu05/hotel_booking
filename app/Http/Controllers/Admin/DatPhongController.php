@@ -136,10 +136,14 @@ class DatPhongController extends Controller
 
         // Validate
         $request->validate([
-            'ly_do' => 'required|in:thay_doi_lich_trinh,thay_doi_ke_hoach,khong_phu_hop,ly_do_khac'
+            'ly_do' => 'required|in:thay_doi_lich_trinh,thay_doi_ke_hoach,khong_phu_hop,ly_do_khac',
+            'refund_bill' => 'nullable|image|mimes:jpeg,jpg,png|max:2048',
         ], [
             'ly_do.required' => 'Vui lòng chọn lý do hủy đặt phòng',
-            'ly_do.in' => 'Lý do không hợp lệ'
+            'ly_do.in' => 'Lý do không hợp lệ',
+            'refund_bill.image' => 'File bill phải là ảnh hợp lệ',
+            'refund_bill.mimes' => 'Bill chỉ hỗ trợ các định dạng: JPG, JPEG, PNG',
+            'refund_bill.max' => 'Kích thước ảnh bill tối đa 2MB',
         ]);
         
         // Không thể hủy booking đã check-in
@@ -176,8 +180,14 @@ class DatPhongController extends Controller
             default               => 'Hủy theo yêu cầu của khách',
         };
 
+        // Nếu có upload bill hoàn tiền thì lưu file trước (ngoài transaction để tránh rollback file hệ thống)
+        $refundBillPath = null;
+        if ($request->hasFile('refund_bill')) {
+            $refundBillPath = $request->file('refund_bill')->store('refund_bills', 'public');
+        }
+
         // Cập nhật trạng thái và lý do hủy, đồng thời giải phóng phòng, xử lý hoàn tiền
-        DB::transaction(function () use ($booking, $request, $refundInfo, $invoice, $reasonText) {
+        DB::transaction(function () use ($booking, $request, $refundInfo, $invoice, $reasonText, $refundBillPath) {
             // Load relationships
             $booking->load(['phong', 'loaiPhong', 'invoice']);
 
@@ -199,13 +209,21 @@ class DatPhongController extends Controller
                     'con_lai'    => $conLai,
                 ]);
 
-                // Ghi chú hoàn tiền
-                $ghiChuHoanTien = sprintf(
+                // Ghi chú hoàn tiền (text)
+                $baseRefundNote = sprintf(
                     'Hoàn tiền: %s%% (%s VNĐ). %s',
                     $refundInfo['refund_percentage'],
                     number_format($refundAmount, 0, ',', '.'),
                     $refundInfo['message']
                 );
+
+                // Nếu có bill hoàn tiền thì nối thêm đường dẫn vào ghi chú để có thể hiển thị cho khách
+                if ($refundBillPath) {
+                    // Lưu theo dạng nhiều dòng để các logic parse cũ (thông tin tài khoản) vẫn hoạt động bình thường
+                    $ghiChuHoanTien = $baseRefundNote . "\nBILL_HOAN_TIEN_PATH:" . $refundBillPath;
+                } else {
+                    $ghiChuHoanTien = $baseRefundNote;
+                }
 
                 // Tạo bản ghi thanh toán âm để thể hiện hoàn tiền
                 ThanhToan::create([
@@ -219,10 +237,10 @@ class DatPhongController extends Controller
 
             // Update booking status + lý do hủy + ghi chú hoàn tiền
             $booking->update([
-                'trang_thai'       => 'da_huy',
-                'ngay_huy'         => now(),
-                'ly_do_huy'        => $reasonText,
-                'ghi_chu_hoan_tien'=> $ghiChuHoanTien,
+                'trang_thai'        => 'da_huy',
+                'ngay_huy'          => now(),
+                'ly_do_huy'         => $reasonText,
+                'ghi_chu_hoan_tien' => $ghiChuHoanTien,
             ]);
 
             // Free up room via phong_id (legacy)
