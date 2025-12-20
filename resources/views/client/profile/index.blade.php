@@ -280,6 +280,22 @@
                                                 'ten_loai'  => optional($phong->loaiPhong)->ten_loai,
                                             ];
                                         });
+
+                                        // Tách đường dẫn bill hoàn tiền (nếu có) từ ghi_chu_hoan_tien
+                                        $refundBillUrl = null;
+                                        if (!empty($booking->ghi_chu_hoan_tien)) {
+                                            $lines = preg_split('/(\r\n|\n|\r)/', $booking->ghi_chu_hoan_tien);
+                                            foreach ($lines as $line) {
+                                                $line = trim($line);
+                                                if (stripos($line, 'BILL_HOAN_TIEN_PATH:') === 0) {
+                                                    $relativePath = trim(substr($line, strlen('BILL_HOAN_TIEN_PATH:')));
+                                                    if ($relativePath !== '') {
+                                                        $refundBillUrl = asset('storage/' . $relativePath);
+                                                    }
+                                                    break;
+                                                }
+                                            }
+                                        }
                                     @endphp
 
                                     <div class="booking-item bg-gradient-to-r from-white to-gray-50 border-l-4
@@ -302,6 +318,7 @@
                                         data-status="{{ $booking->trang_thai }}"
                                         data-cancel-reason="{{ $booking->ly_do_huy ?? '' }}"
                                         data-cancel-date="{{ $booking->ngay_huy ? \Carbon\Carbon::parse($booking->ngay_huy)->format('d/m/Y H:i') : '' }}"
+                                        data-refund-bill="{{ $refundBillUrl }}"
                                         data-rooms='@json($assignedRooms)'>
 
                                         <!-- Header -->
@@ -1046,6 +1063,9 @@
 
             const status = statusMap[data.status] || statusMap['cho_xac_nhan'];
 
+            // Ảnh bill hoàn tiền (nếu có)
+            const refundBillUrl = data.refundBill;
+
             // Parse assigned rooms from data-rooms (JSON)
             let rooms = [];
             if (data.rooms) {
@@ -1135,6 +1155,18 @@
                                 ${data.cancelDate ? `<p class="text-xs text-red-600 mt-2">Ngày hủy: ${data.cancelDate}</p>` : ''}
                             </div>
                             ` : ''}
+
+            ${refundBillUrl ? `
+                        <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg">
+                            <p class="text-sm font-semibold text-green-800 mb-2 flex items-center">
+                                <i class="fas fa-file-invoice-dollar mr-2"></i>
+                                Bill chuyển khoản hoàn tiền
+                            </p>
+                            <div class="rounded-lg overflow-hidden max-w-xs mx-auto">
+                                <img src="${refundBillUrl}" alt="Bill hoàn tiền" class="w-full max-h-64 object-contain bg-green">
+                            </div>
+                        </div>
+                        ` : ''}
 
             ${roomDetailsHtml}
 

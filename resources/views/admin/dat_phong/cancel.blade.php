@@ -115,7 +115,7 @@
                         </div>
                     @endif
 
-                    <form action="{{ route('admin.dat_phong.cancel.submit', $booking->id) }}" method="POST" novalidate>
+                    <form action="{{ route('admin.dat_phong.cancel.submit', $booking->id) }}" method="POST" novalidate enctype="multipart/form-data">
                         @csrf
                         <div class="space-y-4">
                             <p class="text-sm font-medium text-gray-700 mb-3">Vui lòng chọn lý do hủy đặt phòng:</p>
@@ -153,6 +153,15 @@
                             @error('ly_do')
                                 <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                             @enderror
+
+                            <div class="mt-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Upload bill hoàn tiền (tuỳ chọn)</label>
+                                <input type="file" name="refund_bill" accept="image/*" class="block w-full text-sm text-gray-700 border border-gray-300 rounded-md cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                @error('refund_bill')
+                                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                                @enderror
+                                <p class="mt-1 text-xs text-gray-500">Chấp nhận các định dạng ảnh phổ biến (JPG, PNG, JPEG), tối đa 2MB.</p>
+                            </div>
 
                             <div class="mt-6 flex items-center justify-end space-x-3">
                                 <a href="{{ route('admin.dat_phong.index') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
