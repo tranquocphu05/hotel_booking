@@ -1047,12 +1047,12 @@ class DatPhong extends Model
                                 ->where('id', $phong->id)
                                 ->update(['trang_thai' => 'trong']);
                         }
-                        // Khi booking hoàn thành (check-out) -> phòng chuyển về "trong"
+                        // Khi booking hoàn thành (check-out) -> phòng chuyển về "dang_don" để nhân viên dọn
                         elseif ($newStatus === 'da_tra' && $oldStatus !== 'da_tra') {
                             // Sử dụng DB facade để update trực tiếp, tránh trigger observer
                             \Illuminate\Support\Facades\DB::table('phong')
                                 ->where('id', $phong->id)
-                                ->update(['trang_thai' => 'trong']);
+                                ->update(['trang_thai' => 'dang_don']);
                         }
                     }
                 }
@@ -1084,20 +1084,20 @@ class DatPhong extends Model
                                 ->update(['trang_thai' => 'trong']);
                         }
                     }
-                    // Khi booking hoàn thành (check-out) -> phòng chuyển về "trong"
+                    // Khi booking hoàn thành (check-out) -> phòng chuyển về "dang_don" để nhân viên dọn
                     elseif ($newStatus === 'da_tra' && $oldStatus !== 'da_tra') {
                         // Sử dụng DB facade để update trực tiếp, tránh trigger observer
                         \Illuminate\Support\Facades\DB::table('phong')
                             ->where('id', $phong->id)
-                            ->update(['trang_thai' => 'trong']);
+                            ->update(['trang_thai' => 'dang_don']);
                     }
                 }
 
                 // Tính lại so_luong_trong MỘT LẦN tại cuối cho tất cả loại phòng liên quan
-                // Logic chuẩn hóa: Chỉ đếm phòng có trang_thai = 'trong'
+                // Bao gồm cả 'trong' và 'dang_don' vì phòng đang dọn vẫn có thể đặt trước
                 foreach (array_unique($loaiPhongIdsToUpdate) as $loaiPhongId) {
                     $trongCount = \App\Models\Phong::where('loai_phong_id', $loaiPhongId)
-                        ->where('trang_thai', 'trong')
+                        ->whereIn('trang_thai', ['trong', 'dang_don'])
                         ->count();
                     
                     LoaiPhong::where('id', $loaiPhongId)
@@ -1121,10 +1121,10 @@ class DatPhong extends Model
                 $loaiPhongIdsToUpdate[] = $booking->loai_phong_id;
             }
 
-            // Logic chuẩn hóa: Chỉ đếm phòng có trang_thai = 'trong'
+            // Bao gồm cả 'trong' và 'dang_don' vì phòng đang dọn vẫn có thể đặt trước
             foreach (array_unique($loaiPhongIdsToUpdate) as $loaiPhongId) {
                 $trongCount = \App\Models\Phong::where('loai_phong_id', $loaiPhongId)
-                    ->where('trang_thai', 'trong')
+                    ->whereIn('trang_thai', ['trong', 'dang_don'])
                     ->count();
 
                 LoaiPhong::where('id', $loaiPhongId)

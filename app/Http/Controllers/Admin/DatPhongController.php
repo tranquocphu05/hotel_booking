@@ -2452,7 +2452,7 @@ class DatPhongController extends Controller
                 'so_em_be' => $totalInfants,
                 'phu_phi_tre_em' => $totalChildFee,
                 'phu_phi_em_be' => $totalInfantFee,
-                'trang_thai' => 'cho_xac_nhan',
+                'trang_thai' => 'da_xac_nhan', // Đặt từ Admin = xác nhận ngay (walk-in)
                 'tong_tien' => $finalPrice, // Tổng tiền sau khi cộng dịch vụ
                 'voucher_id' => $voucherId,
                 'username' => $request->username,
@@ -3422,13 +3422,11 @@ class DatPhongController extends Controller
                             ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
                             ->exists();
 
-                        // Chỉ chuyển về 'trong' nếu không có booking conflict
-                        if (!$hasOtherBooking) {
-                            // Sử dụng DB facade để update trực tiếp, tránh trigger observer trùng lặp
-                            \Illuminate\Support\Facades\DB::table('phong')
-                                ->where('id', $phong->id)
-                                ->update(['trang_thai' => 'trong']);
-                        }
+                        // Luôn chuyển về 'dang_don' sau checkout để nhân viên buồng phòng dọn dẹp
+                        // Sau khi dọn xong, nhân viên sẽ xác nhận để chuyển về 'trong'
+                        \Illuminate\Support\Facades\DB::table('phong')
+                            ->where('id', $phong->id)
+                            ->update(['trang_thai' => 'dang_don']);
 
                         // Cập nhật thông tin theo từng phòng trên pivot
                         $booking->phongs()->updateExistingPivot($phong->id, [

@@ -126,6 +126,21 @@
                                title="Xem chi tiết">
                                 <i class="fas fa-eye"></i>
                             </a>
+                            {{-- Nút xác nhận hoàn tất dọn phòng - chỉ hiển thị khi phòng đang dọn --}}
+                            @if($phong->trang_thai == 'dang_don')
+                                @hasPermission('phong.update_status')
+                                    <form action="{{ route('admin.phong.update_status', $phong->id) }}" method="POST" class="inline" onsubmit="return confirm('Xác nhận phòng {{ $phong->so_phong }} đã dọn xong?')">
+                                        @csrf
+                                        @method('PATCH')
+                                        <input type="hidden" name="trang_thai" value="trong">
+                                        <button type="submit" 
+                                                class="text-green-600 hover:text-green-700 flex items-center gap-1 transition text-xs"
+                                                title="Hoàn tất dọn phòng">
+                                            <i class="fas fa-check-circle"></i>
+                                        </button>
+                                    </form>
+                                @endhasPermission
+                            @endif
                             @hasPermission('phong.edit')
                             <a href="{{ route('admin.phong.edit', $phong->id) }}" 
                                class="text-yellow-500 hover:text-yellow-600 flex items-center gap-1 transition text-xs"

@@ -296,9 +296,10 @@ class Phong extends Model
         // Khi trạng thái phòng thay đổi, recalculate so_luong_trong của loại phòng
         static::updated(function ($phong) {
             if ($phong->isDirty('trang_thai') && $phong->loai_phong_id) {
-                // Recalculate so_luong_trong dựa trên số phòng thực tế có trang_thai = 'trong'
+                // Recalculate so_luong_trong: bao gồm cả 'trong' và 'dang_don'
+                // Vì phòng đang dọn vẫn có thể đặt trước (pre-booking)
                 $trongCount = static::where('loai_phong_id', $phong->loai_phong_id)
-                    ->where('trang_thai', 'trong')
+                    ->whereIn('trang_thai', ['trong', 'dang_don'])
                     ->count();
 
                 LoaiPhong::where('id', $phong->loai_phong_id)
@@ -313,7 +314,7 @@ class Phong extends Model
                 // Recalculate cho loại phòng cũ
                 if ($oldLoaiPhongId) {
                     $trongCountOld = static::where('loai_phong_id', $oldLoaiPhongId)
-                        ->where('trang_thai', 'trong')
+                        ->whereIn('trang_thai', ['trong', 'dang_don'])
                         ->count();
                     LoaiPhong::where('id', $oldLoaiPhongId)
                         ->update(['so_luong_trong' => $trongCountOld]);
@@ -322,7 +323,7 @@ class Phong extends Model
                 // Recalculate cho loại phòng mới
                 if ($newLoaiPhongId) {
                     $trongCountNew = static::where('loai_phong_id', $newLoaiPhongId)
-                        ->where('trang_thai', 'trong')
+                        ->whereIn('trang_thai', ['trong', 'dang_don'])
                         ->count();
                     LoaiPhong::where('id', $newLoaiPhongId)
                         ->update(['so_luong_trong' => $trongCountNew]);
@@ -334,7 +335,7 @@ class Phong extends Model
         static::deleted(function ($phong) {
             if ($phong->loai_phong_id) {
                 $trongCount = static::where('loai_phong_id', $phong->loai_phong_id)
-                    ->where('trang_thai', 'trong')
+                    ->whereIn('trang_thai', ['trong', 'dang_don'])
                     ->count();
 
                 LoaiPhong::where('id', $phong->loai_phong_id)
