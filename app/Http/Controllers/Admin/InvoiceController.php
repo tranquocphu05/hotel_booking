@@ -1,18 +1,18 @@
 <?php
 namespace App\Http\Controllers\Admin;
-use App\Http\Controllers\Controller;
-use App\Models\BookingService;
-use Illuminate\Http\Request;
-use App\Models\Invoice;
-use App\Models\Service;
-use App\Models\ThanhToan;
-use App\Models\RefundService;
 use App\Models\User;
 use App\Models\Phong;
+use App\Models\Invoice;
+use App\Models\Service;
 use App\Models\DatPhong;
+use App\Models\ThanhToan;
+use Illuminate\Http\Request;
+use App\Models\RefundService;
 use App\Exports\InvoiceExport;
-use Illuminate\Support\Facades\Log;
+use App\Models\BookingService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\Controller;
 use Illuminate\Database\QueryException;
 use App\Services\BookingPriceCalculator;
 
@@ -167,38 +167,165 @@ class InvoiceController extends Controller
      */
     public function adjust(Request $request, Invoice $invoice)
     {
-        $request->validate([
-            // Accept either single row (legacy) or batch 'adjustments' array
-            'booking_service_id' => 'nullable|integer|exists:booking_services,id',
-            'quantity' => 'nullable|integer|min:1',
-            'adjustments' => 'nullable|array',
-            'adjustments.*.booking_service_id' => 'required_with:adjustments|integer|exists:booking_services,id',
-            'adjustments.*.quantity' => 'required_with:adjustments|integer|min:1',
-            'adjustments.*.used_at' => 'nullable|date',
-            'adjustments.*.note' => 'nullable|string|max:500',
-            'create_refund' => 'nullable|in:0,1',
-            'refund_method' => 'nullable|in:tien_mat,chuyen_khoan,cong_thanh_toan',
-            // When refund method is bank transfer, require full bank details
-            'refund_account_number' => 'required_if:refund_method,chuyen_khoan|string|max:200',
-            'refund_account_name' => 'required_if:refund_method,chuyen_khoan|string|max:200',
-            'refund_bank_name' => 'required_if:refund_method,chuyen_khoan|string|max:200',
-        ]);
-
+        // Load booking first
         $booking = $invoice->datPhong;
         if (!$booking) {
             return redirect()->back()->with('error', 'Đặt phòng không tồn tại.');
         }
-
-        // Only allow adjustments for paid invoices
-        if (($invoice->trang_thai ?? '') !== 'da_thanh_toan') {
-            return redirect()->back()->with('error', 'Chỉ hóa đơn đã thanh toán mới được phép bớt dịch vụ.');
+        
+        // Log incoming request for debugging
+        try {
+            Log::info('InvoiceController:adjust - Request received', [
+                'invoice_id' => $invoice->id,
+                'invoice_dat_phong_id' => $invoice->dat_phong_id,
+                'booking_id' => $booking->id,
+                'has_adjustments' => $request->has('adjustments'),
+                'adjustments_count' => is_array($request->input('adjustments')) ? count($request->input('adjustments')) : 0,
+                'adjustments' => $request->input('adjustments'),
+                'all_input' => $request->all()
+            ]);
+        } catch (\Throwable $e) {
+            // Ignore logging errors
+        }
+        
+        // Kiểm tra xem có adjustments trong request không
+        $hasAdjustmentsInRequest = $request->has('adjustments');
+        $adjustmentsInput = $request->input('adjustments', []);
+        
+        // Log để debug - log cả raw input để xem Laravel parse như thế nào
+        try {
+            Log::info('InvoiceController:adjust - Before validation', [
+                'hasAdjustmentsInRequest' => $hasAdjustmentsInRequest,
+                'adjustmentsInput' => $adjustmentsInput,
+                'adjustmentsInput_type' => gettype($adjustmentsInput),
+                'adjustmentsInput_is_array' => is_array($adjustmentsInput),
+                'adjustmentsInput_count' => is_array($adjustmentsInput) ? count($adjustmentsInput) : 0,
+                'all_request_keys' => array_keys($request->all()),
+                'raw_post_data' => $request->all(),
+                'adjustments_structure' => is_array($adjustmentsInput) ? array_map(function($item) {
+                    return is_array($item) ? array_keys($item) : gettype($item);
+                }, $adjustmentsInput) : null
+            ]);
+        } catch (\Throwable $e) {}
+        
+        $rules = [
+            'booking_service_id' => 'nullable|integer|exists:booking_services,id',
+            'quantity' => 'nullable|integer|min:1',
+            'create_refund' => 'nullable|in:0,1',
+            'refund_method' => 'nullable|in:tien_mat,chuyen_khoan,cong_thanh_toan',
+            'refund_account_number' => 'required_if:refund_method,chuyen_khoan|nullable|string|max:200',
+            'refund_account_name' => 'required_if:refund_method,chuyen_khoan|nullable|string|max:200',
+            'refund_bank_name' => 'required_if:refund_method,chuyen_khoan|nullable|string|max:200',
+        ];
+        
+        // Kiểm tra xem có adjustments thực sự không
+        $hasValidAdjustments = false;
+        if ($hasAdjustmentsInRequest && is_array($adjustmentsInput) && count($adjustmentsInput) > 0) {
+            // Kiểm tra xem có ít nhất một entry hợp lệ không
+            foreach ($adjustmentsInput as $item) {
+                if (is_array($item) && 
+                    isset($item['booking_service_id']) && 
+                    isset($item['quantity']) &&
+                    !empty($item['booking_service_id']) &&
+                    !empty($item['quantity']) &&
+                    intval($item['booking_service_id']) > 0 &&
+                    intval($item['quantity']) > 0) {
+                    $hasValidAdjustments = true;
+                    break;
+                }
+            }
+        }
+        
+        // Nếu có adjustments hợp lệ trong request, validate nó
+        if ($hasValidAdjustments) {
+            $rules['adjustments'] = 'required|array|min:1';
+            $rules['adjustments.*.booking_service_id'] = 'required|integer|exists:booking_services,id';
+            $rules['adjustments.*.quantity'] = 'required|integer|min:1';
+            $rules['adjustments.*.used_at'] = 'nullable|date';
+            $rules['adjustments.*.note'] = 'nullable|string|max:500';
+        } else {
+            // Nếu không có adjustments hợp lệ
+            if ($hasAdjustmentsInRequest) {
+                // Có key nhưng không có dữ liệu hợp lệ - vẫn yêu cầu
+                $rules['adjustments'] = 'required|array|min:1';
+                $rules['adjustments.*.booking_service_id'] = 'required|integer|exists:booking_services,id';
+                $rules['adjustments.*.quantity'] = 'required|integer|min:1';
+            } else {
+                // Không có key - yêu cầu phải có
+                $rules['adjustments'] = 'required|array|min:1';
+            }
+        }
+        
+        try {
+            $validated = $request->validate($rules, [
+                'adjustments.required' => 'Vui lòng chọn ít nhất một dịch vụ để xóa.',
+                'adjustments.min' => 'Vui lòng chọn ít nhất một dịch vụ để xóa.',
+                'adjustments.*.booking_service_id.required' => 'Vui lòng chọn dịch vụ để xóa.',
+                'adjustments.*.booking_service_id.exists' => 'Dịch vụ không tồn tại.',
+                'adjustments.*.quantity.required' => 'Vui lòng nhập số lượng.',
+                'adjustments.*.quantity.min' => 'Số lượng phải lớn hơn 0.',
+            ]);
+            
+            // Log sau khi validate thành công
+            try {
+                Log::info('InvoiceController:adjust - Validation passed', [
+                    'validated_adjustments' => $validated['adjustments'] ?? null
+                ]);
+            } catch (\Throwable $e) {}
+            
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $errors = $e->errors();
+            
+            // Log chi tiết để debug
+            try {
+                Log::error('InvoiceController:adjust - Validation failed', [
+                    'errors' => $errors,
+                    'input' => $request->all(),
+                    'adjustments_input' => $adjustmentsInput,
+                    'adjustments_input_dump' => var_export($adjustmentsInput, true),
+                    'hasAdjustmentsInRequest' => $hasAdjustmentsInRequest,
+                    'hasValidAdjustments' => $hasValidAdjustments ?? false,
+                    'request_method' => $request->method(),
+                    'content_type' => $request->header('Content-Type'),
+                    'all_keys' => array_keys($request->all())
+                ]);
+            } catch (\Throwable $logErr) {}
+            
+            // Tạo thông báo lỗi chi tiết hơn
+            $errorMessages = [];
+            foreach ($errors as $field => $messages) {
+                foreach ($messages as $message) {
+                    $errorMessages[] = $message;
+                }
+            }
+            
+            $errorMessage = !empty($errorMessages) 
+                ? implode(' ', $errorMessages) 
+                : 'Dữ liệu không hợp lệ. Vui lòng kiểm tra lại.';
+            
+            return redirect()->back()
+                ->withErrors($errors)
+                ->withInput()
+                ->with('error', $errorMessage);
         }
 
-        // Read batch adjustments early so we can decide whether to run legacy single-row validation
+        // Read batch adjustments after validation
         $adjustments = $request->input('adjustments', null);
+        $hasAdjustments = is_array($adjustments) && count($adjustments) > 0;
+        
+        // Log để debug
+        try {
+            Log::info('InvoiceController:adjust - Processing adjustments after validation', [
+                'adjustments_type' => gettype($adjustments),
+                'adjustments_is_array' => is_array($adjustments),
+                'adjustments_count' => is_array($adjustments) ? count($adjustments) : 0,
+                'adjustments_content' => $adjustments,
+                'hasAdjustments' => $hasAdjustments
+            ]);
+        } catch (\Throwable $e) {}
 
         // If this is NOT a batch request, validate the single booking_service inputs
-        if (!is_array($adjustments) || count($adjustments) === 0) {
+        if (!$hasAdjustments || !is_array($adjustments) || count($adjustments) === 0) {
             $origId = intval($request->input('booking_service_id'));
             $qty = intval($request->input('quantity'));
 
@@ -266,8 +393,27 @@ class InvoiceController extends Controller
                     if ($adjQty <= 0) continue;
 
                     $orig = BookingService::find($adjBsId);
-                    if (!$orig || ($orig->dat_phong_id ?? null) != ($booking->id ?? null)) {
-                        throw new \Exception('Dòng dịch vụ không hợp lệ cho id: ' . $adjBsId);
+                    
+                    // Log để debug
+                    try {
+                        Log::info('InvoiceController:adjust - Processing adjustment', [
+                            'adjustment' => $adj,
+                            'adjBsId' => $adjBsId,
+                            'adjQty' => $adjQty,
+                            'orig_found' => !!$orig,
+                            'orig_dat_phong_id' => $orig ? $orig->dat_phong_id : null,
+                            'booking_id' => $booking->id ?? null,
+                            'invoice_id' => $invoice->id,
+                            'invoice_dat_phong_id' => $invoice->dat_phong_id ?? null
+                        ]);
+                    } catch (\Throwable $e) {}
+                    
+                    if (!$orig) {
+                        throw new \Exception('Không tìm thấy dịch vụ với id: ' . $adjBsId . '. Vui lòng kiểm tra lại.');
+                    }
+                    
+                    if (($orig->dat_phong_id ?? null) != ($booking->id ?? null)) {
+                        throw new \Exception('Dịch vụ id ' . $adjBsId . ' không thuộc về đặt phòng này. Dịch vụ thuộc booking_id: ' . ($orig->dat_phong_id ?? 'null') . ', nhưng invoice thuộc booking_id: ' . ($booking->id ?? 'null'));
                     }
 
                     $pos = $orig->quantity > 0 ? intval($orig->quantity) : 0;
@@ -327,6 +473,35 @@ class InvoiceController extends Controller
                     $invoice->tong_tien = max(0, ($invoice->tong_tien ?? 0) + $totalAdjustAmount);
                     $invoice->ghi_chu = trim(((string)$invoice->ghi_chu ?: '') . ' ' . implode('; ', $notes));
                     $invoice->save();
+                    
+                    // Tính lại tổng tiền từ services để đảm bảo chính xác
+                    $updatedServices = BookingService::where('dat_phong_id', $booking->id)
+                        ->where(function($q) use ($invoice) {
+                            if ($invoice->invoice_type === 'EXTRA') {
+                                $q->where('invoice_id', $invoice->id);
+                            } else {
+                                $q->whereNull('invoice_id')->orWhere('invoice_id', $invoice->id);
+                            }
+                        })
+                        ->get();
+                    
+                    $recalculatedServiceTotal = $updatedServices->sum(function($bs) {
+                        return ($bs->quantity ?? 0) * ($bs->unit_price ?? 0);
+                    });
+                    
+                    // Cập nhật lại tổng tiền dựa trên services thực tế
+                    if (!$invoice->isExtra()) {
+                        $roomTotal = $invoice->tien_phong ?? 0;
+                        $discount = $invoice->giam_gia ?? 0;
+                        $phiPhatSinh = $invoice->phi_phat_sinh ?? 0;
+                        $phiThemNguoi = $invoice->phi_them_nguoi ?? 0;
+                        $invoice->tong_tien = max(0, $roomTotal - $discount + $recalculatedServiceTotal + $phiPhatSinh + $phiThemNguoi);
+                    } else {
+                        $phiThemNguoi = $invoice->phi_them_nguoi ?? 0;
+                        $invoice->tong_tien = max(0, $recalculatedServiceTotal + $phiThemNguoi);
+                    }
+                    $invoice->tien_dich_vu = $recalculatedServiceTotal;
+                    $invoice->save();
                 }
 
                 // Optionally create refund records with bank info
@@ -376,7 +551,11 @@ class InvoiceController extends Controller
                 return redirect()->back()->with('error', 'Lỗi khi lưu điều chỉnh: ' . $e->getMessage());
             }
 
-            return redirect()->back()->with('success', 'Bớt dịch vụ đã được lưu thành công.');
+            // Refresh invoice để đảm bảo dữ liệu mới nhất
+            $invoice->refresh();
+            
+            return redirect()->route('admin.invoices.show', $invoice->id)
+                ->with('success', 'Bớt dịch vụ đã được lưu thành công. Tổng tiền đã được cập nhật.');
         }
 
         // fallback: single-row behavior (legacy single-selection)
@@ -404,6 +583,35 @@ class InvoiceController extends Controller
             $append = "Hoàn {$qty} x {$svcName}.";
             $invoice->ghi_chu = trim(((string)$invoice->ghi_chu ?: '') . ' ' . $append);
             $invoice->save();
+            
+            // Tính lại tổng tiền từ services để đảm bảo chính xác
+            $updatedServices = BookingService::where('dat_phong_id', $booking->id)
+                ->where(function($q) use ($invoice) {
+                    if ($invoice->invoice_type === 'EXTRA') {
+                        $q->where('invoice_id', $invoice->id);
+                    } else {
+                        $q->whereNull('invoice_id')->orWhere('invoice_id', $invoice->id);
+                    }
+                })
+                ->get();
+            
+            $recalculatedServiceTotal = $updatedServices->sum(function($bs) {
+                return ($bs->quantity ?? 0) * ($bs->unit_price ?? 0);
+            });
+            
+            // Cập nhật lại tổng tiền dựa trên services thực tế
+            if (!$invoice->isExtra()) {
+                $roomTotal = $invoice->tien_phong ?? 0;
+                $discount = $invoice->giam_gia ?? 0;
+                $phiPhatSinh = $invoice->phi_phat_sinh ?? 0;
+                $phiThemNguoi = $invoice->phi_them_nguoi ?? 0;
+                $invoice->tong_tien = max(0, $roomTotal - $discount + $recalculatedServiceTotal + $phiPhatSinh + $phiThemNguoi);
+            } else {
+                $phiThemNguoi = $invoice->phi_them_nguoi ?? 0;
+                $invoice->tong_tien = max(0, $recalculatedServiceTotal + $phiThemNguoi);
+            }
+            $invoice->tien_dich_vu = $recalculatedServiceTotal;
+            $invoice->save();
 
             DB::commit();
         } catch (\Throwable $e) {
@@ -412,7 +620,11 @@ class InvoiceController extends Controller
             return redirect()->back()->with('error', 'Lỗi khi lưu điều chỉnh: ' . $e->getMessage());
         }
 
-        return redirect()->back()->with('success', 'Bớt dịch vụ đã được lưu thành công.');
+        // Refresh invoice để đảm bảo dữ liệu mới nhất
+        $invoice->refresh();
+        
+        return redirect()->route('admin.invoices.show', $invoice->id)
+            ->with('success', 'Bớt dịch vụ đã được lưu thành công. Tổng tiền đã được cập nhật.');
     }
 
     /**

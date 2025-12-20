@@ -118,7 +118,7 @@
 
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-3">Phòng muốn đổi sang</label>
-                
+
                 @if($availableRooms->isEmpty())
                     <div class="p-6 bg-gray-50 rounded-xl border border-gray-200 text-center">
                         <p class="text-gray-600">Hiện không còn phòng trống trong khoảng thời gian này.</p>
@@ -143,11 +143,11 @@
                                 }
                                 $roomImg = !empty($loaiPhong->anh) ? asset($loaiPhong->anh) : asset('img/room/room-1.jpg');
                             @endphp
-                            
+
                             <div class="room-type-preview bg-white rounded-xl shadow-md border-2 border-gray-200 overflow-hidden">
                                 {{-- Ảnh loại phòng --}}
                                 <div class="relative h-40 overflow-hidden">
-                                    <img src="{{ $roomImg }}" alt="{{ $loaiPhong->ten_loai }}" 
+                                    <img src="{{ $roomImg }}" alt="{{ $loaiPhong->ten_loai }}"
                                          class="w-full h-full object-cover">
                                     <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
                                     <div class="absolute bottom-3 left-3 right-3">
@@ -157,7 +157,7 @@
                                         </p>
                                     </div>
                                 </div>
-                                
+
                                 {{-- Dropdown chọn phòng --}}
                                 <div class="p-3">
                                     {{-- Hiển thị phí đổi phòng --}}
@@ -171,8 +171,8 @@
                                             <p class="text-sm font-bold text-orange-600">{{ number_format($chenhLech, 0, ',', '.') }} VNĐ</p>
                                         </div>
                                     @endif
-                                    
-                                    <select name="phong_moi_id_{{ $loaiPhongId }}" 
+
+                                    <select name="phong_moi_id_{{ $loaiPhongId }}"
                                             class="room-select-dropdown w-full border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring focus:ring-orange-200 focus:border-orange-400 bg-white"
                                             data-loai-phong-id="{{ $loaiPhongId }}"
                                             data-gia-phong="{{ $giaPhong }}"
@@ -180,7 +180,7 @@
                                             data-chenh-lech="{{ $chenhLech }}">
                                         <option value="">-- Chọn phòng --</option>
                                         @foreach ($rooms as $room)
-                                            <option value="{{ $room->id }}" 
+                                            <option value="{{ $room->id }}"
                                                 data-room-id="{{ $room->id }}"
                                                 {{ old('phong_moi_id') == $room->id ? 'selected' : '' }}>
                                                 {{ $room->ten_phong ?? ('Phòng #' . $room->id) }}
@@ -192,12 +192,12 @@
                             </div>
                         @endforeach
                     </div>
-                    
+
                     <input type="hidden" name="phong_moi_id" id="phong_moi_id" value="{{ old('phong_moi_id') }}" required>
                     @error('phong_moi_id')
                         <p class="text-sm text-red-600 mt-2">{{ $message }}</p>
                     @enderror
-                    
+
                     <p class="text-xs text-gray-500 mt-2">
                         Danh sách hiển thị tất cả các phòng đang còn trống. Phí đổi phòng: miễn phí nếu chênh lệch giá ≤ 100.000 VNĐ, tính theo chênh lệch giá nếu > 100.000 VNĐ.
                     </p>
@@ -253,7 +253,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const soTreEmMoi = document.getElementById('so_tre_em_moi');
     const soEmBeMoi = document.getElementById('so_em_be_moi');
     const soNguoiMoiHidden = document.getElementById('so_nguoi_moi');
-    
+
     // Thông tin booking hiện tại
     const bookingInfo = {
         soNguoiHienTai: {{ $booking->so_nguoi ?? 2 }},
@@ -264,13 +264,13 @@ document.addEventListener('DOMContentLoaded', function() {
         ngayTra: '{{ $booking->ngay_tra }}',
         nights: {{ $nights }}
     };
-    
+
     // Hàm tính hệ số giá theo ngày
     function getMultiplierForDate(date) {
         const dayOfWeek = date.getDay();
         const month = date.getMonth();
         const day = date.getDate();
-        
+
         // Ngày lễ: 01/01, 30/04, 01/05, 02/09
         const holidays = [
             { month: 0, day: 1 },   // 01/01
@@ -278,62 +278,62 @@ document.addEventListener('DOMContentLoaded', function() {
             { month: 4, day: 1 },   // 01/05
             { month: 8, day: 2 }    // 02/09
         ];
-        
+
         for (let holiday of holidays) {
             if (month === holiday.month && day === holiday.day) {
                 return 1.25; // Ngày lễ: +25%
             }
         }
-        
+
         if (dayOfWeek === 0 || dayOfWeek === 6) {
             return 1.15; // Cuối tuần: +15%
         }
-        
+
         return 1.0; // Ngày thường
     }
-    
+
     // Hàm tính phụ phí thêm người/trẻ em/em bé
     function calculateSurcharge(basePrice, checkIn, checkOut, count, percent) {
         if (count <= 0 || percent <= 0) return 0;
-        
+
         let total = 0;
         const start = new Date(checkIn);
         const end = new Date(checkOut);
         const current = new Date(start);
-        
+
         while (current < end) {
             const multiplier = getMultiplierForDate(current);
             const priceForDay = basePrice * multiplier;
             total += count * priceForDay * percent;
             current.setDate(current.getDate() + 1);
         }
-        
+
         return total;
     }
-    
+
     // Hàm tính phí đổi phòng tổng
     function calculateTotalFee() {
         // Lấy phòng được chọn
         let selectedRoom = null;
         let selectedDropdown = null;
-        
+
         document.querySelectorAll('.room-select-dropdown').forEach(dropdown => {
             if (dropdown.value) {
                 selectedRoom = dropdown.options[dropdown.selectedIndex];
                 selectedDropdown = dropdown;
             }
         });
-        
+
         if (!selectedRoom || !selectedRoom.value) {
             phiDoiPhongDisplay?.classList.add('hidden');
             return;
         }
-        
+
         // Lấy thông tin phòng mới
         const giaPhongMoi = parseFloat(selectedDropdown.getAttribute('data-gia-phong')) || 0;
         const giaPhongCu = parseFloat(selectedDropdown.getAttribute('data-gia-phong-cu')) || bookingInfo.giaPhongCu;
         const chenhLech = Math.max(0, (giaPhongMoi - giaPhongCu) * bookingInfo.nights);
-        
+
         // 1. Tính phí đổi phòng cơ bản
         const phiDoiPhongMacDinh = 100000;
         let phiDoiPhongCoBan = 0;
@@ -342,7 +342,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             phiDoiPhongCoBan = chenhLech; // Tính theo chênh lệch
         }
-        
+
         // 2. Tính phụ phí thêm người lớn
         const soNguoiLon = parseInt(soNguoiLonMoi?.value || bookingInfo.soNguoiHienTai);
         const extraAdults = Math.max(0, soNguoiLon - bookingInfo.soNguoiHienTai);
@@ -353,37 +353,17 @@ document.addEventListener('DOMContentLoaded', function() {
             extraAdults,
             0.20 // 20%
         );
+
         
-        // 3. Tính phụ phí thêm trẻ em
-        const soTreEm = parseInt(soTreEmMoi?.value || bookingInfo.soTreEmHienTai);
-        const extraChildren = Math.max(0, soTreEm - bookingInfo.soTreEmHienTai);
-        const phuPhiTreEm = calculateSurcharge(
-            giaPhongMoi,
-            bookingInfo.ngayNhan,
-            bookingInfo.ngayTra,
-            extraChildren,
-            0.10 // 10%
-        );
-        
-        // 4. Tính phụ phí thêm em bé
-        const soEmBe = parseInt(soEmBeMoi?.value || bookingInfo.soEmBeHienTai);
-        const extraInfants = Math.max(0, soEmBe - bookingInfo.soEmBeHienTai);
-        const phuPhiEmBe = calculateSurcharge(
-            giaPhongMoi,
-            bookingInfo.ngayNhan,
-            bookingInfo.ngayTra,
-            extraInfants,
-            0.05 // 5%
-        );
-        
+
         // 5. Tổng phí đổi phòng
         const tongPhiDoiPhong = phiDoiPhongCoBan + phuPhiNguoiLon + phuPhiTreEm + phuPhiEmBe;
-        
+
         // 6. Hiển thị chi tiết phí đổi phòng
         const breakdownDiv = document.getElementById('phi_doi_phong_breakdown');
         if (breakdownDiv) {
             let breakdownHtml = '';
-            
+
             // Phí đổi phòng cơ bản
             if (phiDoiPhongCoBan > 0) {
                 breakdownHtml += `
@@ -400,37 +380,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 `;
             }
-            
-            // Phụ phí thêm người lớn
-            if (phuPhiNguoiLon > 0) {
-                breakdownHtml += `
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-700">Phụ phí thêm ${extraAdults} người lớn (20%/người/đêm):</span>
-                        <span class="font-semibold text-blue-600">${new Intl.NumberFormat('vi-VN').format(Math.round(phuPhiNguoiLon))} VNĐ</span>
-                    </div>
-                `;
-            }
-            
-            // Phụ phí thêm trẻ em
-            if (phuPhiTreEm > 0) {
-                breakdownHtml += `
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-700">Phụ phí thêm ${extraChildren} trẻ em (10%/trẻ/đêm):</span>
-                        <span class="font-semibold text-green-600">${new Intl.NumberFormat('vi-VN').format(Math.round(phuPhiTreEm))} VNĐ</span>
-                    </div>
-                `;
-            }
-            
-            // Phụ phí thêm em bé
-            if (phuPhiEmBe > 0) {
-                breakdownHtml += `
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-700">Phụ phí thêm ${extraInfants} em bé (5%/em bé/đêm):</span>
-                        <span class="font-semibold text-pink-600">${new Intl.NumberFormat('vi-VN').format(Math.round(phuPhiEmBe))} VNĐ</span>
-                    </div>
-                `;
-            }
-            
+
+
             // Nếu không có phụ phí nào
             if (phuPhiNguoiLon === 0 && phuPhiTreEm === 0 && phuPhiEmBe === 0) {
                 breakdownHtml += `
@@ -439,10 +390,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 `;
             }
-            
+
             breakdownDiv.innerHTML = breakdownHtml;
         }
-        
+
         // Cập nhật tổng phí đổi phòng
         if (phiDoiPhongDisplay && phiDoiPhongAmount) {
             if (tongPhiDoiPhong > 0) {
@@ -454,28 +405,28 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
-    
+
     // Xử lý khi chọn phòng từ dropdown
     document.querySelectorAll('.room-select-dropdown').forEach(dropdown => {
         dropdown.addEventListener('change', function() {
             const selectedOption = this.options[this.selectedIndex];
             const phongMoiId = selectedOption.value;
-            
+
             // Bỏ chọn tất cả dropdown khác
             document.querySelectorAll('.room-select-dropdown').forEach(other => {
                 if (other !== this) {
                     other.value = '';
                 }
             });
-            
+
             // Cập nhật hidden input
             if (phongMoiHidden) {
                 phongMoiHidden.value = phongMoiId;
             }
-            
+
             // Tính lại phí đổi phòng
             calculateTotalFee();
-            
+
             // Highlight card được chọn
             document.querySelectorAll('.room-type-preview').forEach(card => {
                 card.classList.remove('border-orange-500', 'ring-2', 'ring-orange-300');
@@ -485,42 +436,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
-    
-    // Cập nhật số người mới khi thay đổi
-    function updateSoNguoiMoi() {
-        const soNguoiLon = parseInt(soNguoiLonMoi?.value || bookingInfo.soNguoiHienTai);
-        if (soNguoiMoiHidden) {
-            soNguoiMoiHidden.value = soNguoiLon;
-        }
-        // Tính lại phí đổi phòng
-        calculateTotalFee();
-    }
-    
-    if (soNguoiLonMoi) {
-        soNguoiLonMoi.addEventListener('change', updateSoNguoiMoi);
-    }
-    
-    if (soTreEmMoi) {
-        soTreEmMoi.addEventListener('change', calculateTotalFee);
-    }
-    
-    if (soEmBeMoi) {
-        soEmBeMoi.addEventListener('change', calculateTotalFee);
-    }
-    
-    // Không cho phép giảm số khách (chỉ tăng)
-    [soNguoiLonMoi, soTreEmMoi, soEmBeMoi].forEach(select => {
-        if (select) {
-            select.addEventListener('change', function() {
-                const currentValue = parseInt(this.value);
-                const minValue = parseInt(this.options[0].value);
-                if (currentValue < minValue) {
-                    this.value = minValue;
-                }
-            });
-        }
-    });
-    
+
+
+
     // Tính phí ban đầu nếu đã có phòng được chọn
     if (phongMoiHidden && phongMoiHidden.value) {
         calculateTotalFee();

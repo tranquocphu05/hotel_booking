@@ -52,6 +52,8 @@ app/Console/Commands/Test*.php
 tatus
 
 
+!routes/web.php
+
 
 
 # Diagrams folders (without dot prefix)

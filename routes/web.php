@@ -97,10 +97,8 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsStaff
         return view('admin.test');
     })->name('test');
 
-
-
-
-
+    Route::post('/dat-phong/{booking}/change-room', [DatPhongController::class, 'changeRoom'])
+        ->name('dat-phong.change-room');
 
     Route::resource('users', \App\Http\Controllers\Admin\UserController::class)->names('users');
     Route::put('users/{user}/toggle-status', [\App\Http\Controllers\Admin\UserController::class, 'toggleStatus'])->name('users.toggle');

@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use App\Models\DatPhong;
 use App\Models\Invoice;
 use App\Models\ThanhToan;
+use App\Models\RefundService;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Traits\HasRolePermissions;
@@ -105,20 +106,70 @@ class RevenueController extends Controller
                 round((($todayRevenue - $yesterdayRevenue) / $yesterdayRevenue) * 100, 2) : 0
         ];
 
-        // Lấy doanh thu theo ngày
-        $dailyRevenues = DatPhong::select(
-
-                DB::raw('DATE(hoa_don.ngay_tao) as ngay'),
-                DB::raw('SUM(dat_phong.tong_tien) as tong_tien'),
-                DB::raw('COUNT(dat_phong.id) as so_luong')
-            )
-            ->join('hoa_don', 'dat_phong.id', '=', 'hoa_don.dat_phong_id')
-            ->where('hoa_don.trang_thai', 'da_thanh_toan')
-            ->whereBetween('hoa_don.ngay_tao', [$startDateParsed ?? $startDate, $endDateParsed ?? $endDate])
-
-            ->groupBy('ngay')
-            ->orderBy('ngay', 'desc')
-            ->get();
+        // Lấy doanh thu theo ngày với công thức mới: Tổng tiền thu = Tổng tiền hoàn + Doanh thu ròng
+        $dateRangeStart = $startDateParsed ?? ($startDate ? Carbon::parse($startDate)->startOfDay() : Carbon::now()->startOfMonth());
+        $dateRangeEnd = $endDateParsed ?? ($endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfMonth());
+        
+        // Tạo danh sách các ngày trong khoảng
+        $allDates = [];
+        $cursor = $dateRangeStart->copy();
+        while ($cursor->lte($dateRangeEnd)) {
+            $allDates[] = $cursor->format('Y-m-d');
+            $cursor->addDay();
+        }
+        
+        // Tính toán cho từng ngày
+        $dailyRevenues = collect($allDates)->map(function($dateStr) {
+            $date = Carbon::parse($dateStr);
+            $dayStart = $date->copy()->startOfDay();
+            $dayEnd = $date->copy()->endOfDay();
+            
+            // Tổng tiền thu trong ngày (từ invoices đã thanh toán - theo giao dịch)
+            // Ưu tiên lấy từ invoices, nếu không có thì lấy từ thanh_toan
+            $tongTienThuFromInvoices = Invoice::where('trang_thai', 'da_thanh_toan')
+                ->whereBetween('ngay_tao', [$dayStart, $dayEnd])
+                ->sum('tong_tien');
+            
+            $tongTienThuFromThanhToan = ThanhToan::where('trang_thai', 'success')
+                ->whereBetween('ngay_thanh_toan', [$dayStart, $dayEnd])
+                ->where('so_tien', '>', 0)
+                ->sum('so_tien');
+            
+            $tongTienThu = $tongTienThuFromInvoices > 0 ? $tongTienThuFromInvoices : $tongTienThuFromThanhToan;
+            
+            // Tổng tiền hoàn trong ngày (từ invoices có trạng thái hoan_tien)
+            $tongTienHoanFromInvoices = Invoice::where('trang_thai', 'hoan_tien')
+                ->whereBetween('ngay_tao', [$dayStart, $dayEnd])
+                ->sum('tong_tien');
+            
+            // Cũng lấy từ thanh_toan với số tiền âm
+            $tongTienHoanFromPayments = abs(ThanhToan::where('trang_thai', 'success')
+                ->whereBetween('ngay_thanh_toan', [$dayStart, $dayEnd])
+                ->where('so_tien', '<', 0)
+                ->sum('so_tien'));
+            
+            $tongTienHoan = $tongTienHoanFromInvoices > 0 ? $tongTienHoanFromInvoices : $tongTienHoanFromPayments;
+            
+            // Doanh thu ròng = Tổng tiền thu - Tổng tiền hoàn
+            $doanhThuRong = $tongTienThu - $tongTienHoan;
+            
+            // Tổng tiền thu (theo công thức mới) = Tổng tiền hoàn + Doanh thu ròng
+            $tongTienThuMoi = $tongTienHoan + $doanhThuRong;
+            
+            // Số lượng đơn đã thanh toán trong ngày
+            $soLuong = Invoice::where('trang_thai', 'da_thanh_toan')
+                ->whereBetween('ngay_tao', [$dayStart, $dayEnd])
+                ->count();
+            
+            return (object)[
+                'ngay' => $dateStr,
+                'tong_tien' => $tongTienThuMoi,
+                'so_luong' => $soLuong
+            ];
+        })->filter(function($item) {
+            // Chỉ giữ lại những ngày có dữ liệu
+            return $item->tong_tien > 0 || $item->so_luong > 0;
+        })->values();
 
         // Lấy các booking bị hủy trong khoảng thời gian
         $cancelledBookings = DatPhong::with(['loaiPhong', 'user'])
@@ -185,7 +236,7 @@ class RevenueController extends Controller
             ? round((($currentRevenue - $previousRevenue) / $previousRevenue) * 100, 1)
             : 0;
 
-        // Doanh thu theo từng ngày trong khoảng
+        // Doanh thu theo từng ngày trong khoảng (tính theo ngày tạo invoice)
         $dailyRevenue = [];
         $cursor = $startDate->copy();
 
@@ -193,34 +244,91 @@ class RevenueController extends Controller
             $dayStart = $cursor->copy()->startOfDay();
             $dayEnd = $cursor->copy()->endOfDay();
 
-            $dayRevenue = DatPhong::whereHas('invoice', function($query) {
-                    $query->where('trang_thai', 'da_thanh_toan');
+            // Doanh thu từ invoices đã thanh toán trong ngày
+            $dayPayments = ThanhToan::where('trang_thai', 'success')
+                ->whereBetween('ngay_thanh_toan', [$dayStart, $dayEnd])
+                ->where('so_tien', '>', 0)
+                ->sum('so_tien');
+            
+            // Tổng tiền hoàn từ dịch vụ trong ngày
+            $dayRefundsFromServices = RefundService::whereHas('invoice', function($query) use ($dayStart, $dayEnd) {
+                    $query->whereBetween('ngay_tao', [$dayStart, $dayEnd]);
                 })
-                ->whereBetween('ngay_dat', [$dayStart, $dayEnd])
+                ->whereBetween('created_at', [$dayStart, $dayEnd])
+                ->sum('total_refund');
+            
+            // Tổng tiền hoàn từ phòng trong ngày (từ invoices hủy)
+            $dayRefundsFromRooms = Invoice::where('trang_thai', 'hoan_tien')
+                ->whereBetween('ngay_tao', [$dayStart, $dayEnd])
                 ->sum('tong_tien');
+            
+            $dayRefundsFromPayments = abs(ThanhToan::where('trang_thai', 'success')
+                ->whereBetween('ngay_thanh_toan', [$dayStart, $dayEnd])
+                ->where('so_tien', '<', 0)
+                ->sum('so_tien'));
+            
+            // Tổng tiền hoàn trong ngày = Tiền hoàn dịch vụ + Tiền hoàn phòng
+            $dayRefunds = $dayRefundsFromServices + ($dayRefundsFromRooms > 0 ? $dayRefundsFromRooms : $dayRefundsFromPayments);
+            
+            // Doanh thu ròng trong ngày
+            $dayNetRevenue = $dayPayments - $dayRefunds;
+            
+            // Tổng tiền thu trong ngày = Tổng tiền hoàn + Doanh thu ròng
+            $dayTotalRevenue = $dayRefunds + $dayNetRevenue;
 
             $dailyRevenue[] = [
                 'day' => (int) $cursor->format('d'),
-                'revenue' => $dayRevenue,
+                'revenue' => $dayTotalRevenue, // Sử dụng tổng tiền thu mới
             ];
 
             $cursor->addDay();
         }
 
-        // Tính dòng tiền thu/hoàn dựa trên bảng thanh_toan để minh bạch dòng tiền thực tế
-        $totalPayments = ThanhToan::where('trang_thai', 'success')
+        // Tổng tiền thu: Tính theo ngày trong khoảng (tổng tất cả các ngày)
+        // Lấy từ invoices đã thanh toán (theo giao dịch) - tính theo ngày tạo invoice
+        // Nếu không có từ invoices, fallback sang thanh_toan
+        $totalPaymentsFromInvoices = Invoice::where('trang_thai', 'da_thanh_toan')
+            ->whereBetween('ngay_tao', [$startDate, $endDate])
+            ->sum('tong_tien');
+        
+        $totalPaymentsFromThanhToan = ThanhToan::where('trang_thai', 'success')
             ->whereBetween('ngay_thanh_toan', [$startDate, $endDate])
             ->where('so_tien', '>', 0)
             ->sum('so_tien');
+        
+        // Ưu tiên lấy từ invoices (theo giao dịch), nếu không có thì lấy từ thanh_toan
+        $totalPayments = $totalPaymentsFromInvoices > 0 ? $totalPaymentsFromInvoices : $totalPaymentsFromThanhToan;
 
-        $totalRefunds = ThanhToan::where('trang_thai', 'success')
-            ->whereBetween('ngay_thanh_toan', [$startDate, $EndDate = $endDate])
+        // Tổng tiền hoàn: Số tiền hoàn lại cho khách trong khoảng ngày/tháng đó
+        // Bao gồm:
+        // 1. Tiền hoàn từ dịch vụ (từ refund_services) - khi khách không dùng hết dịch vụ
+        $totalRefundsFromServices = RefundService::whereHas('invoice', function($query) use ($startDate, $endDate) {
+                $query->whereBetween('ngay_tao', [$startDate, $endDate]);
+            })
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->sum('total_refund');
+        
+        // 2. Tiền hoàn từ phòng (từ invoices có trạng thái 'hoan_tien') - khi khách hủy phòng đã thanh toán nhưng không ở
+        $totalRefundsFromRooms = Invoice::where('trang_thai', 'hoan_tien')
+            ->whereBetween('ngay_tao', [$startDate, $endDate])
+            ->sum('tong_tien');
+        
+        // 3. Cũng lấy từ thanh_toan với số tiền âm (refund) để đảm bảo đầy đủ
+        $totalRefundsFromPayments = abs(ThanhToan::where('trang_thai', 'success')
+            ->whereBetween('ngay_thanh_toan', [$startDate, $endDate])
             ->where('so_tien', '<', 0)
-            ->sum('so_tien');
-
-        // totalRefunds đang là số âm, nên lấy trị tuyệt đối để hiển thị
-        $totalRefundsAbs = abs($totalRefunds);
+            ->sum('so_tien'));
+        
+        // Tổng tiền hoàn = Tiền hoàn dịch vụ + Tiền hoàn phòng
+        // Ưu tiên lấy từ invoices nếu có, nếu không thì lấy từ thanh_toan
+        $totalRefundsAbs = $totalRefundsFromServices + ($totalRefundsFromRooms > 0 ? $totalRefundsFromRooms : $totalRefundsFromPayments);
+        
+        // Doanh thu ròng = Tổng tiền thu - Tổng tiền hoàn
         $netRevenue = $totalPayments - $totalRefundsAbs;
+        
+        // Tổng tiền thu (theo công thức mới) = Tổng tiền hoàn + Doanh thu ròng
+        // Hoặc đơn giản = Tổng tiền thu từ thanh_toan (đã tính ở trên)
+        $totalRevenue = $totalPayments;
 
         // Tổng số đơn trong khoảng
         $totalBookings = DatPhong::whereHas('invoice', function($query) use ($startDate, $endDate) {
@@ -243,6 +351,7 @@ class RevenueController extends Controller
             'total_payments'       => $totalPayments,
             'total_refunds'        => $totalRefundsAbs,
             'net_revenue'          => $netRevenue,
+            'total_revenue'        => $totalRevenue, // Tổng tiền thu = Tổng tiền hoàn + Doanh thu ròng
         ];
     }
 
@@ -347,19 +456,50 @@ class RevenueController extends Controller
             ];
         }
 
-        // Dòng tiền thu/hoàn trong tháng (dựa trên bảng thanh_toan)
-        $totalPayments = ThanhToan::where('trang_thai', 'success')
+        // Tổng tiền thu: Tính theo ngày trong tháng (tổng tất cả các ngày)
+        // Lấy từ invoices đã thanh toán (theo giao dịch) - tính theo ngày tạo invoice
+        // Nếu không có từ invoices, fallback sang thanh_toan
+        $totalPaymentsFromInvoices = Invoice::where('trang_thai', 'da_thanh_toan')
+            ->whereBetween('ngay_tao', [$startDate, $endDate])
+            ->sum('tong_tien');
+        
+        $totalPaymentsFromThanhToan = ThanhToan::where('trang_thai', 'success')
             ->whereBetween('ngay_thanh_toan', [$startDate, $endDate])
             ->where('so_tien', '>', 0)
             ->sum('so_tien');
+        
+        // Ưu tiên lấy từ invoices (theo giao dịch), nếu không có thì lấy từ thanh_toan
+        $totalPayments = $totalPaymentsFromInvoices > 0 ? $totalPaymentsFromInvoices : $totalPaymentsFromThanhToan;
 
-        $totalRefunds = ThanhToan::where('trang_thai', 'success')
+        // Tổng tiền hoàn: Số tiền hoàn lại cho khách trong tháng đó
+        // Bao gồm:
+        // 1. Tiền hoàn từ dịch vụ (từ refund_services) - khi khách không dùng hết dịch vụ
+        $totalRefundsFromServices = RefundService::whereHas('invoice', function($query) use ($startDate, $endDate) {
+                $query->whereBetween('ngay_tao', [$startDate, $endDate]);
+            })
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->sum('total_refund');
+        
+        // 2. Tiền hoàn từ phòng (từ invoices có trạng thái 'hoan_tien') - khi khách hủy phòng đã thanh toán nhưng không ở
+        $totalRefundsFromRooms = Invoice::where('trang_thai', 'hoan_tien')
+            ->whereBetween('ngay_tao', [$startDate, $endDate])
+            ->sum('tong_tien');
+        
+        // 3. Cũng lấy từ thanh_toan với số tiền âm (refund) để đảm bảo đầy đủ
+        $totalRefundsFromPayments = abs(ThanhToan::where('trang_thai', 'success')
             ->whereBetween('ngay_thanh_toan', [$startDate, $endDate])
             ->where('so_tien', '<', 0)
-            ->sum('so_tien');
-
-        $totalRefundsAbs = abs($totalRefunds);
+            ->sum('so_tien'));
+        
+        // Tổng tiền hoàn = Tiền hoàn dịch vụ + Tiền hoàn phòng
+        // Ưu tiên lấy từ invoices nếu có, nếu không thì lấy từ thanh_toan
+        $totalRefundsAbs = $totalRefundsFromServices + ($totalRefundsFromRooms > 0 ? $totalRefundsFromRooms : $totalRefundsFromPayments);
+        
+        // Doanh thu ròng = Tổng tiền thu - Tổng tiền hoàn
         $netRevenue = $totalPayments - $totalRefundsAbs;
+        
+        // Tổng tiền thu = Tổng tiền thu từ thanh_toan (đã tính ở trên)
+        $totalRevenue = $totalPayments;
 
         $totalBookings = DatPhong::whereHas('invoice', function($query) {
                 $query->where('trang_thai', 'da_thanh_toan');
@@ -382,6 +522,7 @@ class RevenueController extends Controller
             'total_payments'        => $totalPayments,
             'total_refunds'         => $totalRefundsAbs,
             'net_revenue'           => $netRevenue,
+            'total_revenue'         => $totalRevenue, // Tổng tiền thu = Tổng tiền hoàn + Doanh thu ròng
         ];
     }
 
