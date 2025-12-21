@@ -17,6 +17,9 @@ return new class extends Migration
             $table->foreignId('loai_phong_id')->constrained('loai_phong')->onDelete('cascade');
             $table->integer('so_luong')->default(1);
             $table->decimal('gia_rieng', 15, 2);
+            $table->integer('so_nguoi')->default(1);
+            $table->integer('so_tre_em')->default(0);
+            $table->integer('so_em_be')->default(0);
             $table->timestamps();
             
             // Indexes for performance

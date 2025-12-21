@@ -139,7 +139,7 @@ class DatPhong extends Model
     public function roomTypes()
     {
         return $this->belongsToMany(LoaiPhong::class, 'booking_room_types', 'dat_phong_id', 'loai_phong_id')
-            ->withPivot('so_luong', 'gia_rieng')
+            ->withPivot('so_luong', 'gia_rieng', 'so_nguoi', 'so_tre_em', 'so_em_be')
             ->withTimestamps();
     }
 
@@ -757,6 +757,10 @@ class DatPhong extends Model
                     'loai_phong_id' => $this->loai_phong_id,
                     'so_luong' => $this->so_luong_da_dat ?? 1,
                     'gia_rieng' => $this->tong_tien ?? 0,
+                    // Fallback: lấy số khách từ booking level
+                    'so_nguoi' => $this->so_nguoi ?? 0,
+                    'so_tre_em' => $this->so_tre_em ?? 0,
+                    'so_em_be' => $this->so_em_be ?? 0,
                 ]
             ]);
         }
@@ -765,8 +769,12 @@ class DatPhong extends Model
         return $roomTypes->map(function ($roomType) {
             return [
                 'loai_phong_id' => $roomType->id,
+                'ten_loai' => $roomType->ten_loai,
                 'so_luong' => $roomType->pivot->so_luong,
                 'gia_rieng' => $roomType->pivot->gia_rieng,
+                'so_nguoi' => $roomType->pivot->so_nguoi ?? 0,
+                'so_tre_em' => $roomType->pivot->so_tre_em ?? 0,
+                'so_em_be' => $roomType->pivot->so_em_be ?? 0,
             ];
         });
 

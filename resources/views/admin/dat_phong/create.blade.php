@@ -134,37 +134,37 @@
                                             {{-- Số lượng phòng với design mới (ẩn mặc định) --}}
                                             <div class="room-quantity-container mt-3 hidden"
                                                 id="quantity_container_{{ $loaiPhong->id }}">
-                                                <div
-                                                    class="flex items-center justify-between bg-white border border-gray-300 rounded-lg p-2 shadow-sm">
+                                                <div class="flex items-center justify-between bg-white border border-gray-300 rounded-xl p-2 shadow-sm">
                                                     <label for="quantity_{{ $loaiPhong->id }}"
-                                                        class="text-sm font-medium text-gray-700 mr-3 whitespace-nowrap">
-                                                        Số lượng:
+                                                        class="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">
+                                                        Số lượng
                                                     </label>
-                                                    <div class="flex items-center space-x-2 flex-1">
-                                                        <button type="button"
-                                                            class="quantity-btn-decrease w-8 h-8 flex items-center justify-center bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md transition-colors font-bold text-lg"
-                                                            onclick="decreaseQuantity({{ $loaiPhong->id }})"
-                                                            tabindex="-1">
-                                                            −
-                                                        </button>
-                                                        <input type="text" id="quantity_{{ $loaiPhong->id }}"
-                                                            class="room-quantity-input w-16 text-center border-0 focus:ring-0 focus:outline-none text-sm font-semibold text-gray-900"
-                                                            value="1"
-                                                            onchange="updateQuantityHidden({{ $loaiPhong->id }})"
-                                                            oninput="validateQuantity(this, {{ $loaiPhong->id }})"
-                                                            readonly>
-                                                        <button type="button"
-                                                            class="quantity-btn-increase w-8 h-8 flex items-center justify-center bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md transition-colors font-bold text-lg"
-                                                            onclick="increaseQuantity({{ $loaiPhong->id }})"
-                                                            tabindex="-1">
-                                                            +
-                                                        </button>
+                                                    <div class="flex items-center gap-3">
+                                                        <div class="inline-flex items-center border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+                                                            <button type="button"
+                                                                class="w-8 h-8 flex items-center justify-center hover:bg-red-50 hover:text-red-600 text-gray-500 transition-colors"
+                                                                onclick="decreaseQuantity({{ $loaiPhong->id }})"
+                                                                tabindex="-1">
+                                                                <i class="fas fa-minus text-[10px]"></i>
+                                                            </button>
+                                                            <input type="text" id="quantity_{{ $loaiPhong->id }}"
+                                                                class="room-quantity-input w-10 text-center border-none bg-transparent focus:ring-0 focus:outline-none text-sm font-bold text-gray-800 p-0"
+                                                                value="1"
+                                                                onchange="updateQuantityHidden({{ $loaiPhong->id }})"
+                                                                oninput="validateQuantity(this, {{ $loaiPhong->id }})"
+                                                                readonly>
+                                                            <button type="button"
+                                                                class="w-8 h-8 flex items-center justify-center hover:bg-green-50 hover:text-green-600 text-gray-500 transition-colors"
+                                                                onclick="increaseQuantity({{ $loaiPhong->id }})"
+                                                                tabindex="-1">
+                                                                <i class="fas fa-plus text-[10px]"></i>
+                                                            </button>
+                                                        </div>
+                                                        <span class="text-xs text-gray-400 font-medium mr-1">
+                                                            / <span id="max_available_{{ $loaiPhong->id }}"
+                                                                data-max="{{ $loaiPhong->so_luong_trong }}">{{ $loaiPhong->so_luong_trong }}</span>
+                                                        </span>
                                                     </div>
-                                                    <span class="text-xs text-gray-500 ml-2 whitespace-nowrap">
-                                                        / <span id="max_available_{{ $loaiPhong->id }}"
-                                                            data-max="{{ $loaiPhong->so_luong_trong }}">{{ $loaiPhong->so_luong_trong }}</span>
-                                                        phòng
-                                                    </span>
                                                 </div>
                                                 <p class="text-xs text-red-600 mt-1 hidden"
                                                     id="quantity_error_{{ $loaiPhong->id }}">
@@ -172,6 +172,79 @@
                                                         id="max_available_error_{{ $loaiPhong->id }}">{{ $loaiPhong->so_luong_trong }}</span>
                                                     phòng
                                                 </p>
+                                                
+                                                {{-- Số khách cho loại phòng này --}}
+                                                <div class="mt-4 p-4 bg-white/50 border border-blue-100 rounded-2xl shadow-sm">
+                                                    <label class="block text-sm font-bold text-blue-900 mb-3 uppercase tracking-wider flex items-center gap-2">
+                                                        <i class="fas fa-users text-blue-500"></i>
+                                                        Số khách cho loại phòng này
+                                                    </label>
+                                                    <div class="grid grid-cols-3 gap-4">
+                                                        {{-- Người lớn --}}
+                                                        <div class="flex flex-col items-center p-3 bg-blue-50/50 rounded-xl border border-blue-100 transition-all hover:bg-blue-50">
+                                                            <div class="flex items-center gap-2 mb-2">
+                                                                <i class="fas fa-user-tie text-blue-500 text-xs"></i>
+                                                                <span class="text-[10px] font-bold text-blue-700 uppercase">Người lớn</span>
+                                                            </div>
+                                                            <div class="flex items-center gap-3">
+                                                                <button type="button" onclick="changeRoomGuestCount('adults', {{ $loaiPhong->id }}, -1)" class="w-7 h-7 flex items-center justify-center rounded-lg bg-white border border-blue-200 text-blue-600 hover:bg-blue-600 hover:text-white transition-all active:scale-90">
+                                                                    <i class="fas fa-minus text-[10px]"></i>
+                                                                </button>
+                                                                <input type="number" 
+                                                                    id="room_adults_{{ $loaiPhong->id }}"
+                                                                    class="room-adults-input w-8 bg-transparent border-none text-center font-bold text-lg text-blue-900 focus:ring-0 p-0" 
+                                                                    value="2" min="0" readonly
+                                                                    data-room-type-id="{{ $loaiPhong->id }}"
+                                                                    onchange="syncGlobalGuestCounts()">
+                                                                <button type="button" onclick="changeRoomGuestCount('adults', {{ $loaiPhong->id }}, 1)" class="w-7 h-7 flex items-center justify-center rounded-lg bg-white border border-blue-200 text-blue-600 hover:bg-blue-600 hover:text-white transition-all active:scale-90">
+                                                                    <i class="fas fa-plus text-[10px]"></i>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        {{-- Trẻ em --}}
+                                                        <div class="flex flex-col items-center p-3 bg-emerald-50/50 rounded-xl border border-emerald-100 transition-all hover:bg-emerald-50">
+                                                            <div class="flex items-center gap-2 mb-2">
+                                                                <i class="fas fa-child text-emerald-500 text-xs"></i>
+                                                                <span class="text-[10px] font-bold text-emerald-700 uppercase">Trẻ em</span>
+                                                            </div>
+                                                            <div class="flex items-center gap-3">
+                                                                <button type="button" onclick="changeRoomGuestCount('children', {{ $loaiPhong->id }}, -1)" class="w-7 h-7 flex items-center justify-center rounded-lg bg-white border border-emerald-200 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all active:scale-90">
+                                                                    <i class="fas fa-minus text-[10px]"></i>
+                                                                </button>
+                                                                <input type="number" 
+                                                                    id="room_children_{{ $loaiPhong->id }}"
+                                                                    class="room-children-input w-8 bg-transparent border-none text-center font-bold text-lg text-emerald-900 focus:ring-0 p-0" 
+                                                                    value="0" min="0" readonly
+                                                                    data-room-type-id="{{ $loaiPhong->id }}"
+                                                                    onchange="syncGlobalGuestCounts()">
+                                                                <button type="button" onclick="changeRoomGuestCount('children', {{ $loaiPhong->id }}, 1)" class="w-7 h-7 flex items-center justify-center rounded-lg bg-white border border-emerald-200 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all active:scale-90">
+                                                                    <i class="fas fa-plus text-[10px]"></i>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        {{-- Em bé --}}
+                                                        <div class="flex flex-col items-center p-3 bg-pink-50/50 rounded-xl border border-pink-100 transition-all hover:bg-pink-50">
+                                                            <div class="flex items-center gap-2 mb-2">
+                                                                <i class="fas fa-baby text-pink-500 text-xs"></i>
+                                                                <span class="text-[10px] font-bold text-pink-700 uppercase">Em bé</span>
+                                                            </div>
+                                                            <div class="flex items-center gap-3">
+                                                                <button type="button" onclick="changeRoomGuestCount('infants', {{ $loaiPhong->id }}, -1)" class="w-7 h-7 flex items-center justify-center rounded-lg bg-white border border-pink-200 text-pink-600 hover:bg-pink-600 hover:text-white transition-all active:scale-90">
+                                                                    <i class="fas fa-minus text-[10px]"></i>
+                                                                </button>
+                                                                <input type="number" 
+                                                                    id="room_infants_{{ $loaiPhong->id }}"
+                                                                    class="room-infants-input w-8 bg-transparent border-none text-center font-bold text-lg text-pink-900 focus:ring-0 p-0" 
+                                                                    value="0" min="0" readonly
+                                                                    data-room-type-id="{{ $loaiPhong->id }}"
+                                                                    onchange="syncGlobalGuestCounts()">
+                                                                <button type="button" onclick="changeRoomGuestCount('infants', {{ $loaiPhong->id }}, 1)" class="w-7 h-7 flex items-center justify-center rounded-lg bg-white border border-pink-200 text-pink-600 hover:bg-pink-600 hover:text-white transition-all active:scale-90">
+                                                                    <i class="fas fa-plus text-[10px]"></i>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                             {{-- Danh sách các phòng cụ thể có sẵn (sẽ được JS điền vào) --}}
                                             <div id="available_rooms_{{ $loaiPhong->id }}" class="available-rooms mt-3 grid grid-cols-3 gap-2 hidden"></div>
@@ -216,45 +289,99 @@
                                 </div>
                                 
                                 {{-- Chọn số khách (chung cho tất cả loại phòng) --}}
-                                <div class="bg-white border border-gray-300 rounded-lg p-4 shadow-sm">
-                                    <label class="block text-sm font-semibold text-gray-700 mb-3">Số khách:</label>
-                                    <div class="grid grid-cols-3 gap-4">
+                                <div class="bg-gray-50/50 border border-gray-200 rounded-xl p-4 shadow-sm mb-6 mt-4">
+                                    <label class="block text-xs font-semibold text-gray-500 mb-3 uppercase tracking-wider">Cấu hình khách hàng</label>
+                                    <div class="grid grid-cols-3 gap-3">
                                         {{-- Người lớn --}}
-                                        <div class="text-center">
-                                            <div class="w-16 h-16 mx-auto mb-2 bg-blue-100 rounded-full flex items-center justify-center">
-                                                <i class="fas fa-user text-blue-500 text-2xl"></i>
+                                        <div class="bg-blue-50 border border-blue-100 rounded-xl p-3">
+                                            <div class="flex items-center justify-center gap-2 mb-3">
+                                                <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white">
+                                                    <i class="fas fa-user-tie text-sm"></i>
+                                                </div>
+                                                <div class="text-left">
+                                                    <h4 class="font-bold text-blue-900 text-sm">Người lớn</h4>
+                                                    <p class="text-[9px] text-blue-400 uppercase">Trên 12 tuổi</p>
+                                                </div>
                                             </div>
-                                            <label for="total_adults" class="block text-sm font-medium text-gray-700 mb-2">Người lớn</label>
-                                            <input type="number" id="total_adults" name="so_nguoi" min="1" max="3" step="1"
-                                                class="w-full border-2 border-blue-300 rounded-md py-2 px-3 text-center text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400 appearance-none bg-white"
-                                                value="{{ old('so_nguoi', 2) }}" oninput="updateAllRoomGuests('adults')">
-                                            
+                                            <div class="flex items-center justify-between px-2">
+                                                <button type="button" onclick="changeGuestCount('adults', -1)"
+                                                    class="w-10 h-10 rounded-xl bg-white border border-blue-200 text-blue-500 hover:bg-blue-500 hover:text-white transition-all flex items-center justify-center">
+                                                    <i class="fas fa-minus text-sm"></i>
+                                                </button>
+                                                <input type="number" id="total_adults" name="so_nguoi"
+                                                    class="w-14 border-none bg-white rounded-xl text-center font-bold text-3xl text-blue-900 focus:ring-0 py-2"
+                                                    value="{{ old('so_nguoi', 2) }}" min="1" max="10" readonly
+                                                    onchange="updateAllRoomGuests('adults'); if (typeof updateTotalPrice === 'function') updateTotalPrice();">
+                                                <button type="button" onclick="changeGuestCount('adults', 1)"
+                                                    class="w-10 h-10 rounded-xl bg-white border border-blue-200 text-blue-500 hover:bg-blue-500 hover:text-white transition-all flex items-center justify-center">
+                                                    <i class="fas fa-plus text-sm"></i>
+                                                </button>
+                                            </div>
                                         </div>
                                         
-                                        {{-- Trẻ em (6-12 tuổi) --}}
-                                        <div class="text-center">
-                                            <div class="w-16 h-16 mx-auto mb-2 bg-green-100 rounded-full flex items-center justify-center">
-                                                <i class="fas fa-child text-green-500 text-2xl"></i>
+                                        {{-- Trẻ em --}}
+                                        <div class="bg-emerald-50 border border-emerald-100 rounded-xl p-3">
+                                            <div class="flex items-center justify-center gap-2 mb-3">
+                                                <div class="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center text-white">
+                                                    <i class="fas fa-child-reaching text-sm"></i>
+                                                </div>
+                                                <div class="text-left">
+                                                    <h4 class="font-bold text-emerald-900 text-sm">Trẻ em</h4>
+                                                    <p class="text-[9px] text-emerald-400 uppercase">6 - 12 tuổi</p>
+                                                </div>
                                             </div>
-                                            <label for="total_children" class="block text-sm font-medium text-gray-700 mb-2">Trẻ em (6-12)</label>
-                                            <input type="number" id="total_children" name="so_tre_em" min="0" max="2" step="1"
-                                                class="w-full border-2 border-green-300 rounded-md py-2 px-3 text-center text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-green-400 appearance-none bg-white"
-                                                value="{{ old('so_tre_em', 0) }}" oninput="updateAllRoomGuests('children')"> 
+                                            <div class="flex items-center justify-between px-2">
+                                                <button type="button" onclick="changeGuestCount('children', -1)"
+                                                    class="w-10 h-10 rounded-xl bg-white border border-emerald-200 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all flex items-center justify-center">
+                                                    <i class="fas fa-minus text-sm"></i>
+                                                </button>
+                                                <input type="number" id="total_children" name="so_tre_em"
+                                                    class="w-14 border-none bg-white rounded-xl text-center font-bold text-3xl text-emerald-900 focus:ring-0 py-2"
+                                                    value="{{ old('so_tre_em', 0) }}" min="0" max="10" readonly
+                                                    onchange="updateAllRoomGuests('children'); if (typeof updateTotalPrice === 'function') updateTotalPrice();">
+                                                <button type="button" onclick="changeGuestCount('children', 1)"
+                                                    class="w-10 h-10 rounded-xl bg-white border border-emerald-200 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all flex items-center justify-center">
+                                                    <i class="fas fa-plus text-sm"></i>
+                                                </button>
+                                            </div>
                                         </div>
                                         
-                                        {{-- Em bé (0-5 tuổi) --}}
-                                        <div class="text-center">
-                                            <div class="w-16 h-16 mx-auto mb-2 bg-pink-100 rounded-full flex items-center justify-center">
-                                                <i class="fas fa-baby text-pink-500 text-2xl"></i>
+                                        {{-- Em bé --}}
+                                        <div class="bg-pink-50 border border-pink-100 rounded-xl p-3">
+                                            <div class="flex items-center justify-center gap-2 mb-3">
+                                                <div class="w-8 h-8 bg-pink-500 rounded-lg flex items-center justify-center text-white">
+                                                    <i class="fas fa-baby text-sm"></i>
+                                                </div>
+                                                <div class="text-left">
+                                                    <h4 class="font-bold text-pink-900 text-sm">Em bé</h4>
+                                                    <p class="text-[9px] text-pink-400 uppercase">Dưới 6 tuổi</p>
+                                                </div>
                                             </div>
-                                            <label for="total_infants" class="block text-sm font-medium text-gray-700 mb-2">Em bé (0-5)</label>
-                                            <input type="number" id="total_infants" name="so_em_be" min="0" max="2" step="1"
-                                                class="w-full border-2 border-pink-300 rounded-md py-2 px-3 text-center text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-pink-400 appearance-none bg-white"
-                                                value="{{ old('so_em_be', 0) }}" oninput="updateAllRoomGuests('infants')">
+                                            <div class="flex items-center justify-between px-2">
+                                                <button type="button" onclick="changeGuestCount('infants', -1)"
+                                                    class="w-10 h-10 rounded-xl bg-white border border-pink-200 text-pink-500 hover:bg-pink-500 hover:text-white transition-all flex items-center justify-center">
+                                                    <i class="fas fa-minus text-sm"></i>
+                                                </button>
+                                                <input type="number" id="total_infants" name="so_em_be"
+                                                    class="w-14 border-none bg-white rounded-xl text-center font-bold text-3xl text-pink-900 focus:ring-0 py-2"
+                                                    value="{{ old('so_em_be', 0) }}" min="0" max="10" readonly
+                                                    onchange="updateAllRoomGuests('infants'); if (typeof updateTotalPrice === 'function') updateTotalPrice();">
+                                                <button type="button" onclick="changeGuestCount('infants', 1)"
+                                                    class="w-10 h-10 rounded-xl bg-white border border-pink-200 text-pink-500 hover:bg-pink-500 hover:text-white transition-all flex items-center justify-center">
+                                                    <i class="fas fa-plus text-sm"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                                    <i class="fas fa-plus text-xs"></i>
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
+                                    <p id="guest_limit_error" class="mt-3 text-xs text-red-600 font-medium hidden bg-red-50 p-2 rounded-lg border border-red-100 flex items-center gap-2">
+                                        <i class="fas fa-exclamation-circle"></i>
+                                        <span>Giới hạn khách thực tế có thể thay đổi tùy theo loại phòng đã chọn.</span>
+                                    </p>
                                 </div>
-                                <p id="guest_limit_error" class="mt-2 text-sm text-red-600 hidden"></p>
                             </section>
 
                             <!-- Chọn mã giảm giá -->
@@ -380,17 +507,26 @@
                                 <!-- Hiển thị tổng tiền chi tiết -->
                                 <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
                                     {{-- Hiển thị số khách --}}
-                                    <div id="guest_summary" class="mb-3 pb-3 border-b border-blue-200 hidden">
-                                        <div class="flex flex-wrap gap-3 text-sm">
-                                            <span id="total_adults_display" class="text-blue-600 hidden">
-                                                <i class="fas fa-user mr-1"></i><span id="adults_count">0</span> người lớn
-                                            </span>
-                                            <span id="total_children_display" class="text-green-600 hidden">
-                                                <i class="fas fa-child mr-1"></i><span id="children_count">0</span> trẻ em
-                                            </span>
-                                            <span id="total_infants_display" class="text-pink-600 hidden">
-                                                <i class="fas fa-baby mr-1"></i><span id="infants_count">0</span> em bé
-                                            </span>
+                                    <div id="guest_summary" class="mb-4 pb-4 border-b border-blue-200 hidden">
+                                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
+                                            <i class="fas fa-users mr-1"></i> Tổng số khách
+                                        </label>
+                                        <div class="flex flex-wrap gap-3 items-center">
+                                            <div id="total_adults_display" class="flex items-center bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm hidden">
+                                                <i class="fas fa-user-tie mr-2"></i> 
+                                                <span id="adults_count">0</span> 
+                                                <span class="ml-1.5">Người lớn</span>
+                                            </div>
+                                            <div id="total_children_display" class="flex items-center bg-emerald-500 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm hidden">
+                                                <i class="fas fa-child mr-2"></i> 
+                                                <span id="children_count">0</span> 
+                                                <span class="ml-1.5">Trẻ em</span>
+                                            </div>
+                                            <div id="total_infants_display" class="flex items-center bg-pink-500 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm hidden">
+                                                <i class="fas fa-baby mr-2"></i> 
+                                                <span id="infants_count">0</span> 
+                                                <span class="ml-1.5">Em bé</span>
+                                            </div>
                                         </div>
                                     </div>
                                     
@@ -524,12 +660,117 @@
             let roomIndex = 0;
             const allLoaiPhongs = @json($loaiPhongs);
 
+            function changeGuestCount(type, delta) {
+                const inputId = type === 'adults' ? 'total_adults' : (type === 'children' ? 'total_children' : 'total_infants');
+                const input = document.getElementById(inputId);
+                if (input) {
+                    let newValue = parseInt(input.value) + delta;
+                    const min = parseInt(input.getAttribute('min')) || 0;
+                    const max = parseInt(input.getAttribute('max')) || 10;
+                    
+                    if (newValue >= min && newValue <= max) {
+                        input.value = newValue;
+                        // Trigger change event to fire updateAllRoomGuests
+                        const event = new Event('change');
+                        input.dispatchEvent(event);
+                        
+                        // Also call computeTotals directly just in case
+                        if (typeof updateTotalPrice === 'function') updateTotalPrice();
+                    }
+                }
+            }
+
             function formatCurrency(amount) {
                 return new Intl.NumberFormat('vi-VN', {
                     style: 'currency',
                     currency: 'VND'
                 }).format(amount).replace('₫', 'VNĐ');
             }
+            
+            // Thay đổi số khách cho từng loại phòng riêng
+            function changeRoomGuestCount(type, roomTypeId, delta) {
+                const inputId = 'room_' + type + '_' + roomTypeId;
+                const input = document.getElementById(inputId);
+                if (!input) {
+                    console.warn('changeRoomGuestCount: input not found', inputId);
+                    return;
+                }
+                
+                // Lấy số lượng phòng đã chọn cho loại phòng này
+                const quantityInput = document.getElementById('quantity_' + roomTypeId);
+                const roomQuantity = parseInt(quantityInput?.value) || 1;
+                
+                // Giới hạn theo số phòng: mỗi phòng tối đa 3 người lớn, 2 trẻ em, 2 em bé
+                let maxPerRoom = 3; // Người lớn
+                if (type === 'children') maxPerRoom = 2;
+                if (type === 'infants') maxPerRoom = 2;
+                
+                const max = roomQuantity * maxPerRoom;
+                const min = type === 'adults' ? 1 : 0; // Người lớn tối thiểu 1
+                
+                let newValue = parseInt(input.value) + delta;
+                
+                if (newValue >= min && newValue <= max) {
+                    input.value = newValue;
+                    
+                    // Cập nhật hidden input tương ứng
+                    const hiddenId = type + '_hidden_' + roomTypeId;
+                    const hiddenInput = document.getElementById(hiddenId);
+                    if (hiddenInput) {
+                        hiddenInput.value = newValue;
+                    }
+                    
+                    // Đồng bộ lại tổng số khách
+                    syncGlobalGuestCounts();
+                    
+                    // Cập nhật tổng tiền
+                    if (typeof updateTotalPrice === 'function') updateTotalPrice();
+                }
+            }
+            
+            // Đồng bộ tổng số khách từ các loại phòng riêng lẻ
+            function syncGlobalGuestCounts() {
+                let totalAdults = 0;
+                let totalChildren = 0;
+                let totalInfants = 0;
+                
+                // Lấy tất cả loại phòng đã chọn
+                const selectedRoomTypes = Array.from(document.querySelectorAll('.room-type-checkbox:checked'));
+                
+                selectedRoomTypes.forEach(checkbox => {
+                    const roomTypeId = checkbox.value;
+                    
+                    const adultsInput = document.getElementById('room_adults_' + roomTypeId);
+                    const childrenInput = document.getElementById('room_children_' + roomTypeId);
+                    const infantsInput = document.getElementById('room_infants_' + roomTypeId);
+                    
+                    if (adultsInput) totalAdults += parseInt(adultsInput.value) || 0;
+                    if (childrenInput) totalChildren += parseInt(childrenInput.value) || 0;
+                    if (infantsInput) totalInfants += parseInt(infantsInput.value) || 0;
+                    
+                    // Cập nhật hidden inputs
+                    const adultsHidden = document.getElementById('adults_hidden_' + roomTypeId);
+                    const childrenHidden = document.getElementById('children_hidden_' + roomTypeId);
+                    const infantsHidden = document.getElementById('infants_hidden_' + roomTypeId);
+                    
+                    if (adultsHidden && adultsInput) adultsHidden.value = adultsInput.value;
+                    if (childrenHidden && childrenInput) childrenHidden.value = childrenInput.value;
+                    if (infantsHidden && infantsInput) infantsHidden.value = infantsInput.value;
+                });
+                
+                // Cập nhật tổng số khách hiển thị
+                const totalAdultsInput = document.getElementById('total_adults');
+                const totalChildrenInput = document.getElementById('total_children');
+                const totalInfantsInput = document.getElementById('total_infants');
+                
+                if (totalAdultsInput) totalAdultsInput.value = totalAdults;
+                if (totalChildrenInput) totalChildrenInput.value = totalChildren;
+                if (totalInfantsInput) totalInfantsInput.value = totalInfants;
+                
+                // Cập nhật tổng tiền
+                if (typeof updateTotalPrice === 'function') updateTotalPrice();
+            }
+            
             function toggleRoomType(checkbox, roomTypeId) {
                 const quantityContainer = document.getElementById('quantity_container_' + roomTypeId);
                 const quantityInput = document.getElementById('quantity_' + roomTypeId);
@@ -543,8 +784,16 @@
                         hiddenInput.value = quantityInput.value || 1;
                     }
                     
-                    // Phân bổ lại số khách cho tất cả loại phòng đã chọn
-                    syncAllGuests();
+                    // Reset số khách cho loại phòng này về mặc định
+                    const roomAdultsInput = document.getElementById('room_adults_' + roomTypeId);
+                    const roomChildrenInput = document.getElementById('room_children_' + roomTypeId);
+                    const roomInfantsInput = document.getElementById('room_infants_' + roomTypeId);
+                    if (roomAdultsInput) roomAdultsInput.value = 2;
+                    if (roomChildrenInput) roomChildrenInput.value = 0;
+                    if (roomInfantsInput) roomInfantsInput.value = 0;
+                    
+                    // Đồng bộ lại tổng số khách
+                    syncGlobalGuestCounts();
                     
                     // Show available specific rooms for this type
                     const roomsContainer = document.getElementById('available_rooms_' + roomTypeId);
@@ -568,8 +817,16 @@
                     if (childrenHidden) childrenHidden.value = 0;
                     if (infantsHidden) infantsHidden.value = 0;
                     
-                    // Phân bổ lại số khách cho các loại phòng còn lại
-                    syncAllGuests();
+                    // Reset input hiển thị về 0
+                    const roomAdultsInput = document.getElementById('room_adults_' + roomTypeId);
+                    const roomChildrenInput = document.getElementById('room_children_' + roomTypeId);
+                    const roomInfantsInput = document.getElementById('room_infants_' + roomTypeId);
+                    if (roomAdultsInput) roomAdultsInput.value = 2;
+                    if (roomChildrenInput) roomChildrenInput.value = 0;
+                    if (roomInfantsInput) roomInfantsInput.value = 0;
+                    
+                    // Đồng bộ lại tổng số khách
+                    syncGlobalGuestCounts();
                     
                     // hide and clear available rooms when unchecking type
                     const roomsContainer = document.getElementById('available_rooms_' + roomTypeId);
@@ -727,14 +984,32 @@
 
                 // enforce room check limits and update services' room lists
                 try { enforceRoomSelectionLimit(roomTypeId); } catch(e){}
-                // auto pre-check additional boxes when quantity increases
+                // Sync room checkboxes with quantity - check/uncheck as needed
                 try {
                     const want = parseInt(document.getElementById('quantity_' + roomTypeId)?.value || 0);
                     const boxes = Array.from(document.querySelectorAll('#available_rooms_' + roomTypeId + ' input.available-room-checkbox'));
-                    if (want > 0 && boxes.length > 0) {
-                        for (let i = 0; i < Math.min(want, boxes.length); i++) boxes[i].checked = true;
+                    if (boxes.length > 0) {
+                        const checkedBoxes = boxes.filter(b => b.checked);
+                        const checkedCount = checkedBoxes.length;
+                        
+                        if (want > checkedCount) {
+                            // Need to check more boxes
+                            const uncheckedBoxes = boxes.filter(b => !b.checked);
+                            const toCheck = want - checkedCount;
+                            for (let i = 0; i < Math.min(toCheck, uncheckedBoxes.length); i++) {
+                                uncheckedBoxes[i].checked = true;
+                            }
+                        } else if (want < checkedCount) {
+                            // Need to uncheck excess boxes (from the end)
+                            const toUncheck = checkedCount - want;
+                            for (let i = 0; i < toUncheck; i++) {
+                                checkedBoxes[checkedCount - 1 - i].checked = false;
+                            }
+                        }
+                        // Update service room lists after changing checkboxes
+                        updateServiceRoomLists();
                     }
-                } catch(e){}
+                } catch(e){ console.error('Sync room checkboxes error:', e); }
                 try { updateServiceRoomLists(); } catch(e){}
                 // Phân bổ lại số khách khi số lượng phòng thay đổi
                 syncAllGuests();
@@ -835,6 +1110,14 @@
                         // Phân bổ theo tỷ lệ số lượng phòng
                         const guestForRoom = totalQuantity > 0 ? Math.round((totalValueToDistribute * quantity) / totalQuantity) : 0;
                         hiddenInput.value = guestForRoom;
+                        
+                        // Cập nhật input hiển thị riêng cho loại phòng này
+                        const inputType = type === 'adults' ? 'room_adults_' : (type === 'children' ? 'room_children_' : 'room_infants_');
+                        const roomGuestInput = document.getElementById(inputType + roomTypeId);
+                        if (roomGuestInput) {
+                            roomGuestInput.value = guestForRoom;
+                        }
+                        
                         console.log(`Updated ${type}_hidden_${roomTypeId}:`, guestForRoom, 'for quantity', quantity);
                     } else {
                         console.warn(`Hidden input not found: ${type}_hidden_${roomTypeId}`);

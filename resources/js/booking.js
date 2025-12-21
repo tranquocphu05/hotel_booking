@@ -194,13 +194,32 @@ class BookingManager {
             return;
         }
 
+        // Get max capacity from data attributes (from database)
+        const maxAdults = parseInt(quantityInput.dataset.maxAdults) || 2;
+        const maxChildren = parseInt(quantityInput.dataset.maxChildren) || 2;
+        const maxInfants = parseInt(quantityInput.dataset.maxInfants) || 2;
+
         const defaultAdults =
-            parseInt(defaultAdultsSel?.value || this.maxAdultsPerRoom) ||
-            this.maxAdultsPerRoom;
+            parseInt(defaultAdultsSel?.value || maxAdults) || maxAdults;
 
         // Get surcharge rates from room type data
         const childFee = parseFloat(quantityInput.dataset.childFee) || 0;
         const infantFee = parseFloat(quantityInput.dataset.infantFee) || 0;
+
+        // Generate options for adults (0 to maxAdults)
+        const adultsOptions = Array.from({ length: maxAdults + 1 }, (_, i) => 
+            `<option value="${i}">${i}</option>`
+        ).join('');
+
+        // Generate options for children (0 to maxChildren)
+        const childrenOptions = Array.from({ length: maxChildren + 1 }, (_, i) => 
+            `<option value="${i}">${i}</option>`
+        ).join('');
+
+        // Generate options for infants (0 to maxInfants)
+        const infantsOptions = Array.from({ length: maxInfants + 1 }, (_, i) => 
+            `<option value="${i}">${i}</option>`
+        ).join('');
 
         const rows = [];
         for (let i = 1; i <= qty; i++) {
@@ -219,44 +238,37 @@ class BookingManager {
                     <div class="flex gap-3">
                         <!-- Adults (Người lớn) -->
                         <div class="flex-1">
-                            <div class="text-sm text-gray-700 mb-1">Người lớn</div>
+                            <div class="text-sm text-gray-700 mb-1">Người lớn (tối đa ${maxAdults})</div>
                             <select id="${adultsRowId}"
                                     class="w-full border border-gray-300 rounded px-2 py-1 text-sm bg-white appearance-none cursor-pointer"
                                     data-room-id="${roomId}"
                                     data-guest-type="adults"
                                     onchange="window.bookingManager.onGuestRowChange('${roomId}')">
-                                <option value="0">0</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
+                                ${adultsOptions}
                             </select>
                         </div>
 
                         <!-- Children (Trẻ em 6-11 tuổi) -->
                         <div class="flex-1">
-                            <div class="text-sm text-gray-700 mb-1">Trẻ em (6-11 tuổi)</div>
+                            <div class="text-sm text-gray-700 mb-1">Trẻ em 6-11 (tối đa ${maxChildren})</div>
                             <select id="${childrenRowId}"
                                     class="w-full border border-gray-300 rounded px-2 py-1 text-sm bg-white appearance-none cursor-pointer"
                                     data-room-id="${roomId}"
                                     data-guest-type="children"
                                     onchange="window.bookingManager.onGuestRowChange('${roomId}')">
-                                <option value="0">0</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
+                                ${childrenOptions}
                             </select>
                         </div>
 
                         <!-- Infants (Em bé 0-5 tuổi) -->
                         <div class="flex-1">
-                            <div class="text-sm text-gray-700 mb-1">Em bé (0-5 tuổi)</div>
+                            <div class="text-sm text-gray-700 mb-1">Em bé 0-5 (tối đa ${maxInfants})</div>
                             <select id="${infantsRowId}"
                                     class="w-full border border-gray-300 rounded px-2 py-1 text-sm bg-white appearance-none cursor-pointer"
                                     data-room-id="${roomId}"
                                     data-guest-type="infants"
                                     onchange="window.bookingManager.onGuestRowChange('${roomId}')">
-                                <option value="0">0</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
+                                ${infantsOptions}
                             </select>
                         </div>
                     </div>
