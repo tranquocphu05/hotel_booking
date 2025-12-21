@@ -29,6 +29,7 @@ class Invoice extends Model
         'phuong_thuc',
         'trang_thai',
         'invoice_type',
+        'original_invoice_id',
         // Optional note field added for adjustments/refunds
         'ghi_chu',
     ];
@@ -79,9 +80,32 @@ class Invoice extends Model
      */
     public function isExtra(): bool
     {
-
         // invoice_type values in DB may be stored in various cases ('EXTRA', 'extra', etc.).
         // Normalize to lowercase for a reliable check.
         return strtolower((string) ($this->invoice_type ?? '')) === 'extra';
+    }
+
+    /**
+     * Check if this is a refund invoice
+     */
+    public function isRefund(): bool
+    {
+        return strtolower((string) ($this->invoice_type ?? '')) === 'refund';
+    }
+
+    /**
+     * Get the original invoice (if this is a refund invoice)
+     */
+    public function originalInvoice()
+    {
+        return $this->belongsTo(Invoice::class, 'original_invoice_id');
+    }
+
+    /**
+     * Get refund invoices for this invoice
+     */
+    public function refundInvoices()
+    {
+        return $this->hasMany(Invoice::class, 'original_invoice_id');
     }
 }

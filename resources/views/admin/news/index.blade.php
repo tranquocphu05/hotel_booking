@@ -66,22 +66,32 @@
     <!-- News Table -->
     <div class="bg-white shadow rounded-lg overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="w-full min-w-full divide-y divide-gray-200">
+            <table class="w-full" style="table-layout: fixed;">
+                <colgroup>
+                    <col style="width: 60px;">
+                    <col style="width: 100px;">
+                    <col style="width: 300px;">
+                    <col style="width: 130px;">
+                    <col style="width: 150px;">
+                    <col style="width: 100px;">
+                    <col style="width: 150px;">
+                    <col style="width: 150px;">
+                </colgroup>
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ảnh</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tiêu đề</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tác giả</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lượt xem</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày tạo</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">ID</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">Ảnh</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">Tiêu đề</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">Trạng thái</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">Tác giả</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">Lượt xem</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">Ngày tạo</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($news as $item)
-                    <tr class="hover:bg-gray-50 transition-colors">
+                    <tr class="hover:bg-gray-50">
                         <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{{ $item->id }}</td>
                         <td class="px-4 py-4 whitespace-nowrap">
                             @if($item->hinh_anh)
@@ -94,9 +104,9 @@
                                 </div>
                             @endif
                         </td>
-                        <td class="px-4 py-4">
-                            <div class="text-sm font-semibold text-gray-900 mb-1">{{ Str::limit($item->tieu_de, 50) }}</div>
-                            <div class="text-xs text-gray-500 line-clamp-2">{{ Str::limit($item->tom_tat, 80) }}</div>
+                        <td class="px-4 py-4" style="overflow: hidden;">
+                            <div class="text-sm font-semibold text-gray-900 mb-1 truncate" title="{{ $item->tieu_de }}">{{ Str::limit($item->tieu_de, 40) }}</div>
+                            <div class="text-xs text-gray-500 truncate" title="{{ $item->tom_tat }}">{{ Str::limit($item->tom_tat, 50) }}</div>
                         </td>
                         <td class="px-4 py-4 whitespace-nowrap">
                             @if($item->trang_thai == 'published')
@@ -116,19 +126,19 @@
                         <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                             <div class="flex items-center">
                                 <i class="fas fa-user-circle mr-2 text-gray-400"></i>
-                                {{ $item->admin->ho_ten ?? 'N/A' }}
+                                <span class="truncate">{{ $item->admin->ho_ten ?? 'N/A' }}</span>
                             </div>
                         </td>
                         <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                             <div class="flex items-center">
                                 <i class="fas fa-eye mr-2 text-blue-400"></i>
-                                {{ number_format($item->luot_xem) }}
+                                <span>{{ number_format($item->luot_xem) }}</span>
                             </div>
                         </td>
                         <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                             <div class="flex items-center">
                                 <i class="fas fa-calendar-alt mr-2 text-gray-400"></i>
-                                {{ $item->created_at->format('d/m/Y H:i') }}
+                                <span>{{ $item->created_at->format('d/m/Y H:i') }}</span>
                             </div>
                         </td>
                         <td class="px-4 py-4 whitespace-nowrap text-sm font-medium">

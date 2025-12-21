@@ -149,14 +149,40 @@
                     Hủy
                 </a>
                 <button type="submit"
+                        id="submit-btn"
                         class="btn-primary btn-animate inline-flex items-center px-4 py-2 rounded-md">
                     <i class="fas fa-save mr-2"></i>
-                    Lưu tin tức
+                    <span id="submit-text">Lưu tin tức</span>
+                    <span id="submit-spinner" class="hidden ml-2">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </span>
                 </button>
             </div>
         </form>
     </div>
 </div>
+
+<!-- Loading Overlay - Full Screen -->
+<div id="loading-overlay" class="hidden fixed inset-0 bg-black bg-opacity-70 z-[9999]" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%;">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; max-width: 400px; padding: 0 20px;">
+        <div class="bg-white rounded-xl p-10 flex flex-col items-center justify-center shadow-2xl" style="width: 100%;">
+            <div class="relative mb-6 flex items-center justify-center" style="width: 80px; height: 80px; margin: 0 auto;">
+                <div class="animate-spin rounded-full border-4 border-gray-200 border-t-indigo-600" style="width: 80px; height: 80px; position: absolute; top: 0; left: 0;"></div>
+                <div class="absolute inset-0 flex items-center justify-center" style="width: 80px; height: 80px;">
+                    <i class="fas fa-newspaper text-indigo-600 text-2xl"></i>
+                </div>
+            </div>
+            <p class="text-gray-800 font-semibold text-lg mb-2 text-center w-full">Đang xử lý...</p>
+            <p class="text-sm text-gray-500 text-center w-full">Vui lòng đợi trong giây lát</p>
+            <div class="mt-4 flex space-x-1 justify-center items-center">
+                <div class="w-2 h-2 bg-indigo-600 rounded-full animate-bounce" style="animation-delay: 0s;"></div>
+                <div class="w-2 h-2 bg-indigo-600 rounded-full animate-bounce" style="animation-delay: 0.2s;"></div>
+                <div class="w-2 h-2 bg-indigo-600 rounded-full animate-bounce" style="animation-delay: 0.4s;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -165,6 +191,57 @@ document.addEventListener('DOMContentLoaded', function() {
     const preview = document.getElementById('image-preview');
     const removeBtn = document.getElementById('remove-image');
     const dropZone = fileInput.closest('.border-dashed');
+    const form = document.querySelector('form');
+    const submitBtn = document.getElementById('submit-btn');
+    const submitText = document.getElementById('submit-text');
+    const submitSpinner = document.getElementById('submit-spinner');
+
+    // Loading spinner khi submit form
+    if (form && submitBtn) {
+        const loadingOverlay = document.getElementById('loading-overlay');
+        
+        form.addEventListener('submit', function(e) {
+            // Hiển thị spinner trên button
+            submitBtn.disabled = true;
+            submitText.classList.add('hidden');
+            submitSpinner.classList.remove('hidden');
+            submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
+            
+            // Hiển thị overlay loading ngay lập tức
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'block';
+                loadingOverlay.style.position = 'fixed';
+                loadingOverlay.style.top = '0';
+                loadingOverlay.style.left = '0';
+                loadingOverlay.style.right = '0';
+                loadingOverlay.style.bottom = '0';
+                loadingOverlay.style.width = '100%';
+                loadingOverlay.style.height = '100%';
+                loadingOverlay.classList.remove('hidden');
+            }
+        });
+    }
+    
+    // Hiển thị loading khi trang đang load
+    window.addEventListener('beforeunload', function() {
+        const loadingOverlay = document.getElementById('loading-overlay');
+        if (loadingOverlay) {
+            loadingOverlay.classList.remove('hidden');
+        }
+    });
+    
+    // Hiển thị loading khi click vào các link
+    document.querySelectorAll('a[href]').forEach(function(link) {
+        link.addEventListener('click', function(e) {
+            // Chỉ hiển thị loading cho các link không phải external hoặc anchor
+            if (this.href && !this.href.startsWith('#') && !this.href.startsWith('javascript:')) {
+                const loadingOverlay = document.getElementById('loading-overlay');
+                if (loadingOverlay) {
+                    loadingOverlay.classList.remove('hidden');
+                }
+            }
+        });
+    });
 
     // Preview khi chọn file
     fileInput.addEventListener('change', function(e) {

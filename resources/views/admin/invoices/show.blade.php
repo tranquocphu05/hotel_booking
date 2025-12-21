@@ -136,7 +136,23 @@
 
             {{-- Header with Action Buttons --}}
             <div class="flex justify-between items-center mb-6">
-                <h1 class="text-3xl font-bold text-gray-900">Hóa đơn #{{ $invoice->id }}</h1>
+                <div>
+                    <h1 class="text-3xl font-bold {{ $invoice->isRefund() ? 'text-red-600' : 'text-gray-900' }}">
+                        @if($invoice->isRefund())
+                            Hóa đơn hoàn tiền #{{ $invoice->id }}
+                        @else
+                            Hóa đơn #{{ $invoice->id }}
+                        @endif
+                    </h1>
+                    @if($invoice->isRefund() && $invoice->originalInvoice)
+                        <p class="text-sm text-gray-600 mt-1">
+                            Hoàn tiền cho hóa đơn gốc: 
+                            <a href="{{ route('admin.invoices.show', $invoice->originalInvoice->id) }}" class="text-blue-600 hover:underline">
+                                Hóa đơn #{{ $invoice->originalInvoice->id }}
+                            </a>
+                        </p>
+                    @endif
+                </div>
                 <div class="flex gap-3">
                     <a href="{{ route('admin.invoices.print', $invoice->id) }}" target="_blank"
                         class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg flex items-center gap-2 transition">
@@ -147,10 +163,32 @@
                         </svg>
                         Print
                     </a>
-                    @if ($invoice->trang_thai === 'da_thanh_toan')
-                        <button id="open_adjust_modal" type="button" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-6 rounded-lg flex items-center gap-2 transition">
-                            Remove Service
+                    @if ($invoice->trang_thai === 'da_thanh_toan' && !$invoice->isRefund())
+                        @php
+                            $hasRefundInvoice = \App\Models\Invoice::where('original_invoice_id', $invoice->id)
+                                ->where('invoice_type', 'REFUND')
+                                ->exists();
+                        @endphp
+                        @if (!$hasRefundInvoice)
+                            <button id="open_adjust_modal" type="button" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-6 rounded-lg flex items-center gap-2 transition">
+                                Remove Service
+                            </button>
+                        @endif
+                        <button id="open_refund_modal" type="button" class="bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 px-6 rounded-lg flex items-center gap-2 transition">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            Tạo hóa đơn hoàn tiền
                         </button>
+                    @endif
+                    @if ($invoice->isRefund() && $invoice->originalInvoice)
+                        <a href="{{ route('admin.invoices.show', $invoice->originalInvoice->id) }}" 
+                           class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-6 rounded-lg flex items-center gap-2 transition">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                            </svg>
+                            Xem hóa đơn gốc #{{ $invoice->originalInvoice->id }}
+                        </a>
                     @endif
                     @if (!in_array($invoice->trang_thai, ['da_thanh_toan', 'hoan_tien']))
                         <a href="{{ route('admin.invoices.edit', $invoice->id) }}"
@@ -241,26 +279,114 @@
                 </div>
             </div>
 
+            <!-- Refund Invoice Modal (hidden) -->
+            <div id="refund_modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+                <div class="bg-white rounded-lg shadow-lg w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
+                    <h3 class="text-xl font-semibold mb-4 text-orange-600">Tạo hóa đơn hoàn tiền</h3>
+                    <p class="text-sm text-gray-600 mb-4">Hóa đơn hoàn tiền sẽ được tạo riêng biệt, hóa đơn gốc #{{ $invoice->id }} sẽ được giữ nguyên.</p>
+                    <form id="refund_form" method="POST" action="{{ route('admin.invoices.create_refund', $invoice->id) }}">
+                        @csrf
+                        <div class="grid grid-cols-1 gap-4">
+                            <div>
+                                <label class="text-sm font-medium text-gray-700">Chọn dịch vụ cần hoàn tiền</label>
+                                <select id="refund_booking_services" class="w-full border rounded-lg px-3 py-2 mt-1">
+                                    <option value="">-- Chọn dịch vụ để hoàn tiền --</option>
+                                    @if(isset($bookingServiceOptions) && count($bookingServiceOptions) > 0)
+                                        @foreach($bookingServiceOptions as $opt)
+                                            <option value="{{ $opt['id'] }}" 
+                                                    data-remaining="{{ $opt['remaining'] }}" 
+                                                    data-used_at="{{ $opt['used_at'] }}" 
+                                                    data-phong-id="{{ $opt['phong_id'] ?? '' }}" 
+                                                    data-so-phong="{{ $opt['so_phong'] ?? '' }}" 
+                                                    data-service-name="{{ $opt['service_name'] }}" 
+                                                    data-unit-price="{{ $opt['unit_price'] }}">
+                                                {{ $opt['service_name'] }} — Phòng: {{ $opt['so_phong'] ?? '-' }} — {{ $opt['used_at_display'] }} 
+                                                @if($invoice->trang_thai === 'da_thanh_toan' && !$invoice->isRefund())
+                                                    (Đã hoàn: {{ $opt['remaining'] }})
+                                                @else
+                                                    (Còn lại: {{ $opt['remaining'] }})
+                                                @endif
+                                            </option>
+                                        @endforeach
+                                    @else
+                                        <option value="" disabled>Không có dịch vụ nào để hoàn tiền</option>
+                                    @endif
+                                </select>
+                                <div class="text-xs text-gray-500 mt-1">Chọn dịch vụ từ danh sách để tự động thêm vào danh sách hoàn tiền</div>
+                                @if(!isset($bookingServiceOptions) || count($bookingServiceOptions) === 0)
+                                    <div class="text-sm text-yellow-600 mt-2 p-2 bg-yellow-50 rounded">
+                                        ⚠ Không có dịch vụ nào để hoàn tiền. Tất cả dịch vụ đã được hoàn tiền hoặc không có dịch vụ trong hóa đơn này.
+                                    </div>
+                                @endif
+                                <div id="refund_items_container" class="mt-4 space-y-3"></div>
+                            </div>
+                            
+                            <div class="border-t pt-4">
+                                <label class="text-sm font-medium text-gray-700 mb-2 block">Phương thức hoàn tiền</label>
+                                <select id="refund_method" name="refund_method" class="w-full border rounded-lg px-3 py-2 mb-3">
+                                    <option value="tien_mat">Tiền mặt</option>
+                                    <option value="chuyen_khoan">Chuyển khoản</option>
+                                    <option value="cong_thanh_toan">Cộng vào thanh toán</option>
+                                </select>
+                                <div id="refund_bank_fields" class="space-y-2 hidden">
+                                    <input type="text" name="refund_account_number" placeholder="Số tài khoản" class="w-full border rounded-lg px-3 py-2">
+                                    <input type="text" name="refund_account_name" placeholder="Tên chủ tài khoản" class="w-full border rounded-lg px-3 py-2">
+                                    <input type="text" name="refund_bank_name" placeholder="Ngân hàng" class="w-full border rounded-lg px-3 py-2">
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="text-sm font-medium text-gray-700 mb-2 block">Ghi chú</label>
+                                <textarea name="note" rows="3" class="w-full border rounded-lg px-3 py-2" placeholder="Lý do hoàn tiền (ví dụ: Khách không sử dụng dịch vụ)"></textarea>
+                            </div>
+                            
+                            <div class="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                                <label class="text-sm font-medium text-gray-700 mb-2 block">Tổng tiền hoàn</label>
+                                <div id="refund_total_display" class="text-2xl font-bold text-orange-600">0 đ</div>
+                            </div>
+                            
+                            <div class="flex items-center justify-between pt-4 border-t">
+                                <button type="button" id="refund_cancel_btn" class="px-6 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition">
+                                    Hủy
+                                </button>
+                                <button type="submit" class="px-6 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-semibold transition">
+                                    Tạo hóa đơn hoàn tiền
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             {{-- Main Invoice Card --}}
             <div class="bg-white rounded-lg shadow-lg overflow-hidden">
 
                 {{-- Invoice Header Section --}}
-                <div class="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-8 py-6">
+                <div class="bg-gradient-to-r {{ $invoice->isRefund() ? 'from-red-600 to-red-800' : 'from-blue-600 to-blue-800' }} text-white px-8 py-6">
                     <div class="grid grid-cols-3 gap-6 text-center">
                         <div>
-                            <p class="text-blue-100 text-sm">Mã hóa đơn</p>
+                            <p class="{{ $invoice->isRefund() ? 'text-red-100' : 'text-blue-100' }} text-sm">Mã hóa đơn</p>
                             <p class="text-2xl font-bold">{{ $invoice->id }}</p>
+                            @if($invoice->isRefund())
+                                <p class="text-xs mt-1 text-red-200">Hóa đơn hoàn tiền</p>
+                            @endif
                         </div>
                         <div>
-                            <p class="text-blue-100 text-sm">Ngày tạo</p>
+                            <p class="{{ $invoice->isRefund() ? 'text-red-100' : 'text-blue-100' }} text-sm">Ngày tạo</p>
                             <p class="text-2xl font-bold">{{ \Carbon\Carbon::parse($invoice->ngay_tao)->format('d/m/Y') }}
                             </p>
                         </div>
                         <div>
-                            <p class="text-blue-100 text-sm">Trạng thái</p>
+                            <p class="{{ $invoice->isRefund() ? 'text-red-100' : 'text-blue-100' }} text-sm">Trạng thái</p>
                             <span
-                                class="inline-block mt-1 px-4 py-1 rounded-full text-sm font-semibold {{ $invoice->trang_thai == 'da_thanh_toan' ? 'bg-green-400 text-green-900' : 'bg-yellow-400 text-yellow-900' }}">
-                                {{ $invoice->trang_thai == 'da_thanh_toan' ? '✓ Đã thanh toán' : 'Chờ thanh toán' }}
+                                class="inline-block mt-1 px-4 py-1 rounded-full text-sm font-semibold {{ $invoice->trang_thai == 'hoan_tien' ? 'bg-red-300 text-red-900' : ($invoice->trang_thai == 'da_thanh_toan' ? 'bg-green-400 text-green-900' : 'bg-yellow-400 text-yellow-900') }}">
+                                @if($invoice->trang_thai == 'hoan_tien')
+                                    ↻ Hoàn tiền
+                                @elseif($invoice->trang_thai == 'da_thanh_toan')
+                                    ✓ Đã thanh toán
+                                @else
+                                    Chờ thanh toán
+                                @endif
                             </span>
                         </div>
                     </div>
@@ -354,7 +480,7 @@
                             <div class="overflow-x-auto">
                                 <table class="w-full border rounded-lg overflow-hidden">
                                     <thead>
-                                        <tr class="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+                                        <tr class="bg-gradient-to-r {{ $invoice->isRefund() ? 'from-red-600 to-red-700' : 'from-blue-600 to-blue-700' }} text-white">
                                             <th class="px-6 py-4 text-left font-semibold">DỊCH VỤ</th>
                                             <th class="px-6 py-4 text-center font-semibold">PHÒNG</th>
                                             <th class="px-6 py-4 text-center font-semibold">NGÀY DÙNG</th>
@@ -369,26 +495,54 @@
                                                 $svc = $s->service;
                                                 $name = $svc ? $svc->name ?? 'N/A' : $s->service_name ?? 'N/A';
                                                 $usedAt = $s->used_at ? date('d/m/Y', strtotime($s->used_at)) : '-';
+                                                $usedAtKey = $s->used_at ? date('Y-m-d', strtotime($s->used_at)) : 'null';
                                                 $qty = $s->quantity ?? 0;
                                                 $unitPrice = $s->unit_price ?? 0;
                                                 $subtotal = $qty * $unitPrice;
+                                                
+                                                // Kiểm tra xem dịch vụ này đã được hoàn tiền chưa
+                                                $isRefunded = false;
+                                                if (!$invoice->isRefund() && isset($refundedServiceIds)) {
+                                                    $refundKey = $s->service_id . '_' . ($s->phong_id ?? 'null') . '_' . $usedAtKey;
+                                                    $isRefunded = $refundedServiceIds->has($refundKey);
+                                                }
+                                                // Hoặc nếu quantity <= 0 trong hóa đơn gốc (đã được adjust)
+                                                if (!$invoice->isRefund() && $qty <= 0) {
+                                                    $isRefunded = true;
+                                                }
                                             @endphp
-                                            <tr class="hover:bg-blue-50 transition">
-                                                <td class="px-6 py-4 text-gray-900">
+                                            <tr class="transition {{ $isRefunded ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-blue-50' }}">
+                                                <td class="px-6 py-4 {{ $isRefunded ? 'text-red-700 font-semibold' : 'text-gray-900' }}">
                                                     <div>{{ $name }}</div>
                                                     @if($s->note)
-                                                        <div class="text-xs text-gray-500 italic mt-1">{{ $s->note }}</div>
+                                                        <div class="text-xs {{ $isRefunded ? 'text-red-600' : 'text-gray-500' }} italic mt-1">{{ $s->note }}</div>
+                                                    @endif
+                                                    @if($isRefunded && !$invoice->isRefund())
+                                                        <div class="text-xs text-red-600 font-semibold mt-1">
+                                                            <i class="fas fa-undo-alt mr-1"></i>Đã hoàn tiền
+                                                        </div>
                                                     @endif
                                                 </td>
-                                                <td class="px-6 py-4 text-center text-gray-700">
+                                                <td class="px-6 py-4 text-center {{ $isRefunded ? 'text-red-700' : 'text-gray-700' }}">
                                                     {{ $s->phong ? $s->phong->so_phong ?? $s->phong->id : $s->phong_id ?? '-' }}
                                                 </td>
-                                                <td class="px-6 py-4 text-center text-gray-700">{{ $usedAt }}</td>
-                                                <td class="px-6 py-4 text-right text-gray-700">{{ $qty }}</td>
-                                                <td class="px-6 py-4 text-right text-gray-700">
+                                                <td class="px-6 py-4 text-center {{ $isRefunded ? 'text-red-700' : 'text-gray-700' }}">{{ $usedAt }}</td>
+                                                <td class="px-6 py-4 text-right {{ ($invoice->isRefund() && $qty < 0) || $isRefunded ? 'text-red-600 font-semibold' : 'text-gray-700' }}">
+                                                    @if($invoice->isRefund() && $qty < 0)
+                                                        {{ abs($qty) }}
+                                                    @else
+                                                        {{ $qty }}
+                                                    @endif
+                                                </td>
+                                                <td class="px-6 py-4 text-right {{ $isRefunded ? 'text-red-700' : 'text-gray-700' }}">
                                                     {{ number_format($unitPrice, 0, ',', '.') }} đ</td>
-                                                <td class="px-6 py-4 text-right font-semibold text-gray-900">
-                                                    {{ number_format($subtotal, 0, ',', '.') }} đ</td>
+                                                <td class="px-6 py-4 text-right font-semibold {{ ($invoice->isRefund() && $subtotal < 0) || $isRefunded ? 'text-red-600' : 'text-gray-900' }}">
+                                                    @if($invoice->isRefund() && $subtotal < 0)
+                                                        {{ number_format(abs($subtotal), 0, ',', '.') }} đ
+                                                    @else
+                                                        {{ number_format($subtotal, 0, ',', '.') }} đ
+                                                    @endif
+                                                </td>
                                             </tr>
                                         @endforeach
                                     </tbody>
@@ -444,8 +598,13 @@
                             </div>
                             <div class="flex justify-between text-sm text-gray-600">
                                 <span>Dịch vụ</span>
-                                <span
-                                    class="font-semibold text-gray-900">{{ number_format($servicesTotal, 0, ',', '.') }}₫</span>
+                                <span class="font-semibold {{ $invoice->isRefund() && $servicesTotal < 0 ? 'text-red-600' : 'text-gray-900' }}">
+                                    @if($invoice->isRefund() && $servicesTotal < 0)
+                                        {{ number_format(abs($servicesTotal), 0, ',', '.') }}₫
+                                    @else
+                                        {{ number_format($servicesTotal, 0, ',', '.') }}₫
+                                    @endif
+                                </span>
                             </div>
 
                             @php
@@ -614,17 +773,32 @@
                                             $tongCuoiCung =
                                                 $invoice->tong_tien ??
                                                 max(0, $tienPhong - $giamGia + $tienDichVu + $phiPhatSinh);
+                                            
+                                            // Đối với refund invoice, đảm bảo hiển thị số dương
+                                            if ($invoice->isRefund() && $tongCuoiCung < 0) {
+                                                $tongCuoiCung = abs($tongCuoiCung);
+                                            }
                                         @endphp
                                         @if ($invoice->tong_tien && $invoice->tong_tien != $calculatedTotal)
                                             <p class="text-xs text-gray-500 mb-2">
                                                 (Đã lưu trong hệ thống: {{ number_format((float) $invoice->tong_tien, 0, ',', '.') }}₫)
                                             </p>
                                         @endif
-                                        <div class="flex justify-between items-center py-3 bg-blue-600 -mx-6 px-6 -mb-6">
-                                            <span class="font-bold text-white text-lg">TỔNG THANH TOÁN</span>
-                                            <span
-                                                class="text-white text-3xl font-bold">{{ number_format($tongCuoiCung, 0, ',', '.') }}
-                                                đ</span>
+                                        <div class="flex justify-between items-center py-3 {{ $invoice->isRefund() ? 'bg-red-600' : 'bg-blue-600' }} -mx-6 px-6 -mb-6">
+                                            <span class="font-bold text-white text-lg">
+                                                @if($invoice->isRefund())
+                                                    TỔNG TIỀN HOÀN
+                                                @else
+                                                    TỔNG THANH TOÁN
+                                                @endif
+                                            </span>
+                                            <span class="text-white text-3xl font-bold">
+                                                @if($invoice->isRefund())
+                                                    {{ number_format(abs((float)$tongCuoiCung), 0, ',', '.') }} đ
+                                                @else
+                                                    {{ number_format($tongCuoiCung, 0, ',', '.') }} đ
+                                                @endif
+                                            </span>
                                         </div>
                             </div>
                             {{-- Payment method --}}
@@ -668,6 +842,11 @@
                                     }
 
                                     $tongCuoiCung = $invoice->tong_tien ?? max(0, $itemsTotalEffective ?: $tienDichVu);
+                                    
+                                    // Đối với refund invoice, đảm bảo hiển thị số dương
+                                    if ($invoice->isRefund()) {
+                                        $tongCuoiCung = abs((float)$tongCuoiCung);
+                                    }
                                 @endphp
 
                                 @if($visibleInvoiceItems->isNotEmpty())
@@ -736,11 +915,81 @@
                                 @endif
                                 <div class="border-t-2 border-gray-300"></div>
 
-                                <div class="flex justify-between items-center py-3 bg-blue-600 -mx-6 px-6 -mb-6">
-                                    <span class="font-bold text-white text-lg">TỔNG THANH TOÁN</span>
+                                {{-- Chi tiết hóa đơn cho EXTRA invoice --}}
+                                @php
+                                    // Lấy danh sách tên phòng từ booking hoặc từ services
+                                    $roomNames = [];
+                                    if ($booking) {
+                                        // Lấy từ booking->phongs() (pivot table)
+                                        $assignedPhongs = $booking->phongs ?? collect();
+                                        if ($assignedPhongs->isNotEmpty()) {
+                                            $roomNames = $assignedPhongs->map(function($phong) {
+                                                return $phong->so_phong ?? $phong->ten_phong ?? 'Phòng #' . $phong->id;
+                                            })->unique()->toArray();
+                                        } else {
+                                            // Fallback: lấy từ services trong invoice
+                                            $servicePhongs = $services->whereNotNull('phong_id')->pluck('phong')->filter()->unique('id');
+                                            if ($servicePhongs->isNotEmpty()) {
+                                                $roomNames = $servicePhongs->map(function($phong) {
+                                                    return $phong->so_phong ?? $phong->ten_phong ?? 'Phòng #' . $phong->id;
+                                                })->unique()->toArray();
+                                            } elseif ($booking->phong_id) {
+                                                // Fallback: lấy từ legacy phong_id
+                                                $legacyPhong = $booking->phong;
+                                                if ($legacyPhong) {
+                                                    $roomNames = [$legacyPhong->so_phong ?? $legacyPhong->ten_phong ?? 'Phòng #' . $legacyPhong->id];
+                                                }
+                                            }
+                                        }
+                                    }
+                                    $roomNamesDisplay = !empty($roomNames) ? implode(', ', $roomNames) : 'N/A';
+                                    
+                                    // Format phương thức thanh toán
+                                    $phuongThucDisplay = 'N/A';
+                                    if ($invoice->phuong_thuc) {
+                                        $phuongThuc = strtolower($invoice->phuong_thuc);
+                                        $phuongThucMap = [
+                                            'tien_mat' => 'Tiền mặt',
+                                            'chuyen_khoan' => 'Chuyển khoản',
+                                            'cong_thanh_toan' => 'Cổng thanh toán',
+                                            'the' => 'Thẻ',
+                                            'vi_dien_tu' => 'Ví điện tử',
+                                        ];
+                                        $phuongThucDisplay = $phuongThucMap[$phuongThuc] ?? ucfirst(str_replace('_', ' ', $invoice->phuong_thuc));
+                                    }
+                                @endphp
+
+                                <div class="space-y-3 py-4">
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <span class="text-sm text-gray-600">Tên phòng:</span>
+                                            <span class="text-sm font-semibold text-gray-900 ml-2">{{ $roomNamesDisplay }}</span>
+                                        </div>
+                                        <div>
+                                            <span class="text-sm text-gray-600">Phương thức thanh toán:</span>
+                                            <span class="text-sm font-semibold text-gray-900 ml-2">{{ $phuongThucDisplay }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="border-t-2 border-gray-300"></div>
+
+                                <div class="flex justify-between items-center py-3 {{ $invoice->isRefund() ? 'bg-red-600' : 'bg-blue-600' }} -mx-6 px-6 -mb-6">
+                                    <span class="font-bold text-white text-lg">
+                                        @if($invoice->isRefund())
+                                            TỔNG TIỀN HOÀN
+                                        @else
+                                            TỔNG THANH TOÁN
+                                        @endif
+                                    </span>
                                     <span
-                                        class="text-white text-3xl font-bold">{{ number_format($tongCuoiCung, 0, ',', '.') }}
-                                        đ</span>
+                                        class="text-white text-3xl font-bold">
+                                        @if($invoice->isRefund())
+                                            {{ number_format(abs((float)$tongCuoiCung), 0, ',', '.') }} đ
+                                        @else
+                                            {{ number_format($tongCuoiCung, 0, ',', '.') }} đ
+                                        @endif
+                                    </span>
                                 </div>
                             </div>
 
@@ -1560,6 +1809,224 @@
                     return;
                 } else {
                     console.error('Form submission prevented due to errors');
+                }
+            });
+        }
+    })();
+
+    // Refund Invoice Modal Script
+    (function() {
+        const refundModal = document.getElementById('refund_modal');
+        const openRefundBtn = document.getElementById('open_refund_modal');
+        const refundCancelBtn = document.getElementById('refund_cancel_btn');
+        const refundForm = document.getElementById('refund_form');
+        const refundBookingServicesSelect = document.getElementById('refund_booking_services');
+        const refundItemsContainer = document.getElementById('refund_items_container');
+        const refundTotalDisplay = document.getElementById('refund_total_display');
+        const refundMethodSelect = document.getElementById('refund_method');
+        const refundBankFields = document.getElementById('refund_bank_fields');
+
+        let refundItemIndex = 0;
+
+        // Open/Close modal
+        if (openRefundBtn && refundModal) {
+            openRefundBtn.addEventListener('click', function() {
+                refundModal.classList.remove('hidden');
+                refundItemIndex = 0;
+                refundItemsContainer.innerHTML = '';
+                updateRefundTotal();
+            });
+        }
+
+        if (refundCancelBtn && refundModal) {
+            refundCancelBtn.addEventListener('click', function() {
+                refundModal.classList.add('hidden');
+                refundItemsContainer.innerHTML = '';
+                refundItemIndex = 0;
+                updateRefundTotal();
+            });
+        }
+
+        // Close modal when clicking outside
+        if (refundModal) {
+            refundModal.addEventListener('click', function(e) {
+                if (e.target === refundModal) {
+                    refundModal.classList.add('hidden');
+                }
+            });
+        }
+
+        // Add service to refund list
+        if (refundBookingServicesSelect) {
+            refundBookingServicesSelect.addEventListener('change', function() {
+                const selectedOption = this.options[this.selectedIndex];
+                if (!selectedOption.value) return;
+
+                const bsId = selectedOption.value;
+                const serviceName = selectedOption.dataset.serviceName || 'Dịch vụ';
+                const soPhong = selectedOption.dataset.soPhong || '-';
+                const usedAt = selectedOption.dataset.usedAt || '';
+                const unitPrice = parseFloat(selectedOption.dataset.unitPrice || 0);
+                const remaining = parseInt(selectedOption.dataset.remaining || 0, 10);
+
+                if (remaining <= 0) {
+                    alert('Dịch vụ này đã được hoàn tiền hết.');
+                    this.value = '';
+                    return;
+                }
+
+                // Check if already added
+                const existingItem = refundItemsContainer.querySelector(`[data-bs-id="${bsId}"]`);
+                if (existingItem) {
+                    alert('Dịch vụ này đã được thêm vào danh sách.');
+                    this.value = '';
+                    return;
+                }
+
+                // Create refund item
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'refund-item border rounded-lg p-3 bg-gray-50';
+                itemDiv.setAttribute('data-bs-id', bsId);
+                itemDiv.innerHTML = `
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex-1">
+                            <div class="font-medium text-gray-900">${serviceName}</div>
+                            <div class="text-xs text-gray-500">Phòng: ${soPhong} | Ngày: ${usedAt ? new Date(usedAt).toLocaleDateString('vi-VN') : '-'}</div>
+                        </div>
+                        <button type="button" class="remove-refund-item text-red-600 hover:text-red-800 ml-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-xs text-gray-600">Số lượng</label>
+                            <input type="number" 
+                                   name="adjustments[${refundItemIndex}][quantity]" 
+                                   class="refund-qty w-full border rounded px-2 py-1 text-sm" 
+                                   min="1" 
+                                   max="${remaining}" 
+                                   value="1" 
+                                   data-unit-price="${unitPrice}"
+                                   data-max="${remaining}"
+                                   required>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-600">Đơn giá</label>
+                            <div class="text-sm font-semibold text-gray-700 mt-1">${new Intl.NumberFormat('vi-VN').format(unitPrice)} đ</div>
+                        </div>
+                    </div>
+                    <input type="hidden" name="adjustments[${refundItemIndex}][booking_service_id]" value="${bsId}">
+                    <input type="hidden" name="adjustments[${refundItemIndex}][used_at]" value="${usedAt}">
+                    <input type="text" name="adjustments[${refundItemIndex}][note]" class="w-full border rounded px-2 py-1 text-xs mt-2" placeholder="Ghi chú (tùy chọn)">
+                `;
+
+                refundItemsContainer.appendChild(itemDiv);
+                refundItemIndex++;
+                this.value = '';
+
+                // Add remove handler
+                itemDiv.querySelector('.remove-refund-item').addEventListener('click', function() {
+                    itemDiv.remove();
+                    reindexRefundItems();
+                    updateRefundTotal();
+                });
+
+                // Add quantity change handler
+                const qtyInput = itemDiv.querySelector('.refund-qty');
+                qtyInput.addEventListener('input', function() {
+                    updateRefundTotal();
+                });
+
+                updateRefundTotal();
+            });
+        }
+
+        function reindexRefundItems() {
+            const items = refundItemsContainer.querySelectorAll('.refund-item');
+            items.forEach((item, idx) => {
+                const qtyInput = item.querySelector('.refund-qty');
+                const bsIdInput = item.querySelector('input[name*="[booking_service_id]"]');
+                const usedAtInput = item.querySelector('input[name*="[used_at]"]');
+                const noteInput = item.querySelector('input[name*="[note]"]');
+
+                if (qtyInput) qtyInput.name = `adjustments[${idx}][quantity]`;
+                if (bsIdInput) bsIdInput.name = `adjustments[${idx}][booking_service_id]`;
+                if (usedAtInput) usedAtInput.name = `adjustments[${idx}][used_at]`;
+                if (noteInput) noteInput.name = `adjustments[${idx}][note]`;
+            });
+            refundItemIndex = items.length;
+        }
+
+        function updateRefundTotal() {
+            let total = 0;
+            refundItemsContainer.querySelectorAll('.refund-item').forEach(item => {
+                const qtyInput = item.querySelector('.refund-qty');
+                const unitPrice = parseFloat(qtyInput?.dataset.unitPrice || 0);
+                const qty = parseInt(qtyInput?.value || 0, 10);
+                total += unitPrice * qty;
+            });
+            refundTotalDisplay.textContent = new Intl.NumberFormat('vi-VN').format(total) + ' đ';
+        }
+
+        // Show/hide bank fields based on refund method
+        if (refundMethodSelect && refundBankFields) {
+            refundMethodSelect.addEventListener('change', function() {
+                if (this.value === 'chuyen_khoan') {
+                    refundBankFields.classList.remove('hidden');
+                    refundBankFields.querySelectorAll('input').forEach(input => {
+                        input.setAttribute('required', 'required');
+                    });
+                } else {
+                    refundBankFields.classList.add('hidden');
+                    refundBankFields.querySelectorAll('input').forEach(input => {
+                        input.removeAttribute('required');
+                        input.value = '';
+                    });
+                }
+            });
+        }
+
+        // Form validation
+        if (refundForm) {
+            refundForm.addEventListener('submit', function(e) {
+                const items = refundItemsContainer.querySelectorAll('.refund-item');
+                if (items.length === 0) {
+                    e.preventDefault();
+                    alert('Vui lòng chọn ít nhất một dịch vụ để hoàn tiền.');
+                    return;
+                }
+
+                // Validate quantities
+                let hasError = false;
+                items.forEach(item => {
+                    const qtyInput = item.querySelector('.refund-qty');
+                    const max = parseInt(qtyInput?.dataset.max || 0, 10);
+                    const qty = parseInt(qtyInput?.value || 0, 10);
+                    
+                    if (qty <= 0 || qty > max) {
+                        hasError = true;
+                    }
+                });
+
+                if (hasError) {
+                    e.preventDefault();
+                    alert('Vui lòng kiểm tra lại số lượng đã nhập.');
+                    return;
+                }
+
+                // Validate bank fields if chuyen_khoan
+                if (refundMethodSelect?.value === 'chuyen_khoan') {
+                    const accountNumber = refundBankFields.querySelector('input[name="refund_account_number"]');
+                    const accountName = refundBankFields.querySelector('input[name="refund_account_name"]');
+                    const bankName = refundBankFields.querySelector('input[name="refund_bank_name"]');
+                    
+                    if (!accountNumber?.value || !accountName?.value || !bankName?.value) {
+                        e.preventDefault();
+                        alert('Vui lòng điền đầy đủ thông tin ngân hàng khi chọn phương thức chuyển khoản.');
+                        return;
+                    }
                 }
             });
         }
