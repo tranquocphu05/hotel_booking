@@ -79,7 +79,10 @@
                     @if($phongHienTai)
                         <p class="flex justify-between">
                             <span>Phòng hiện tại:</span>
-                            <strong class="text-gray-900">{{ $phongHienTai->ten_phong ?? ('Phòng #' . $phongHienTai->id) }}</strong>
+                            @php
+                                $currentRoomNumber = $phongHienTai->so_phong ?? $phongHienTai->ten_phong ?? ('#' . $phongHienTai->id);
+                            @endphp
+                            <strong class="text-gray-900">Phòng {{ $currentRoomNumber }}</strong>
                         </p>
                     @endif
                 </div>
@@ -105,9 +108,12 @@
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Phòng hiện tại</label>
                 <select name="phong_cu_id" class="w-full border-gray-200 rounded-xl px-4 py-3 focus:ring focus:ring-orange-200 focus:border-orange-400 bg-gray-50">
                     @foreach ($booking->phongs as $p)
+                        @php
+                            $roomNumber = $p->so_phong ?? $p->ten_phong ?? ('#' . $p->id);
+                        @endphp
                         <option value="{{ $p->id }}"
                             {{ old('phong_cu_id', optional($phongHienTai)->id) == $p->id ? 'selected' : '' }}>
-                            {{ $p->ten_phong ?? ('Phòng #' . $p->id) }}
+                            Phòng {{ $roomNumber }}
                         </option>
                     @endforeach
                 </select>
@@ -180,10 +186,13 @@
                                             data-chenh-lech="{{ $chenhLech }}">
                                         <option value="">-- Chọn phòng --</option>
                                         @foreach ($rooms as $room)
+                                            @php
+                                                $roomNumber = $room->so_phong ?? $room->ten_phong ?? ('#' . $room->id);
+                                            @endphp
                                             <option value="{{ $room->id }}"
                                                 data-room-id="{{ $room->id }}"
                                                 {{ old('phong_moi_id') == $room->id ? 'selected' : '' }}>
-                                                {{ $room->ten_phong ?? ('Phòng #' . $room->id) }}
+                                                Phòng {{ $roomNumber }}
                                                 @if($room->tang) - Tầng {{ $room->tang }} @endif
                                             </option>
                                         @endforeach

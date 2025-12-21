@@ -395,9 +395,11 @@
                                             @foreach ($currentRooms as $p)
                                                 @php
                                                     $oldRate = $p->loaiPhong->gia_khuyen_mai ?? $p->loaiPhong->gia_co_ban ?? 0;
+                                                    $roomNumber = $p->so_phong ?? $p->ten_phong ?? ('#' . $p->id);
                                                 @endphp
                                                 <option value="{{ $p->id }}" data-old-rate="{{ $oldRate }}">
-                                                    {{ $p->ten_phong ?? ('Phòng #' . $p->id) }}
+                                                    Phòng {{ $roomNumber }}
+                                                    @if ($p->tang) - Tầng {{ $p->tang }} @endif
                                                 </option>
                                             @endforeach
                                         </select>
@@ -434,8 +436,11 @@
                                                                 data-new-rate="{{ $newRate }}">
                                                                 <option value="">-- Chọn phòng --</option>
                                                                 @foreach ($rooms as $room)
+                                                                    @php
+                                                                        $roomNumber = $room->so_phong ?? $room->ten_phong ?? ('#' . $room->id);
+                                                                    @endphp
                                                                     <option value="{{ $room->id }}">
-                                                                        {{ $room->ten_phong ?? ('Phòng #' . $room->id) }}@if ($room->tang) - Tầng {{ $room->tang }} @endif
+                                                                        Phòng {{ $roomNumber }}@if ($room->tang) - Tầng {{ $room->tang }} @endif
                                                                     </option>
                                                                 @endforeach
                                                             </select>
