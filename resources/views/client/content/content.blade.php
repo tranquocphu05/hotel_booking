@@ -866,7 +866,7 @@
                                     <div class="mb-3">
                                         <p class="text-sm text-gray-600">
                                             <i class="fas fa-bed text-gray-400 mr-1"></i>
-                                            Còn <span class="font-semibold text-green-600">{{ $phong->so_luong_trong ?? 0 }}</span>/<span class="text-gray-500">{{ $phong->so_luong_phong ?? 0 }}</span> phòng trống
+                                            Còn <span class="font-semibold text-green-600">{{ $phong->so_luong_trong ?? 0 }}</span> phòng trống
                                         </p>
                                         @if($phong->gia_khuyen_mai && $phong->gia_khuyen_mai < $phong->gia_co_ban)
                                             @php

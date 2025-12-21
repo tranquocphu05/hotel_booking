@@ -67,13 +67,18 @@ class PhongController extends Controller
         $checkout = $request->get('checkout');
         $availabilityMap = [];
 
+        // Optimize: Cache availability checks (5 minutes) - real-time but frequently accessed
         if ($checkin && $checkout) {
+            $cacheKeyPrefix = 'room_availability_' . md5($checkin . $checkout);
             foreach ($phongs as $phong) {
-                try {
-                    $availabilityMap[$phong->id] = Phong::countAvailableRooms($phong->id, $checkin, $checkout);
-                } catch (\Exception $e) {
-                    $availabilityMap[$phong->id] = null;
-                }
+                $cacheKey = $cacheKeyPrefix . '_' . $phong->id;
+                $availabilityMap[$phong->id] = Cache::remember($cacheKey, 300, function () use ($phong, $checkin, $checkout) {
+                    try {
+                        return Phong::countAvailableRooms($phong->id, $checkin, $checkout);
+                    } catch (\Exception $e) {
+                        return null;
+                    }
+                });
             }
         }
 
