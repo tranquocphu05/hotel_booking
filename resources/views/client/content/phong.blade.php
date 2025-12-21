@@ -182,13 +182,17 @@
 
                             @if($checkin && $checkout && isset($availabilityMap[$phong->id]) && $availabilityMap[$phong->id] !== null)
                                 @php
+                                    // x: số phòng còn trống theo khoảng ngày đã chọn
                                     $availableCount = $availabilityMap[$phong->id];
+                                    // y: tổng số phòng được thêm trong DB (đếm số bản ghi phòng thuộc loại này)
+                                    // totalRoomsMap được controller tính bằng COUNT(*) từ bảng phong theo loai_phong_id
+                                    $totalRooms = isset($totalRoomsMap[$phong->id]) ? $totalRoomsMap[$phong->id] : 0;
                                 @endphp
                                 <div class="mb-6">
                                     @if($availableCount > 0)
                                         <div class="inline-flex items-center gap-2 text-sm bg-green-50 text-green-700 px-4 py-2 rounded-full font-semibold border border-green-200">
                                             <i class="fas fa-check-circle"></i>
-                                            <span>Còn <span class="text-lg">{{ $availableCount }}</span>/{{ $phong->so_luong_phong }} phòng trống</span>
+                                            <span>Còn <span class="text-lg">{{ $availableCount }}</span>/{{ $totalRooms }} phòng trống</span>
                                             <span class="text-xs text-blue-600">({{ date('d/m/Y', strtotime($checkin)) }} - {{ date('d/m/Y', strtotime($checkout)) }})</span>
                                         </div>
                                     @else

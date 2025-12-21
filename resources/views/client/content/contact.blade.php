@@ -27,10 +27,10 @@
     <section class="max-w-7xl mx-auto px-6 py-20">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
 
-            <!-- Google Map -->
+            <!-- Google Map: FPT Polytechnic Hà Nội (Trịnh Văn Bô) -->
             <div class="shadow-2xl rounded-2xl overflow-hidden transform hover:scale-[1.02] transition duration-700 ml-[-40px]">
                 <iframe
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3022.0606825994123!2d-72.8735845851828!3d40.760690042573295!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89e85b24c9274c91%3A0xf310d41b791bcb71!2sWilliam%20Floyd%20Pkwy%2C%20Mastic%20Beach%2C%20NY%2C%20USA!5e0!3m2!1sen!2sbd!4v1578582744646!5m2!1sen!2sbd"
+                    src="https://www.google.com/maps?q=Cao%20%C4%91%E1%BA%B3ng%20FPT%20Polytechnic%20H%C3%A0%20N%E1%BB%99i%20Tr%E1%BB%8Bnh%20V%C4%83n%20B%C3%B4&output=embed"
                     class="w-full h-[550px] border-0" allowfullscreen="" loading="lazy"></iframe>
             </div>
 
