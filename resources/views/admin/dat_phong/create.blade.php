@@ -12,6 +12,19 @@
         background-size: 12px;
         padding-right: 2.5rem;
     }
+
+    /* TomSelect: đồng bộ với Tailwind input */
+    #services_select + .ts-wrapper .ts-control{
+        border-radius: 0.75rem !important;
+        border-color: #e5e7eb !important;
+        min-height: 44px !important;
+        padding: .55rem .75rem !important;
+        box-shadow: none !important;
+    }
+    #services_select + .ts-wrapper .ts-control:focus-within{
+        border-color:#3b82f6 !important;
+        box-shadow: 0 0 0 4px rgba(59,130,246,.15) !important;
+    }
 </style>
 @endpush
 
@@ -23,8 +36,8 @@
                     <h1 class="text-2xl font-bold text-gray-900">Đặt phòng mới</h1>
                     <p class="mt-1 text-sm text-gray-600">Tạo một đặt phòng mới cho khách</p>
                 </div>
-                <div class="p-6">
 
+                <div class="p-6">
                     @if ($errors->any())
                         <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
                             <div class="flex">
@@ -64,6 +77,7 @@
                     <form action="{{ route('admin.dat_phong.store') }}" method="POST" id="bookingForm">
                         @csrf
                         <div class="space-y-8">
+
                             <!-- Chọn loại phòng -->
                             <section>
                                 <h3 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">Chọn loại phòng</h3>
@@ -98,7 +112,7 @@
                                                                     {{ number_format($loaiPhong->gia_co_ban, 0, ',', '.') }}
                                                                     VNĐ
                                                                 </p>
-                                                            </div> 
+                                                            </div>
                                                         @else
                                                             <p class="text-sm font-medium text-blue-600">
                                                                 {{ number_format($loaiPhong->gia_co_ban, 0, ',', '.') }}
@@ -107,8 +121,7 @@
                                                         @endif
                                                     </div>
                                                     <div class="flex items-center space-x-2 text-sm">
-                                                        <span
-                                                            class="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+                                                        <span class="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
                                                             {{ $loaiPhong->trang_thai === 'hoat_dong' ? 'Khả dụng' : 'Không khả dụng' }}
                                                         </span>
                                                         <span class="text-xs text-gray-600 availability-text"
@@ -119,6 +132,7 @@
                                                     </div>
                                                 </div>
                                             </label>
+
                                             {{-- Hidden inputs luôn được submit --}}
                                             <input type="hidden" name="rooms[{{ $loaiPhong->id }}][so_luong]"
                                                 id="quantity_hidden_{{ $loaiPhong->id }}" value="0">
@@ -172,81 +186,112 @@
                                                         id="max_available_error_{{ $loaiPhong->id }}">{{ $loaiPhong->so_luong_trong }}</span>
                                                     phòng
                                                 </p>
-                                                
+
                                                 {{-- Số khách cho loại phòng này --}}
-                                                <div class="mt-4 p-4 bg-white/50 border border-blue-100 rounded-2xl shadow-sm">
-                                                    <label class="block text-sm font-bold text-blue-900 mb-3 uppercase tracking-wider flex items-center gap-2">
-                                                        <i class="fas fa-users text-blue-500"></i>
-                                                        Số khách cho loại phòng này
-                                                    </label>
-                                                    <div class="grid grid-cols-3 gap-4">
-                                                        {{-- Người lớn --}}
-                                                        <div class="flex flex-col items-center p-3 bg-blue-50/50 rounded-xl border border-blue-100 transition-all hover:bg-blue-50">
-                                                            <div class="flex items-center gap-2 mb-2">
-                                                                <i class="fas fa-user-tie text-blue-500 text-xs"></i>
-                                                                <span class="text-[10px] font-bold text-blue-700 uppercase">Người lớn</span>
-                                                            </div>
-                                                            <div class="flex items-center gap-3">
-                                                                <button type="button" onclick="changeRoomGuestCount('adults', {{ $loaiPhong->id }}, -1)" class="w-7 h-7 flex items-center justify-center rounded-lg bg-white border border-blue-200 text-blue-600 hover:bg-blue-600 hover:text-white transition-all active:scale-90">
-                                                                    <i class="fas fa-minus text-[10px]"></i>
-                                                                </button>
-                                                                <input type="number" 
-                                                                    id="room_adults_{{ $loaiPhong->id }}"
-                                                                    class="room-adults-input w-8 bg-transparent border-none text-center font-bold text-lg text-blue-900 focus:ring-0 p-0" 
-                                                                    value="2" min="0" readonly
-                                                                    data-room-type-id="{{ $loaiPhong->id }}"
-                                                                    onchange="syncGlobalGuestCounts()">
-                                                                <button type="button" onclick="changeRoomGuestCount('adults', {{ $loaiPhong->id }}, 1)" class="w-7 h-7 flex items-center justify-center rounded-lg bg-white border border-blue-200 text-blue-600 hover:bg-blue-600 hover:text-white transition-all active:scale-90">
-                                                                    <i class="fas fa-plus text-[10px]"></i>
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                        {{-- Trẻ em --}}
-                                                        <div class="flex flex-col items-center p-3 bg-emerald-50/50 rounded-xl border border-emerald-100 transition-all hover:bg-emerald-50">
-                                                            <div class="flex items-center gap-2 mb-2">
-                                                                <i class="fas fa-child text-emerald-500 text-xs"></i>
-                                                                <span class="text-[10px] font-bold text-emerald-700 uppercase">Trẻ em</span>
-                                                            </div>
-                                                            <div class="flex items-center gap-3">
-                                                                <button type="button" onclick="changeRoomGuestCount('children', {{ $loaiPhong->id }}, -1)" class="w-7 h-7 flex items-center justify-center rounded-lg bg-white border border-emerald-200 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all active:scale-90">
-                                                                    <i class="fas fa-minus text-[10px]"></i>
-                                                                </button>
-                                                                <input type="number" 
-                                                                    id="room_children_{{ $loaiPhong->id }}"
-                                                                    class="room-children-input w-8 bg-transparent border-none text-center font-bold text-lg text-emerald-900 focus:ring-0 p-0" 
-                                                                    value="0" min="0" readonly
-                                                                    data-room-type-id="{{ $loaiPhong->id }}"
-                                                                    onchange="syncGlobalGuestCounts()">
-                                                                <button type="button" onclick="changeRoomGuestCount('children', {{ $loaiPhong->id }}, 1)" class="w-7 h-7 flex items-center justify-center rounded-lg bg-white border border-emerald-200 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all active:scale-90">
-                                                                    <i class="fas fa-plus text-[10px]"></i>
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                        {{-- Em bé --}}
-                                                        <div class="flex flex-col items-center p-3 bg-pink-50/50 rounded-xl border border-pink-100 transition-all hover:bg-pink-50">
-                                                            <div class="flex items-center gap-2 mb-2">
-                                                                <i class="fas fa-baby text-pink-500 text-xs"></i>
-                                                                <span class="text-[10px] font-bold text-pink-700 uppercase">Em bé</span>
-                                                            </div>
-                                                            <div class="flex items-center gap-3">
-                                                                <button type="button" onclick="changeRoomGuestCount('infants', {{ $loaiPhong->id }}, -1)" class="w-7 h-7 flex items-center justify-center rounded-lg bg-white border border-pink-200 text-pink-600 hover:bg-pink-600 hover:text-white transition-all active:scale-90">
-                                                                    <i class="fas fa-minus text-[10px]"></i>
-                                                                </button>
-                                                                <input type="number" 
-                                                                    id="room_infants_{{ $loaiPhong->id }}"
-                                                                    class="room-infants-input w-8 bg-transparent border-none text-center font-bold text-lg text-pink-900 focus:ring-0 p-0" 
-                                                                    value="0" min="0" readonly
-                                                                    data-room-type-id="{{ $loaiPhong->id }}"
-                                                                    onchange="syncGlobalGuestCounts()">
-                                                                <button type="button" onclick="changeRoomGuestCount('infants', {{ $loaiPhong->id }}, 1)" class="w-7 h-7 flex items-center justify-center rounded-lg bg-white border border-pink-200 text-pink-600 hover:bg-pink-600 hover:text-white transition-all active:scale-90">
-                                                                    <i class="fas fa-plus text-[10px]"></i>
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
+{{-- Số khách cho loại phòng này --}}
+<div class="mt-4 max-w-lg">
+    <div class="flex items-center gap-2 mb-3">
+        <div class="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center">
+            <i class="fas fa-users text-xs"></i>
+        </div>
+        <p class="text-sm font-semibold text-gray-800">
+            Số khách cho loại phòng này
+        </p>
+    </div>
+
+    <div class="grid grid-cols-3 gap-2">
+        {{-- Người lớn --}}
+        <div class="rounded-xl border border-blue-200 bg-blue-50 px-2 py-2 text-center">
+            <div class="flex items-center justify-center gap-1 mb-1">
+                <i class="fas fa-user-tie text-blue-600 text-xs"></i>
+                <span class="text-xs font-semibold text-blue-700">Người lớn</span>
+            </div>
+
+            <div class="flex items-center justify-center gap-1">
+                <button type="button"
+                    onclick="changeRoomGuestCount('adults', {{ $loaiPhong->id }}, -1)"
+                    class="w-6 h-6 rounded-md border border-blue-300 text-blue-600 hover:bg-blue-600 hover:text-white text-xs">
+                    −
+                </button>
+
+                <input
+                    id="room_adults_{{ $loaiPhong->id }}"
+                    type="number"
+                    readonly
+                    value="2"
+                    class="w-8 text-center text-sm font-bold bg-white border border-blue-200 rounded-md">
+
+                <button type="button"
+                    onclick="changeRoomGuestCount('adults', {{ $loaiPhong->id }}, 1)"
+                    class="w-6 h-6 rounded-md border border-blue-300 text-blue-600 hover:bg-blue-600 hover:text-white text-xs">
+                    +
+                </button>
+            </div>
+        </div>
+
+        {{-- Trẻ em --}}
+        <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-2 py-2 text-center">
+            <div class="flex items-center justify-center gap-1 mb-1">
+                <i class="fas fa-child text-emerald-600 text-xs"></i>
+                <span class="text-xs font-semibold text-emerald-700">Trẻ em</span>
+            </div>
+
+            <div class="flex items-center justify-center gap-1">
+                <button type="button"
+                    onclick="changeRoomGuestCount('children', {{ $loaiPhong->id }}, -1)"
+                    class="w-6 h-6 rounded-md border border-emerald-300 text-emerald-600 hover:bg-emerald-600 hover:text-white text-xs">
+                    −
+                </button>
+
+                <input
+                    id="room_children_{{ $loaiPhong->id }}"
+                    type="number"
+                    readonly
+                    value="0"
+                    class="w-8 text-center text-sm font-bold bg-white border border-emerald-200 rounded-md">
+
+                <button type="button"
+                    onclick="changeRoomGuestCount('children', {{ $loaiPhong->id }}, 1)"
+                    class="w-6 h-6 rounded-md border border-emerald-300 text-emerald-600 hover:bg-emerald-600 hover:text-white text-xs">
+                    +
+                </button>
+            </div>
+        </div>
+
+        {{-- Em bé --}}
+        <div class="rounded-xl border border-pink-200 bg-pink-50 px-2 py-2 text-center">
+            <div class="flex items-center justify-center gap-1 mb-1">
+                <i class="fas fa-baby text-pink-600 text-xs"></i>
+                <span class="text-xs font-semibold text-pink-700">Em bé</span>
+            </div>
+
+            <div class="flex items-center justify-center gap-1">
+                <button type="button"
+                    onclick="changeRoomGuestCount('infants', {{ $loaiPhong->id }}, -1)"
+                    class="w-6 h-6 rounded-md border border-pink-300 text-pink-600 hover:bg-pink-600 hover:text-white text-xs">
+                    −
+                </button>
+
+                <input
+                    id="room_infants_{{ $loaiPhong->id }}"
+                    type="number"
+                    readonly
+                    value="0"
+                    class="w-8 text-center text-sm font-bold bg-white border border-pink-200 rounded-md">
+
+                <button type="button"
+                    onclick="changeRoomGuestCount('infants', {{ $loaiPhong->id }}, 1)"
+                    class="w-6 h-6 rounded-md border border-pink-300 text-pink-600 hover:bg-pink-600 hover:text-white text-xs">
+                    +
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
                                             </div>
-                                            {{-- Danh sách các phòng cụ thể có sẵn (sẽ được JS điền vào) --}}
+
+                                            {{-- Danh sách các phòng cụ thể có sẵn --}}
                                             <div id="available_rooms_{{ $loaiPhong->id }}" class="available-rooms mt-3 grid grid-cols-3 gap-2 hidden"></div>
                                         </div>
                                     @endforeach
@@ -264,8 +309,7 @@
                                 <h3 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">Thông tin đặt phòng</h3>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                                     <div>
-                                        <label for="ngay_nhan" class="block text-sm font-medium text-gray-700">Ngày nhận
-                                            phòng</label>
+                                        <label for="ngay_nhan" class="block text-sm font-medium text-gray-700">Ngày nhận phòng</label>
                                         <input type="date" name="ngay_nhan" id="ngay_nhan"
                                             value="{{ old('ngay_nhan', \Carbon\Carbon::today()->format('Y-m-d')) }}"
                                             min="{{ \Carbon\Carbon::today()->format('Y-m-d') }}"
@@ -276,8 +320,7 @@
                                     </div>
 
                                     <div>
-                                        <label for="ngay_tra" class="block text-sm font-medium text-gray-700">Ngày trả
-                                            phòng</label>
+                                        <label for="ngay_tra" class="block text-sm font-medium text-gray-700">Ngày trả phòng</label>
                                         <input type="date" name="ngay_tra" id="ngay_tra"
                                             value="{{ old('ngay_tra', \Carbon\Carbon::tomorrow()->format('Y-m-d')) }}"
                                             min="{{ \Carbon\Carbon::tomorrow()->format('Y-m-d') }}"
@@ -287,370 +330,354 @@
                                         @enderror
                                     </div>
                                 </div>
-                                
-                                {{-- Chọn số khách (chung cho tất cả loại phòng) --}}
-                                <div class="bg-gray-50/50 border border-gray-200 rounded-xl p-4 shadow-sm mb-6 mt-4">
-                                    <label class="block text-xs font-semibold text-gray-500 mb-3 uppercase tracking-wider">Cấu hình khách hàng</label>
-                                    <div class="grid grid-cols-3 gap-3">
-                                        {{-- Người lớn --}}
-                                        <div class="bg-blue-50 border border-blue-100 rounded-xl p-3">
-                                            <div class="flex items-center justify-center gap-2 mb-3">
-                                                <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white">
-                                                    <i class="fas fa-user-tie text-sm"></i>
-                                                </div>
-                                                <div class="text-left">
-                                                    <h4 class="font-bold text-blue-900 text-sm">Người lớn</h4>
-                                                    <p class="text-[9px] text-blue-400 uppercase">Trên 12 tuổi</p>
-                                                </div>
-                                            </div>
-                                            <div class="flex items-center justify-between px-2">
-                                                <button type="button" onclick="changeGuestCount('adults', -1)"
-                                                    class="w-10 h-10 rounded-xl bg-white border border-blue-200 text-blue-500 hover:bg-blue-500 hover:text-white transition-all flex items-center justify-center">
-                                                    <i class="fas fa-minus text-sm"></i>
-                                                </button>
-                                                <input type="number" id="total_adults" name="so_nguoi"
-                                                    class="w-14 border-none bg-white rounded-xl text-center font-bold text-3xl text-blue-900 focus:ring-0 py-2"
-                                                    value="{{ old('so_nguoi', 2) }}" min="1" max="10" readonly
-                                                    onchange="updateAllRoomGuests('adults'); if (typeof updateTotalPrice === 'function') updateTotalPrice();">
-                                                <button type="button" onclick="changeGuestCount('adults', 1)"
-                                                    class="w-10 h-10 rounded-xl bg-white border border-blue-200 text-blue-500 hover:bg-blue-500 hover:text-white transition-all flex items-center justify-center">
-                                                    <i class="fas fa-plus text-sm"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                        
-                                        {{-- Trẻ em --}}
-                                        <div class="bg-emerald-50 border border-emerald-100 rounded-xl p-3">
-                                            <div class="flex items-center justify-center gap-2 mb-3">
-                                                <div class="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center text-white">
-                                                    <i class="fas fa-child-reaching text-sm"></i>
-                                                </div>
-                                                <div class="text-left">
-                                                    <h4 class="font-bold text-emerald-900 text-sm">Trẻ em</h4>
-                                                    <p class="text-[9px] text-emerald-400 uppercase">6 - 12 tuổi</p>
-                                                </div>
-                                            </div>
-                                            <div class="flex items-center justify-between px-2">
-                                                <button type="button" onclick="changeGuestCount('children', -1)"
-                                                    class="w-10 h-10 rounded-xl bg-white border border-emerald-200 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all flex items-center justify-center">
-                                                    <i class="fas fa-minus text-sm"></i>
-                                                </button>
-                                                <input type="number" id="total_children" name="so_tre_em"
-                                                    class="w-14 border-none bg-white rounded-xl text-center font-bold text-3xl text-emerald-900 focus:ring-0 py-2"
-                                                    value="{{ old('so_tre_em', 0) }}" min="0" max="10" readonly
-                                                    onchange="updateAllRoomGuests('children'); if (typeof updateTotalPrice === 'function') updateTotalPrice();">
-                                                <button type="button" onclick="changeGuestCount('children', 1)"
-                                                    class="w-10 h-10 rounded-xl bg-white border border-emerald-200 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all flex items-center justify-center">
-                                                    <i class="fas fa-plus text-sm"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                        
-                                        {{-- Em bé --}}
-                                        <div class="bg-pink-50 border border-pink-100 rounded-xl p-3">
-                                            <div class="flex items-center justify-center gap-2 mb-3">
-                                                <div class="w-8 h-8 bg-pink-500 rounded-lg flex items-center justify-center text-white">
-                                                    <i class="fas fa-baby text-sm"></i>
-                                                </div>
-                                                <div class="text-left">
-                                                    <h4 class="font-bold text-pink-900 text-sm">Em bé</h4>
-                                                    <p class="text-[9px] text-pink-400 uppercase">Dưới 6 tuổi</p>
-                                                </div>
-                                            </div>
-                                            <div class="flex items-center justify-between px-2">
-                                                <button type="button" onclick="changeGuestCount('infants', -1)"
-                                                    class="w-10 h-10 rounded-xl bg-white border border-pink-200 text-pink-500 hover:bg-pink-500 hover:text-white transition-all flex items-center justify-center">
-                                                    <i class="fas fa-minus text-sm"></i>
-                                                </button>
-                                                <input type="number" id="total_infants" name="so_em_be"
-                                                    class="w-14 border-none bg-white rounded-xl text-center font-bold text-3xl text-pink-900 focus:ring-0 py-2"
-                                                    value="{{ old('so_em_be', 0) }}" min="0" max="10" readonly
-                                                    onchange="updateAllRoomGuests('infants'); if (typeof updateTotalPrice === 'function') updateTotalPrice();">
-                                                <button type="button" onclick="changeGuestCount('infants', 1)"
-                                                    class="w-10 h-10 rounded-xl bg-white border border-pink-200 text-pink-500 hover:bg-pink-500 hover:text-white transition-all flex items-center justify-center">
-                                                    <i class="fas fa-plus text-sm"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                                    <i class="fas fa-plus text-xs"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <p id="guest_limit_error" class="mt-3 text-xs text-red-600 font-medium hidden bg-red-50 p-2 rounded-lg border border-red-100 flex items-center gap-2">
-                                        <i class="fas fa-exclamation-circle"></i>
-                                        <span>Giới hạn khách thực tế có thể thay đổi tùy theo loại phòng đã chọn.</span>
-                                    </p>
+
+                                {{-- Chọn số khách (chung) --}}
+<div class="bg-gray-50 border border-gray-200 rounded-2xl p-5">
+    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+        Cấu hình khách hàng
+    </p>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {{-- Người lớn --}}
+            <div class="rounded-2xl border border-blue-200 bg-blue-50 p-4 flex flex-col justify-between">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center">
+                    <i class="fas fa-user-tie"></i>
+                </div>
+                <div>
+                    <p class="font-bold text-blue-900 text-sm">Người lớn</p>
+                    <p class="text-[10px] text-blue-500 uppercase">Trên 12 tuổi</p>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between">
+                <button type="button"
+                    onclick="changeGuestCount('adults', -1)"
+                    class="w-11 h-11 rounded-xl border border-blue-300 text-blue-600 hover:bg-blue-600 hover:text-white transition">
+                    −
+                </button>
+
+                <input id="total_adults" name="so_nguoi" readonly
+                    class="w-16 h-11 text-center text-2xl font-extrabold bg-white border border-blue-200 rounded-xl"
+                    value="{{ old('so_nguoi', 2) }}">
+
+                <button type="button"
+                    onclick="changeGuestCount('adults', 1)"
+                    class="w-11 h-11 rounded-xl border border-blue-300 text-blue-600 hover:bg-blue-600 hover:text-white transition">
+                    +
+                </button>
+            </div>
+        </div>
+
+        {{-- Trẻ em --}}
+            <div class="rounded-2xl border border-blue-200 bg-blue-50 p-4 flex flex-col justify-between">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center">
+                    <i class="fas fa-child"></i>
+                </div>
+                <div>
+                    <p class="font-bold text-emerald-900 text-sm">Trẻ em</p>
+                    <p class="text-[10px] text-emerald-500 uppercase">6 – 12 tuổi</p>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between">
+                <button type="button"
+                    onclick="changeGuestCount('children', -1)"
+                    class="w-11 h-11 rounded-xl border border-emerald-300 text-emerald-600 hover:bg-emerald-600 hover:text-white transition">
+                    −
+                </button>
+
+                <input id="total_children" name="so_tre_em" readonly
+                    class="w-16 h-11 text-center text-2xl font-extrabold bg-white border border-emerald-200 rounded-xl"
+                    value="{{ old('so_tre_em', 0) }}">
+
+                <button type="button"
+                    onclick="changeGuestCount('children', 1)"
+                    class="w-11 h-11 rounded-xl border border-emerald-300 text-emerald-600 hover:bg-emerald-600 hover:text-white transition">
+                    +
+                </button>
+            </div>
+        </div>
+
+        {{-- Em bé --}}
+            <div class="rounded-2xl border border-blue-200 bg-blue-50 p-4 flex flex-col justify-between">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-xl bg-pink-600 text-white flex items-center justify-center">
+                    <i class="fas fa-baby"></i>
+                </div>
+                <div>
+                    <p class="font-bold text-pink-900 text-sm">Em bé</p>
+                    <p class="text-[10px] text-pink-500 uppercase">Dưới 6 tuổi</p>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between">
+                <button type="button"
+                    onclick="changeGuestCount('infants', -1)"
+                    class="w-11 h-11 rounded-xl border border-pink-300 text-pink-600 hover:bg-pink-600 hover:text-white transition">
+                    −
+                </button>
+
+                <input id="total_infants" name="so_em_be" readonly
+                    class="w-16 h-11 text-center text-2xl font-extrabold bg-white border border-pink-200 rounded-xl"
+                    value="{{ old('so_em_be', 0) }}">
+
+                <button type="button"
+                    onclick="changeGuestCount('infants', 1)"
+                    class="w-11 h-11 rounded-xl border border-pink-300 text-pink-600 hover:bg-pink-600 hover:text-white transition">
+                    +
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+                            </section>
+
+                            <!-- ✅ Chọn mã giảm giá (UI ĐẸP) -->
+                            <section class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                                    <h3 class="text-base font-semibold text-gray-900">Chọn mã giảm giá</h3>
+                                    <span class="text-xs text-gray-500">Tùy chọn</span>
+                                </div>
+
+                                <div class="p-6">
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+@foreach ($vouchers as $voucher)
+@php
+    $isDisabled = $voucher->status !== 'con_han';
+@endphp
+
+<div class="relative">
+    <input type="radio"
+        name="voucher_radio"
+        id="voucher_{{ $voucher->id }}"
+        class="peer hidden voucher-radio"
+        value="{{ $voucher->ma_voucher }}"
+        data-value="{{ $voucher->gia_tri }}"
+        data-loai-phong="{{ $voucher->loai_phong_id }}"
+        {{ $isDisabled ? 'disabled' : '' }}>
+
+    <label for="voucher_{{ $voucher->id }}"
+        class="block h-full rounded-2xl border bg-white p-4 cursor-pointer transition
+            hover:shadow-md hover:border-gray-300
+            peer-checked:border-green-500 peer-checked:ring-2 peer-checked:ring-green-300
+            {{ $isDisabled ? 'opacity-50 cursor-not-allowed' : '' }}">
+
+        <div class="flex justify-between items-start mb-3">
+            <p class="font-extrabold tracking-wide text-sm text-gray-900">
+                {{ $voucher->ma_voucher }}
+            </p>
+            <span class="text-xs font-bold px-2 py-1 rounded-full bg-green-100 text-green-700">
+                {{ $voucher->gia_tri <= 100 ? $voucher->gia_tri.'%' : number_format($voucher->gia_tri,0,',','.').'₫' }}
+            </span>
+        </div>
+
+        <p class="text-xs text-gray-600 mb-2">
+            {{ $voucher->gia_tri <= 100 ? 'Giảm '.$voucher->gia_tri.'%' : 'Giảm '.number_format($voucher->gia_tri,0,',','.').' VNĐ' }}
+        </p>
+
+        @if($voucher->dieu_kien)
+            <p class="text-xs bg-gray-100 rounded-lg p-2 mb-2 text-gray-600">
+                {{ $voucher->dieu_kien }}
+            </p>
+        @endif
+
+        <div class="flex justify-between text-xs text-gray-500">
+            <span>Còn {{ $voucher->so_luong }}</span>
+            <span>HSD {{ date('d/m/Y', strtotime($voucher->ngay_ket_thuc)) }}</span>
+        </div>
+    </label>
+</div>
+@endforeach
+</div>
+
                                 </div>
                             </section>
 
-                            <!-- Chọn mã giảm giá -->
-                            <section>
-                                <h3 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">Chọn mã giảm giá (nếu có)</h3>
-                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                    @foreach ($vouchers as $voucher)
-                                        @php
-                                            $isDisabled = $voucher->status !== 'con_han';
-                                            $overlayText =
-                                                $voucher->status === 'het_han'
-                                                    ? 'Hết hạn'
-                                                    : ($voucher->status === 'huy'
-                                                        ? 'Đã hủy'
-                                                        : '');
-                                        @endphp
-
-                                        <div class="relative voucher-container h-full" data-voucher-id="{{ $voucher->id }}">
-                                            <input type="radio" name="voucher_radio"
-                                                id="voucher_{{ $voucher->id }}"
-                                                value="{{ $voucher->ma_voucher }}"
-                                                class="sr-only peer voucher-radio"
-                                                data-value="{{ $voucher->gia_tri }}"
-                                                data-loai-phong="{{ $voucher->loai_phong_id }}"
-                                                data-start="{{ $voucher->ngay_bat_dau ? date('Y-m-d', strtotime($voucher->ngay_bat_dau)) : '' }}"
-                                                data-end="{{ $voucher->ngay_ket_thuc ? date('Y-m-d', strtotime($voucher->ngay_ket_thuc)) : '' }}"
-                                                {{ $isDisabled ? 'disabled' : '' }}>
-
-                                            <label for="voucher_{{ $voucher->id }}"
-                                                class="flex flex-col h-full p-4 bg-gray-50 border-2 border-gray-200 rounded-lg cursor-pointer relative transition-all duration-300 ease-in-out
-                                        peer-checked:bg-white peer-checked:border-green-500 peer-checked:ring-2 peer-checked:ring-green-400 peer-checked:shadow-md
-                                        hover:bg-gray-100 hover:border-gray-300 hover:shadow-sm
-                                        z-0 peer-checked:z-10 voucher-label {{ $isDisabled ? 'opacity-50 cursor-not-allowed' : '' }}">
-
-                                                {{-- Overlay hiển thị trạng thái --}}
-                                                @if ($isDisabled)
-                                                    <div
-                                                        class="voucher-overlay-server absolute inset-0 bg-opacity-70 flex items-center justify-center rounded-lg pointer-events-none">
-                                                        <span
-                                                            class="text-gray-700 text-sm font-medium">{{ $overlayText }}</span>
-                                                    </div>
-                                                @endif
-
-                                                <div class="space-y-2">
-                                                    <div class="flex items-center justify-between">
-                                                        <p class="text-sm font-bold text-green-600">
-                                                            {{ $voucher->ma_voucher }}</p>
-                                                        <span
-                                                            class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                                                            @if ($voucher->gia_tri <= 100)
-                                                                {{ $voucher->gia_tri }}%
-                                                            @else
-                                                                {{ number_format($voucher->gia_tri, 0, ',', '.') }}₫
-                                                            @endif
-                                                        </span>
-                                                    </div>
-                                                    <p class="text-xs text-gray-600">
-                                                        @if ($voucher->gia_tri <= 100)
-                                                            Giảm {{ $voucher->gia_tri }}%
-                                                        @else
-                                                            Giảm
-                                                            {{ number_format($voucher->gia_tri, 0, ',', '.') }} VNĐ
-                                                        @endif
-                                                    </p>
-                                                    @if ($voucher->dieu_kien)
-                                                        <p class="text-xs text-gray-500 bg-gray-100 p-2 rounded">
-                                                            {{ $voucher->dieu_kien }}</p>
-                                                    @endif
-                                                    <div class="flex justify-between text-xs text-gray-500">
-                                                        <span>Còn lại: {{ $voucher->so_luong }}</span>
-                                                        <span>HSD:
-                                                            {{ date('d/m/Y', strtotime($voucher->ngay_ket_thuc)) }}</span>
-                                                    </div>
-                                                </div>
-                                            </label>
-                                        </div>
-                                    @endforeach
+                            <!-- ✅ Chọn dịch vụ (UI ĐẸP) -->
+                            <section class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                                    <h3 class="text-base font-semibold text-gray-900">Chọn dịch vụ kèm theo</h3>
+                                    <span class="text-xs text-gray-500">Nhiều lựa chọn</span>
                                 </div>
-                            </section>
 
-                                <!-- Chọn dịch vụ -->
-                                
-                                <!-- Tom Select based multi-select for services -->
-                                <link href="https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/css/tom-select.css" rel="stylesheet">
-                                <!-- Service cards styling -->
-                                <style>
-                                    .service-card-custom{
-                                        border-radius:10px;
-                                        background: linear-gradient(135deg, #e0f2fe 0%, #bfdbfe 100%);
-                                        border:1.5px solid #2563eb;
-                                        padding:0.875rem;
-                                        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
-                                    }
-                                    .service-card-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:0.75rem}
-                                    .service-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;padding-bottom:0.4rem;border-bottom:1.5px solid #bfdbfe}
-                                    .service-card-header .service-title{color:#1e40af;font-weight:600;font-size:0.95rem}
-                                    .service-card-header .service-price{color:#1e3a8a;font-weight:600;font-size:0.85rem}
-                                    .service-date-row{display:flex;gap:0.5rem;align-items:center;margin-top:0.5rem;padding:0.4rem;background:#ffffff;border-radius:6px;border:1px solid #bfdbfe}
-                                    .service-date-row input[type=date]{border:1px solid #93c5fd;padding:0.35rem 0.5rem;border-radius:5px;background:#eff6ff;font-size:0.85rem;flex:1}
-                                    .service-date-row input[type=number]{border:1px solid #93c5fd;padding:0.35rem 0.5rem;border-radius:5px;background:#eff6ff;width:64px;text-align:center;font-size:0.85rem}
-                                    .service-add-day{background:linear-gradient(135deg, #93c5fd 0%, #2563eb 100%);color:#08203a;padding:0.4rem 0.6rem;border-radius:6px;border:1.5px solid #60a5fa;cursor:pointer;font-weight:600;font-size:0.85rem;transition:all 0.2s}
-                                    .service-add-day:hover{background:linear-gradient(135deg, #2563eb 0%, #1e40af 100%);box-shadow:0 4px 12px rgba(37, 99, 235, 0.12)}
-                                    .service-remove-btn{background:#fee2e2;color:#991b1b;padding:0.3rem 0.5rem;border-radius:5px;border:1px solid #fecaca;cursor:pointer;font-weight:600;font-size:0.8rem;transition:all 0.2s}
-                                    .service-remove-btn:hover{background:#fca5a5;box-shadow:0 3px 10px rgba(185,28,28,0.12)}
-                                    #services_select + .ts-control{margin-top:.5rem;border-color:#2563eb}
-                                </style>
-                                <div>
-                                    <label for="services_select" class="block text-sm font-medium text-gray-700 mb-2">Chọn dịch vụ kèm theo</label>
+                                <div class="p-6">
+                                    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/css/tom-select.css" rel="stylesheet">
+
+                                    <label for="services_select" class="block text-sm font-medium text-gray-700 mb-2">
+                                        Dịch vụ
+                                    </label>
+
                                     <select id="services_select" placeholder="Chọn 1 hoặc nhiều dịch vụ..." multiple>
                                         @foreach ($services as $service)
-                                            <option value="{{ $service->id }}" data-price="{{ $service->price }}" data-unit="{{ $service->unit ?? '' }}">{{ $service->name }} - {{ number_format($service->price,0,',','.') }} VNĐ</option>
+                                            <option value="{{ $service->id }}" data-price="{{ $service->price }}" data-unit="{{ $service->unit ?? '' }}">
+                                                {{ $service->name }} - {{ number_format($service->price,0,',','.') }} VNĐ
+                                            </option>
                                         @endforeach
                                     </select>
-                                    <div id="selected_services_list" class="service-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4"></div>
+
+                                    <div id="selected_services_list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4"></div>
                                 </div>
                             </section>
 
+                            <input type="hidden" name="tong_tien" id="tong_tien_input" value="0">
+                            <input type="hidden" name="voucher" id="voucher_input" value="">
+                            <input type="hidden" name="voucher_id" id="voucher_id_input" value="">
 
-                                <input type="hidden" name="tong_tien" id="tong_tien_input" value="0">
-                                <input type="hidden" name="voucher" id="voucher_input" value="">
-                                <input type="hidden" name="voucher_id" id="voucher_id_input" value="">
+                            <!-- ✅ Tổng thanh toán (UI ĐẸP) -->
+                            <section class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                                <div class="px-6 py-4 border-b border-gray-100">
+                                    <h3 class="text-base font-semibold text-gray-900">Tổng thanh toán</h3>
+                                    <p class="text-xs text-gray-500 mt-1">Tự động cập nhật theo lựa chọn</p>
+                                </div>
 
-                                <!-- Hiển thị tổng tiền chi tiết -->
-                                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
-                                    {{-- Hiển thị số khách --}}
-                                    <div id="guest_summary" class="mb-4 pb-4 border-b border-blue-200 hidden">
-                                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
-                                            <i class="fas fa-users mr-1"></i> Tổng số khách
-                                        </label>
-                                        <div class="flex flex-wrap gap-3 items-center">
-                                            <div id="total_adults_display" class="flex items-center bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm hidden">
-                                                <i class="fas fa-user-tie mr-2"></i> 
-                                                <span id="adults_count">0</span> 
-                                                <span class="ml-1.5">Người lớn</span>
+                                <div class="p-6 space-y-4">
+                                    <div id="guest_summary" class="hidden">
+                                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                                            Tổng số khách
+                                        </p>
+                                        <div class="flex flex-wrap gap-2 items-center">
+                                            <div id="total_adults_display"
+                                                 class="hidden px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-900 text-white">
+                                                Người lớn: <span id="adults_count">0</span>
                                             </div>
-                                            <div id="total_children_display" class="flex items-center bg-emerald-500 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm hidden">
-                                                <i class="fas fa-child mr-2"></i> 
-                                                <span id="children_count">0</span> 
-                                                <span class="ml-1.5">Trẻ em</span>
+                                            <div id="total_children_display"
+                                                 class="hidden px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-600 text-white">
+                                                Trẻ em: <span id="children_count">0</span>
                                             </div>
-                                            <div id="total_infants_display" class="flex items-center bg-pink-500 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm hidden">
-                                                <i class="fas fa-baby mr-2"></i> 
-                                                <span id="infants_count">0</span> 
-                                                <span class="ml-1.5">Em bé</span>
+                                            <div id="total_infants_display"
+                                                 class="hidden px-3 py-1.5 rounded-full text-xs font-semibold bg-pink-600 text-white">
+                                                Em bé: <span id="infants_count">0</span>
                                             </div>
                                         </div>
                                     </div>
-                                    
-                                    {{-- Hiển thị phụ phí --}}
-                                    <div id="surcharge_summary" class="mb-3 space-y-1 hidden">
-                                        <div id="extra_adult_fee" class="text-sm text-amber-700 hidden">
-                                            <i class="fas fa-user-plus mr-1"></i>Thêm người lớn: <span class="font-semibold">+<span id="extra_adult_fee_amount">0</span> VNĐ</span>
+
+                                    <div id="surcharge_summary" class="hidden space-y-2">
+                                        <div id="extra_adult_fee" class="hidden text-sm text-amber-700 flex justify-between">
+                                            <span>Thêm người lớn</span>
+                                            <span class="font-semibold">+<span id="extra_adult_fee_amount">0</span> VNĐ</span>
                                         </div>
-                                        <div id="child_fee" class="text-sm text-green-700 hidden">
-                                            <i class="fas fa-child mr-1"></i>Thêm trẻ em: <span class="font-semibold">+<span id="child_fee_amount">0</span> VNĐ</span>
+                                        <div id="child_fee" class="hidden text-sm text-emerald-700 flex justify-between">
+                                            <span>Thêm trẻ em</span>
+                                            <span class="font-semibold">+<span id="child_fee_amount">0</span> VNĐ</span>
                                         </div>
-                                        <div id="infant_fee" class="text-sm text-pink-700 hidden">
-                                            <i class="fas fa-baby mr-1"></i>Thêm em bé: <span class="font-semibold">+<span id="infant_fee_amount">0</span> VNĐ</span>
+                                        <div id="infant_fee" class="hidden text-sm text-pink-700 flex justify-between">
+                                            <span>Thêm em bé</span>
+                                            <span class="font-semibold">+<span id="infant_fee_amount">0</span> VNĐ</span>
                                         </div>
                                     </div>
-                                    
-                                    {{-- Tổng cộng --}}
-                                    <div class="flex justify-between items-center mb-3 pt-3 border-t border-blue-200">
-                                        <span class="text-gray-900 font-semibold">Tổng cộng</span>
-                                        <span id="total_price" class="text-2xl font-bold text-red-600">0 VNĐ</span>
-                                    </div>
-                                    
-                                    {{-- Giá đã áp dụng --}}
-                                    <div id="pricing_multiplier_info" class="text-xs text-gray-600 mt-2 hidden"></div>
-                                    
-                                    {{-- Discount info --}}
-                                    <div id="discount_info" class="text-sm text-gray-700 hidden pt-3 border-t border-blue-200">
-                                        <div class="flex justify-between mb-1">
-                                            <span>Giá gốc:</span>
-                                            <span id="original_price" class="line-through text-gray-500">0 VNĐ</span>
+
+                                    <div id="discount_info" class="hidden border-t border-gray-100 pt-4 space-y-2">
+                                        <div class="flex justify-between text-sm text-gray-600">
+                                            <span>Giá gốc</span>
+                                            <span id="original_price" class="line-through text-gray-400">0 VNĐ</span>
                                         </div>
-                                        <div class="flex justify-between">
-                                            <span class="text-green-600">Giảm giá:</span>
-                                            <span id="discount_amount" class="text-green-600 font-semibold">-0 VNĐ</span>
+                                        <div class="flex justify-between text-sm text-emerald-700 font-semibold">
+                                            <span>Giảm giá</span>
+                                            <span id="discount_amount">-0 VNĐ</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="border-t border-gray-100 pt-4 flex items-end justify-between">
+                                        <span class="text-sm font-semibold text-gray-900">Tổng cộng</span>
+                                        <span id="total_price" class="text-2xl font-extrabold text-red-600">0 VNĐ</span>
+                                    </div>
+
+                                    <div id="pricing_multiplier_info" class="hidden text-xs text-gray-500"></div>
+                                </div>
+                            </section>
+
+                            <!-- ✅ Thông tin người đặt (UI ĐẸP) -->
+                            <section class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                                <div class="px-6 py-4 border-b border-gray-100">
+                                    <h3 class="text-base font-semibold text-gray-900">Thông tin người đặt</h3>
+                                </div>
+
+                                <div class="p-6">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label for="username" class="block text-sm font-medium text-gray-700 mb-2">Họ và tên</label>
+                                            <input type="text" name="username" id="username"
+                                                class="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm outline-none transition
+                                                       focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                                                value="{{ old('username') }}" required>
+                                            @error('username')
+                                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                            @enderror
+                                        </div>
+
+                                        <div>
+                                            <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                                            <input type="text" name="email" id="email"
+                                                class="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm outline-none transition
+                                                       focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                                                value="{{ old('email') }}" required>
+                                            @error('email')
+                                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                            @enderror
+                                        </div>
+
+                                        <div>
+                                            <label for="sdt" class="block text-sm font-medium text-gray-700 mb-2">Số điện thoại</label>
+                                            <input type="text" name="sdt" id="sdt"
+                                                class="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm outline-none transition
+                                                       focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                                                value="{{ old('sdt') }}" required>
+                                            @error('sdt')
+                                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                            @enderror
+                                        </div>
+
+                                        <div>
+                                            <label for="cccd" class="block text-sm font-medium text-gray-700 mb-2">CCCD/CMND</label>
+                                            <input type="text" name="cccd" id="cccd"
+                                                class="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm outline-none transition
+                                                       focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                                                value="{{ old('cccd') }}" required>
+                                            @error('cccd')
+                                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                            @enderror
+                                        </div>
+                                    </div>
+
+                                    <div id="validation-errors" class="hidden mt-4 p-4 bg-red-50 border border-red-200 rounded-2xl">
+                                        <div class="flex gap-3">
+                                            <div class="flex-shrink-0">
+                                                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fill-rule="evenodd"
+                                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                                        clip-rule="evenodd" />
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <h3 class="text-sm font-semibold text-red-800">Thông tin không hợp lệ</h3>
+                                                <div class="mt-2 text-sm text-red-700">
+                                                    <ul id="error-list" class="list-disc list-inside space-y-1"></ul>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </section>
 
-                            <!-- Thông tin người đặt -->
-                            <section>
-                                <h3 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">Thông tin người đặt</h3>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label for="username" class="block text-sm font-medium text-gray-700 mb-2">Họ và
-                                            tên</label>
-                                        <input type="text" name="username" id="username"
-                                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                            value="{{ old('username') }}" required>
-                                        @error('username')
-                                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                                        @enderror
-                                    </div>
-
-                                    <div>
-                                        <label for="email"
-                                            class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                                        <input type="text" name="email" id="email"
-                                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                            value="{{ old('email') }}" required>
-                                        @error('email')
-                                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                                        @enderror
-                                    </div>
-
-                                    <div>
-                                        <label for="sdt" class="block text-sm font-medium text-gray-700 mb-2">Số điện
-                                            thoại</label>
-                                        <input type="text" name="sdt" id="sdt"
-                                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                            value="{{ old('sdt') }}" required>
-                                        @error('sdt')
-                                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                                        @enderror
-                                    </div>
-
-                                    <div>
-                                        <label for="cccd"
-                                            class="block text-sm font-medium text-gray-700 mb-2">CCCD/CMND</label>
-                                        <input type="text" name="cccd" id="cccd"
-                                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                            value="{{ old('cccd') }}" required>
-                                        @error('cccd')
-                                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                                        @enderror
-                                    </div>
-                                </div>
-
-                                <!-- Thông báo lỗi validation -->
-                                <div id="validation-errors"
-                                    class="hidden p-4 bg-red-50 border border-red-200 rounded-lg">
-                                    <div class="flex">
-                                        <div class="flex-shrink-0">
-                                            <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fill-rule="evenodd"
-                                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                                                    clip-rule="evenodd" />
-                                            </svg>
-                                        </div>
-                                        <div class="ml-3">
-                                            <h3 class="text-sm font-medium text-red-800">Thông tin không hợp lệ</h3>
-                                            <div class="mt-2 text-sm text-red-700">
-                                                <ul id="error-list" class="list-disc list-inside space-y-1">
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </section>
-
-                            <!-- Form Actions -->
+                            <!-- ✅ Form Actions (UI ĐẸP) -->
                             <div class="flex justify-end gap-3 pt-6 border-t border-gray-200">
                                 <a href="{{ route('admin.dat_phong.index') }}"
-                                    class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition">
+                                    class="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition">
                                     Hủy bỏ
                                 </a>
                                 <button type="submit"
-                                    class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition">
+                                    class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-sm hover:shadow transition">
                                     Đặt phòng
                                 </button>
                             </div>
+
                         </div>
                     </form>
                 </div>
+
             </div>
         </div>
     </div>
@@ -667,14 +694,11 @@
                     let newValue = parseInt(input.value) + delta;
                     const min = parseInt(input.getAttribute('min')) || 0;
                     const max = parseInt(input.getAttribute('max')) || 10;
-                    
+
                     if (newValue >= min && newValue <= max) {
                         input.value = newValue;
-                        // Trigger change event to fire updateAllRoomGuests
                         const event = new Event('change');
                         input.dispatchEvent(event);
-                        
-                        // Also call computeTotals directly just in case
                         if (typeof updateTotalPrice === 'function') updateTotalPrice();
                     }
                 }
@@ -686,8 +710,7 @@
                     currency: 'VND'
                 }).format(amount).replace('₫', 'VNĐ');
             }
-            
-            // Thay đổi số khách cho từng loại phòng riêng
+
             function changeRoomGuestCount(type, roomTypeId, delta) {
                 const inputId = 'room_' + type + '_' + roomTypeId;
                 const input = document.getElementById(inputId);
@@ -695,82 +718,70 @@
                     console.warn('changeRoomGuestCount: input not found', inputId);
                     return;
                 }
-                
-                // Lấy số lượng phòng đã chọn cho loại phòng này
+
                 const quantityInput = document.getElementById('quantity_' + roomTypeId);
                 const roomQuantity = parseInt(quantityInput?.value) || 1;
-                
-                // Giới hạn theo số phòng: mỗi phòng tối đa 3 người lớn, 2 trẻ em, 2 em bé
-                let maxPerRoom = 3; // Người lớn
+
+                let maxPerRoom = 3;
                 if (type === 'children') maxPerRoom = 2;
                 if (type === 'infants') maxPerRoom = 2;
-                
+
                 const max = roomQuantity * maxPerRoom;
-                const min = type === 'adults' ? 1 : 0; // Người lớn tối thiểu 1
-                
+                const min = type === 'adults' ? 1 : 0;
+
                 let newValue = parseInt(input.value) + delta;
-                
+
                 if (newValue >= min && newValue <= max) {
                     input.value = newValue;
-                    
-                    // Cập nhật hidden input tương ứng
+
                     const hiddenId = type + '_hidden_' + roomTypeId;
                     const hiddenInput = document.getElementById(hiddenId);
-                    if (hiddenInput) {
-                        hiddenInput.value = newValue;
-                    }
-                    
-                    // Đồng bộ lại tổng số khách
+                    if (hiddenInput) hiddenInput.value = newValue;
+
                     syncGlobalGuestCounts();
-                    
-                    // Cập nhật tổng tiền
+
                     if (typeof updateTotalPrice === 'function') updateTotalPrice();
                 }
             }
-            
-            // Đồng bộ tổng số khách từ các loại phòng riêng lẻ
+
             function syncGlobalGuestCounts() {
                 let totalAdults = 0;
                 let totalChildren = 0;
                 let totalInfants = 0;
-                
-                // Lấy tất cả loại phòng đã chọn
+
                 const selectedRoomTypes = Array.from(document.querySelectorAll('.room-type-checkbox:checked'));
-                
+
                 selectedRoomTypes.forEach(checkbox => {
                     const roomTypeId = checkbox.value;
-                    
+
                     const adultsInput = document.getElementById('room_adults_' + roomTypeId);
                     const childrenInput = document.getElementById('room_children_' + roomTypeId);
                     const infantsInput = document.getElementById('room_infants_' + roomTypeId);
-                    
+
                     if (adultsInput) totalAdults += parseInt(adultsInput.value) || 0;
                     if (childrenInput) totalChildren += parseInt(childrenInput.value) || 0;
                     if (infantsInput) totalInfants += parseInt(infantsInput.value) || 0;
-                    
-                    // Cập nhật hidden inputs
+
                     const adultsHidden = document.getElementById('adults_hidden_' + roomTypeId);
                     const childrenHidden = document.getElementById('children_hidden_' + roomTypeId);
                     const infantsHidden = document.getElementById('infants_hidden_' + roomTypeId);
-                    
+
                     if (adultsHidden && adultsInput) adultsHidden.value = adultsInput.value;
                     if (childrenHidden && childrenInput) childrenHidden.value = childrenInput.value;
                     if (infantsHidden && infantsInput) infantsHidden.value = infantsInput.value;
                 });
-                
-                // Cập nhật tổng số khách hiển thị
+
                 const totalAdultsInput = document.getElementById('total_adults');
                 const totalChildrenInput = document.getElementById('total_children');
                 const totalInfantsInput = document.getElementById('total_infants');
-                
+
                 if (totalAdultsInput) totalAdultsInput.value = totalAdults;
                 if (totalChildrenInput) totalChildrenInput.value = totalChildren;
                 if (totalInfantsInput) totalInfantsInput.value = totalInfants;
-                
-                // Cập nhật tổng tiền
+
                 if (typeof updateTotalPrice === 'function') updateTotalPrice();
             }
-            
+
             function toggleRoomType(checkbox, roomTypeId) {
                 const quantityContainer = document.getElementById('quantity_container_' + roomTypeId);
                 const quantityInput = document.getElementById('quantity_' + roomTypeId);
@@ -778,57 +789,45 @@
                 if (checkbox.checked) {
                     quantityContainer.classList.remove('hidden');
                     quantityInput.required = true;
-                    // Cập nhật hidden input khi checkbox được chọn
                     const hiddenInput = document.getElementById('quantity_hidden_' + roomTypeId);
-                    if (hiddenInput) {
-                        hiddenInput.value = quantityInput.value || 1;
-                    }
-                    
-                    // Reset số khách cho loại phòng này về mặc định
+                    if (hiddenInput) hiddenInput.value = quantityInput.value || 1;
+
                     const roomAdultsInput = document.getElementById('room_adults_' + roomTypeId);
                     const roomChildrenInput = document.getElementById('room_children_' + roomTypeId);
                     const roomInfantsInput = document.getElementById('room_infants_' + roomTypeId);
                     if (roomAdultsInput) roomAdultsInput.value = 2;
                     if (roomChildrenInput) roomChildrenInput.value = 0;
                     if (roomInfantsInput) roomInfantsInput.value = 0;
-                    
-                    // Đồng bộ lại tổng số khách
+
                     syncGlobalGuestCounts();
-                    
-                    // Show available specific rooms for this type
+
                     const roomsContainer = document.getElementById('available_rooms_' + roomTypeId);
                     if (roomsContainer) roomsContainer.classList.remove('hidden');
-                    // Fetch latest availability and rooms immediately
                     try { updateRoomAvailability(roomTypeId); } catch(e){}
                 } else {
                     quantityContainer.classList.add('hidden');
                     quantityInput.required = false;
                     quantityInput.value = 1;
-                    // Đặt giá trị hidden về 0 khi bỏ chọn
+
                     const hiddenInput = document.getElementById('quantity_hidden_' + roomTypeId);
-                    if (hiddenInput) {
-                        hiddenInput.value = 0;
-                    }
-                    // Đặt giá trị khách về 0 cho loại phòng này
+                    if (hiddenInput) hiddenInput.value = 0;
+
                     const adultsHidden = document.getElementById('adults_hidden_' + roomTypeId);
                     const childrenHidden = document.getElementById('children_hidden_' + roomTypeId);
                     const infantsHidden = document.getElementById('infants_hidden_' + roomTypeId);
                     if (adultsHidden) adultsHidden.value = 0;
                     if (childrenHidden) childrenHidden.value = 0;
                     if (infantsHidden) infantsHidden.value = 0;
-                    
-                    // Reset input hiển thị về 0
+
                     const roomAdultsInput = document.getElementById('room_adults_' + roomTypeId);
                     const roomChildrenInput = document.getElementById('room_children_' + roomTypeId);
                     const roomInfantsInput = document.getElementById('room_infants_' + roomTypeId);
                     if (roomAdultsInput) roomAdultsInput.value = 2;
                     if (roomChildrenInput) roomChildrenInput.value = 0;
                     if (roomInfantsInput) roomInfantsInput.value = 0;
-                    
-                    // Đồng bộ lại tổng số khách
+
                     syncGlobalGuestCounts();
-                    
-                    // hide and clear available rooms when unchecking type
+
                     const roomsContainer = document.getElementById('available_rooms_' + roomTypeId);
                     if (roomsContainer) { roomsContainer.classList.add('hidden'); roomsContainer.innerHTML = ''; }
                 }
@@ -836,76 +835,66 @@
                 updateVoucherAvailability();
                 updateTotalPrice();
             }
-            
-            // Cập nhật số khách khi thay đổi số lượng phòng
+
             function updateQuantityHidden(roomTypeId) {
                 const displayInput = document.getElementById('quantity_' + roomTypeId);
                 const hiddenInput = document.getElementById('quantity_hidden_' + roomTypeId);
                 if (displayInput && hiddenInput) {
                     hiddenInput.value = displayInput.value;
-                    // Phân bổ lại số khách khi số lượng phòng thay đổi
                     syncAllGuests();
-                    // Cập nhật tổng tiền
                     updateTotalPrice();
                 }
             }
-            
-            // Ensure available room checkboxes cannot exceed selected quantity for that room type
+
             function enforceRoomSelectionLimit(loaiPhongId) {
                 const boxes = Array.from(document.querySelectorAll('#available_rooms_' + loaiPhongId + ' input.available-room-checkbox'));
                 boxes.forEach(b => {
-                    // assign onchange directly so we replace previous handlers
                     b.onchange = function(e) {
                         const wantNow = parseInt(document.getElementById('quantity_' + loaiPhongId)?.value || 0);
                         const boxesNow = Array.from(document.querySelectorAll('#available_rooms_' + loaiPhongId + ' input.available-room-checkbox'));
                         const checkedNow = boxesNow.filter(x=>x.checked).length;
                         if (checkedNow > wantNow) {
-                            // revert this change
                             this.checked = false;
                             alert('Bạn chỉ được chọn tối đa ' + wantNow + ' phòng cho loại này');
                         }
-                        // sync service room lists when selection changes
                         updateServiceRoomLists();
                     };
                 });
             }
-            // Update all service cards room-option lists to reflect currently selected booking rooms
+
             function updateServiceRoomLists() {
                 const selectedRoomInputs = Array.from(document.querySelectorAll('.available-room-checkbox:checked'));
-                // for each service card, rebuild its room checkbox UI (visual checkboxes inside room_checkboxes_{serviceId})
                 document.querySelectorAll('[data-service-id]').forEach(card => {
                     const serviceId = card.getAttribute('data-service-id');
                     const roomCheckboxContainer = document.getElementById('room_checkboxes_' + serviceId);
                     if (roomCheckboxContainer) {
                         roomCheckboxContainer.innerHTML = '';
                         selectedRoomInputs.forEach(inp => {
-                        const wrapper = document.createElement('div');
-                        wrapper.className = 'flex items-center gap-2 py-1';
+                            const wrapper = document.createElement('div');
+                            wrapper.className = 'flex items-center gap-2 py-1';
 
-                        const checkbox = document.createElement('input');
-                        checkbox.type = 'checkbox';
-                        checkbox.className = 'service-room-checkbox';
-                        checkbox.setAttribute('data-room-id', inp.value);
-                        checkbox.value = inp.value;
-                        checkbox.onchange = () => syncHiddenEntries(serviceId);
+                            const checkbox = document.createElement('input');
+                            checkbox.type = 'checkbox';
+                            checkbox.className = 'service-room-checkbox';
+                            checkbox.setAttribute('data-room-id', inp.value);
+                            checkbox.value = inp.value;
+                            checkbox.onchange = () => syncHiddenEntries(serviceId);
 
-                        const label = document.createElement('label');
-                        label.className = 'text-xs cursor-pointer';
-                        label.textContent = inp.getAttribute('data-room-name') || ('Phòng ' + inp.value);
+                            const label = document.createElement('label');
+                            label.className = 'text-xs cursor-pointer';
+                            label.textContent = inp.getAttribute('data-room-name') || ('Phòng ' + inp.value);
 
-                        wrapper.appendChild(checkbox);
+                            wrapper.appendChild(checkbox);
                             wrapper.appendChild(label);
                             roomCheckboxContainer.appendChild(wrapper);
                         });
                     }
 
-                    // Also update per-entry room selectors inside each date row
                     const rows = card.querySelectorAll('.service-date-row');
-                    // Determine if this service card is in specific mode
                     const specificRadio = card.querySelector('input[name="service_room_mode_' + serviceId + '"][value="specific"]');
                     const isSpecific = specificRadio ? specificRadio.checked : false;
+
                     rows.forEach((r, idx) => {
-                        // find or create entry-room container
                         let entryRoomContainer = r.querySelector('.entry-room-container');
                         if (!entryRoomContainer) {
                             entryRoomContainer = document.createElement('div');
@@ -913,9 +902,8 @@
                             r.appendChild(entryRoomContainer);
                         }
                         entryRoomContainer.innerHTML = '';
-                        // Only render per-entry room checkboxes when the service is set to 'specific'
+
                         if (!isSpecific) {
-                            // hide container when global mode
                             entryRoomContainer.classList.add('hidden');
                             return;
                         } else {
@@ -928,8 +916,6 @@
                             ecb.value = inp.value; ecb.checked = true;
                             ecb.onchange = () => {
                                 const serviceId = card.getAttribute('data-service-id');
-                                console.log('entry-room-checkbox changed, serviceId=', serviceId);
-                                // Call via window to ensure function exists
                                 setTimeout(() => {
                                     try {
                                         if (typeof window.syncHiddenEntries === 'function') {
@@ -946,6 +932,7 @@
                     });
                 });
             }
+
             function updateQuantityHidden(roomTypeId) {
                 const displayInput = document.getElementById('quantity_' + roomTypeId);
                 const hiddenInput = document.getElementById('quantity_hidden_' + roomTypeId);
@@ -953,21 +940,19 @@
                     hiddenInput.value = displayInput.value;
                 }
             }
+
             function getMaxAvailable(roomTypeId) {
                 const maxElement = document.getElementById('max_available_' + roomTypeId);
                 return maxElement ? parseInt(maxElement.textContent) || 0 : 0;
             }
+
             function validateQuantity(input, roomTypeId) {
-                // UI-only validation - just adjust value if out of bounds
-                // Real validation is done by PHP Laravel
                 const maxAvailable = getMaxAvailable(roomTypeId);
                 const value = parseInt(input.value) || 0;
                 const errorElement = document.getElementById('quantity_error_' + roomTypeId);
                 const hiddenInput = document.getElementById('quantity_hidden_' + roomTypeId);
                 const maxErrorElement = document.getElementById('max_available_error_' + roomTypeId);
-                if (maxErrorElement) {
-                    maxErrorElement.textContent = maxAvailable;
-                }
+                if (maxErrorElement) maxErrorElement.textContent = maxAvailable;
 
                 if (maxAvailable > 0 && value > maxAvailable) {
                     errorElement?.classList.remove('hidden');
@@ -982,43 +967,36 @@
                     if (hiddenInput) hiddenInput.value = value;
                 }
 
-                // enforce room check limits and update services' room lists
                 try { enforceRoomSelectionLimit(roomTypeId); } catch(e){}
-                // Sync room checkboxes with quantity - check/uncheck as needed
+
                 try {
                     const want = parseInt(document.getElementById('quantity_' + roomTypeId)?.value || 0);
                     const boxes = Array.from(document.querySelectorAll('#available_rooms_' + roomTypeId + ' input.available-room-checkbox'));
                     if (boxes.length > 0) {
                         const checkedBoxes = boxes.filter(b => b.checked);
                         const checkedCount = checkedBoxes.length;
-                        
+
                         if (want > checkedCount) {
-                            // Need to check more boxes
                             const uncheckedBoxes = boxes.filter(b => !b.checked);
                             const toCheck = want - checkedCount;
-                            for (let i = 0; i < Math.min(toCheck, uncheckedBoxes.length); i++) {
-                                uncheckedBoxes[i].checked = true;
-                            }
+                            for (let i = 0; i < Math.min(toCheck, uncheckedBoxes.length); i++) uncheckedBoxes[i].checked = true;
                         } else if (want < checkedCount) {
-                            // Need to uncheck excess boxes (from the end)
                             const toUncheck = checkedCount - want;
-                            for (let i = 0; i < toUncheck; i++) {
-                                checkedBoxes[checkedCount - 1 - i].checked = false;
-                            }
+                            for (let i = 0; i < toUncheck; i++) checkedBoxes[checkedCount - 1 - i].checked = false;
                         }
-                        // Update service room lists after changing checkboxes
                         updateServiceRoomLists();
                     }
                 } catch(e){ console.error('Sync room checkboxes error:', e); }
+
                 try { updateServiceRoomLists(); } catch(e){}
-                // Phân bổ lại số khách khi số lượng phòng thay đổi
                 syncAllGuests();
                 updateTotalPrice();
             }
+
             function decreaseQuantity(roomTypeId) {
                 try {
                     const input = document.getElementById('quantity_' + roomTypeId);
-                    if (!input) { console.debug('decreaseQuantity: input not found for', roomTypeId); return; }
+                    if (!input) return;
                     const currentValue = parseInt(input.value) || 1;
                     if (currentValue > 1) {
                         input.value = currentValue - 1;
@@ -1029,11 +1007,11 @@
                     console.error('decreaseQuantity error for', roomTypeId, e);
                 }
             }
+
             function increaseQuantity(roomTypeId) {
                 try {
                     const input = document.getElementById('quantity_' + roomTypeId);
-                    if (!input) { console.debug('increaseQuantity: input not found for', roomTypeId); return; }
-                    // If server hasn't set maxAvailable yet (0), treat as unlimited so UI still increments
+                    if (!input) return;
                     let maxAvailable = getMaxAvailable(roomTypeId);
                     if (!maxAvailable || maxAvailable <= 0) maxAvailable = Infinity;
                     const currentValue = parseInt(input.value) || 1;
@@ -1046,35 +1024,25 @@
                     console.error('increaseQuantity error for', roomTypeId, e);
                 }
             }
-            // Functions for managing total guests (chung cho tất cả loại phòng) - dùng dropdown
-            
-            // Phân bổ số khách từ trường tổng cho tất cả các loại phòng đã chọn
+
             function updateAllRoomGuests(type) {
                 const totalInput = document.getElementById('total_' + type);
-                if (!totalInput) {
-                    console.log('updateAllRoomGuests: totalInput not found for type', type);
-                    return;
-                }
+                if (!totalInput) return;
 
-                // Read current totals (use inputs if present)
                 let adultsVal = parseInt(document.getElementById('total_adults')?.value || 0);
                 let childrenVal = parseInt(document.getElementById('total_children')?.value || 0);
                 let infantsVal = parseInt(document.getElementById('total_infants')?.value || 0);
                 const selectedRoomTypes = Array.from(document.querySelectorAll('.room-type-checkbox:checked'));
 
                 if (selectedRoomTypes.length === 0) {
-                    // Nếu không có phòng nào được chọn, đặt tất cả hidden inputs về 0
                     document.querySelectorAll('input[id*="_hidden_' + type + '"]').forEach(input => {
-                        if (input.id.includes(type + '_hidden_')) {
-                            input.value = 0;
-                        }
+                        if (input.id.includes(type + '_hidden_')) input.value = 0;
                     });
                     document.getElementById('guest_limit_error')?.classList.add('hidden');
                     updateTotalPrice();
                     return;
                 }
 
-                // Tính tổng số lượng phòng
                 let totalQuantity = 0;
                 selectedRoomTypes.forEach(checkbox => {
                     const roomTypeId = checkbox.value;
@@ -1085,64 +1053,41 @@
 
                 const inputVal = parseInt(totalInput.value) || 0;
 
-                // Cập nhật giá trị theo loại đang chỉnh
                 if (type === 'adults') adultsVal = inputVal;
                 if (type === 'children') childrenVal = inputVal;
                 if (type === 'infants') infantsVal = inputVal;
 
-                // Không kiểm tra capacity tổng nữa, giới hạn tối đa sẽ do min/max từng input (3 NL, 2 TE, 2 EB) đảm bảo
                 document.getElementById('guest_limit_error')?.classList.add('hidden');
 
-                console.log('updateAllRoomGuests called:', { type, adultsVal, childrenVal, infantsVal, totalQuantity });
-
-                // Phân bổ đều cho tất cả loại phòng đã chọn (based on current values after cap)
                 selectedRoomTypes.forEach(checkbox => {
                     const roomTypeId = checkbox.value;
                     const hiddenInput = document.getElementById(type + '_hidden_' + roomTypeId);
                     if (hiddenInput) {
-                        // Tính số khách cho loại phòng này dựa trên số lượng phòng
                         const quantityInput = document.getElementById('quantity_' + roomTypeId);
                         const quantity = parseInt(quantityInput?.value || 1);
 
-                        // Determine totalValue to distribute
                         let totalValueToDistribute = (type === 'adults') ? adultsVal : (type === 'children' ? childrenVal : infantsVal);
-
-                        // Phân bổ theo tỷ lệ số lượng phòng
                         const guestForRoom = totalQuantity > 0 ? Math.round((totalValueToDistribute * quantity) / totalQuantity) : 0;
                         hiddenInput.value = guestForRoom;
-                        
-                        // Cập nhật input hiển thị riêng cho loại phòng này
+
                         const inputType = type === 'adults' ? 'room_adults_' : (type === 'children' ? 'room_children_' : 'room_infants_');
                         const roomGuestInput = document.getElementById(inputType + roomTypeId);
-                        if (roomGuestInput) {
-                            roomGuestInput.value = guestForRoom;
-                        }
-                        
-                        console.log(`Updated ${type}_hidden_${roomTypeId}:`, guestForRoom, 'for quantity', quantity);
-                    } else {
-                        console.warn(`Hidden input not found: ${type}_hidden_${roomTypeId}`);
+                        if (roomGuestInput) roomGuestInput.value = guestForRoom;
                     }
                 });
 
-                // Cập nhật tổng tiền sau khi phân bổ
                 updateTotalPrice();
             }
-            
-            // Cập nhật tất cả hidden inputs khi toggle room type
+
             function syncAllGuests() {
-                ['adults', 'children', 'infants'].forEach(type => {
-                    updateAllRoomGuests(type);
-                });
+                ['adults', 'children', 'infants'].forEach(type => updateAllRoomGuests(type));
             }
-            
-            // Function to update availability for a single room type
+
             function updateRoomAvailability(loaiPhongId) {
                 const checkin = document.getElementById('ngay_nhan').value;
                 const checkout = document.getElementById('ngay_tra').value;
 
-                if (!checkin || !checkout) {
-                    return;
-                }
+                if (!checkin || !checkout) return;
 
                 fetch('{{ route('admin.dat_phong.available_count') }}', {
                         method: 'POST',
@@ -1151,11 +1096,11 @@
                             'X-CSRF-TOKEN': '{{ csrf_token() }}'
                         },
                         body: JSON.stringify({
-                                    loai_phong_id: loaiPhongId,
-                                    checkin: checkin,
-                                    checkout: checkout,
-                                    include_rooms: 1
-                                })
+                            loai_phong_id: loaiPhongId,
+                            checkin: checkin,
+                            checkout: checkout,
+                            include_rooms: 1
+                        })
                     })
                     .then(response => response.json())
                     .then(data => {
@@ -1181,11 +1126,8 @@
                                 }
                             }
 
-                            if (maxErrorElement) {
-                                maxErrorElement.textContent = availableCount;
-                            }
+                            if (maxErrorElement) maxErrorElement.textContent = availableCount;
 
-                            // Adjust quantity if it exceeds new max
                             if (quantityInput && parseInt(quantityInput.value) > availableCount && availableCount > 0) {
                                 quantityInput.value = availableCount;
                                 updateQuantityHidden(loaiPhongId);
@@ -1195,14 +1137,12 @@
                                 updateQuantityHidden(loaiPhongId);
                             }
 
-                            // Render available specific rooms (if provided)
                             const roomsContainer = document.getElementById('available_rooms_' + loaiPhongId);
                             if (roomsContainer) {
                                 roomsContainer.innerHTML = '';
                                 if (Array.isArray(data.rooms) && data.rooms.length > 0 && document.getElementById('loai_phong_' + loaiPhongId)?.checked) {
-                                    // only show room list when the room-type is checked by admin
                                     roomsContainer.classList.remove('hidden');
-                                    // Render checkboxes for admins to select specific rooms
+
                                     data.rooms.forEach((r, idx) => {
                                         const wrap = document.createElement('div');
                                         wrap.className = 'flex items-center gap-2 py-1';
@@ -1223,15 +1163,13 @@
                                         roomsContainer.appendChild(wrap);
                                     });
 
-                                    // Pre-check first N boxes according to selected quantity
                                     const want = parseInt(quantityInput?.value || 0);
                                     if (want > 0) {
                                         const boxes = Array.from(roomsContainer.querySelectorAll('input.available-room-checkbox'));
                                         for (let i = 0; i < Math.min(want, boxes.length); i++) boxes[i].checked = true;
                                     }
-                                    // Enforce selection limit and attach listeners
+
                                     try { enforceRoomSelectionLimit(loaiPhongId); } catch(e){}
-                                    // Sync service cards room lists to reflect available/checked rooms
                                     try { updateServiceRoomLists(); } catch(e){}
                                 } else {
                                     roomsContainer.classList.add('hidden');
@@ -1239,59 +1177,39 @@
                             }
                         }
                     })
-                    .catch(error => {
-                        console.error('Error updating availability:', error);
-                    });
+                    .catch(error => console.error('Error updating availability:', error));
             }
-            // Function to update availability for all room types
+
             function updateAllRoomAvailability() {
                 const checkin = document.getElementById('ngay_nhan').value;
                 const checkout = document.getElementById('ngay_tra').value;
 
-                if (!checkin || !checkout) {
-                    return;
-                }
+                if (!checkin || !checkout) return;
 
-                // Update availability for all room types
                 document.querySelectorAll('.room-type-card').forEach(card => {
                     const checkbox = card.querySelector('.room-type-checkbox');
-                    if (checkbox) {
-                        const loaiPhongId = checkbox.value;
-                        updateRoomAvailability(loaiPhongId);
-                    }
+                    if (checkbox) updateRoomAvailability(checkbox.value);
                 });
             }
+
             document.addEventListener('DOMContentLoaded', function() {
                 const ngayNhanInput = document.getElementById('ngay_nhan');
                 const ngayTraInput = document.getElementById('ngay_tra');
-                const totalPriceElement = document.getElementById('total_price');
-                const originalPriceElement = document.getElementById('original_price');
-                const discountAmountElement = document.getElementById('discount_amount');
-                const discountInfoElement = document.getElementById('discount_info');
 
-                // Đặt ngày tối thiểu cho ngày nhận phòng là ngày hiện tại
                 const today = new Date().toISOString().split('T')[0];
                 ngayNhanInput.setAttribute('min', today);
-                
-                // Chỉ set giá trị mặc định nếu chưa có giá trị (từ old() hoặc server)
-                if (!ngayNhanInput.value) {
-                    ngayNhanInput.value = today;
-                }
+                if (!ngayNhanInput.value) ngayNhanInput.value = today;
 
-                // Đặt ngày trả mặc định là ngày mai (hoặc ngày sau ngày nhận nếu đã có)
                 if (!ngayTraInput.value) {
                     const tomorrow = new Date();
                     tomorrow.setDate(tomorrow.getDate() + 1);
                     ngayTraInput.value = tomorrow.toISOString().split('T')[0];
                 }
-                
-                // Đảm bảo min của ngày trả phòng là ngày sau ngày nhận
+
                 if (ngayNhanInput.value) {
                     const minCheckout = new Date(ngayNhanInput.value);
                     minCheckout.setDate(minCheckout.getDate() + 1);
                     ngayTraInput.setAttribute('min', minCheckout.toISOString().split('T')[0]);
-                    
-                    // Nếu ngày trả nhỏ hơn hoặc bằng ngày nhận, tự động set thành ngày sau
                     if (ngayTraInput.value && ngayTraInput.value <= ngayNhanInput.value) {
                         ngayTraInput.value = minCheckout.toISOString().split('T')[0];
                     }
@@ -1301,12 +1219,9 @@
                     ngayTraInput.setAttribute('min', tomorrow.toISOString().split('T')[0]);
                 }
 
-                // Cập nhật ngày trả phòng tối thiểu khi ngày nhận thay đổi
                 ngayNhanInput.addEventListener('change', function() {
                     ngayTraInput.setAttribute('min', this.value);
-                    if (ngayTraInput.value && ngayTraInput.value < this.value) {
-                        ngayTraInput.value = this.value;
-                    }
+                    if (ngayTraInput.value && ngayTraInput.value < this.value) ngayTraInput.value = this.value;
                     updateTotalPrice();
                     updateAllRoomAvailability();
                 });
@@ -1316,18 +1231,13 @@
                     updateAllRoomAvailability();
                 });
 
-                // Cập nhật availability khi trang load (nếu có ngày)
                 setTimeout(() => {
-                    if (ngayNhanInput.value && ngayTraInput.value) {
-                        updateAllRoomAvailability();
-                    }
+                    if (ngayNhanInput.value && ngayTraInput.value) updateAllRoomAvailability();
                 }, 300);
 
-                // Update voucher availability when room selection changes
                 document.querySelectorAll('.room-type-checkbox').forEach(checkbox => {
                     checkbox.addEventListener('change', function() {
                         const loaiId = this.value;
-                        // If room-type is unchecked, clear any specific-room selections for that type
                         if (!this.checked) {
                             try {
                                 const boxes = Array.from(document.querySelectorAll('#available_rooms_' + loaiId + ' input.available-room-checkbox'));
@@ -1335,7 +1245,6 @@
                             } catch(e){}
                         }
 
-                        // Re-run related UI syncs so service cards reflect the current booking-selected rooms
                         try { enforceRoomSelectionLimit(loaiId); } catch(e){}
                         try { updateServiceRoomLists(); } catch(e){}
                         try { updateVoucherAvailability(); } catch(e){}
@@ -1343,85 +1252,49 @@
                     });
                 });
 
-                // Also update voucher availability when dates change
                 ngayNhanInput.addEventListener('change', updateVoucherAvailability);
                 ngayTraInput.addEventListener('change', updateVoucherAvailability);
 
-                // Setup voucher system and listeners
                 try { setupVoucherEventSystem(); } catch(e) { console.error('setupVoucherEventSystem error', e); }
 
-                // Khởi tạo giá trị ban đầu cho số khách
                 syncAllGuests();
 
-                // Ensure per-room hidden inputs are synced right before submit so server gets same counts as preview
                 document.getElementById('bookingForm')?.addEventListener('submit', function() {
                     syncAllGuests();
                     updateTotalPrice();
                 });
-                
-                // Thêm event listener cho các trường số khách (sử dụng input để cập nhật ngay)
-                document.getElementById('total_adults')?.addEventListener('input', function() {
-                    updateAllRoomGuests('adults');
-                });
-                document.getElementById('total_children')?.addEventListener('input', function() {
-                    updateAllRoomGuests('children');
-                });
-                document.getElementById('total_infants')?.addEventListener('input', function() {
-                    updateAllRoomGuests('infants');
-                });
-                
-                // Khởi tạo giá trị ban đầu cho số khách khi trang load
-                // Phân bổ số khách từ dropdown tổng cho các loại phòng đã chọn
+
+                document.getElementById('total_adults')?.addEventListener('input', function() { updateAllRoomGuests('adults'); });
+                document.getElementById('total_children')?.addEventListener('input', function() { updateAllRoomGuests('children'); });
+                document.getElementById('total_infants')?.addEventListener('input', function() { updateAllRoomGuests('infants'); });
+
                 syncAllGuests();
-                
-                // Thêm event listener cho các dropdown số khách để đảm bảo cập nhật ngay
+
                 const totalAdultsSelect = document.getElementById('total_adults');
                 const totalChildrenSelect = document.getElementById('total_children');
                 const totalInfantsSelect = document.getElementById('total_infants');
-                
-                if (totalAdultsSelect) {
-                    totalAdultsSelect.addEventListener('input', function() {
-                        updateAllRoomGuests('adults');
-                    });
-                }
-                if (totalChildrenSelect) {
-                    totalChildrenSelect.addEventListener('input', function() {
-                        updateAllRoomGuests('children');
-                    });
-                }
-                if (totalInfantsSelect) {
-                    totalInfantsSelect.addEventListener('input', function() {
-                        updateAllRoomGuests('infants');
-                    });
-                }
-                
-                // Tính toán ban đầu
+
+                if (totalAdultsSelect) totalAdultsSelect.addEventListener('input', function() { updateAllRoomGuests('adults'); });
+                if (totalChildrenSelect) totalChildrenSelect.addEventListener('input', function() { updateAllRoomGuests('children'); });
+                if (totalInfantsSelect) totalInfantsSelect.addEventListener('input', function() { updateAllRoomGuests('infants'); });
+
                 updateTotalPrice();
                 updateVoucherAvailability();
             });
-            // Setup unified voucher event system (DOMContentLoaded)
+
             function setupVoucherEventSystem() {
-                // Attach change handler to radios so 'change' triggers totals update immediately
                 document.querySelectorAll('.voucher-radio').forEach(radio => {
                     radio.addEventListener('change', handleVoucherChange);
                 });
 
-                // Label click handler (toggle behavior: select/deselect)
                 document.querySelectorAll('.voucher-label').forEach(label => {
                     label.addEventListener('click', function(e) {
-                        // Prevent native label toggle to avoid double-change events
                         e.preventDefault();
                         e.stopPropagation();
                         const radio = this.closest('.voucher-container').querySelector('.voucher-radio');
                         if (!radio) return;
+                        if (radio.disabled) return;
 
-                        // Don't allow interaction on disabled radios
-                        if (radio.disabled) {
-                            e.preventDefault();
-                            return;
-                        }
-
-                        // Toggle selected state and dispatch change so handler runs
                         const newState = !radio.checked;
                         radio.checked = newState;
                         radio.dispatchEvent(new Event('change', { bubbles: true }));
@@ -1429,66 +1302,41 @@
                 });
             }
 
-            // Unified handler for all voucher changes
             function handleVoucherChange() {
                 const voucherIdInput = document.getElementById('voucher_id_input');
                 const voucherMirror = document.getElementById('voucher_input');
 
                 if (this.checked) {
-                    // Voucher selected: update hidden input with voucher ID
                     const container = this.closest('.voucher-container');
                     const voucherId = container?.getAttribute('data-voucher-id') || this.value;
-                        if (voucherIdInput) voucherIdInput.value = voucherId;
-                        // Mirror the voucher code expected by backend (radio.value is ma_voucher)
-                        if (voucherMirror) voucherMirror.value = this.value || voucherId;
-                    console.log('Voucher selected:', voucherId);
+                    if (voucherIdInput) voucherIdInput.value = voucherId;
+                    if (voucherMirror) voucherMirror.value = this.value || voucherId;
                 } else {
-                    // Voucher deselected: clear hidden inputs
                     if (voucherIdInput) voucherIdInput.value = '';
                     if (voucherMirror) voucherMirror.value = '';
-                    console.log('Voucher deselected');
                 }
 
-                // Recalculate totals immediately
                 updateTotalPrice();
 
-                // Also refresh service UI and hidden inputs so services remain consistent
-                try {
-                    if (typeof updateServiceRoomLists === 'function') {
-                        updateServiceRoomLists();
-                    }
-                } catch (e) {
-                    console.error('Error running updateServiceRoomLists after voucher change', e);
-                }
+                try { if (typeof updateServiceRoomLists === 'function') updateServiceRoomLists(); } catch (e) {}
 
-                // Recreate hidden inputs for all service cards
                 try {
                     document.querySelectorAll('#selected_services_list [data-service-id]').forEach(card => {
                         const sid = card.getAttribute('data-service-id');
                         if (sid && typeof syncHiddenEntries === 'function') {
-                            try { syncHiddenEntries(sid); } catch (er) { console.error('syncHiddenEntries error', er); }
+                            try { syncHiddenEntries(sid); } catch (er) {}
                         }
                     });
-                } catch (e) {
-                    console.error('Error syncing hidden service entries after voucher change', e);
-                }
-
-                // Re-run service card update (safe no-op if not present)
-                if (typeof window.updateServiceCards === 'function') {
-                    try { window.updateServiceCards(); } catch (e) { console.error('updateServiceCards error', e); }
-                }
+                } catch (e) {}
             }
 
             function updateVoucherAvailability() {
-                const selectedRoomTypes = Array.from(document.querySelectorAll('.room-type-checkbox:checked')).map(cb => cb
-                    .value);
+                const selectedRoomTypes = Array.from(document.querySelectorAll('.room-type-checkbox:checked')).map(cb => cb.value);
                 const voucherInputs = document.querySelectorAll('.voucher-radio');
 
-                // Get check-in and check-out dates for date range filtering
                 const checkinDate = document.getElementById('ngay_nhan')?.value || '';
                 const checkoutDate = document.getElementById('ngay_tra')?.value || '';
 
-                // If either date is missing, hide all voucher UI and clear selection
                 if (!checkinDate || !checkoutDate) {
                     document.querySelectorAll('.voucher-container').forEach(container => {
                         container.style.display = 'none';
@@ -1498,7 +1346,6 @@
                             radio.disabled = true;
                         }
                     });
-                    // clear mirrored hidden inputs as no voucher should be active
                     const voucherMirror = document.getElementById('voucher_input');
                     const voucherIdInput = document.getElementById('voucher_id_input');
                     if (voucherMirror) voucherMirror.value = '';
@@ -1506,35 +1353,23 @@
                     return;
                 }
 
-                // show voucher containers when dates are set
                 document.querySelectorAll('.voucher-container').forEach(container => container.style.display = '');
+                voucherInputs.forEach(v => { v.disabled = true; });
 
-                // Disable all vouchers first
-                voucherInputs.forEach(v => {
-                    v.disabled = true;
-                });
-
-                // Enable/disable vouchers based on room type compatibility AND date range
                 voucherInputs.forEach(radio => {
                     const voucherRoomType = radio.dataset.loaiPhong;
                     const vStart = radio.dataset.start || '';
                     const vEnd = radio.dataset.end || '';
                     const container = radio.closest('.voucher-container');
 
-                    // Date check: check-in date must be within [start, end] inclusive
                     let dateOk = true;
                     if (checkinDate && vStart && vEnd) {
-                        // Parse dates for proper comparison (YYYY-MM-DD format)
                         const checkin = new Date(checkinDate + 'T00:00:00Z');
                         const start = new Date(vStart + 'T00:00:00Z');
                         const end = new Date(vEnd + 'T00:00:00Z');
-                        // Check if checkin is within [start, end]
-                        if (checkin < start || checkin > end) {
-                            dateOk = false;
-                        }
+                        if (checkin < start || checkin > end) dateOk = false;
                     }
 
-                    // If date is not ok, hide the voucher completely
                     if (!dateOk) {
                         if (container) {
                             container.style.display = 'none';
@@ -1543,56 +1378,42 @@
                         }
                         return;
                     } else {
-                        // If date is ok, show the voucher
                         if (container) container.style.display = '';
                     }
 
-                    // If voucher has no loai_phong_id restriction or matches selected room type
-                    // Treat empty selectedRoomTypes as 'no restriction' so vouchers can be chosen before rooms are picked
-                    const roomOk = (!voucherRoomType || voucherRoomType === 'null' || voucherRoomType === '') || (selectedRoomTypes.length === 0) || selectedRoomTypes.includes(voucherRoomType);
+                    const roomOk = (!voucherRoomType || voucherRoomType === 'null' || voucherRoomType === '') ||
+                        (selectedRoomTypes.length === 0) ||
+                        selectedRoomTypes.includes(voucherRoomType);
 
-                    // Enable/disable based on room type only (no visible message)
                     radio.disabled = !roomOk;
 
                     if (container) {
                         const label = container.querySelector('.voucher-label');
-                        // remove dimming classes if present (server-rendered or previous state)
                         if (label) label.classList.remove('opacity-50', 'cursor-not-allowed');
-                        // Remove any overlays (both client-created and server-rendered)
                         const overlays = container.querySelectorAll('.voucher-overlay-client, .voucher-overlay-server');
                         overlays.forEach(o => o.remove());
                     }
                 });
             }
 
-
-
-            // Helpers giống phía client để tính hệ số theo ngày
             function isHolidayJS(date) {
                 const d = new Date(date.getTime());
                 const year = d.getFullYear();
                 const holidays = [
-                    new Date(year, 0, 1),   // 01/01
-                    new Date(year, 3, 30),  // 30/04 (tháng 3 vì JS bắt đầu từ 0)
-                    new Date(year, 4, 1),   // 01/05
-                    new Date(year, 8, 2),   // 02/09
+                    new Date(year, 0, 1),
+                    new Date(year, 3, 30),
+                    new Date(year, 4, 1),
+                    new Date(year, 8, 2),
                 ];
                 return holidays.some(h => h.getDate() === d.getDate() && h.getMonth() === d.getMonth());
             }
 
             function getMultiplierForDateJS(date) {
-                if (isHolidayJS(date)) {
-                    return 1.25; // Ngày lễ
-                }
-                const day = date.getDay(); // 0: CN, 6: T7
-                if (day === 0 || day === 6) {
-                    return 1.15; // Cuối tuần
-                }
-                return 1.0; // Ngày thường
+                if (isHolidayJS(date)) return 1.25;
+                const day = date.getDay();
+                if (day === 0 || day === 6) return 1.15;
+                return 1.0;
             }
-
-            // Hàm updateTotalPrice() đầu tiên đã được tích hợp vào hàm var updateTotalPrice = function() ở dưới
-            // Xóa hàm này để tránh conflict
 
             function toggleService(checkbox, serviceId) {
                 const quantityContainer = document.getElementById('service_quantity_container_' + serviceId);
@@ -1610,12 +1431,14 @@
 
                 updateTotalPrice();
             }
+
             function increaseServiceQuantity(serviceId) {
                 const input = document.getElementById('service_quantity_' + serviceId);
                 input.value = parseInt(input.value) + 1;
                 updateServiceQuantityHidden(serviceId);
                 updateTotalPrice();
             }
+
             function decreaseServiceQuantity(serviceId) {
                 const input = document.getElementById('service_quantity_' + serviceId);
                 const newValue = Math.max(1, parseInt(input.value) - 1);
@@ -1623,16 +1446,15 @@
                 updateServiceQuantityHidden(serviceId);
                 updateTotalPrice();
             }
+
             function updateServiceQuantityHidden(serviceId) {
                 const displayInput = document.getElementById('service_quantity_' + serviceId);
                 const hiddenInput = document.getElementById('service_quantity_hidden_' + serviceId);
-                if (hiddenInput && displayInput) {
-                    hiddenInput.value = displayInput.value;
-                }
+                if (hiddenInput && displayInput) hiddenInput.value = displayInput.value;
                 updateTotalPrice();
             }
-            // Cập nhật tổng tiền bao gồm cả phòng + phụ phí + voucher + dịch vụ (tính lại từ đầu)
-            // NOTE: Hàm này override hàm updateTotalPrice() ở trên để tích hợp logic tính dịch vụ và voucher
+
+            // === GIỮ NGUYÊN HÀM updateTotalPrice() CỦA BẠN ===
             var updateTotalPrice = function() {
                 console.log('=== updateTotalPrice NEW VERSION CALLED ===');
                 const ngayNhan = document.getElementById('ngay_nhan').value;
@@ -1646,7 +1468,7 @@
 
                 const startDate = new Date(ngayNhan);
                 const endDate = new Date(ngayTra);
-                
+
                 if (isNaN(startDate.getTime()) || isNaN(endDate.getTime()) || endDate <= startDate) {
                     document.getElementById('total_price').textContent = formatCurrency(0);
                     document.getElementById('tong_tien_input').value = 0;
@@ -1654,12 +1476,8 @@
                 }
 
                 const maxAdultsPerRoom = 2;
-                const extraFeePercent = 0.2; // 20%
-                const childFeePercent = 0.1; // 10%
-                const infantFeePercent = 0.05; // 5%
 
-                // 1. Tính tiền phòng theo loại phòng với multiplier theo từng ngày + phụ phí
-                let roomTotalByType = {}; // { loaiPhongId: totalPrice }
+                let roomTotalByType = {};
                 let roomTotal = 0;
                 let totalExtraFee = 0;
                 let totalChildFee = 0;
@@ -1688,43 +1506,31 @@
 
                     if (!basePrice || basePrice <= 0 || !quantity || quantity <= 0) return;
 
-                    // Lấy số khách từ hidden inputs
                     const adultsHidden = document.getElementById('adults_hidden_' + roomTypeId);
                     const childrenHidden = document.getElementById('children_hidden_' + roomTypeId);
                     const infantsHidden = document.getElementById('infants_hidden_' + roomTypeId);
-                    
+
                     const adults = parseInt(adultsHidden?.value || maxAdultsPerRoom * quantity);
                     const children = parseInt(childrenHidden?.value || 0);
                     const infants = parseInt(infantsHidden?.value || 0);
-                    
-                    console.log(`Room ${roomTypeId}: adults=${adults} (from ${adultsHidden?.value}), children=${children} (from ${childrenHidden?.value}), infants=${infants} (from ${infantsHidden?.value}), quantity=${quantity}`);
-                    
+
                     totalAdults += adults;
                     totalChildren += children;
                     totalInfants += infants;
 
-                    // compute totals for type (prices only). surcharge calculations will be computed globally later based on totals
                     let current = new Date(startDate.getTime());
                     let totalForType = 0;
-                    let extraFeeForType = 0; // not computed per type here
-                    let childFeeForType = 0; // not computed per type here
-                    let infantFeeForType = 0; // not computed per type here
 
                     while (current < endDate) {
                         const multiplier = getMultiplierForDateJS(current);
                         const priceForDay = basePrice * multiplier;
-
                         totalForType += priceForDay * quantity;
 
-                        if (isHolidayJS(current)) {
-                            holidayNights += 1;
-                        } else {
+                        if (isHolidayJS(current)) holidayNights += 1;
+                        else {
                             const day = current.getDay();
-                            if (day === 0 || day === 6) {
-                                weekendNights += 1;
-                            } else {
-                                weekdayNights += 1;
-                            }
+                            if (day === 0 || day === 6) weekendNights += 1;
+                            else weekdayNights += 1;
                         }
 
                         current.setDate(current.getDate() + 1);
@@ -1733,45 +1539,33 @@
                     if (totalForType > 0) {
                         roomTotalByType[roomTypeId] = totalForType;
                         roomTotal += totalForType;
-                        totalExtraFee += extraFeeForType;
-                        totalChildFee += childFeeForType;
-                        totalInfantFee += infantFeeForType;
                     }
                 });
-                
-                // Hiển thị số khách và phụ phí
+
                 const guestSummary = document.getElementById('guest_summary');
                 if (totalAdults > 0 || totalChildren > 0 || totalInfants > 0) {
                     guestSummary.classList.remove('hidden');
                     if (totalAdults > 0) {
                         document.getElementById('adults_count').textContent = totalAdults;
                         document.getElementById('total_adults_display').classList.remove('hidden');
-                    } else {
-                        document.getElementById('total_adults_display').classList.add('hidden');
-                    }
+                    } else document.getElementById('total_adults_display').classList.add('hidden');
+
                     if (totalChildren > 0) {
                         document.getElementById('children_count').textContent = totalChildren;
                         document.getElementById('total_children_display').classList.remove('hidden');
-                    } else {
-                        document.getElementById('total_children_display').classList.add('hidden');
-                    }
+                    } else document.getElementById('total_children_display').classList.add('hidden');
+
                     if (totalInfants > 0) {
                         document.getElementById('infants_count').textContent = totalInfants;
                         document.getElementById('total_infants_display').classList.remove('hidden');
-                    } else {
-                        document.getElementById('total_infants_display').classList.add('hidden');
-                    }
-                } else {
-                    guestSummary.classList.add('hidden');
-                }
+                    } else document.getElementById('total_infants_display').classList.add('hidden');
+                } else guestSummary.classList.add('hidden');
 
-                // Now compute extra-capacity-based surcharges based on totals and rooms
                 const totalSoLuong = Array.from(document.querySelectorAll('.room-type-checkbox:checked')).reduce((acc, cb) => {
                     const q = parseInt(document.getElementById('quantity_' + cb.value)?.value || 1);
                     return acc + q;
                 }, 0);
 
-                // Units approach: adult=2 units, child=1 unit, infant=1 unit
                 const unitsTotal = (totalAdults * 2) + totalChildren + totalInfants;
                 const baseUnits = totalSoLuong * 4;
 
@@ -1779,13 +1573,11 @@
                 let extraChildrenCount = 0;
                 let extraInfantsCount = 0;
 
-                // Reset surcharge totals (we will compute only extra counts)
                 totalExtraFee = 0;
                 totalChildFee = 0;
                 totalInfantFee = 0;
 
                 if (unitsTotal > baseUnits && totalSoLuong > 0) {
-                    // allocate base units prioritizing adults
                     const adultsUnits = totalAdults * 2;
                     const adultsExtraUnits = Math.max(0, adultsUnits - baseUnits);
                     let unitsRemainingBase = Math.max(0, baseUnits - adultsUnits);
@@ -1801,11 +1593,9 @@
                     extraChildrenCount = childrenExtra;
                     extraInfantsCount = infantsExtra;
 
-                    // Tính số đêm
                     const oneDayMs = 24 * 60 * 60 * 1000;
                     const nights = Math.max(1, Math.round((endDate - startDate) / oneDayMs));
 
-                    // Phụ phí cố định: 300k/người lớn/đêm, 150k/trẻ em/đêm, em bé miễn phí
                     totalExtraFee = extraAdultsCount * 300000 * nights;
                     totalChildFee = extraChildrenCount * 150000 * nights;
                     totalInfantFee = 0;
@@ -1817,29 +1607,21 @@
                     if (totalExtraFee > 0) {
                         document.getElementById('extra_adult_fee_amount').textContent = formatCurrency(totalExtraFee);
                         document.getElementById('extra_adult_fee').classList.remove('hidden');
-                    } else {
-                        document.getElementById('extra_adult_fee').classList.add('hidden');
-                    }
+                    } else document.getElementById('extra_adult_fee').classList.add('hidden');
+
                     if (totalChildFee > 0) {
                         document.getElementById('child_fee_amount').textContent = formatCurrency(totalChildFee);
                         document.getElementById('child_fee').classList.remove('hidden');
-                    } else {
-                        document.getElementById('child_fee').classList.add('hidden');
-                    }
+                    } else document.getElementById('child_fee').classList.add('hidden');
+
                     if (totalInfantFee > 0) {
                         document.getElementById('infant_fee_amount').textContent = formatCurrency(totalInfantFee);
                         document.getElementById('infant_fee').classList.remove('hidden');
-                    } else {
-                        document.getElementById('infant_fee').classList.add('hidden');
-                    }
-                } else {
-                    surchargeSummary.classList.add('hidden');
-                }
+                    } else document.getElementById('infant_fee').classList.add('hidden');
+                } else surchargeSummary.classList.add('hidden');
 
-                // Tổng tiền phòng bao gồm cả phụ phí
                 const roomTotalWithSurcharges = roomTotal + totalExtraFee + totalChildFee + totalInfantFee;
 
-                // 2. Tính discount từ voucher - chỉ áp dụng cho tiền phòng (KHÔNG bao gồm phụ phí), respecting loai_phong_id filter
                 const selectedVoucher = document.querySelector('.voucher-radio:checked');
                 let discount = 0;
                 let discountedRoomTotal = roomTotal;
@@ -1849,29 +1631,17 @@
                     const voucherLoaiPhongId = selectedVoucher.dataset.loaiPhong;
 
                     let applicableTotal = 0;
-                    if (!voucherLoaiPhongId || voucherLoaiPhongId === 'null') {
-                        // Voucher applies to all room types
-                        applicableTotal = roomTotal;
-                    } else {
-                        // Voucher applies only to specific room type
-                        applicableTotal = roomTotalByType[voucherLoaiPhongId] || 0;
-                    }
+                    if (!voucherLoaiPhongId || voucherLoaiPhongId === 'null') applicableTotal = roomTotal;
+                    else applicableTotal = roomTotalByType[voucherLoaiPhongId] || 0;
 
-                    if (discountValue <= 100) {
-                        // Discount is percentage
-                        discount = (applicableTotal * discountValue) / 100;
-                    } else {
-                        // Discount is fixed amount
-                        discount = Math.min(discountValue, applicableTotal);
-                    }
+                    if (discountValue <= 100) discount = (applicableTotal * discountValue) / 100;
+                    else discount = Math.min(discountValue, applicableTotal);
 
                     discountedRoomTotal = roomTotal - discount;
                 }
 
-                // Tổng tiền phòng sau discount + phụ phí
                 let roomNetTotal = discountedRoomTotal + totalExtraFee + totalChildFee + totalInfantFee;
 
-                // 3. Tính tiền dịch vụ (không bị ảnh hưởng bởi voucher)
                 let totalServicePrice = 0;
 
                 function getTotalBookedRooms() {
@@ -1881,9 +1651,7 @@
                         const hidden = document.getElementById('quantity_hidden_' + id);
                         total += parseInt(hidden?.value || 0) || 0;
                     });
-                    if (total === 0) {
-                        total = document.querySelectorAll('.available-room-checkbox:checked').length || 0;
-                    }
+                    if (total === 0) total = document.querySelectorAll('.available-room-checkbox:checked').length || 0;
                     return total;
                 }
 
@@ -1903,28 +1671,21 @@
                         if (mode === 'global') {
                             const roomsCount = getTotalBookedRooms();
                             totalServicePrice += price * qty * roomsCount;
-                            console.log('service', serviceId, 'global mode, qty=', qty, 'rooms=', roomsCount, 'add=', price * qty * roomsCount);
                         } else {
                             const entryRooms = r.querySelectorAll('.entry-room-checkbox:checked').length || 0;
                             totalServicePrice += price * qty * entryRooms;
-                            console.log('service', serviceId, 'specific mode, qty=', qty, 'checked rooms=', entryRooms, 'add=', price * qty * entryRooms);
                         }
                     });
                 });
 
-                // 4. Cộng tất cả: (phòng - discount + phụ phí) + dịch vụ
                 const finalTotal = roomNetTotal + totalServicePrice;
-                
-                // Hiển thị giá đã áp dụng
+
                 const pricingInfoDiv = document.getElementById('pricing_multiplier_info');
                 if (pricingInfoDiv && (weekdayNights + weekendNights + holidayNights) > 0) {
                     pricingInfoDiv.textContent = `Giá đã áp dụng: ${weekdayNights} đêm thường, ${weekendNights} đêm cuối tuần (+15%), ${holidayNights} đêm lễ (+25%).`;
                     pricingInfoDiv.classList.remove('hidden');
-                } else if (pricingInfoDiv) {
-                    pricingInfoDiv.classList.add('hidden');
-                }
+                } else if (pricingInfoDiv) pricingInfoDiv.classList.add('hidden');
 
-                // Update UI
                 const totalPriceElement = document.getElementById('total_price');
                 const tongTienInput = document.getElementById('tong_tien_input');
                 const originalPriceElement = document.getElementById('original_price');
@@ -1941,22 +1702,9 @@
                 } else {
                     discountInfoElement.classList.add('hidden');
                 }
-
-                console.log('=== updateTotalPrice FINAL ===');
-                console.log('roomTotal=', roomTotal);
-                console.log('totalExtraFee=', totalExtraFee);
-                console.log('totalChildFee=', totalChildFee);
-                console.log('totalInfantFee=', totalInfantFee);
-                console.log('totalSurcharges=', (totalExtraFee + totalChildFee + totalInfantFee));
-                console.log('discount=', discount);
-                console.log('roomNetTotal=', roomNetTotal);
-                console.log('totalServicePrice=', totalServicePrice);
-                console.log('finalTotal=', finalTotal);
-                console.log('updateTotalPrice: roomTotal=', roomTotal, 'surcharges=', (totalExtraFee + totalChildFee + totalInfantFee), 'discount=', discount, 'roomNet=', roomNetTotal, 'services=', totalServicePrice, 'final=', finalTotal);
             };
-            // Form validation is handled by PHP Laravel - no client-side validation needed
-            // All validation errors will be displayed by Laravel's error directives
-            // Initialize Tom Select for services and helper functions
+
+            // Tom Select init + renderSelectedServices (giữ nguyên code của bạn)
             function loadTomSelectAndInit(cb) {
                 if (window.TomSelect) return cb();
                 var s = document.createElement('script');
@@ -1964,6 +1712,7 @@
                 s.onload = cb;
                 document.head.appendChild(s);
             }
+
             document.addEventListener('DOMContentLoaded', function() {
                 loadTomSelectAndInit(function() {
                     try {
@@ -1979,7 +1728,6 @@
                             }
                         });
 
-                        // Render selected services list and hidden inputs (with per-date rows and 'Thêm ngày')
                         function getRangeDates() {
                             const start = document.getElementById('ngay_nhan')?.value;
                             const end = document.getElementById('ngay_tra')?.value;
@@ -1991,34 +1739,20 @@
                             return a;
                         }
 
-                        // Normalize service dates to the current range: keep same number of rows where possible,
-                        // but clamp dates to the new range and remove excess rows if range shrinks.
                         function normalizeServiceDates() {
                             const range = getRangeDates();
                             if (!range.length) return;
                             document.querySelectorAll('[data-service-id]').forEach(card => {
                                 const id = card.getAttribute('data-service-id');
                                 const rows = Array.from(card.querySelectorAll('.service-date-row'));
-                                // if no rows (shouldn't happen) ensure at least one
-                                if (rows.length === 0) {
-                                    const rowsContainer = document.getElementById('service_dates_'+id);
-                                    if (rowsContainer) {
-                                        const first = rowsContainer.appendChild(document.createElement('div'));
-                                    }
-                                }
-                                // remove extra rows if range shorter
                                 if (rows.length > range.length) {
                                     for (let i = rows.length - 1; i >= range.length; i--) rows[i].remove();
                                 }
-                                // now set each remaining row's date to the corresponding date in range
                                 const nowRows = Array.from(card.querySelectorAll('.service-date-row'));
                                 nowRows.forEach((r, idx) => {
                                     const d = r.querySelector('input[type=date]');
                                     if (d) d.value = range[Math.min(idx, range.length-1)];
                                 });
-                                // sync hidden inputs
-                                const syncFn = card.querySelector('#service_dates_'+id) ? null : null;
-                                // call global syncHiddenEntries by triggering a sync via existing function if present
                                 try { const ev = new Event('service_range_changed'); document.getElementById('service_dates_'+id)?.dispatchEvent(ev); } catch(e){}
                             });
                         }
@@ -2026,7 +1760,6 @@
                         function renderSelectedServices(values) {
                             const container = document.getElementById('selected_services_list');
 
-                            // remember previous row counts per service to preserve number of date-rows when re-rendering
                             const prevCounts = {};
                             Array.from(container.querySelectorAll('[data-service-id]')).forEach(card => {
                                 const id = card.getAttribute('data-service-id');
@@ -2044,13 +1777,10 @@
                                 const servicePrice = parseFloat(option.dataset.price || 0);
                                 const unit = option.dataset.unit || 'cái';
 
-
-                                // card wrapper
                                 const card = document.createElement('div');
                                 card.className = 'service-card-custom';
                                 card.setAttribute('data-service-id', serviceId);
 
-                                // header
                                 const header = document.createElement('div');
                                 header.className = 'service-card-header';
                                 const title = document.createElement('div');
@@ -2062,43 +1792,41 @@
                                 header.appendChild(price);
                                 card.appendChild(header);
 
-                                // Room selection section
                                 const roomSection = document.createElement('div');
                                 roomSection.className = 'bg-blue-50 p-3 rounded-lg mt-3 border border-blue-200';
                                 roomSection.id = 'room_selection_' + serviceId;
 
                                 const roomToggle = document.createElement('div');
-                                roomToggle.className = 'flex gap-2 mb-2';                           
+                                roomToggle.className = 'flex gap-2 mb-2';
                                 const globalRadio = document.createElement('input');
                                 globalRadio.type = 'radio';
                                 globalRadio.name = 'service_room_mode_' + serviceId;
                                 globalRadio.value = 'global';
                                 globalRadio.checked = true;
-                                globalRadio.id = 'global_' + serviceId;                                
+                                globalRadio.id = 'global_' + serviceId;
                                 const globalLabel = document.createElement('label');
                                 globalLabel.htmlFor = 'global_' + serviceId;
                                 globalLabel.className = 'text-sm flex items-center gap-2 cursor-pointer';
-                                globalLabel.innerHTML = '<span>Áp dụng tất cả phòng</span>';                                
+                                globalLabel.innerHTML = '<span>Áp dụng tất cả phòng</span>';
+
                                 const specificRadio = document.createElement('input');
                                 specificRadio.type = 'radio';
                                 specificRadio.name = 'service_room_mode_' + serviceId;
                                 specificRadio.value = 'specific';
                                 specificRadio.id = 'specific_' + serviceId;
-                                
+
                                 const specificLabel = document.createElement('label');
                                 specificLabel.htmlFor = 'specific_' + serviceId;
                                 specificLabel.className = 'text-sm flex items-center gap-2 cursor-pointer';
                                 specificLabel.innerHTML = '<span>Chọn phòng riêng</span>';
-                                
+
                                 roomToggle.appendChild(globalRadio);
                                 roomToggle.appendChild(globalLabel);
                                 roomToggle.appendChild(specificRadio);
                                 roomToggle.appendChild(specificLabel);
                                 roomSection.appendChild(roomToggle);
-                                
-                                // Toggle visibility on radio change: show/hide per-entry room containers
+
                                 globalRadio.onchange = () => {
-                                    // hide all per-entry room containers and uncheck any entry-room-checkboxes
                                     card.querySelectorAll('.entry-room-container').forEach(c => {
                                         c.classList.add('hidden');
                                         Array.from(c.querySelectorAll('input[type=checkbox]')).forEach(cb => cb.checked = false);
@@ -2109,17 +1837,15 @@
                                 };
 
                                 specificRadio.onchange = () => {
-                                    // show per-entry room containers (they will be populated by updateServiceRoomLists)
                                     card.querySelectorAll('.entry-room-container').forEach(c => c.classList.remove('hidden'));
                                     try { updateServiceRoomLists(); } catch(e){}
                                     syncHiddenEntries(serviceId);
                                     try { updateTotalPrice(); } catch(e){}
                                 };
-                                
-                                roomSection.appendChild(document.createElement('div')); // spacer placeholder to keep layout
+
+                                roomSection.appendChild(document.createElement('div'));
                                 card.appendChild(roomSection);
 
-                                // date rows container
                                 const rows = document.createElement('div');
                                 rows.id = 'service_dates_' + serviceId;
 
@@ -2127,9 +1853,7 @@
                                     const r = document.createElement('div'); r.className = 'service-date-row';
                                     const d = document.createElement('input'); d.type = 'date'; d.className = 'border rounded p-1'; d.value = dateVal || '';
                                     const rg = getRangeDates(); if (rg.length) { d.min = rg[0]; d.max = rg[rg.length-1]; }
-                                    // store previous value on focus to allow revert if duplicate chosen
                                     d.addEventListener('focus', function(){ this.dataset.prev = this.value || ''; });
-                                    // prevent selecting a date already used by another row of the same service
                                     d.addEventListener('change', function(){
                                         const val = this.value || '';
                                         if (!val) { syncHiddenEntries(serviceId); return; }
@@ -2137,10 +1861,8 @@
                                             .filter(i=>i !== this)
                                             .map(i=>i.value);
                                         if (others.includes(val)) {
-                                            // revert and notify
                                             const prev = this.dataset.prev || '';
                                             this.value = prev;
-                                            // small inline feedback
                                             alert('Ngày này đã được chọn cho dịch vụ này. Vui lòng chọn ngày khác.');
                                             return;
                                         }
@@ -2149,13 +1871,11 @@
                                     const q = document.createElement('input'); q.type = 'number'; q.min = 1; q.value = 1; q.className = 'w-24 border rounded p-1 text-center'; q.onchange = () => syncHiddenEntries(serviceId);
                                     const rem = document.createElement('button'); rem.type='button'; rem.className='service-remove-btn ml-2'; rem.textContent='Xóa'; rem.onclick = ()=>{ r.remove(); syncHiddenEntries(serviceId); };
                                     r.appendChild(d); r.appendChild(q); r.appendChild(rem);
-                                    // container for per-entry room checkboxes (populated by updateServiceRoomLists)
                                     const entryRoomPlaceholder = document.createElement('div'); entryRoomPlaceholder.className = 'entry-room-container mt-2 pl-2 border-l';
                                     r.appendChild(entryRoomPlaceholder);
                                     return r;
                                 }
 
-                                // determine how many date rows to render (preserve previous count)
                                 const want = Math.max(1, prevCounts[serviceId] || 1);
                                 const maxRows = Math.min(want, range.length || 1);
                                 for (let i=0;i<maxRows;i++) {
@@ -2163,7 +1883,6 @@
                                     rows.appendChild(buildDateRow(dateVal));
                                 }
 
-                                // add-day button
                                 const addBtn = document.createElement('button'); addBtn.type='button'; addBtn.className='service-add-day mt-2'; addBtn.textContent='Thêm ngày';
                                 addBtn.onclick = function(){
                                     const used = Array.from(rows.querySelectorAll('input[type="date"]')).map(i=>i.value);
@@ -2178,7 +1897,6 @@
                                 card.appendChild(rows);
                                 card.appendChild(addBtn);
 
-                                // hidden inputs container
                                 const hcb = document.createElement('input'); hcb.type='checkbox'; hcb.className='service-checkbox'; hcb.name='services[]'; hcb.value=serviceId; hcb.setAttribute('data-price', servicePrice); hcb.style.display='none'; hcb.checked=true;
                                 const hsum = document.createElement('input'); hsum.type='hidden'; hsum.name='services_data['+serviceId+'][so_luong]'; hsum.id='service_quantity_hidden_'+serviceId; hsum.value='1';
                                 const hdv = document.createElement('input'); hdv.type='hidden'; hdv.name='services_data['+serviceId+'][dich_vu_id]'; hdv.value=serviceId;
@@ -2188,7 +1906,6 @@
                                 container.appendChild(hsum);
                                 container.appendChild(hdv);
 
-                                // sync per-entry hidden inputs and add-button state
                                 function syncHiddenEntries(id){
                                     // If no rows remain for this service, remove the service selection entirely
                                     const rowsNow = Array.from(document.querySelectorAll('#service_dates_'+id+' .service-date-row'));
