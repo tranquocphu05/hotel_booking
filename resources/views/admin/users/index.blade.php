@@ -18,28 +18,28 @@
 
     <div class="bg-white rounded-2xl shadow p-6 mt-8 mb-8 w-full">
         <div class="overflow-x-auto">
-            <table class="min-w-full text-sm text-left text-gray-600 border border-gray-200 rounded-lg">
+            <table class="w-full text-sm text-left text-gray-600 border border-gray-200 rounded-lg">
                 <thead class="bg-gray-100 text-gray-700 uppercase text-xs">
                     <tr>
-                        <th class="px-4 py-3">ID</th>
-                        <th class="px-4 py-3">USERNAME</th>
-                        <th class="px-4 py-3">EMAIL</th>
-                        <th class="px-4 py-3">SĐT</th>
-                        <th class="px-4 py-3">CCCD</th>
-                        <th class="px-4 py-3">ROLE</th>
-                        <th class="px-4 py-3">STATUS</th>
-                        <th class="px-4 py-3 text-center">ACTIONS</th>
+                        <th class="px-3 py-3">ID</th>
+                        <th class="px-3 py-3">USERNAME</th>
+                        <th class="px-3 py-3">EMAIL</th>
+                        <th class="px-3 py-3">SĐT</th>
+                        <th class="px-2 py-3">CCCD</th>
+                        <th class="px-2 py-3 whitespace-nowrap">ROLE</th>
+                        <th class="px-2 py-3 whitespace-nowrap">STATUS</th>
+                        <th class="px-3 py-3 text-center whitespace-nowrap">ACTIONS</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     @forelse($users as $u)
                         <tr class="hover:bg-gray-50">
-                            <td class="px-4 py-2">{{ $u->id }}</td>
-                            <td class="px-4 py-2">{{ $u->username }}</td>
-                            <td class="px-4 py-2">{{ $u->email }}</td>
-                            <td class="px-4 py-2">{{ $u->sdt ?? 'Chưa cập nhật' }}</td>
-                            <td class="px-4 py-2">{{ $u->cccd ?? 'Chưa cập nhật' }}</td>
-                            <td class="px-4 py-2">
+                            <td class="px-3 py-2">{{ $u->id }}</td>
+                            <td class="px-3 py-2">{{ $u->username }}</td>
+                            <td class="px-3 py-2">{{ $u->email }}</td>
+                            <td class="px-3 py-2">{{ $u->sdt ?? 'Chưa cập nhật' }}</td>
+                            <td class="px-2 py-2">{{ $u->cccd ?? 'Chưa cập nhật' }}</td>
+                            <td class="px-2 py-2 whitespace-nowrap">
                                 @php
                                     $roleNames = [
                                         'admin' => 'Admin',
@@ -48,7 +48,7 @@
                                         'khach_hang' => 'Khách hàng'
                                     ];
                                 @endphp
-                                <span class="px-2 py-1 text-xs rounded-full 
+                                <span class="px-1.5 py-0.5 text-xs rounded-full whitespace-nowrap
                                     {{ $u->vai_tro === 'admin' ? 'bg-purple-100 text-purple-700' : '' }}
                                     {{ $u->vai_tro === 'nhan_vien' ? 'bg-blue-100 text-blue-700' : '' }}
                                     {{ $u->vai_tro === 'le_tan' ? 'bg-green-100 text-green-700' : '' }}
@@ -56,29 +56,29 @@
                                     {{ $roleNames[$u->vai_tro] ?? $u->vai_tro }}
                                 </span>
                             </td>
-                            <td class="px-4 py-2">
+                            <td class="px-2 py-2 whitespace-nowrap">
                                 @if($u->trang_thai === 'hoat_dong')
-                                    <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">Active</span>
+                                    <span class="px-1.5 py-0.5 text-xs rounded-full bg-green-100 text-green-700">Active</span>
                                 @else
-                                    <span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-700">Locked</span>
+                                    <span class="px-1.5 py-0.5 text-xs rounded-full bg-red-100 text-red-700">Locked</span>
                                 @endif
                             </td>
-                            <td class="px-4 py-2 text-center space-x-2">
+                            <td class="px-3 py-2 text-center space-x-2 whitespace-nowrap">
                                 @hasRole('admin')
                                 @if($u->vai_tro === 'admin')
                                     @if(($activeAdminCount ?? 0) > 1)
-                                        <a href="{{ route('admin.users.edit', $u) }}" class="inline-flex items-center px-3 py-1 rounded bg-yellow-500 text-white text-xs font-semibold hover:bg-yellow-600 transition">Edit</a>
+                                        <a href="{{ route('admin.users.edit', $u) }}" class="inline-flex items-center px-2.5 py-1 rounded bg-yellow-500 text-white text-xs font-semibold hover:bg-yellow-600 transition whitespace-nowrap">Sửa</a>
                                     @else
-                                        <span class="text-xs text-gray-400 italic">Admin cuối cùng (không sửa)</span>
+                                        <span class="inline-block max-w-[140px] text-xs text-gray-400 italic truncate align-middle">Admin cuối cùng (không sửa)</span>
                                     @endif
                                 @else
-                                    <a href="{{ route('admin.users.edit', $u) }}" class="inline-flex items-center px-3 py-1 rounded bg-yellow-500 text-white text-xs font-semibold hover:bg-yellow-600 transition">Edit</a>
+                                    <a href="{{ route('admin.users.edit', $u) }}" class="inline-flex items-center px-2.5 py-1 rounded bg-yellow-500 text-white text-xs font-semibold hover:bg-yellow-600 transition whitespace-nowrap">Sửa</a>
                                 @endif
 
                                 @if(auth()->user() && auth()->user()->id !== $u->id)
                                     <form method="POST" action="{{ route('admin.impersonate', $u->id) }}" style="display:inline">
                                         @csrf
-                                        <button type="submit" class="inline-flex items-center px-3 py-1 rounded bg-blue-500 text-white text-xs font-semibold hover:bg-blue-600 transition">Impersonate</button>
+                                        <button type="submit" class="inline-flex items-center px-2.5 py-1 rounded bg-blue-500 text-white text-xs font-semibold hover:bg-blue-600 transition whitespace-nowrap">Login</button>
                                     </form>
                                 @endif
 
@@ -87,13 +87,13 @@
                                         @csrf
                                         @method('PUT')
                                         @if($u->trang_thai === 'hoat_dong')
-                                            <button type="submit" class="inline-flex items-center px-3 py-1 rounded bg-red-500 text-white text-xs font-semibold hover:bg-red-600 transition" onclick="return confirm('Vô hiệu hóa tài khoản này?')">Vô hiệu hóa</button>
+                                            <button type="submit" class="inline-flex items-center px-2.5 py-1 rounded bg-red-500 text-white text-xs font-semibold hover:bg-red-600 transition whitespace-nowrap" onclick="return confirm('Vô hiệu hóa tài khoản này?')">Khóa</button>
                                         @else
-                                            <button type="submit" class="inline-flex items-center px-3 py-1 rounded bg-green-500 text-white text-xs font-semibold hover:bg-green-600 transition" onclick="return confirm('Kích hoạt lại tài khoản này?')">Kích hoạt</button>
+                                            <button type="submit" class="inline-flex items-center px-2.5 py-1 rounded bg-green-500 text-white text-xs font-semibold hover:bg-green-600 transition whitespace-nowrap" onclick="return confirm('Kích hoạt lại tài khoản này?')">Mở</button>
                                         @endif
                                     </form>
                                 @else
-                                    <span class="text-xs text-gray-400 italic">Admin cuối cùng (không vô hiệu hóa)</span>
+                                    <span class="inline-block max-w-[160px] text-xs text-gray-400 italic truncate align-middle">Admin cuối cùng (không vô hiệu hóa)</span>
                                 @endif
                                 @else
                                 {{-- Nhân viên và Lễ tân chỉ xem --}}

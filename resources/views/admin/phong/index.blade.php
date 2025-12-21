@@ -50,31 +50,31 @@
         <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">Lọc</button>
     </form>
 
- <div class="overflow-x-auto w-full">
+    <div class="w-full">
     <table class="w-full text-sm text-gray-700 border border-gray-200 rounded-lg shadow-sm">
         <thead class="bg-gray-100 text-gray-800 text-xs uppercase font-semibold">
             <tr>
-                <th class="px-6 py-3 text-center border-b whitespace-nowrap">STT</th>
-                <th class="px-6 py-3 text-center border-b whitespace-nowrap">Số phòng</th>
-                <th class="px-6 py-3 text-center border-b whitespace-nowrap">Tên phòng</th>
-                <th class="px-6 py-3 text-center border-b whitespace-nowrap">Loại phòng</th>
-                <th class="px-6 py-3 text-center border-b whitespace-nowrap">Tầng</th>
-                <th class="px-6 py-3 text-center border-b whitespace-nowrap">Hướng cửa sổ</th>
-                <th class="px-6 py-3 text-center border-b">Tiện ích</th> {{-- Cột này giữ nguyên để có thể xuống dòng/cuộn nếu có nhiều badge --}}
-                <th class="px-6 py-3 text-center border-b whitespace-nowrap">Giá riêng</th>
-                <th class="px-6 py-3 text-center border-b whitespace-nowrap">Trạng thái</th>
-                <th class="px-6 py-3 text-center border-b whitespace-nowrap">Thao tác</th>
+                <th class="px-3 py-3 text-center border-b whitespace-nowrap">STT</th>
+                <th class="px-4 py-3 text-center border-b whitespace-nowrap">Số phòng</th>
+                <th class="px-4 py-3 text-center border-b">Tên phòng</th>
+                <th class="px-4 py-3 text-center border-b">Loại phòng</th>
+                <th class="px-3 py-3 text-center border-b whitespace-nowrap w-16">Tầng</th>
+                <th class="px-4 py-3 text-center border-b">Hướng cửa sổ</th>
+                <th class="px-4 py-3 text-center border-b">Tiện ích</th> {{-- Cột này giữ nguyên để có thể xuống dòng/cuộn nếu có nhiều badge --}}
+                <th class="px-4 py-3 text-center border-b whitespace-nowrap">Giá riêng</th>
+                <th class="px-4 py-3 text-center border-b whitespace-nowrap">Trạng thái</th>
+                <th class="px-4 py-3 text-center border-b whitespace-nowrap">Thao tác</th>
             </tr>
         </thead>
         <tbody class="divide-y divide-gray-100">
             @forelse ($phongs as $phong)
                 <tr class="hover:bg-gray-50 transition">
-                    <td class="px-6 py-3 text-center whitespace-nowrap">{{ $loop->iteration }}</td>
-                    <td class="px-6 py-3 text-center font-semibold text-blue-600 whitespace-nowrap">{{ $phong->so_phong }}</td>
-                    <td class="px-6 py-3 text-center whitespace-nowrap">{{ $phong->ten_phong ?? '-' }}</td>
-                    <td class="px-6 py-3 text-center whitespace-nowrap">{{ $phong->loaiPhong->ten_loai ?? '-' }}</td>
-                    <td class="px-6 py-3 text-center whitespace-nowrap">{{ $phong->tang ?? '-' }}</td>
-                    <td class="px-6 py-3 text-center whitespace-nowrap">
+                    <td class="px-3 py-3 text-center whitespace-nowrap">{{ $loop->iteration }}</td>
+                    <td class="px-4 py-3 text-center font-semibold text-blue-600 whitespace-nowrap">{{ $phong->so_phong }}</td>
+                    <td class="px-4 py-3 text-center">{{ $phong->ten_phong ?? '-' }}</td>
+                    <td class="px-4 py-3 text-center">{{ $phong->loaiPhong->ten_loai ?? '-' }}</td>
+                    <td class="px-3 py-3 text-center whitespace-nowrap w-16">{{ $phong->tang ?? '-' }}</td>
+                    <td class="px-4 py-3 text-center">
                         @if($phong->huong_cua_so)
                             @php
                                 $huongMap = ['bien' => 'Biển', 'nui' => 'Núi', 'thanh_pho' => 'Thành phố', 'san_vuon' => 'Sân vườn'];
