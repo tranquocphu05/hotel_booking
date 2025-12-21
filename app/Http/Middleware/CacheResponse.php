@@ -58,3 +58,4 @@ class CacheResponse
         return $response;
     }
 }
+
