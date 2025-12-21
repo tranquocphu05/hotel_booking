@@ -441,7 +441,11 @@ class DatPhongController extends Controller
         $booking = DatPhong::with(['loaiPhong', 'voucher', 'user', 'phong'])->findOrFail($id);
 
         // Lấy danh sách loại phòng để hiển thị trong form sửa
-        $loaiPhongs = LoaiPhong::where('trang_thai', 'hoat_dong')->get();
+        // Bao gồm cả loại phòng đã đặt (kể cả khi đã ngưng hoạt động hoặc chưa chuyển đổi sang pivot)
+        $bookedLoaiPhongIds = $booking->getRoomTypes()->pluck('loai_phong_id')->unique()->toArray();
+        $loaiPhongs = LoaiPhong::where('trang_thai', 'hoat_dong')
+            ->orWhereIn('id', $bookedLoaiPhongIds)
+            ->get();
 
         // Chỉ cho phép sửa đơn đang chờ xác nhận
         if ($booking->trang_thai !== 'cho_xac_nhan') {
@@ -971,11 +975,29 @@ class DatPhongController extends Controller
             $totalPrice += $roomTotal;
             // extra fees will be computed after loop (initialized to 0 earlier)
 
+            // DEBUG: Log inputs room types and rooms detail
+            Log::info('DatPhong::update - Input Checklist', [
+                'room_types_raw' => $request->room_types,
+                'rooms_input' => $request->input('rooms'),
+            ]);
+
+            $roomInput = $request->input('rooms')[$roomType['loai_phong_id']] ?? [];
+            
+            // Ép kiểu rõ ràng để đảm bảo không bị NULL
+            $soNguoi = isset($roomInput['so_nguoi']) ? (int)$roomInput['so_nguoi'] : 0;
+            $soTreEm = isset($roomInput['so_tre_em']) ? (int)$roomInput['so_tre_em'] : 0;
+            $soEmBe = isset($roomInput['so_em_be']) ? (int)$roomInput['so_em_be'] : 0;
+
             $roomTypesArray[] = [
                 'loai_phong_id' => $roomType['loai_phong_id'],
                 'so_luong' => $soLuong,
-                'gia_rieng' => $roomBaseTotal, // Chỉ lưu giá phòng gốc (để tính voucher)
+                'gia_rieng' => $roomBaseTotal, 
+                'so_nguoi' => $soNguoi,
+                'so_tre_em' => $soTreEm,
+                'so_em_be' => $soEmBe,
             ];
+            
+            Log::info('DatPhong::update - Processed Room Type Item', end($roomTypesArray));
         }
 
         // Get first room type for legacy support
@@ -1380,12 +1402,17 @@ class DatPhongController extends Controller
             ]);
 
             // Sync pivot table booking_room_types với loại phòng mới
-            $roomTypesForSync = [];            foreach ($roomTypesArray as $rt) {
+            $roomTypesForSync = [];
+            foreach ($roomTypesArray as $rt) {
                 $roomTypesForSync[$rt['loai_phong_id']] = [
                     'so_luong' => $rt['so_luong'],
                     'gia_rieng' => $rt['gia_rieng'],
+                    'so_nguoi' => $rt['so_nguoi'] ?? 0,
+                    'so_tre_em' => $rt['so_tre_em'] ?? 0,
+                    'so_em_be' => $rt['so_em_be'] ?? 0,
                 ];
             }
+            Log::info('DatPhong::update - Syncing Room Types Payload', ['payload' => $roomTypesForSync]);
             $booking->syncRoomTypes($roomTypesForSync);
 
             // Sync pivot table booking_rooms với phòng được gán mới
@@ -2034,6 +2061,9 @@ class DatPhongController extends Controller
                 'loai_phong' => $loaiPhong,
                 'so_luong' => $room['so_luong'],
                 'price' => $roomTotal,
+                'so_nguoi' => $sumAdults,
+                'so_tre_em' => $sumChildren,
+                'so_em_be' => $sumInfants,
             ];
         }
 
@@ -2225,6 +2255,9 @@ class DatPhongController extends Controller
                 'loai_phong_id' => $roomDetail['loai_phong_id'],
                 'so_luong' => $roomDetail['so_luong'],
                 'gia_rieng' => $roomPrice,
+                'so_nguoi' => $roomDetail['so_nguoi'] ?? 0,
+                'so_tre_em' => $roomDetail['so_tre_em'] ?? 0,
+                'so_em_be' => $roomDetail['so_em_be'] ?? 0,
             ];
         }
 
@@ -2520,6 +2553,9 @@ class DatPhongController extends Controller
                 $roomTypesForSync[$rt['loai_phong_id']] = [
                     'so_luong' => $rt['so_luong'],
                     'gia_rieng' => $rt['gia_rieng'],
+                    'so_nguoi' => $rt['so_nguoi'] ?? 0,
+                    'so_tre_em' => $rt['so_tre_em'] ?? 0,
+                    'so_em_be' => $rt['so_em_be'] ?? 0,
                 ];
             }
             $booking->syncRoomTypes($roomTypesForSync);
@@ -2854,12 +2890,9 @@ class DatPhongController extends Controller
                 'loai_phong_id' => $loaiPhongId,
                 'so_luong' => $soLuong,
                 'gia_rieng' => $roomBaseTotal,
-            ];
-
-            $roomTypesArray[] = [
-                'loai_phong_id' => $loaiPhongId,
-                'so_luong' => $soLuong,
-                'gia_rieng' => $roomBaseTotal, // Chỉ lưu giá phòng gốc (để tính voucher)
+                'so_nguoi' => $roomType['so_nguoi'] ?? 0,
+                'so_tre_em' => $roomType['so_tre_em'] ?? 0,
+                'so_em_be' => $roomType['so_em_be'] ?? 0,
             ];
         }
         
@@ -3641,10 +3674,16 @@ class DatPhongController extends Controller
                         $currentRoomTypes = $booking->roomTypes()->get();
                         if ($currentRoomTypes->count() === 1 && (int) ($currentRoomTypes->first()->pivot->so_luong ?? 0) === 1) {
                             $oldGiaRieng = $currentRoomTypes->first()->pivot->gia_rieng ?? 0;
+                            $oldSoNguoi = $currentRoomTypes->first()->pivot->so_nguoi ?? 0;
+                            $oldSoTreEm = $currentRoomTypes->first()->pivot->so_tre_em ?? 0;
+                            $oldSoEmBe = $currentRoomTypes->first()->pivot->so_em_be ?? 0;
                             $booking->syncRoomTypes([
                                 $phongMoi->loai_phong_id => [
                                     'so_luong' => 1,
                                     'gia_rieng' => $oldGiaRieng,
+                                    'so_nguoi' => $oldSoNguoi,
+                                    'so_tre_em' => $oldSoTreEm,
+                                    'so_em_be' => $oldSoEmBe,
                                 ],
                             ]);
                         }
