@@ -62,10 +62,11 @@
                         </label>
                         <textarea id="noi_dung"
                                   name="noi_dung"
-                                  rows="10"
+                                  rows="15"
                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 @error('noi_dung') border-red-300 @enderror"
                                   placeholder="Nhập nội dung chi tiết của tin tức"
                                   required>{{ old('noi_dung') }}</textarea>
+                        <p class="mt-1 text-xs text-gray-500">Bạn có thể sử dụng Enter để xuống dòng. Nội dung sẽ được hiển thị với định dạng đã nhập.</p>
                         @error('noi_dung')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
@@ -77,13 +78,34 @@
                     <!-- Image Upload -->
                     <div>
                         <label for="hinh_anh" class="block text-sm font-medium text-gray-700 mb-2">
-                            Hình ảnh
+                            Hình ảnh <span class="text-red-500">*</span>
                         </label>
-                        <input type="file"
-                               id="hinh_anh"
-                               name="hinh_anh"
-                               accept="image/*"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 @error('hinh_anh') border-red-300 @enderror">
+                        <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-indigo-400 transition-colors">
+                            <div class="space-y-1 text-center w-full">
+                                <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                                <div class="flex text-sm text-gray-600">
+                                    <label for="hinh_anh" class="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
+                                        <span>Chọn hình ảnh</span>
+                                        <input type="file"
+                                               id="hinh_anh"
+                                               name="hinh_anh"
+                                               accept="image/*"
+                                               class="sr-only"
+                                               required>
+                                    </label>
+                                    <p class="pl-1">hoặc kéo thả vào đây</p>
+                                </div>
+                                <p class="text-xs text-gray-500">PNG, JPG, GIF tối đa 2MB</p>
+                            </div>
+                        </div>
+                        <div id="image-preview-container" class="mt-4 hidden">
+                            <img id="image-preview" src="" alt="Preview" class="w-full h-64 object-cover rounded-lg border border-gray-200 shadow-sm">
+                            <button type="button" id="remove-image" class="mt-2 w-full px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors">
+                                <i class="fas fa-times mr-2"></i>Xóa hình ảnh
+                            </button>
+                        </div>
                         @error('hinh_anh')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
@@ -137,27 +159,86 @@
 </div>
 @push('scripts')
 <script>
-    // Preview hình ảnh khi chọn
-    document.getElementById('hinh_anh').addEventListener('change', function(e) {
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('hinh_anh');
+    const previewContainer = document.getElementById('image-preview-container');
+    const preview = document.getElementById('image-preview');
+    const removeBtn = document.getElementById('remove-image');
+    const dropZone = fileInput.closest('.border-dashed');
+
+    // Preview khi chọn file
+    fileInput.addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (file) {
+            // Validate file size (2MB)
+            if (file.size > 2 * 1024 * 1024) {
+                alert('Kích thước file không được vượt quá 2MB');
+                fileInput.value = '';
+                return;
+            }
+
+            // Validate file type
+            if (!file.type.match('image.*')) {
+                alert('Vui lòng chọn file hình ảnh');
+                fileInput.value = '';
+                return;
+            }
+
             const reader = new FileReader();
             reader.onload = function(e) {
-                // Tạo hoặc cập nhật preview
-                let preview = document.getElementById('image-preview');
-                if (!preview) {
-                    preview = document.createElement('img');
-                    preview.id = 'image-preview';
-                    preview.className = 'mt-2 rounded-lg object-cover';
-                    preview.style.maxWidth = '200px';
-                    preview.style.maxHeight = '200px';
-                    document.getElementById('hinh_anh').parentNode.appendChild(preview);
-                }
                 preview.src = e.target.result;
+                previewContainer.classList.remove('hidden');
+                dropZone.classList.add('hidden');
             };
             reader.readAsDataURL(file);
         }
     });
+
+    // Xóa hình ảnh
+    removeBtn.addEventListener('click', function() {
+        fileInput.value = '';
+        preview.src = '';
+        previewContainer.classList.add('hidden');
+        dropZone.classList.remove('hidden');
+    });
+
+    // Drag and drop
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, highlight, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, unhighlight, false);
+    });
+
+    function highlight(e) {
+        dropZone.classList.add('border-indigo-500', 'bg-indigo-50');
+    }
+
+    function unhighlight(e) {
+        dropZone.classList.remove('border-indigo-500', 'bg-indigo-50');
+    }
+
+    dropZone.addEventListener('drop', handleDrop, false);
+
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files.length > 0) {
+            fileInput.files = files;
+            fileInput.dispatchEvent(new Event('change'));
+        }
+    }
+});
 </script>
 @endpush
 @endsection
