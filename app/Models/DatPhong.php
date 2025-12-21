@@ -485,12 +485,12 @@ class DatPhong extends Model
 
         // Quy tắc sức chứa phòng:
         // - Sức chứa cơ bản: 2 người
-        // - Tối đa extra: +1 người lớn, +2 trẻ em, +2 em bé
-        // - Tổng tối đa: 2 + 1 + 2 + 2 = 7 người
+        // - Tối đa extra: +1 người lớn, +2 trẻ em, +1 em bé
+        // - Tổng tối đa: 2 + 1 + 2 + 1 = 6 người
         $baseCapacity = 2;
         $maxExtraAdults = 1;
         $maxExtraChildren = 2;
-        $maxExtraInfants = 2;
+        $maxExtraInfants = 1;
 
         // Tính tổng số người hiện tại
         $totalAdults = $initial['adults'] + $added['adults'];
