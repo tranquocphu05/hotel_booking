@@ -659,15 +659,36 @@
                         <div
                             class="swiper-slide bg-white rounded-3xl p-8 flex flex-col items-center text-center transition duration-300 relative z-10">
 
-                            @if (!empty($comment->user->avatar))
-                                <img src="{{ asset('storage/' . $comment->user->avatar) }}" alt="Avatar người dùng"
+                            @php
+                                $displayName = trim(optional($comment->user)->ho_ten ?? optional($comment->user)->username ?? '');
+                                $parts = $displayName !== ''
+                                    ? preg_split('/\s+/u', $displayName, -1, PREG_SPLIT_NO_EMPTY)
+                                    : [];
+                                $last = $parts ? end($parts) : $displayName;
+                                $initial = $last !== '' ? mb_strtoupper(mb_substr($last, 0, 1, 'UTF-8'), 'UTF-8') : '?';
+
+                                $userImg = optional($comment->user)->img;
+                                $userAvatarUrl = $userImg
+                                    ? (preg_match('/^https?:\/\//i', $userImg) ? $userImg : asset(ltrim($userImg, '/')))
+                                    : null;
+                            @endphp
+
+                            @if (!empty($userAvatarUrl))
+                                <img src="{{ $userAvatarUrl }}" alt="Avatar người dùng"
+                                    onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
                                     class="w-20 h-20 rounded-full object-cover mb-4 shadow-md border-2 border-yellow-400 hover:scale-105 transition-transform duration-300">
+                                <div aria-label="Avatar" title="{{ $displayName }}" style="display:none"
+                                    class="w-20 h-20 rounded-full mb-4 shadow-md border-2 border-gray-300 bg-gray-200 text-gray-700 flex items-center justify-center font-bold text-2xl select-none">
+                                    {{ $initial }}
+                                </div>
                             @elseif(!empty($comment->img))
                                 <img src="{{ asset('storage/' . $comment->img) }}" alt="Ảnh đánh giá"
                                     class="w-20 h-20 rounded-full object-cover mb-4 shadow-md border-2 border-yellow-400 hover:scale-105 transition-transform duration-300">
                             @else
-                                <img src="{{ asset('img/default-avatar.png') }}" alt="Avatar mặc định"
-                                    class="w-20 h-20 rounded-full object-cover mb-4 shadow-md border-2 border-gray-300">
+                                <div aria-label="Avatar" title="{{ $displayName }}"
+                                    class="w-20 h-20 rounded-full mb-4 shadow-md border-2 border-gray-300 bg-gray-200 text-gray-700 flex items-center justify-center font-bold text-2xl select-none">
+                                    {{ $initial }}
+                                </div>
                             @endif
 
                             <p class="italic text-gray-600 text-lg leading-relaxed mb-6 max-w-2xl">
@@ -682,7 +703,7 @@
                             </div>
 
                             <p class="font-semibold text-gray-800">
-                                — {{ $comment->user->username ?? ($comment->user->name ?? 'Ẩn danh') }}
+                                — {{ optional($comment->user)->ho_ten ?? optional($comment->user)->username ?? 'Ẩn danh' }}
                             </p>
                             <p class="text-sm text-gray-500 mt-2">
                                 {{ optional($comment->ngay_danh_gia)->format('d/m/Y') }}
