@@ -19,6 +19,7 @@ use App\Http\Controllers\Client\PhongController as ClientPhongController;
 use App\Http\Controllers\Client\LoaiPhongController as ClientLoaiPhongController;
 use App\Http\Controllers\Client\ContactController as ClientContactController;
 use App\Http\Controllers\Client\GioiThieuController as ClientGioiThieuController;
+use App\Http\Controllers\Client\ChinhSachController as ClientChinhSachController;
 use App\Http\Controllers\Client\TinTucController as ClientTinTucController;
 use App\Http\Controllers\Client\ThanhToanController as ClientThanhToanController;
 use App\Http\Controllers\Client\CommentController as ClientCommentController;
@@ -193,6 +194,7 @@ Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\Allow
 
     Route::get('/lien-he', [ClientContactController::class, 'index'])->name('lienhe');
     Route::get('/gioi-thieu', [ClientGioiThieuController::class, 'index'])->name('gioithieu');
+    Route::get('/chinh-sach', [ClientChinhSachController::class, 'index'])->name('chinhsach');
 
     // Payment routes
     Route::get('/thanh-toan/{datPhong}', [ClientThanhToanController::class, 'show'])->name('thanh-toan.show');

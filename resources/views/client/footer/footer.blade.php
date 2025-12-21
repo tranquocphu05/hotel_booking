@@ -62,9 +62,8 @@
     <div class="border-t border-gray-700 mt-10 pt-6">
         <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center text-sm">
             <ul class="flex flex-wrap justify-center md:justify-start space-x-4 mb-4 md:mb-0">
-                <li><a href="#" class="hover:text-[#D4AF37]">Liên hệ</a></li>
-                <li><a href="#" class="hover:text-[#D4AF37]">Điều khoản sử dụng</a></li>
-                <li><a href="#" class="hover:text-[#D4AF37]">Chính sách bảo mật</a></li>
+                <li><a href="{{ route('client.lienhe') }}" class="hover:text-[#D4AF37]">Liên hệ</a></li>
+                <li><a href="{{ route('client.chinhsach') }}" class="hover:text-[#D4AF37]">Chính sách</a></li>
                 <li><a href="{{ route('client.gioithieu') }}" class="hover:text-[#D4AF37]">Giới thiệu</a></li>
             </ul>
             <p class="text-gray-400 text-center md:text-right">
