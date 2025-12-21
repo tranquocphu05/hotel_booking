@@ -3481,11 +3481,13 @@ class DatPhongController extends Controller
      * Đổi phòng trực tiếp từ admin
      *
      * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\DatPhong  $booking
+     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function changeRoom(Request $request, DatPhong $booking)
+    public function changeRoom(Request $request, $id)
     {
+        $booking = DatPhong::findOrFail($id);
+        
         // Kiểm tra quyền (project không dùng $this->authorize())
         if ($this->hasRole('admin')) {
             // admin: full access
