@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
 use App\Models\LoaiPhong;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use App\Traits\HasRolePermissions;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Cache;
 
 class LoaiPhongController extends Controller
 {

@@ -379,7 +379,7 @@
                         @if ($booking->trang_thai === 'da_xac_nhan' && $booking->thoi_gian_checkin && !$booking->thoi_gian_checkout)
                             <div id="changeRoomForm" class="hidden border-b bg-purple-50 border-purple-200 p-4">
                                 <h4 class="font-medium text-gray-900 mb-3">Đổi phòng</h4>
-                                <form method="POST" action="{{ route('admin.dat-phong.change-room', $booking->id) }}" class="space-y-4">
+                                <form method="POST" action="{{ route('admin.dat_phong.change-room', $booking->id) }}" class="space-y-4">
                                     @csrf
 
                                     <div>

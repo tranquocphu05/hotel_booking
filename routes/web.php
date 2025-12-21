@@ -97,9 +97,6 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsStaff
         return view('admin.test');
     })->name('test');
 
-    Route::post('/dat-phong/{booking}/change-room', [DatPhongController::class, 'changeRoom'])
-        ->name('dat-phong.change-room');
-
     Route::resource('users', \App\Http\Controllers\Admin\UserController::class)->names('users');
     Route::put('users/{user}/toggle-status', [\App\Http\Controllers\Admin\UserController::class, 'toggleStatus'])->name('users.toggle');
     Route::resource('loai_phong', LoaiPhongController::class)->names('loai_phong');
@@ -159,6 +156,8 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsStaff
         // Add/remove stay guest (thêm người khi đang ở)
         Route::post('/{id}/stay-guests', [\App\Http\Controllers\Admin\StayGuestController::class, 'store'])->name('stay_guests.store');
         Route::delete('/{id}/stay-guests/{guest}', [\App\Http\Controllers\Admin\StayGuestController::class, 'destroy'])->name('stay_guests.destroy');
+        // Change room
+        Route::post('/{id}/change-room', [DatPhongController::class, 'changeRoom'])->name('change-room');
     });
 
     // Booking Services routes
