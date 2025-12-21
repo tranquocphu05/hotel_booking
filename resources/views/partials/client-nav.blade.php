@@ -48,6 +48,9 @@
                 <a href="{{ route('client.tintuc') }}" class="nav-link text-gray-600 hover:text-yellow-600 py-2 font-semibold transition-all duration-200 hover:scale-105">Tin
                     Tức</a>
 
+                <a href="{{ route('client.chinhsach') }}" class="nav-link text-gray-600 hover:text-yellow-600 py-2 font-semibold transition-all duration-200 hover:scale-105">Chính
+                    Sách</a>
+
                 <a href="{{ route('client.lienhe') }}" class="nav-link text-gray-600 hover:text-yellow-600 py-2 font-semibold transition-all duration-200 hover:scale-105">Liên
                     Hệ</a>
 
