@@ -96,8 +96,15 @@
 
     <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 space-y-8">
         @forelse($phongs as $phong)
+            @php
+                // Nếu đã chọn ngày checkin/checkout, luôn truyền kèm vào link chi tiết
+                $detailUrl = route('client.phong.show', $phong->id);
+                if (!empty($checkin) && !empty($checkout)) {
+                    $detailUrl .= '?checkin=' . urlencode($checkin) . '&checkout=' . urlencode($checkout);
+                }
+            @endphp
             <div class="group cursor-pointer"
-                onclick="window.location.href='{{ route('client.phong.show', $phong->id) }}'">
+                onclick="window.location.href='{{ $detailUrl }}'">
                 <div
                     class="bg-white rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100">
                     <div class="flex flex-col md:flex-row md:items-stretch">
@@ -218,7 +225,7 @@
                                         <i class="fas fa-calendar-check"></i>
                                         <span>Đặt ngay</span>
                                     </button>
-                                    <button onclick="event.stopPropagation(); window.location.href='{{ route('client.phong.show', $phong->id) }}?checkin={{ $checkin }}&checkout={{ $checkout }}'"
+                                    <button onclick="event.stopPropagation(); window.location.href='{{ $detailUrl }}'"
                                         class="inline-flex items-center justify-center gap-1.5 bg-white hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg transition-all duration-200 font-medium text-sm border border-gray-200 hover:border-gray-300">
                                         <i class="fas fa-info-circle text-[#D4AF37] text-xs"></i>
                                         <span>Xem chi tiết phòng</span>
@@ -237,7 +244,7 @@
                                         <i class="fas fa-calendar-alt"></i>
                                         <span>Chọn ngày để đặt</span>
                                     </button>
-                                    <button onclick="event.stopPropagation(); window.location.href='{{ route('client.phong.show', $phong->id) }}'"
+                                    <button onclick="event.stopPropagation(); window.location.href='{{ $detailUrl }}'"
                                         class="inline-flex items-center justify-center gap-1.5 bg-white hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg transition-all duration-200 font-medium text-sm border border-gray-200 hover:border-gray-300">
                                         <i class="fas fa-info-circle text-[#D4AF37] text-xs"></i>
                                         <span>Xem chi tiết phòng</span>
