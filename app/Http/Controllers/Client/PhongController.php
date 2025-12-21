@@ -66,7 +66,7 @@ class PhongController extends Controller
         $checkin = $request->get('checkin');
         $checkout = $request->get('checkout');
         $availabilityMap = [];
-        
+
         // Optimize: Cache availability checks (5 minutes) - real-time but frequently accessed
         if ($checkin && $checkout) {
             $cacheKeyPrefix = 'room_availability_' . md5($checkin . $checkout);
@@ -82,7 +82,18 @@ class PhongController extends Controller
             }
         }
 
-        return view('client.content.phong', compact('phongs', 'allLoaiPhongs', 'checkin', 'checkout', 'availabilityMap'));
+        // Tính tổng số phòng thật cho từng loại phòng để hiển thị mẫu số chính xác
+        $totalRoomsMap = [];
+        if ($phongs->count() > 0) {
+            $loaiPhongIds = $phongs->pluck('id')->all();
+            $totalRoomsMap = Phong::whereIn('loai_phong_id', $loaiPhongIds)
+                ->selectRaw('loai_phong_id, COUNT(*) as total')
+                ->groupBy('loai_phong_id')
+                ->pluck('total', 'loai_phong_id')
+                ->toArray();
+        }
+
+        return view('client.content.phong', compact('phongs', 'allLoaiPhongs', 'checkin', 'checkout', 'availabilityMap', 'totalRoomsMap'));
     }
 
     // Chi tiết loại phòng theo ID
