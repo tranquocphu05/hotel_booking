@@ -1,18 +1,92 @@
-<div x-data="{ currentSlide: 1, totalSlides: 3 }" x-init="setInterval(() => { currentSlide = (currentSlide % totalSlides) + 1 }, 3000)" class="relative min-h-[780px] lg:min-h-[600px]">
+<div x-data="{
+         slides: @js(collect(['img/hero/3.webp', 'img/hero/abc.jpg', 'img/hero/dx.jpg'])->map(fn($p) => asset($p))->values()),
+         currentIndex: 0,
+         nextIndex: 1,
+         isFading: false,
+         isLocked: false,
+         duration: 1200,
+         interval: 6000,
+         timer: null,
+         loaded: {},
+         setNextIndex() {
+             if (!this.slides.length) return;
+             this.nextIndex = (this.currentIndex + 1) % this.slides.length;
+         },
+         ensureLoaded(index) {
+             const src = this.slides[index];
+             if (!src) return Promise.resolve();
+             if (this.loaded[src]) return Promise.resolve();
 
-    <div class="absolute inset-0">
-        @php
-            $slides = ['img/hero/3.webp', 'img/hero/abc.jpg', 'img/hero/dx.jpg'];
-        @endphp
+             return new Promise((resolve) => {
+                 let done = false;
+                 const finish = () => {
+                     if (done) return;
+                     done = true;
+                     this.loaded[src] = true;
+                     resolve();
+                 };
 
-        @foreach ($slides as $index => $image)
-            <div x-show="currentSlide === {{ $index + 1 }}" x-transition:enter="transition ease-out duration-1000"
-                x-transition:leave="transition ease-in duration-1000"
-                class="absolute inset-0 bg-cover bg-center h-full w-full"
-                style="background-image: url('{{ asset($image) }}');">
-            </div>
-        @endforeach
-    </div>
+                 const img = new Image();
+                 img.decoding = 'async';
+                 img.onload = finish;
+                 img.onerror = finish;
+                 img.src = src;
+
+                 if (img.decode) {
+                     img.decode().then(finish).catch(() => {});
+                 }
+             });
+         },
+         preload() {
+             return Promise.all(this.slides.map((_, idx) => this.ensureLoaded(idx)));
+         },
+         start() {
+             if (this.slides.length <= 1) return;
+             this.setNextIndex();
+             this.preload().finally(() => {
+                 this.timer = setInterval(() => this.goTo(), this.interval);
+             });
+         },
+         goTo(index = null) {
+             if (this.isLocked) return;
+             if (!this.slides.length) return;
+
+             const targetIndex = (index === null)
+                 ? ((this.currentIndex + 1) % this.slides.length)
+                 : index;
+
+             if (targetIndex === this.currentIndex) return;
+
+             this.isLocked = true;
+             this.nextIndex = targetIndex;
+             this.isFading = false;
+
+             this.ensureLoaded(this.nextIndex).finally(() => {
+                 requestAnimationFrame(() => {
+                     this.isFading = true;
+                     setTimeout(() => {
+                         this.currentIndex = this.nextIndex;
+                         this.isFading = false;
+                         this.setNextIndex();
+                         this.isLocked = false;
+                     }, this.duration);
+                 });
+             });
+         },
+     }"
+     x-init="start()"
+     class="relative min-h-[780px] lg:min-h-[600px]">
+
+     <div class="absolute inset-0">
+         <div class="hero-slide absolute inset-0 bg-cover bg-center h-full w-full"
+             :style="slides.length ? `background-image: url('${slides[currentIndex]}')` : ''"></div>
+
+         <div x-cloak class="hero-slide absolute inset-0 bg-cover bg-center h-full w-full transition-opacity ease-in-out opacity-0"
+             :class="isFading ? 'opacity-100' : 'opacity-0'"
+             :style="slides.length
+                 ? `background-image: url('${slides[nextIndex]}'); transition-duration: ${isFading ? duration : 0}ms;`
+                 : `transition-duration: ${isFading ? duration : 0}ms;`"></div>
+     </div>
     <div class="absolute inset-0 bg-black/60 z-10"></div>
 
     <div class="w-full max-w-screen-xl mx-auto flex flex-col items-center justify-center relative z-10 pt-36 md:pt-44 pb-4">
@@ -103,9 +177,9 @@
     </div>
 
     <div class="absolute bottom-5 left-1/2 -translate-x-1/2 flex space-x-2 z-20">
-        <template x-for="i in totalSlides" :key="i">
-            <button @click="currentSlide = i"
-                :class="{ 'bg-white w-10': currentSlide === i, 'bg-gray-400 w-3': currentSlide !== i }"
+        <template x-for="i in slides.length" :key="i">
+            <button @click="goTo(i - 1)"
+                :class="{ 'bg-white w-10': currentIndex === i - 1, 'bg-gray-400 w-3': currentIndex !== i - 1 }"
                 class="h-3 rounded-full transition-all duration-300 cursor-pointer">
             </button>
         </template>
@@ -113,6 +187,13 @@
 </div>
 
 <style>
+    .hero-slide {
+        will-change: opacity, transform;
+        backface-visibility: hidden;
+        transform: translateZ(0);
+        background-color: #000;
+    }
+
     .placeholder-dark::placeholder {
         color: #374151 !important;
         /* Ví dụ: một màu xám đậm hơn */
