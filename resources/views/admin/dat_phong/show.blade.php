@@ -1191,7 +1191,7 @@
                                     @endif
                                 </div>
 
-                                @if ($booking->invoice->trang_thai === 'cho_thanh_toan' && $booking->trang_thai === 'da_xac_nhan')
+                                @if ($booking->invoice->trang_thai === 'cho_thanh_toan')
                                     <form action="{{ route('admin.dat_phong.mark_paid', $booking->id) }}" method="POST"
                                         class="mt-4">
                                         @csrf
