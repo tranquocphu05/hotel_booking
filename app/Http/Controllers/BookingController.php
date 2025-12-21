@@ -29,6 +29,11 @@ class BookingController extends Controller
         $checkin  = $request->query('checkin');
         $checkout = $request->query('checkout');
         $guests   = $request->query('guests');
+        
+        // Số khách chi tiết (người lớn, trẻ em, em bé)
+        $adults   = $request->query('adults', 2);
+        $children = $request->query('children', 0);
+        $infants  = $request->query('infants', 0);
 
         // Get all available room types for selection (Mường Thanh style - show all rooms)
         $allLoaiPhongs = LoaiPhong::where('trang_thai', 'hoat_dong')
@@ -60,6 +65,9 @@ class BookingController extends Controller
             'checkin'             => $checkin,
             'checkout'            => $checkout,
             'guests'              => $guests,
+            'adults'              => $adults,
+            'children'            => $children,
+            'infants'             => $infants,
             'checkinToUse'        => $checkinToUse,  // Ngày checkin để tính availability
             'checkoutToUse'       => $checkoutToUse, // Ngày checkout để tính availability
         ]);
