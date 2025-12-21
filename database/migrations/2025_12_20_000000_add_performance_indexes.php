@@ -127,3 +127,4 @@ return new class extends Migration
         return $result[0]->count > 0;
     }
 };
+

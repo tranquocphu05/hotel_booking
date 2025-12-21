@@ -24,3 +24,4 @@ class BookingReceived extends Mailable
             ->view('emails.booking_received');
     }
 }
+
