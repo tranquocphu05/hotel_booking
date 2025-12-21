@@ -755,7 +755,7 @@
             </div>
         </div>
     </div>
-    
+
 
     @push('scripts')
         <script>
@@ -1379,7 +1379,7 @@
                             <h4 class="font-semibold text-gray-900">Loại phòng ${roomIndex + 1}</h4>
                             <p class="text-sm text-gray-600 quantity-text">0 phòng</p>
                         </div>
-                        <button type="button" onclick="removeRoom(${roomIndex})" 
+                        <button type="button" onclick="removeRoom(${roomIndex})"
                             class="text-red-600 hover:text-red-800 text-sm font-medium">
                             <i class="fas fa-trash-alt"></i> Xóa
                         </button>
@@ -1387,7 +1387,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Loại phòng</label>
-                            <select name="room_types[${roomIndex}][loai_phong_id]" 
+                            <select name="room_types[${roomIndex}][loai_phong_id]"
                                 class="room-type-select w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                                 onchange="handleRoomTypeChange(${roomIndex}, this.value)"
                                 required>
