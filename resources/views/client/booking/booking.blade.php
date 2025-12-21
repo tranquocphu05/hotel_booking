@@ -351,17 +351,7 @@
                                                     <div class="room-card__header">
                                                         <h4>{{ $option->ten_loai }}</h4>
                                                         @php
-                                                            $capacityParts = [];
-                                                            if ($option->suc_chua) {
-                                                                $capacityParts[] = $option->suc_chua . ' người lớn';
-                                                            }
-                                                            if ($option->suc_chua_tre_em) {
-                                                                $capacityParts[] = $option->suc_chua_tre_em . ' trẻ em';
-                                                            }
-                                                            if ($option->suc_chua_em_be) {
-                                                                $capacityParts[] = $option->suc_chua_em_be . ' em bé';
-                                                            }
-                                                            $capacityText = !empty($capacityParts) ? implode(', ', $capacityParts) : 'Phù hợp 2-3 khách';
+                                                            $capacityText = 'Phù hợp 2-3 khách';
                                                         @endphp
                                                         <span class="room-card__tag">{{ $capacityText }}</span>
                                                     </div>
@@ -814,6 +804,11 @@
         window.bookingConfig.csrfToken = '{{ csrf_token() }}';
         window.bookingConfig.defaultRoomCount = {{ $loaiPhong->so_luong_phong ?? 0 }};
         window.bookingConfig.userId = {{ auth()->check() ? auth()->id() : 'null' }};
+        
+        // Số khách từ trang chi tiết phòng
+        window.bookingConfig.initialAdults = {{ $adults ?? 2 }};
+        window.bookingConfig.initialChildren = {{ $children ?? 0 }};
+        window.bookingConfig.initialInfants = {{ $infants ?? 0 }};
 
         // Handle back navigation (bfcache) - force reload to get fresh data
         window.addEventListener('pageshow', function(event) {

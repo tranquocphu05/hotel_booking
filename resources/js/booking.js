@@ -199,8 +199,18 @@ class BookingManager {
         const maxChildren = parseInt(quantityInput.dataset.maxChildren) || 2;
         const maxInfants = parseInt(quantityInput.dataset.maxInfants) || 2;
 
-        const defaultAdults =
-            parseInt(defaultAdultsSel?.value || maxAdults) || maxAdults;
+        // Lấy giá trị mặc định từ bookingConfig (từ trang chi tiết phòng) hoặc từ maxAdults
+        const configAdults = this.bookingConfig.initialAdults;
+        const configChildren = this.bookingConfig.initialChildren;
+        const configInfants = this.bookingConfig.initialInfants;
+        
+        // Sử dụng giá trị từ config nếu có, không vượt quá max
+        const defaultAdults = Math.min(
+            parseInt(defaultAdultsSel?.value) || (configAdults !== undefined ? configAdults : maxAdults),
+            maxAdults
+        );
+        const defaultChildren = Math.min(configChildren || 0, maxChildren);
+        const defaultInfants = Math.min(configInfants || 0, maxInfants);
 
         // Get surcharge rates from room type data
         const childFee = parseFloat(quantityInput.dataset.childFee) || 0;
@@ -229,8 +239,8 @@ class BookingManager {
 
             const adultsValue =
                 previousValues[adultsRowId] || String(defaultAdults);
-            const childrenValue = previousValues[childrenRowId] || "0";
-            const infantsValue = previousValues[infantsRowId] || "0";
+            const childrenValue = previousValues[childrenRowId] || String(defaultChildren);
+            const infantsValue = previousValues[infantsRowId] || String(defaultInfants);
 
             rows.push(`
                 <div class="border-b border-dashed border-gray-300 py-2" data-guest-row>
@@ -238,7 +248,7 @@ class BookingManager {
                     <div class="flex gap-3">
                         <!-- Adults (Người lớn) -->
                         <div class="flex-1">
-                            <div class="text-sm text-gray-700 mb-1">Người lớn (tối đa ${maxAdults})</div>
+                            <div class="text-sm text-gray-700 mb-1">Người lớn</div>
                             <select id="${adultsRowId}"
                                     class="w-full border border-gray-300 rounded px-2 py-1 text-sm bg-white appearance-none cursor-pointer"
                                     data-room-id="${roomId}"
@@ -250,7 +260,7 @@ class BookingManager {
 
                         <!-- Children (Trẻ em 6-11 tuổi) -->
                         <div class="flex-1">
-                            <div class="text-sm text-gray-700 mb-1">Trẻ em 6-11 (tối đa ${maxChildren})</div>
+                            <div class="text-sm text-gray-700 mb-1">Trẻ em 6-11</div>
                             <select id="${childrenRowId}"
                                     class="w-full border border-gray-300 rounded px-2 py-1 text-sm bg-white appearance-none cursor-pointer"
                                     data-room-id="${roomId}"
@@ -262,7 +272,7 @@ class BookingManager {
 
                         <!-- Infants (Em bé 0-5 tuổi) -->
                         <div class="flex-1">
-                            <div class="text-sm text-gray-700 mb-1">Em bé 0-5 (tối đa ${maxInfants})</div>
+                            <div class="text-sm text-gray-700 mb-1">Em bé 0-5</div>
                             <select id="${infantsRowId}"
                                     class="w-full border border-gray-300 rounded px-2 py-1 text-sm bg-white appearance-none cursor-pointer"
                                     data-room-id="${roomId}"
@@ -294,10 +304,10 @@ class BookingManager {
                     previousValues[adultsRowId] || String(defaultAdults);
             }
             if (childrenSel) {
-                childrenSel.value = previousValues[childrenRowId] || "0";
+                childrenSel.value = previousValues[childrenRowId] || String(defaultChildren);
             }
             if (infantsSel) {
-                infantsSel.value = previousValues[infantsRowId] || "0";
+                infantsSel.value = previousValues[infantsRowId] || String(defaultInfants);
             }
         }
 
