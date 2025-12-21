@@ -216,53 +216,63 @@ class RevenueController extends Controller
             ? round((($currentRevenue - $previousRevenue) / $previousRevenue) * 100, 1)
             : 0;
 
-        // Doanh thu theo từng ngày trong khoảng (tính theo ngày tạo invoice)
-        $dailyRevenue = [];
-        $cursor = $startDate->copy();
-
-        while ($cursor->lte($endDate)) {
-            $dayStart = $cursor->copy()->startOfDay();
-            $dayEnd = $cursor->copy()->endOfDay();
-
-            // Doanh thu từ invoices đã thanh toán trong ngày
-            $dayPayments = ThanhToan::where('trang_thai', 'success')
-                ->whereBetween('ngay_thanh_toan', [$dayStart, $dayEnd])
+        // Optimize: Load all daily data at once instead of querying per day
+        $cacheKeyDaily = 'daily_revenue_chart_' . $startDate->format('Y-m-d') . '_' . $endDate->format('Y-m-d');
+        $dailyRevenue = \Illuminate\Support\Facades\Cache::remember($cacheKeyDaily, 300, function () use ($startDate, $endDate) {
+            // Load all payments grouped by day
+            $allPayments = ThanhToan::where('trang_thai', 'success')
+                ->whereBetween('ngay_thanh_toan', [$startDate, $endDate])
                 ->where('so_tien', '>', 0)
-                ->sum('so_tien');
+                ->selectRaw('DAY(ngay_thanh_toan) as day, SUM(so_tien) as total')
+                ->groupBy('day')
+                ->pluck('total', 'day');
             
-            // Tổng tiền hoàn từ dịch vụ trong ngày
-            $dayRefundsFromServices = RefundService::whereHas('invoice', function($query) use ($dayStart, $dayEnd) {
-                    $query->whereBetween('ngay_tao', [$dayStart, $dayEnd]);
+            // Load all refunds grouped by day
+            $allRefundsServices = RefundService::whereHas('invoice', function($query) use ($startDate, $endDate) {
+                    $query->whereBetween('ngay_tao', [$startDate, $endDate]);
                 })
-                ->whereBetween('created_at', [$dayStart, $dayEnd])
-                ->sum('total_refund');
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->selectRaw('DAY(created_at) as day, SUM(total_refund) as total')
+                ->groupBy('day')
+                ->pluck('total', 'day');
             
-            // Tổng tiền hoàn từ phòng trong ngày (từ invoices hủy)
-            $dayRefundsFromRooms = Invoice::where('trang_thai', 'hoan_tien')
-                ->whereBetween('ngay_tao', [$dayStart, $dayEnd])
-                ->sum('tong_tien');
+            $allRefundsRooms = Invoice::where('trang_thai', 'hoan_tien')
+                ->whereBetween('ngay_tao', [$startDate, $endDate])
+                ->selectRaw('DAY(ngay_tao) as day, SUM(tong_tien) as total')
+                ->groupBy('day')
+                ->pluck('total', 'day');
             
-            $dayRefundsFromPayments = abs(ThanhToan::where('trang_thai', 'success')
-                ->whereBetween('ngay_thanh_toan', [$dayStart, $dayEnd])
+            $allRefundsPayments = ThanhToan::where('trang_thai', 'success')
+                ->whereBetween('ngay_thanh_toan', [$startDate, $endDate])
                 ->where('so_tien', '<', 0)
-                ->sum('so_tien'));
+                ->selectRaw('DAY(ngay_thanh_toan) as day, ABS(SUM(so_tien)) as total')
+                ->groupBy('day')
+                ->pluck('total', 'day');
             
-            // Tổng tiền hoàn trong ngày = Tiền hoàn dịch vụ + Tiền hoàn phòng
-            $dayRefunds = $dayRefundsFromServices + ($dayRefundsFromRooms > 0 ? $dayRefundsFromRooms : $dayRefundsFromPayments);
+            // Build daily revenue array
+            $dailyRevenue = [];
+            $cursor = $startDate->copy();
+            while ($cursor->lte($endDate)) {
+                $day = (int) $cursor->format('d');
+                $dayPayments = $allPayments[$day] ?? 0;
+                $dayRefundsServices = $allRefundsServices[$day] ?? 0;
+                $dayRefundsRooms = $allRefundsRooms[$day] ?? 0;
+                $dayRefundsPayments = $allRefundsPayments[$day] ?? 0;
+                
+                $dayRefunds = $dayRefundsServices + ($dayRefundsRooms > 0 ? $dayRefundsRooms : $dayRefundsPayments);
+                $dayNetRevenue = $dayPayments - $dayRefunds;
+                $dayTotalRevenue = $dayRefunds + $dayNetRevenue;
+                
+                $dailyRevenue[] = [
+                    'day' => $day,
+                    'revenue' => $dayTotalRevenue,
+                ];
+                
+                $cursor->addDay();
+            }
             
-            // Doanh thu ròng trong ngày
-            $dayNetRevenue = $dayPayments - $dayRefunds;
-            
-            // Tổng tiền thu trong ngày = Tổng tiền hoàn + Doanh thu ròng
-            $dayTotalRevenue = $dayRefunds + $dayNetRevenue;
-
-            $dailyRevenue[] = [
-                'day' => (int) $cursor->format('d'),
-                'revenue' => $dayTotalRevenue, // Sử dụng tổng tiền thu mới
-            ];
-
-            $cursor->addDay();
-        }
+            return $dailyRevenue;
+        });
 
         // Tổng tiền thu: Tính theo ngày trong khoảng (tổng tất cả các ngày)
         // Lấy từ invoices đã thanh toán (theo giao dịch) - tính theo ngày tạo invoice

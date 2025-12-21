@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class CommentController extends Controller
 {
@@ -21,28 +22,45 @@ class CommentController extends Controller
         $room = LoaiPhong::findOrFail($roomId);
 
         $filterStar = $request->query('star'); // Lọc ?star=1..5
-        $query = Comment::where('loai_phong_id', $roomId)
-            ->where('trang_thai', 'hien_thi');
+        
+        // Cache comments for 10 minutes - frequently accessed - select only needed columns
+        $cacheKey = 'comments_' . md5($request->fullUrl());
+        $comments = Cache::remember($cacheKey, 600, function () use ($roomId, $filterStar) {
+            $query = Comment::where('loai_phong_id', $roomId)
+                ->where('trang_thai', 'hien_thi')
+                ->with(['user' => function($q) {
+                    $q->select('id', 'ho_ten', 'img');
+                }])
+                ->select('id', 'nguoi_dung_id', 'loai_phong_id', 'noi_dung', 'so_sao', 'ngay_danh_gia', 'img', 'trang_thai');
+            
+            if ($filterStar && in_array($filterStar, [1,2,3,4,5])) {
+                $query->where('so_sao', $filterStar);
+            }
+            
+            return $query->latest('ngay_danh_gia')->paginate(10);
+        });
 
-        if ($filterStar && in_array($filterStar, [1,2,3,4,5])) {
-            $query->where('so_sao', $filterStar);
-        }
-
-        $comments = $query->latest('ngay_danh_gia')->paginate(10);
-
-        $averageRating = Comment::where('loai_phong_id', $roomId)
-            ->where('trang_thai', 'hien_thi')
-            ->avg('so_sao');
-
-        $totalReviews = Comment::where('loai_phong_id', $roomId)
-            ->where('trang_thai', 'hien_thi')
-            ->count();
-
-        $countByStars = Comment::selectRaw('so_sao, COUNT(*) as total')
-            ->where('loai_phong_id', $roomId)
-            ->where('trang_thai', 'hien_thi')
-            ->groupBy('so_sao')
-            ->pluck('total', 'so_sao');
+        // Cache statistics (10 minutes)
+        $statsCacheKey = "comment_stats_{$roomId}";
+        $stats = Cache::remember($statsCacheKey, 600, function () use ($roomId) {
+            return [
+                'averageRating' => Comment::where('loai_phong_id', $roomId)
+                    ->where('trang_thai', 'hien_thi')
+                    ->avg('so_sao'),
+                'totalReviews' => Comment::where('loai_phong_id', $roomId)
+                    ->where('trang_thai', 'hien_thi')
+                    ->count(),
+                'countByStars' => Comment::selectRaw('so_sao, COUNT(*) as total')
+                    ->where('loai_phong_id', $roomId)
+                    ->where('trang_thai', 'hien_thi')
+                    ->groupBy('so_sao')
+                    ->pluck('total', 'so_sao'),
+            ];
+        });
+        
+        $averageRating = $stats['averageRating'];
+        $totalReviews = $stats['totalReviews'];
+        $countByStars = $stats['countByStars'];
 
         $existing = null;
         if (auth()->check()) {

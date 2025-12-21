@@ -827,7 +827,8 @@
                        hover:shadow-xl hover:scale-[1.02] transition duration-300 ease-in-out">
                                 <div class="relative">
                                     <img src="{{ asset($phong->anh ?? 'img/room/room-1.jpg') }}"
-                                        alt="{{ $phong->ten_loai ?? 'Loại phòng' }}" class="w-full h-48 object-cover">
+                                        alt="{{ $phong->ten_loai ?? 'Loại phòng' }}" class="w-full h-48 object-cover"
+                                        loading="lazy" decoding="async">
 
                                     {{-- Badge Deal Hot --}}
                                     @if($phong->gia_khuyen_mai && $phong->gia_khuyen_mai < $phong->gia_co_ban)

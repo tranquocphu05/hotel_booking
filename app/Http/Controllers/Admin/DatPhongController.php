@@ -31,7 +31,8 @@ class DatPhongController extends Controller
     {
         // Nhân viên và Lễ tân: xem danh sách đặt phòng
         // Lấy tất cả đơn đặt phòng và sắp xếp theo ngày đặt mới nhất
-        $query = DatPhong::with(['loaiPhong', 'voucher', 'invoice'])
+        // Eager load all necessary relationships to avoid N+1 queries
+        $query = DatPhong::with(['loaiPhong', 'voucher', 'invoice', 'user'])
             ->orderBy('ngay_dat', 'desc');
 
         // Áp dụng các bộ lọc
@@ -57,10 +58,19 @@ class DatPhongController extends Controller
 
         // Lấy thống kê tổng số đặt phòng theo từng trạng thái (tất cả các đơn)
         $bookingCounts = [
-            'cho_xac_nhan' => DatPhong::where('trang_thai', 'cho_xac_nhan')->count(),
-            'da_xac_nhan' => DatPhong::where('trang_thai', 'da_xac_nhan')->count(),
-            'da_huy' => DatPhong::where('trang_thai', 'da_huy')->count(),
-            'da_tra' => DatPhong::where('trang_thai', 'da_tra')->count(),
+            // Cache booking counts (5 minutes) - frequently accessed but changes moderately
+            'cho_xac_nhan' => \Illuminate\Support\Facades\Cache::remember('bookings_count_cho_xac_nhan', 300, function () {
+                return DatPhong::where('trang_thai', 'cho_xac_nhan')->count();
+            }),
+            'da_xac_nhan' => \Illuminate\Support\Facades\Cache::remember('bookings_count_da_xac_nhan', 300, function () {
+                return DatPhong::where('trang_thai', 'da_xac_nhan')->count();
+            }),
+            'da_huy' => \Illuminate\Support\Facades\Cache::remember('bookings_count_da_huy', 300, function () {
+                return DatPhong::where('trang_thai', 'da_huy')->count();
+            }),
+            'da_tra' => \Illuminate\Support\Facades\Cache::remember('bookings_count_da_tra', 300, function () {
+                return DatPhong::where('trang_thai', 'da_tra')->count();
+            }),
         ];
 
         // Phân trang, mỗi trang 5 đơn

@@ -49,20 +49,16 @@ class InvoiceController extends Controller
         }
         // Note: Removed default filter to show all invoices unless explicitly filtered
 
+        // Eager load relationships to avoid N+1 queries
+        $query->with(['datPhong.user', 'datPhong.loaiPhong']);
+
         // Get paginated results
         $invoices = $query->latest()->paginate(5);
 
-        // Force reload each invoice from database to get latest tong_tien and clear any cached accessors
-        $invoices->getCollection()->transform(function($inv) {
-            $fresh = $inv->fresh();
-            // Load relationships fresh to ensure accessors work correctly
-            $fresh->load(['datPhong' => function($q) {
-                $q->with('user', 'loaiPhong');
-            }]);
-            return $fresh;
+        // Cache users list (15 minutes) - rarely changes
+        $users = \Illuminate\Support\Facades\Cache::remember('users_khach_hang', 900, function () {
+            return User::where('vai_tro', 'khach_hang')->get();
         });
-
-        $users = User::where('vai_tro', 'khach_hang')->get();
 
         return view('admin.invoices.index', compact('invoices', 'users'));
     }
