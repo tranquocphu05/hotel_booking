@@ -19,6 +19,7 @@ use App\Http\Controllers\Client\PhongController as ClientPhongController;
 use App\Http\Controllers\Client\LoaiPhongController as ClientLoaiPhongController;
 use App\Http\Controllers\Client\ContactController as ClientContactController;
 use App\Http\Controllers\Client\GioiThieuController as ClientGioiThieuController;
+use App\Http\Controllers\Client\ChinhSachController as ClientChinhSachController;
 use App\Http\Controllers\Client\TinTucController as ClientTinTucController;
 use App\Http\Controllers\Client\ThanhToanController as ClientThanhToanController;
 use App\Http\Controllers\Client\CommentController as ClientCommentController;
@@ -97,9 +98,6 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsStaff
         return view('admin.test');
     })->name('test');
 
-    Route::post('/dat-phong/{booking}/change-room', [DatPhongController::class, 'changeRoom'])
-        ->name('dat-phong.change-room');
-
     Route::resource('users', \App\Http\Controllers\Admin\UserController::class)->names('users');
     Route::put('users/{user}/toggle-status', [\App\Http\Controllers\Admin\UserController::class, 'toggleStatus'])->name('users.toggle');
     Route::resource('loai_phong', LoaiPhongController::class)->names('loai_phong');
@@ -159,6 +157,8 @@ Route::prefix('admin')->name('admin.')->middleware([\App\Http\Middleware\IsStaff
         // Add/remove stay guest (thêm người khi đang ở)
         Route::post('/{id}/stay-guests', [\App\Http\Controllers\Admin\StayGuestController::class, 'store'])->name('stay_guests.store');
         Route::delete('/{id}/stay-guests/{guest}', [\App\Http\Controllers\Admin\StayGuestController::class, 'destroy'])->name('stay_guests.destroy');
+        // Change room
+        Route::post('/{id}/change-room', [DatPhongController::class, 'changeRoom'])->name('change-room');
     });
 
     // Booking Services routes
@@ -194,6 +194,7 @@ Route::prefix('client')->name('client.')->middleware([\App\Http\Middleware\Allow
 
     Route::get('/lien-he', [ClientContactController::class, 'index'])->name('lienhe');
     Route::get('/gioi-thieu', [ClientGioiThieuController::class, 'index'])->name('gioithieu');
+    Route::get('/chinh-sach', [ClientChinhSachController::class, 'index'])->name('chinhsach');
 
     // Payment routes
     Route::get('/thanh-toan/{datPhong}', [ClientThanhToanController::class, 'show'])->name('thanh-toan.show');

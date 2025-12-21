@@ -19,13 +19,32 @@ class NewsController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
         // Chỉ admin mới được quản lý tin tức
         if (!$this->hasRole('admin')) {
             abort(403, 'Bạn không có quyền truy cập chức năng này.');
         }
-        $news = News::with('admin')->orderBy('created_at', 'desc')->paginate(10);
+
+        $query = News::with('admin');
+
+        // Tìm kiếm
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('tieu_de', 'like', "%{$search}%")
+                  ->orWhere('tom_tat', 'like', "%{$search}%")
+                  ->orWhere('noi_dung', 'like', "%{$search}%");
+            });
+        }
+
+        // Lọc theo trạng thái
+        if ($request->filled('status')) {
+            $query->where('trang_thai', $request->status);
+        }
+
+        $news = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
+        
         return view('admin.news.index', compact('news'));
     }
 
@@ -151,7 +170,7 @@ class NewsController extends Controller
         $data = $request->all();
         $data['slug'] = Str::slug($request->tieu_de);
 
-        // Xử lý upload hình ảnh mới
+        // Xử lý upload hình ảnh mới (chỉ khi có file mới)
         if ($request->hasFile('hinh_anh')) {
             // Xóa hình ảnh cũ nếu có
             if ($news->hinh_anh && file_exists(public_path($news->hinh_anh))) {
@@ -162,6 +181,9 @@ class NewsController extends Controller
             $imageName = time() . '_' . $image->getClientOriginalName();
             $image->move(public_path('uploads'), $imageName);
             $data['hinh_anh'] = 'uploads/' . $imageName;
+        } else {
+            // Giữ nguyên hình ảnh cũ nếu không có file mới
+            unset($data['hinh_anh']);
         }
 
         $oldSlug = $news->slug;

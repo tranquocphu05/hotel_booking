@@ -71,13 +71,13 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 py-4">
                         <div class="overflow-hidden rounded-lg shadow-md">
-                            <img src="{{ asset('img/blog/blog-details/blog-details-1.jpg') }}" alt="Hình ảnh Blog 1" class="w-full h-auto object-cover">
+                            <img src="{{ asset('img/blog/blog-details/blog-details-1.jpg') }}" alt="Hình ảnh Blog 1" class="w-full h-auto object-cover" loading="lazy" decoding="async">
                         </div>
                         <div class="overflow-hidden rounded-lg shadow-md">
-                            <img src="{{ asset('img/blog/blog-details/blog-details-2.jpg') }}" alt="Hình ảnh Blog 2" class="w-full h-auto object-cover">
+                            <img src="{{ asset('img/blog/blog-details/blog-details-2.jpg') }}" alt="Hình ảnh Blog 2" class="w-full h-auto object-cover" loading="lazy" decoding="async">
                         </div>
                         <div class="overflow-hidden rounded-lg shadow-md">
-                            <img src="{{ asset('img/blog/blog-details/blog-details-3.jpg') }}" alt="Hình ảnh Blog 3" class="w-full h-auto object-cover">
+                            <img src="{{ asset('img/blog/blog-details/blog-details-3.jpg') }}" alt="Hình ảnh Blog 3" class="w-full h-auto object-cover" loading="lazy" decoding="async">
                         </div>
                     </div>
                     
@@ -157,45 +157,235 @@
 <section class="py-16 md:py-24 bg-gray-50">
     <div class="max-w-7xl mx-auto px-4">
         <div class="text-center mb-12">
-            <h2 class="text-3xl md:text-4xl font-serif font-bold text-gray-900">Bài viết Đề xuất</h2>
+            <h2 class="text-3xl md:text-4xl font-serif font-bold text-gray-900 mb-2">Bài viết Đề xuất</h2>
+            <p class="text-gray-600">Khám phá thêm những bài viết thú vị khác</p>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            
-            @if(isset($relatedPosts) && $relatedPosts->count() > 0)
-                @foreach ($relatedPosts as $item)
-                    <div class="relative h-80 rounded-lg overflow-hidden shadow-xl group">
-                        <div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105" 
-                            style="background-image: url('{{ $item->hinh_anh ? asset($item->hinh_anh) : 'https://placehold.co/600x400/D9D9D9/333333?text=Hotel+Blog' }}');">
-                        </div>
-                        
-                        {{-- Overlay & Nội dung --}}
-                        <div class="absolute inset-0 bg-black bg-opacity-40 group-hover:bg-opacity-20 transition duration-300"></div>
-                        
-                        <div class="absolute bottom-0 left-0 p-5 text-white z-10">
-                            <span class="inline-block bg-red-600 text-white text-xs uppercase px-3 py-1 mb-2 font-semibold rounded-full tracking-wider">
-                                Tin tức
-                            </span>
-                            <h4 class="text-xl font-serif font-bold leading-snug hover:text-red-300 transition">
-                                <a href="{{ route('client.tintuc.show', $item->slug) }}">{{ $item->tieu_de }}</a>
-                            </h4>
-                            <div class="text-sm mt-1 flex items-center opacity-90">
-                                <i class="fa fa-clock mr-2 text-red-400"></i> {{ $item->created_at->format('d/m/Y') }}
+        
+        @if(isset($relatedPosts) && $relatedPosts->count() > 0)
+            {{-- Swiper Container --}}
+            <div class="relative">
+                <div class="swiper relatedPostsSwiper">
+                    <div class="swiper-wrapper">
+                        @foreach ($relatedPosts as $item)
+                            <div class="swiper-slide">
+                                <div class="relative h-80 rounded-lg overflow-hidden shadow-xl group cursor-pointer">
+                                    <a href="{{ route('client.tintuc.show', $item->slug) }}" class="block h-full">
+                                        <div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110" 
+                                            style="background-image: url('{{ $item->hinh_anh ? asset($item->hinh_anh) : 'https://placehold.co/600x400/D9D9D9/333333?text=Hotel+Blog' }}');">
+                                        </div>
+                                        
+                                        {{-- Overlay & Nội dung --}}
+                                        <div class="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent group-hover:from-black/80 transition duration-300"></div>
+                                        
+                                        <div class="absolute bottom-0 left-0 right-0 p-5 text-white z-10">
+                                            <span class="inline-block bg-red-600 text-white text-xs uppercase px-3 py-1 mb-2 font-semibold rounded-full tracking-wider">
+                                                Tin tức
+                                            </span>
+                                            <h4 class="text-xl font-serif font-bold leading-snug mb-2 group-hover:text-red-300 transition">
+                                                {{ Str::limit($item->tieu_de, 60) }}
+                                            </h4>
+                                            <div class="flex items-center gap-4 text-sm opacity-90">
+                                                <div class="flex items-center">
+                                                    <i class="fa fa-clock mr-2 text-red-400"></i> 
+                                                    <span>{{ $item->created_at->format('d/m/Y') }}</span>
+                                                </div>
+                                                <div class="flex items-center">
+                                                    <i class="fa fa-eye mr-2 text-red-400"></i> 
+                                                    <span>{{ number_format($item->luot_xem) }} lượt xem</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
                             </div>
-                            <div class="text-sm mt-1 flex items-center opacity-90">
-                                <i class="fa fa-eye mr-2 text-red-400"></i> {{ number_format($item->luot_xem) }} lượt xem
-                            </div>
-                        </div>
+                        @endforeach
                     </div>
-                @endforeach
-            @else
-                <div class="col-span-full text-center text-gray-500">
-                    <p>Chưa có bài viết liên quan nào.</p>
+                    
+                    {{-- Navigation Buttons --}}
+                    <div class="swiper-button-next relatedPostsNext"></div>
+                    <div class="swiper-button-prev relatedPostsPrev"></div>
+                    
+                    {{-- Pagination --}}
+                    <div class="swiper-pagination relatedPostsPagination"></div>
                 </div>
-            @endif
-            
-        </div>
+            </div>
+        @else
+            <div class="text-center py-12">
+                <i class="fas fa-newspaper text-gray-300 text-5xl mb-4"></i>
+                <p class="text-gray-500 text-lg">Chưa có bài viết liên quan nào.</p>
+            </div>
+        @endif
     </div>
 </section>
 {{-- END BÀI VIẾT ĐỀ XUẤT --}}
+
+@push('styles')
+<style>
+    /* Related Posts Swiper Styles */
+    .relatedPostsSwiper {
+        padding: 20px 50px 60px !important;
+        overflow: visible;
+    }
+
+    .relatedPostsSwiper .swiper-slide {
+        height: auto;
+        transition: transform 0.3s ease;
+    }
+
+    .relatedPostsSwiper .swiper-slide:hover {
+        transform: translateY(-5px);
+    }
+
+    /* Navigation Buttons */
+    .relatedPostsNext,
+    .relatedPostsPrev {
+        width: 44px;
+        height: 44px;
+        background: white;
+        border-radius: 50%;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        color: #dc2626;
+        transition: all 0.3s ease;
+    }
+
+    .relatedPostsNext:hover,
+    .relatedPostsPrev:hover {
+        background: #dc2626;
+        color: white;
+        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+        transform: scale(1.1);
+    }
+
+    .relatedPostsNext::after,
+    .relatedPostsPrev::after {
+        font-size: 18px;
+        font-weight: bold;
+    }
+
+    .relatedPostsNext {
+        right: 0;
+    }
+
+    .relatedPostsPrev {
+        left: 0;
+    }
+
+    /* Pagination */
+    .relatedPostsPagination {
+        bottom: 20px !important;
+    }
+
+    .relatedPostsPagination .swiper-pagination-bullet {
+        width: 12px;
+        height: 12px;
+        background: #dc2626;
+        opacity: 0.3;
+        transition: all 0.3s ease;
+    }
+
+    .relatedPostsPagination .swiper-pagination-bullet-active {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .relatedPostsSwiper {
+            padding: 20px 40px 60px !important;
+        }
+
+        .relatedPostsNext,
+        .relatedPostsPrev {
+            width: 36px;
+            height: 36px;
+        }
+
+        .relatedPostsNext::after,
+        .relatedPostsPrev::after {
+            font-size: 14px;
+        }
+    }
+</style>
+@endpush
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof Swiper === 'undefined') {
+        console.error('Swiper library not found!');
+        return;
+    }
+
+    const relatedPostsSwiperEl = document.querySelector('.relatedPostsSwiper');
+    if (relatedPostsSwiperEl) {
+        const postCount = {{ isset($relatedPosts) ? $relatedPosts->count() : 0 }};
+        const shouldLoop = postCount > 3;
+        
+        const swiper = new Swiper('.relatedPostsSwiper', {
+            // Số slide hiển thị
+            slidesPerView: 1,
+            slidesPerGroup: 1,
+            spaceBetween: 24,
+
+            // Tự động chuyển slide (chỉ khi có nhiều slide)
+            autoplay: shouldLoop ? {
+                delay: 4000,
+                disableOnInteraction: false,
+                pauseOnMouseEnter: true,
+            } : false,
+
+            // Loop (chỉ khi có nhiều hơn số slide hiển thị)
+            loop: shouldLoop,
+
+            // Navigation buttons
+            navigation: {
+                nextEl: '.relatedPostsNext',
+                prevEl: '.relatedPostsPrev',
+            },
+
+            // Pagination
+            pagination: {
+                el: '.relatedPostsPagination',
+                clickable: true,
+                dynamicBullets: postCount > 5,
+            },
+
+            // Responsive breakpoints
+            breakpoints: {
+                640: {
+                    slidesPerView: 2,
+                    slidesPerGroup: 2,
+                    spaceBetween: 20,
+                },
+                1024: {
+                    slidesPerView: 3,
+                    slidesPerGroup: 3,
+                    spaceBetween: 24,
+                },
+            },
+
+            // Hiệu ứng chuyển slide
+            effect: 'slide',
+            speed: 600,
+
+            // Grab cursor
+            grabCursor: true,
+
+            // Ẩn navigation nếu không đủ slide
+            on: {
+                init: function() {
+                    if (postCount <= 3) {
+                        const nextBtn = document.querySelector('.relatedPostsNext');
+                        const prevBtn = document.querySelector('.relatedPostsPrev');
+                        if (nextBtn) nextBtn.style.display = 'none';
+                        if (prevBtn) prevBtn.style.display = 'none';
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+@endpush
 
 @endsection

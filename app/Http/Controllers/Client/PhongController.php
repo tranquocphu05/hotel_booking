@@ -40,17 +40,25 @@ class PhongController extends Controller
             });
         }
 
+        // Select only needed columns to reduce memory usage
+        $query->select('id', 'ten_loai', 'gia_co_ban', 'gia_khuyen_mai', 'diem_danh_gia', 'so_luong_trong', 'anh', 'trang_thai', 'mo_ta');
+
         // Sắp xếp
         $sortBy = $request->get('sort', 'diem_danh_gia');
         $sortOrder = $request->get('order', 'desc');
         $query->orderBy($sortBy, $sortOrder);
 
-        // Pagination - Đổi tên biến để giữ tương thích với view
-        $phongs = $query->paginate(12)->appends(request()->query());
+        // Pagination - Cache paginated results (5 minutes)
+        $cacheKey = 'phongs_list_' . md5($request->fullUrl());
+        $phongs = Cache::remember($cacheKey, 300, function () use ($query, $request) {
+            return $query->paginate(12)->appends(request()->query());
+        });
         
-        // Cache allLoaiPhongs (15 phút)
-        $allLoaiPhongs = Cache::remember('all_loai_phongs_active', 900, function () {
-            return LoaiPhong::where('trang_thai', 'hoat_dong')->get();
+        // Cache allLoaiPhongs (30 phút) - rarely changes
+        $allLoaiPhongs = Cache::remember('all_loai_phongs_active', 1800, function () {
+            return LoaiPhong::where('trang_thai', 'hoat_dong')
+                ->select('id', 'ten_loai', 'gia_co_ban', 'gia_khuyen_mai', 'trang_thai', 'so_luong_trong')
+                ->get();
         });
 
         // Tính availability theo khoảng thời gian (nếu có)
@@ -58,19 +66,34 @@ class PhongController extends Controller
         $checkin = $request->get('checkin');
         $checkout = $request->get('checkout');
         $availabilityMap = [];
-        
+
+        // Optimize: Cache availability checks (5 minutes) - real-time but frequently accessed
         if ($checkin && $checkout) {
+            $cacheKeyPrefix = 'room_availability_' . md5($checkin . $checkout);
             foreach ($phongs as $phong) {
-                try {
-                    $availableCount = Phong::countAvailableRooms($phong->id, $checkin, $checkout);
-                    $availabilityMap[$phong->id] = $availableCount;
-                } catch (\Exception $e) {
-                    $availabilityMap[$phong->id] = null;
-                }
+                $cacheKey = $cacheKeyPrefix . '_' . $phong->id;
+                $availabilityMap[$phong->id] = Cache::remember($cacheKey, 300, function () use ($phong, $checkin, $checkout) {
+                    try {
+                        return Phong::countAvailableRooms($phong->id, $checkin, $checkout);
+                    } catch (\Exception $e) {
+                        return null;
+                    }
+                });
             }
         }
 
-        return view('client.content.phong', compact('phongs', 'allLoaiPhongs', 'checkin', 'checkout', 'availabilityMap'));
+        // Tính tổng số phòng thật cho từng loại phòng để hiển thị mẫu số chính xác
+        $totalRoomsMap = [];
+        if ($phongs->count() > 0) {
+            $loaiPhongIds = $phongs->pluck('id')->all();
+            $totalRoomsMap = Phong::whereIn('loai_phong_id', $loaiPhongIds)
+                ->selectRaw('loai_phong_id, COUNT(*) as total')
+                ->groupBy('loai_phong_id')
+                ->pluck('total', 'loai_phong_id')
+                ->toArray();
+        }
+
+        return view('client.content.phong', compact('phongs', 'allLoaiPhongs', 'checkin', 'checkout', 'availabilityMap', 'totalRoomsMap'));
     }
 
     // Chi tiết loại phòng theo ID
@@ -85,19 +108,23 @@ class PhongController extends Controller
             abort(404, 'Loại phòng không tồn tại');
         }
 
-        // Cache related loại phòng (15 phút)
+        // Cache related loại phòng (15 phút) - select only needed columns
         $relatedLoaiPhongs = Cache::remember("related_loai_phongs_{$id}", 900, function () use ($loaiPhong) {
             return LoaiPhong::where('id', '!=', $loaiPhong->id)
                 ->where('trang_thai', 'hoat_dong')
+                ->select('id', 'ten_loai', 'gia_co_ban', 'gia_khuyen_mai', 'diem_danh_gia', 'anh', 'trang_thai')
                 ->limit(4)
                 ->get();
         });
 
-        // Cache comments (10 phút)
+        // Cache comments (10 phút) - select only needed columns
         $comments = Cache::remember("comments_loai_phong_{$id}", 600, function () use ($id) {
-            return Comment::with('user')
+            return Comment::with(['user' => function($q) {
+                    $q->select('id', 'ho_ten', 'img');
+                }])
                 ->where('loai_phong_id', $id)
                 ->where('trang_thai', 'hien_thi')
+                ->select('id', 'nguoi_dung_id', 'loai_phong_id', 'noi_dung', 'so_sao', 'ngay_danh_gia', 'img', 'trang_thai')
                 ->orderBy('ngay_danh_gia', 'desc')
                 ->get();
         });
@@ -152,12 +179,19 @@ class PhongController extends Controller
             });
         }
 
+        // Select only needed columns
+        $query->select('id', 'ten_loai', 'gia_co_ban', 'gia_khuyen_mai', 'diem_danh_gia', 'so_luong_trong', 'anh', 'trang_thai');
+
         // Sắp xếp
         $sortBy = $request->get('sort', 'diem_danh_gia');
         $sortOrder = $request->get('order', 'desc');
         $query->orderBy($sortBy, $sortOrder);
 
-        $rooms = $query->get();
+        // Cache API response (5 minutes)
+        $cacheKey = 'api_rooms_' . md5($request->fullUrl());
+        $rooms = Cache::remember($cacheKey, 300, function () use ($query) {
+            return $query->get();
+        });
 
         return response()->json([
             'success' => true,

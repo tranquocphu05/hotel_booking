@@ -827,7 +827,8 @@
                        hover:shadow-xl hover:scale-[1.02] transition duration-300 ease-in-out">
                                 <div class="relative">
                                     <img src="{{ asset($phong->anh ?? 'img/room/room-1.jpg') }}"
-                                        alt="{{ $phong->ten_loai ?? 'Loại phòng' }}" class="w-full h-48 object-cover">
+                                        alt="{{ $phong->ten_loai ?? 'Loại phòng' }}" class="w-full h-48 object-cover"
+                                        loading="lazy" decoding="async">
 
                                     {{-- Badge Deal Hot --}}
                                     @if($phong->gia_khuyen_mai && $phong->gia_khuyen_mai < $phong->gia_co_ban)
@@ -865,7 +866,7 @@
                                     <div class="mb-3">
                                         <p class="text-sm text-gray-600">
                                             <i class="fas fa-bed text-gray-400 mr-1"></i>
-                                            Còn <span class="font-semibold text-green-600">{{ $phong->so_luong_trong ?? 0 }}</span>/<span class="text-gray-500">{{ $phong->so_luong_phong ?? 0 }}</span> phòng trống
+                                            Còn <span class="font-semibold text-green-600">{{ $phong->so_luong_trong ?? 0 }}</span> phòng trống
                                         </p>
                                         @if($phong->gia_khuyen_mai && $phong->gia_khuyen_mai < $phong->gia_co_ban)
                                             @php
@@ -1044,10 +1045,10 @@
                     class="w-full h-full object-cover">
             </div>
 
-            <!-- Google Maps -->
+            <!-- Google Maps: FPT Polytechnic Hà Nội (Trịnh Văn Bô) -->
             <div class="equal-box overflow-hidden rounded-lg shadow-md">
                 <iframe
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.122108862899!2d106.6781747147715!3d10.79374029231644!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752f360824b267%3A0x64f43446b32b85d3!2s244A%20Pasteur%2C%20Ph%C6%B0%E1%BB%9Dng%20Xu%C3%A2n%20Ho%C3%A0%2C%20Th%C3%A0nh%20ph%E1%BB%91%20H%E1%BB%93%20Ch%C3%AD%20Minh!5e0!3m2!1svi!2s!4v1633512345678!5m2!1svi!2s"
+                    src="https://www.google.com/maps?q=Cao%20%C4%91%E1%BA%B3ng%20FPT%20Polytechnic%20H%C3%A0%20N%E1%BB%99i%20Tr%E1%BB%8Bnh%20V%C4%83n%20B%C3%B4&output=embed"
                     allowfullscreen="" loading="lazy" class="w-full h-full border-0">
                 </iframe>
             </div>

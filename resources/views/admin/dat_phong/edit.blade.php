@@ -941,7 +941,7 @@
             </div>
         </div>
     </div>
-    
+
 
     @push('scripts')
         <script>
@@ -1580,10 +1580,9 @@
                                 <p class="text-sm text-blue-600 font-medium quantity-text">1 phòng</p>
                             </div>
                         </div>
-                        <button type="button" onclick="removeRoom(${roomIndex})"
-                            class="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition"
-                            title="Xóa loại phòng này">
-                            <i class="fas fa-trash-alt"></i>
+                        <button type="button" onclick="removeRoom(${roomIndex})" 
+                            class="text-red-600 hover:text-red-800 text-sm font-medium">
+                            <i class="fas fa-trash-alt"></i> Xóa
                         </button>
                     </div>
                     
@@ -1594,6 +1593,9 @@
                             <label class="block text-sm font-medium text-gray-700 mb-1">Loại phòng</label>
                             <select name="room_types[${roomIndex}][loai_phong_id]"
                                 class="room-type-select w-full px-3 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Loại phòng</label>
+                            <select name="room_types[${roomIndex}][loai_phong_id]"
+                                class="room-type-select w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                                 onchange="handleRoomTypeChange(${roomIndex}, this.value)"
                                 required>
                                 ${selectOptions}

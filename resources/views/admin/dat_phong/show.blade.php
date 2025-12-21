@@ -379,7 +379,7 @@
                         @if ($booking->trang_thai === 'da_xac_nhan' && $booking->thoi_gian_checkin && !$booking->thoi_gian_checkout)
                             <div id="changeRoomForm" class="hidden border-b bg-purple-50 border-purple-200 p-4">
                                 <h4 class="font-medium text-gray-900 mb-3">Đổi phòng</h4>
-                                <form method="POST" action="{{ route('admin.dat-phong.change-room', $booking->id) }}" class="space-y-4">
+                                <form method="POST" action="{{ route('admin.dat_phong.change-room', $booking->id) }}" class="space-y-4">
                                     @csrf
 
                                     <div>
@@ -395,9 +395,11 @@
                                             @foreach ($currentRooms as $p)
                                                 @php
                                                     $oldRate = $p->loaiPhong->gia_khuyen_mai ?? $p->loaiPhong->gia_co_ban ?? 0;
+                                                    $roomNumber = $p->so_phong ?? $p->ten_phong ?? ('#' . $p->id);
                                                 @endphp
                                                 <option value="{{ $p->id }}" data-old-rate="{{ $oldRate }}">
-                                                    {{ $p->ten_phong ?? ('Phòng #' . $p->id) }}
+                                                    Phòng {{ $roomNumber }}
+                                                    @if ($p->tang) - Tầng {{ $p->tang }} @endif
                                                 </option>
                                             @endforeach
                                         </select>
@@ -434,8 +436,11 @@
                                                                 data-new-rate="{{ $newRate }}">
                                                                 <option value="">-- Chọn phòng --</option>
                                                                 @foreach ($rooms as $room)
+                                                                    @php
+                                                                        $roomNumber = $room->so_phong ?? $room->ten_phong ?? ('#' . $room->id);
+                                                                    @endphp
                                                                     <option value="{{ $room->id }}">
-                                                                        {{ $room->ten_phong ?? ('Phòng #' . $room->id) }}@if ($room->tang) - Tầng {{ $room->tang }} @endif
+                                                                        Phòng {{ $roomNumber }}@if ($room->tang) - Tầng {{ $room->tang }} @endif
                                                                     </option>
                                                                 @endforeach
                                                             </select>
@@ -1204,9 +1209,10 @@
             </div>
             {{-- ACTION BUTTONS FOOTER --}}
             <div class="mt-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    {{-- Back button styled like other actions --}}
                     <a href="{{ route('admin.dat_phong.index') }}"
-                        class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2.5 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition">
+                        class="inline-flex items-center px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-sm font-medium rounded-lg text-gray-700 shadow-sm transition">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -1214,7 +1220,7 @@
                         Quay lại danh sách
                     </a>
 
-                    <div class="flex flex-wrap gap-3 w-full sm:w-auto justify-center sm:justify-end">
+                    <div class="flex flex-wrap gap-3 justify-end flex-1">
                         @if (in_array(auth()->user()->vai_tro ?? '', ['admin', 'nhan_vien']) && $booking->trang_thai === 'cho_xac_nhan')
                             <a href="{{ route('admin.dat_phong.edit', $booking->id) }}"
                                 class="inline-flex items-center px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow-sm transition">

@@ -18,7 +18,10 @@ class TinTucController extends Controller
         
         $posts = Cache::remember($cacheKey, 600, function () {
             return News::published()
-                ->with('admin')
+                ->with(['admin' => function($q) {
+                    $q->select('id', 'ho_ten');
+                }])
+                ->select('id', 'tieu_de', 'tom_tat', 'noi_dung', 'hinh_anh', 'slug', 'created_at', 'nguoi_dung_id', 'luot_xem')
                 ->orderBy('created_at', 'desc')
                 ->paginate(9);
         });
@@ -32,7 +35,10 @@ class TinTucController extends Controller
         $cacheKey = "news_slug_{$slug}";
         $post = Cache::remember($cacheKey, 1800, function () use ($slug) {
             return News::published()
-                ->with('admin')
+                ->with(['admin' => function($q) {
+                    $q->select('id', 'ho_ten');
+                }])
+                ->select('id', 'tieu_de', 'tom_tat', 'noi_dung', 'hinh_anh', 'slug', 'created_at', 'nguoi_dung_id', 'luot_xem')
                 ->bySlug($slug)
                 ->first();
         });
@@ -49,6 +55,7 @@ class TinTucController extends Controller
         $relatedPosts = Cache::remember($relatedCacheKey, 900, function () use ($post) {
             return News::published()
                 ->where('id', '!=', $post->id)
+                ->select('id', 'tieu_de', 'tom_tat', 'hinh_anh', 'slug', 'created_at')
                 ->orderBy('created_at', 'desc')
                 ->limit(3)
                 ->get();
