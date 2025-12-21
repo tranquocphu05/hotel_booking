@@ -26,6 +26,27 @@
     </script>
 </head>
 <body class="h-full transition-colors duration-300">
+    <!-- Global Loading Overlay -->
+    <div id="global-loading-overlay" class="hidden fixed inset-0 bg-black bg-opacity-70 z-[9999]" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; max-width: 400px; padding: 0 20px;">
+            <div class="bg-white rounded-xl p-10 flex flex-col items-center justify-center shadow-2xl" style="width: 100%;">
+                <div class="relative mb-6 flex items-center justify-center" style="width: 80px; height: 80px; margin: 0 auto;">
+                    <div class="animate-spin rounded-full border-4 border-gray-200 border-t-indigo-600" style="width: 80px; height: 80px; position: absolute; top: 0; left: 0;"></div>
+                    <div class="absolute inset-0 flex items-center justify-center" style="width: 80px; height: 80px;">
+                        <i class="fas fa-spinner text-indigo-600 text-2xl"></i>
+                    </div>
+                </div>
+                <p class="text-gray-800 font-semibold text-lg mb-2 text-center w-full">Đang tải...</p>
+                <p class="text-sm text-gray-500 text-center w-full">Vui lòng đợi trong giây lát</p>
+                <div class="mt-4 flex space-x-1 justify-center items-center">
+                    <div class="w-2 h-2 bg-indigo-600 rounded-full animate-bounce" style="animation-delay: 0s;"></div>
+                    <div class="w-2 h-2 bg-indigo-600 rounded-full animate-bounce" style="animation-delay: 0.2s;"></div>
+                    <div class="w-2 h-2 bg-indigo-600 rounded-full animate-bounce" style="animation-delay: 0.4s;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <div class="min-h-full flex">
         <!-- Mobile sidebar backdrop -->
         <div id="sidebar-backdrop" class="fixed inset-0 bg-gray-600 bg-opacity-75 z-20 hidden lg:hidden"></div>
@@ -1257,6 +1278,60 @@
             }
         `;
         document.head.appendChild(style);
+    </script>
+    
+    <!-- Global Loading Script -->
+    <script>
+        // Đảm bảo loading luôn căn giữa khi hiển thị
+        function showGlobalLoading() {
+            const globalLoading = document.getElementById('global-loading-overlay');
+            if (globalLoading) {
+                globalLoading.style.display = 'block';
+                globalLoading.style.position = 'fixed';
+                globalLoading.style.top = '0';
+                globalLoading.style.left = '0';
+                globalLoading.style.right = '0';
+                globalLoading.style.bottom = '0';
+                globalLoading.style.width = '100%';
+                globalLoading.style.height = '100%';
+                globalLoading.classList.remove('hidden');
+            }
+        }
+        
+        function hideGlobalLoading() {
+            const globalLoading = document.getElementById('global-loading-overlay');
+            if (globalLoading) {
+                globalLoading.style.display = 'none';
+                globalLoading.classList.add('hidden');
+            }
+        }
+        
+        // Ẩn loading ngay khi DOM ready
+        document.addEventListener('DOMContentLoaded', function() {
+            hideGlobalLoading();
+        });
+        
+        // Ẩn loading khi trang load xong
+        window.addEventListener('load', function() {
+            hideGlobalLoading();
+        });
+        
+        // Hiển thị loading khi trang bắt đầu unload (chuyển trang)
+        window.addEventListener('beforeunload', function() {
+            showGlobalLoading();
+        });
+        
+        // Hiển thị loading khi click vào các link navigation
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('a[href]:not([href^="#"]):not([href^="javascript:"])').forEach(function(link) {
+                link.addEventListener('click', function(e) {
+                    // Chỉ hiển thị loading cho các link trong cùng domain
+                    if (this.href && (this.href.includes(window.location.host) || this.href.startsWith('/'))) {
+                        showGlobalLoading();
+                    }
+                });
+            });
+        });
     </script>
 </body>
 </html>

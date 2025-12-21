@@ -66,12 +66,14 @@ class InvoiceController extends Controller
     public function show(Invoice $invoice)
     {
         $invoice->load(['datPhong' => function($q) {
-            $q->with('user', 'loaiPhong');
+            $q->with('user', 'loaiPhong', 'phongs');
         }]);
 
         $booking = $invoice->datPhong;
         $services = [];
         $serviceTotal = 0;
+        $refundedServiceIds = collect(); // Track which services have been refunded
+        
         if ($invoice->invoice_type === 'EXTRA') {
             // Only show services for this invoice
             $services = BookingService::with('service', 'phong')
@@ -80,8 +82,17 @@ class InvoiceController extends Controller
             $serviceTotal = $services->sum(function($bs) {
                 return ($bs->quantity ?? 0) * ($bs->unit_price ?? 0);
             });
+        } elseif ($invoice->invoice_type === 'REFUND') {
+            // REFUND: show only services for this refund invoice (negative quantities)
+            $services = BookingService::with('service', 'phong')
+                ->where('invoice_id', $invoice->id)
+                ->get();
+            $serviceTotal = $services->sum(function($bs) {
+                return ($bs->quantity ?? 0) * ($bs->unit_price ?? 0);
+            });
         } else {
             // PREPAID: show all booking services (legacy: invoice_id NULL or matches main invoice)
+            // Include all services including those with quantity <= 0 (refunded services)
             $services = BookingService::with('service', 'phong')
                 ->where('dat_phong_id', $invoice->dat_phong_id)
                 ->where(function($q) use ($invoice) {
@@ -91,11 +102,39 @@ class InvoiceController extends Controller
             $serviceTotal = $services->sum(function($bs) {
                 return ($bs->quantity ?? 0) * ($bs->unit_price ?? 0);
             });
+            
+            // Check which services have been refunded (via refund invoices)
+            if ($booking) {
+                $refundInvoices = Invoice::where('original_invoice_id', $invoice->id)
+                    ->where('invoice_type', 'REFUND')
+                    ->pluck('id');
+                
+                if ($refundInvoices->isNotEmpty()) {
+                    // Get all services that have negative quantities in refund invoices
+                    $refundedServices = BookingService::where('dat_phong_id', $booking->id)
+                        ->whereIn('invoice_id', $refundInvoices)
+                        ->where('quantity', '<', 0)
+                        ->get();
+                    
+                    // Create a map: service_id + phong_id + used_at => true if refunded
+                    $refundedServiceIds = $refundedServices->mapWithKeys(function($bs) {
+                        $key = $bs->service_id . '_' . ($bs->phong_id ?? 'null') . '_' . ($bs->used_at ? date('Y-m-d', strtotime($bs->used_at)) : 'null');
+                        return [$key => true];
+                    });
+                }
+            }
         }
         // Compute remaining removable quantity per service across the booking
         $serviceAvailability = [];
         $roomMap = [];
         $bookingServiceOptions = [];
+        
+        // For REFUND invoices, get options from original invoice
+        $sourceInvoice = $invoice;
+        if ($invoice->invoice_type === 'REFUND' && $invoice->originalInvoice) {
+            $sourceInvoice = $invoice->originalInvoice;
+        }
+        
         if ($booking) {
             $allSvcRows = BookingService::where('dat_phong_id', $booking->id)->get()->groupBy('service_id');
             foreach ($allSvcRows as $svcId => $rows) {
@@ -115,47 +154,211 @@ class InvoiceController extends Controller
                 $roomMap = Phong::whereIn('id', $phongIds)->pluck('so_phong', 'id')->toArray();
             }
 
-            // Build per-booking-service options (only positive original rows, exclude fully adjusted ones)
-            $svcRows = BookingService::where('dat_phong_id', $booking->id)
-                ->where(function($q) use ($invoice) {
-                    if ($invoice->invoice_type === 'EXTRA') {
-                        $q->where('invoice_id', $invoice->id);
-                    } else {
-                        $q->whereNull('invoice_id')->orWhere('invoice_id', $invoice->id);
+            // Build per-booking-service options
+            // For creating refund invoices from original invoice: Show ALL services in the invoice
+            // For REFUND invoices: exclude services already refunded in this refund invoice
+            
+            if (!$invoice->isRefund() && $invoice->trang_thai === 'da_thanh_toan') {
+                // When creating refund invoice from original invoice, show ALL services in the invoice
+                // Get all services displayed in the original invoice
+                $displayedServices = $services; // Services already loaded for display
+                
+                // Process each displayed service
+                $processedServices = [];
+                
+                foreach ($displayedServices as $displayedService) {
+                    $qty = $displayedService->quantity ?? 0;
+                    $note = $displayedService->note ?? '';
+                    
+                    // Check if this service is marked as refunded (for display purposes)
+                    $isRefunded = false;
+                    
+                    // Method 1: quantity <= 0 indicates refunded
+                    if ($qty <= 0) {
+                        $isRefunded = true;
                     }
-                })->get();
+                    
+                    // Method 2: Check if there are negative adjustments for this service in original invoice
+                    $negativeAdjustments = BookingService::where('dat_phong_id', $booking->id)
+                        ->where('service_id', $displayedService->service_id)
+                        ->where('phong_id', $displayedService->phong_id)
+                        ->whereDate('used_at', date('Y-m-d', strtotime($displayedService->used_at)))
+                        ->where('invoice_id', $sourceInvoice->id)
+                        ->where('quantity', '<', 0)
+                        ->sum('quantity');
+                    
+                    if ($negativeAdjustments < 0) {
+                        $isRefunded = true;
+                    }
+                    
+                    // Method 3: Check note for refund keywords (check both displayed service and all related rows)
+                    $hasRefundNote = false;
+                    if (stripos($note, 'hoàn') !== false || stripos($note, 'refund') !== false || stripos($note, 'Đã hoàn') !== false) {
+                        $hasRefundNote = true;
+                        $isRefunded = true;
+                    } else {
+                        // Check all BookingService rows for this service to find refund notes
+                        $allServiceRows = BookingService::where('dat_phong_id', $booking->id)
+                            ->where('service_id', $displayedService->service_id)
+                            ->where('phong_id', $displayedService->phong_id)
+                            ->whereDate('used_at', date('Y-m-d', strtotime($displayedService->used_at)))
+                            ->where(function($q) use ($sourceInvoice) {
+                                $q->whereNull('invoice_id')->orWhere('invoice_id', $sourceInvoice->id);
+                            })
+                            ->get();
+                        
+                        foreach ($allServiceRows as $row) {
+                            $rowNote = $row->note ?? '';
+                            if (stripos($rowNote, 'hoàn') !== false || 
+                                stripos($rowNote, 'refund') !== false || 
+                                stripos($rowNote, 'Đã hoàn') !== false ||
+                                stripos($rowNote, 'Dịch vụ dư') !== false) {
+                                $hasRefundNote = true;
+                                $isRefunded = true;
+                                $note = $rowNote; // Use the note from the row that has refund indication
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // Show ALL services, not just refunded ones
+                    // if (!$isRefunded) continue;
+                    
+                    // Find the original positive row for this service
+                    $originalRow = BookingService::where('dat_phong_id', $booking->id)
+                        ->where('service_id', $displayedService->service_id)
+                        ->where('phong_id', $displayedService->phong_id)
+                        ->whereDate('used_at', date('Y-m-d', strtotime($displayedService->used_at)))
+                        ->where('quantity', '>', 0)
+                        ->where(function($q) use ($sourceInvoice) {
+                            $q->whereNull('invoice_id')->orWhere('invoice_id', $sourceInvoice->id);
+                        })
+                        ->first();
+                    
+                    // If no original positive row found, use the displayed service itself
+                    if (!$originalRow) {
+                        $originalRow = $displayedService;
+                    }
+                    
+                    $key = $originalRow->service_id . '_' . ($originalRow->phong_id ?? 'null') . '_' . ($originalRow->used_at ? date('Y-m-d', strtotime($originalRow->used_at)) : 'null');
+                    if (isset($processedServices[$key])) continue;
+                    
+                    // Calculate remaining refundable quantity
+                    // Get original quantity (positive quantity from original row)
+                    $originalQuantity = $originalRow->quantity ?? 0;
+                    if ($originalQuantity <= 0) {
+                        // If original row has no positive quantity, try to find it
+                        $anyPositive = BookingService::where('dat_phong_id', $booking->id)
+                            ->where('service_id', $displayedService->service_id)
+                            ->where('phong_id', $displayedService->phong_id)
+                            ->whereDate('used_at', date('Y-m-d', strtotime($displayedService->used_at)))
+                            ->where('quantity', '>', 0)
+                            ->where(function($q) use ($sourceInvoice) {
+                                $q->whereNull('invoice_id')->orWhere('invoice_id', $sourceInvoice->id);
+                            })
+                            ->first();
+                        if ($anyPositive) {
+                            $originalQuantity = $anyPositive->quantity;
+                        } else {
+                            // If no positive quantity found, use current quantity if > 0, otherwise default to 1
+                            $originalQuantity = max(1, $qty > 0 ? $qty : 1);
+                        }
+                    }
+                    
+                    // Calculate already refunded in separate refund invoices
+                    $refundInvoices = Invoice::where('original_invoice_id', $sourceInvoice->id)
+                        ->where('invoice_type', 'REFUND')
+                        ->pluck('id');
+                    
+                    $alreadyRefundedInRefundInvoices = 0;
+                    if ($refundInvoices->isNotEmpty()) {
+                        $alreadyRefundedInRefundInvoices = abs(BookingService::where('dat_phong_id', $booking->id)
+                            ->where('service_id', $displayedService->service_id)
+                            ->where('phong_id', $displayedService->phong_id)
+                            ->whereDate('used_at', date('Y-m-d', strtotime($displayedService->used_at)))
+                            ->whereIn('invoice_id', $refundInvoices)
+                            ->where('quantity', '<', 0)
+                            ->sum('quantity'));
+                    }
+                    
+                    // Calculate already refunded in original invoice (negative adjustments)
+                    $alreadyRefundedInOriginalInvoice = abs($negativeAdjustments);
+                    
+                    // Calculate remaining = original - already refunded
+                    $remaining = max(0, $originalQuantity - $alreadyRefundedInRefundInvoices - $alreadyRefundedInOriginalInvoice);
+                    
+                    // Show ALL services, even if remaining is 0 (user can still see what was refunded)
+                    // Only skip if we can't determine the service
+                    if ($originalQuantity <= 0 && $qty <= 0 && !isset($originalRow->service_id)) {
+                        continue;
+                    }
+                    
+                    $svc = $originalRow->service;
+                    $bookingServiceOptions[] = [
+                        'id' => $originalRow->id,
+                        'service_id' => $originalRow->service_id,
+                        'service_name' => $svc ? ($svc->name ?? 'Dịch vụ') : ($originalRow->service_name ?? 'Dịch vụ'),
+                        'so_phong' => $originalRow->phong ? ($originalRow->phong->so_phong ?? $originalRow->phong_id) : $originalRow->phong_id,
+                        'phong_id' => $originalRow->phong_id,
+                        'used_at' => date('Y-m-d', strtotime($originalRow->used_at)),
+                        'used_at_display' => date('d/m/Y', strtotime($originalRow->used_at)),
+                        'remaining' => $remaining, // Show remaining refundable quantity
+                        'unit_price' => $originalRow->unit_price ?? 0,
+                    ];
+                    
+                    $processedServices[$key] = true;
+                }
+            } else {
+                // For other cases (viewing refund invoice, etc.), use original logic
+                $svcRows = BookingService::where('dat_phong_id', $booking->id)
+                    ->where(function($q) use ($sourceInvoice) {
+                        if ($sourceInvoice->invoice_type === 'EXTRA') {
+                            $q->where('invoice_id', $sourceInvoice->id);
+                        } else {
+                            $q->whereNull('invoice_id')->orWhere('invoice_id', $sourceInvoice->id);
+                        }
+                    })->get();
 
-            foreach ($svcRows as $row) {
-                // only consider original positive quantities as selectable
-                if (!isset($row->quantity) || $row->quantity <= 0) continue;
+                foreach ($svcRows as $row) {
+                    // only consider original positive quantities as selectable
+                    if (!isset($row->quantity) || $row->quantity <= 0) continue;
 
-                // Sum negative adjustments that match same service, room and date
-                $negSum = BookingService::where('dat_phong_id', $booking->id)
-                    ->where('service_id', $row->service_id)
-                    ->where('phong_id', $row->phong_id)
-                    ->whereDate('used_at', date('Y-m-d', strtotime($row->used_at)))
-                    ->where('quantity', '<', 0)
-                    ->sum('quantity');
+                    // Sum negative adjustments that match same service, room and date
+                    $negQuery = BookingService::where('dat_phong_id', $booking->id)
+                        ->where('service_id', $row->service_id)
+                        ->where('phong_id', $row->phong_id)
+                        ->whereDate('used_at', date('Y-m-d', strtotime($row->used_at)))
+                        ->where('quantity', '<', 0);
+                    
+                    // If this is a refund invoice view, exclude services already refunded in this refund invoice
+                    if ($invoice->invoice_type === 'REFUND') {
+                        $negQuery->where('invoice_id', '!=', $invoice->id);
+                    }
+                    
+                    $negSum = $negQuery->sum('quantity');
+                    $remaining = max(0, intval($row->quantity + $negSum));
+                    
+                    if ($invoice->isRefund() && $remaining <= 0) {
+                        continue; // already fully refunded in this refund invoice
+                    }
 
-                $remaining = max(0, intval($row->quantity + $negSum));
-                if ($remaining <= 0) continue; // already fully adjusted
-
-                $svc = $row->service;
-                $bookingServiceOptions[] = [
-                    'id' => $row->id,
-                    'service_id' => $row->service_id,
-                    'service_name' => $svc ? ($svc->name ?? 'Dịch vụ') : ($row->service_name ?? 'Dịch vụ'),
-                    'so_phong' => $row->phong ? ($row->phong->so_phong ?? $row->phong_id) : $row->phong_id,
-                    'phong_id' => $row->phong_id,
-                    'used_at' => date('Y-m-d', strtotime($row->used_at)),
-                    'used_at_display' => date('d/m/Y', strtotime($row->used_at)),
-                    'remaining' => $remaining,
-                    'unit_price' => $row->unit_price ?? 0,
-                ];
+                    $svc = $row->service;
+                    $bookingServiceOptions[] = [
+                        'id' => $row->id,
+                        'service_id' => $row->service_id,
+                        'service_name' => $svc ? ($svc->name ?? 'Dịch vụ') : ($row->service_name ?? 'Dịch vụ'),
+                        'so_phong' => $row->phong ? ($row->phong->so_phong ?? $row->phong_id) : $row->phong_id,
+                        'phong_id' => $row->phong_id,
+                        'used_at' => date('Y-m-d', strtotime($row->used_at)),
+                        'used_at_display' => date('d/m/Y', strtotime($row->used_at)),
+                        'remaining' => $remaining,
+                        'unit_price' => $row->unit_price ?? 0,
+                    ];
+                }
             }
         }
 
-        return view('admin.invoices.show', compact('invoice', 'services', 'serviceTotal', 'serviceAvailability', 'roomMap', 'bookingServiceOptions'));
+        return view('admin.invoices.show', compact('invoice', 'services', 'serviceTotal', 'serviceAvailability', 'roomMap', 'bookingServiceOptions', 'refundedServiceIds'));
     }
 
     /**
@@ -167,6 +370,12 @@ class InvoiceController extends Controller
         $booking = $invoice->datPhong;
         if (!$booking) {
             return redirect()->back()->with('error', 'Đặt phòng không tồn tại.');
+        }
+
+        // Nếu hóa đơn đã thanh toán và không phải EXTRA/REFUND, tự động tạo hóa đơn hoàn tiền
+        if ($invoice->trang_thai === 'da_thanh_toan' && !$invoice->isRefund() && !$invoice->isExtra()) {
+            // Chuyển hướng sang tạo hóa đơn hoàn tiền tự động
+            return $this->createRefundInvoice($request, $invoice);
         }
         
         // Log incoming request for debugging
@@ -1607,6 +1816,233 @@ class InvoiceController extends Controller
         $new->save();
 
         return redirect()->route('admin.invoices.show', $new->id)->with('success', 'Hóa đơn phát sinh đã được tạo và lưu (chỉ tính tiền dịch vụ).');
+    }
+
+    /**
+     * Tạo hóa đơn hoàn tiền riêng biệt từ hóa đơn gốc
+     * Có thể được gọi trực tiếp hoặc từ method adjust() khi hóa đơn đã thanh toán
+     */
+    public function createRefundInvoice(Request $request, Invoice $invoice)
+    {
+        // Kiểm tra quyền
+        if (!in_array(auth()->user()->vai_tro ?? '', ['admin', 'nhan_vien'])) {
+            abort(403, 'Bạn không có quyền thực hiện hành động này.');
+        }
+
+        // Chỉ cho phép tạo hóa đơn hoàn tiền từ hóa đơn đã thanh toán
+        if ($invoice->trang_thai !== 'da_thanh_toan') {
+            return redirect()->back()->with('error', 'Chỉ có thể tạo hóa đơn hoàn tiền từ hóa đơn đã thanh toán.');
+        }
+
+        // Không cho phép tạo refund invoice từ refund invoice hoặc extra invoice
+        if ($invoice->isRefund() || $invoice->isExtra()) {
+            return redirect()->back()->with('error', 'Chỉ có thể tạo hóa đơn hoàn tiền từ hóa đơn chính đã thanh toán.');
+        }
+
+        // Kiểm tra xem đã có hóa đơn hoàn tiền chưa (tùy chọn - có thể cho phép nhiều hóa đơn hoàn tiền)
+        // $existingRefund = Invoice::where('original_invoice_id', $invoice->id)->where('invoice_type', 'REFUND')->first();
+        // if ($existingRefund) {
+        //     return redirect()->route('admin.invoices.show', $existingRefund->id)->with('info', 'Hóa đơn hoàn tiền đã tồn tại.');
+        // }
+
+        $booking = $invoice->datPhong;
+        if (!$booking) {
+            return redirect()->back()->with('error', 'Đặt phòng không tồn tại.');
+        }
+
+        // Validate request
+        $request->validate([
+            'adjustments' => 'required|array|min:1',
+            'adjustments.*.booking_service_id' => 'required|integer|exists:booking_services,id',
+            'adjustments.*.quantity' => 'required|integer|min:1',
+            'adjustments.*.used_at' => 'nullable|date',
+            'adjustments.*.note' => 'nullable|string|max:500',
+            'refund_method' => 'nullable|in:tien_mat,chuyen_khoan,cong_thanh_toan',
+            'refund_account_number' => 'nullable|string|max:200',
+            'refund_account_name' => 'nullable|string|max:200',
+            'refund_bank_name' => 'nullable|string|max:200',
+            'note' => 'nullable|string|max:1000',
+        ], [
+            'adjustments.required' => 'Vui lòng chọn ít nhất một dịch vụ để hoàn tiền.',
+            'adjustments.min' => 'Vui lòng chọn ít nhất một dịch vụ để hoàn tiền.',
+        ]);
+
+        $adjustments = $request->input('adjustments', []);
+        $totalRefundAmount = 0;
+        $refundServices = [];
+
+        DB::beginTransaction();
+        try {
+            // Tạo hóa đơn hoàn tiền mới
+            $refundInvoice = Invoice::create([
+                'dat_phong_id' => $booking->id,
+                'invoice_type' => 'REFUND',
+                'original_invoice_id' => $invoice->id,
+                'tong_tien' => 0, // Sẽ tính sau
+                'tien_phong' => 0,
+                'tien_dich_vu' => 0,
+                'phi_phat_sinh' => 0,
+                'phi_them_nguoi' => 0,
+                'giam_gia' => 0,
+                'da_thanh_toan' => 0,
+                'con_lai' => 0,
+                'phuong_thuc' => $request->input('refund_method', 'tien_mat'),
+                'trang_thai' => 'hoan_tien',
+                'ghi_chu' => $request->input('note', 'Hóa đơn hoàn tiền cho hóa đơn #' . $invoice->id),
+            ]);
+
+            // Xử lý từng dịch vụ cần hoàn tiền
+            foreach ($adjustments as $adj) {
+                $origBsId = intval($adj['booking_service_id'] ?? 0);
+                $adjQty = intval($adj['quantity'] ?? 0);
+                if ($adjQty <= 0) continue;
+
+                $orig = BookingService::with('service', 'phong')->find($origBsId);
+                if (!$orig) continue;
+
+                // Tìm quantity gốc ban đầu (trước khi adjust trong hóa đơn gốc)
+                // Quantity gốc là quantity dương đầu tiên của dịch vụ này
+                $originalQuantity = BookingService::where('dat_phong_id', $booking->id)
+                    ->where('service_id', $orig->service_id)
+                    ->where('phong_id', $orig->phong_id)
+                    ->whereDate('used_at', date('Y-m-d', strtotime($orig->used_at)))
+                    ->where('quantity', '>', 0)
+                    ->where(function($q) use ($invoice) {
+                        $q->whereNull('invoice_id')->orWhere('invoice_id', $invoice->id);
+                    })
+                    ->sum('quantity');
+                
+                // Tính số lượng đã hoàn tiền từ các refund invoices riêng (không tính từ adjust trong hóa đơn gốc)
+                $alreadyRefundedInRefundInvoices = BookingService::where('dat_phong_id', $booking->id)
+                    ->where('service_id', $orig->service_id)
+                    ->where('phong_id', $orig->phong_id)
+                    ->whereDate('used_at', date('Y-m-d', strtotime($orig->used_at)))
+                    ->where('invoice_id', '!=', null)
+                    ->whereHas('invoice', function($q) {
+                        $q->where('invoice_type', 'REFUND');
+                    })
+                    ->sum(DB::raw('ABS(quantity)'));
+
+                // Tính số lượng đã hoàn tiền trong hóa đơn gốc (qua adjust method - negative adjustments)
+                $alreadyRefundedInOriginalInvoice = abs(BookingService::where('dat_phong_id', $booking->id)
+                    ->where('service_id', $orig->service_id)
+                    ->where('phong_id', $orig->phong_id)
+                    ->whereDate('used_at', date('Y-m-d', strtotime($orig->used_at)))
+                    ->where('invoice_id', $invoice->id)
+                    ->where('quantity', '<', 0)
+                    ->sum('quantity'));
+
+                // Kiểm tra nếu dịch vụ có quantity = 0 hoặc <= 0 trong hóa đơn gốc và có note hoàn tiền
+                $currentQuantity = $orig->quantity ?? 0;
+                $currentNote = $orig->note ?? '';
+                $isMarkedAsRefunded = ($currentQuantity <= 0) || 
+                                      (stripos($currentNote, 'hoàn') !== false) || 
+                                      (stripos($currentNote, 'Đã hoàn') !== false);
+
+                // Tính số lượng có thể hoàn
+                $remaining = 0;
+                
+                if ($isMarkedAsRefunded) {
+                    // Nếu dịch vụ đã được đánh dấu hoàn tiền trong hóa đơn gốc
+                    if ($alreadyRefundedInOriginalInvoice > 0) {
+                        // Có negative adjustments trong hóa đơn gốc
+                        $remaining = $alreadyRefundedInOriginalInvoice - abs($alreadyRefundedInRefundInvoices);
+                    } elseif ($originalQuantity > 0) {
+                        // Không có negative adjustments nhưng có quantity gốc > 0
+                        // Có thể dịch vụ được đánh dấu hoàn tiền bằng cách set quantity = 0
+                        $remaining = $originalQuantity - abs($alreadyRefundedInRefundInvoices);
+                    } else {
+                        // Nếu không tìm thấy quantity gốc, sử dụng quantity hiện tại nếu > 0
+                        // Hoặc mặc định là 1 nếu quantity = 0 nhưng có note hoàn tiền
+                        if ($currentQuantity > 0) {
+                            $remaining = $currentQuantity - abs($alreadyRefundedInRefundInvoices);
+                        } elseif (stripos($currentNote, 'hoàn') !== false) {
+                            // Nếu có note hoàn tiền nhưng quantity = 0, cho phép hoàn 1 (giả định)
+                            $remaining = 1 - abs($alreadyRefundedInRefundInvoices);
+                        }
+                    }
+                } else {
+                    // Dịch vụ chưa được hoàn tiền trong hóa đơn gốc
+                    $remaining = max(0, $originalQuantity - abs($alreadyRefundedInRefundInvoices));
+                }
+                
+                $remaining = max(0, $remaining);
+                
+                if ($adjQty > $remaining) {
+                    DB::rollBack();
+                    return redirect()->back()->with('error', "Số lượng hoàn tiền vượt quá số lượng còn lại cho dịch vụ: " . ($orig->service->name ?? 'Dịch vụ') . ". Số lượng còn lại: {$remaining}, Quantity gốc: {$originalQuantity}, Đã hoàn trong hóa đơn gốc: {$alreadyRefundedInOriginalInvoice}, Đã hoàn trong refund invoices: {$alreadyRefundedInRefundInvoices}");
+                }
+
+                $unit = $orig->unit_price ?? (Service::find($orig->service_id)->price ?? 0);
+                $usedDate = $adj['used_at'] ?? $orig->used_at ?? date('Y-m-d');
+
+                // Tạo booking service với số lượng âm trong hóa đơn hoàn tiền
+                $refundBs = BookingService::create([
+                    'dat_phong_id' => $booking->id,
+                    'phong_id' => $orig->phong_id,
+                    'invoice_id' => $refundInvoice->id,
+                    'service_id' => $orig->service_id,
+                    'quantity' => -1 * abs($adjQty),
+                    'unit_price' => $unit,
+                    'used_at' => $usedDate,
+                    'note' => $adj['note'] ?? 'Hoàn tiền dịch vụ',
+                ]);
+
+                $refundAmount = abs($refundBs->quantity * $refundBs->unit_price);
+                $totalRefundAmount += $refundAmount;
+
+                $refundServices[] = [
+                    'service' => $orig->service->name ?? 'Dịch vụ',
+                    'room' => $orig->phong->so_phong ?? $orig->phong_id,
+                    'date' => $usedDate,
+                    'quantity' => $adjQty,
+                    'unit_price' => $unit,
+                    'amount' => $refundAmount,
+                ];
+            }
+
+            // Cập nhật tổng tiền cho hóa đơn hoàn tiền
+            $refundInvoice->tien_dich_vu = -1 * $totalRefundAmount;
+            $refundInvoice->tong_tien = -1 * $totalRefundAmount;
+            $refundInvoice->con_lai = -1 * $totalRefundAmount;
+            $refundInvoice->save();
+
+            // Tạo RefundService records nếu có thông tin ngân hàng
+            if ($request->filled('refund_method') && $request->input('refund_method') === 'chuyen_khoan') {
+                foreach ($refundServices as $rs) {
+                    RefundService::create([
+                        'hoa_don_id' => $refundInvoice->id,
+                        'dat_phong_id' => $booking->id,
+                        'booking_service_id' => null, // Có thể để null hoặc lưu ID của refund booking service
+                        'booking_room_ids' => json_encode([]),
+                        'total_refund' => $rs['amount'],
+                        'refund_method' => 'chuyen_khoan',
+                        'refund_status' => 'cho_xu_ly',
+                        'bank_account_number' => $request->input('refund_account_number'),
+                        'bank_account_name' => $request->input('refund_account_name'),
+                        'bank_name' => $request->input('refund_bank_name'),
+                        'note' => $request->input('note'),
+                        'created_by' => auth()->id(),
+                    ]);
+                }
+            }
+
+            DB::commit();
+
+            Log::info('Refund invoice created', [
+                'original_invoice_id' => $invoice->id,
+                'refund_invoice_id' => $refundInvoice->id,
+                'total_refund' => $totalRefundAmount,
+            ]);
+
+            return redirect()->route('admin.invoices.show', $refundInvoice->id)
+                ->with('success', 'Hóa đơn hoàn tiền đã được tạo thành công. Hóa đơn gốc #' . $invoice->id . ' vẫn được giữ nguyên.');
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Failed to create refund invoice: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Lỗi khi tạo hóa đơn hoàn tiền: ' . $e->getMessage());
+        }
     }
     // (removed unused empty create() method)
 }
