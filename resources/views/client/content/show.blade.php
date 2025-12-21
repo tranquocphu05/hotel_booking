@@ -41,7 +41,8 @@
                     <div class="mb-10">
                         <div class="bg-white rounded-2xl shadow-md overflow-hidden">
                             <img src="{{ $loaiPhong->anh ? asset($loaiPhong->anh) : asset('img/room/room-1.jpg') }}"
-                                alt="{{ $loaiPhong->ten_loai }}" class="w-full h-72 md:h-96 lg:h-[430px] object-cover">
+                                alt="{{ $loaiPhong->ten_loai }}" class="w-full h-72 md:h-96 lg:h-[430px] object-cover"
+                                loading="lazy" decoding="async">
                         </div>
                     </div>
 

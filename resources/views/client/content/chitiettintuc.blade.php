@@ -71,13 +71,13 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 py-4">
                         <div class="overflow-hidden rounded-lg shadow-md">
-                            <img src="{{ asset('img/blog/blog-details/blog-details-1.jpg') }}" alt="Hình ảnh Blog 1" class="w-full h-auto object-cover">
+                            <img src="{{ asset('img/blog/blog-details/blog-details-1.jpg') }}" alt="Hình ảnh Blog 1" class="w-full h-auto object-cover" loading="lazy" decoding="async">
                         </div>
                         <div class="overflow-hidden rounded-lg shadow-md">
-                            <img src="{{ asset('img/blog/blog-details/blog-details-2.jpg') }}" alt="Hình ảnh Blog 2" class="w-full h-auto object-cover">
+                            <img src="{{ asset('img/blog/blog-details/blog-details-2.jpg') }}" alt="Hình ảnh Blog 2" class="w-full h-auto object-cover" loading="lazy" decoding="async">
                         </div>
                         <div class="overflow-hidden rounded-lg shadow-md">
-                            <img src="{{ asset('img/blog/blog-details/blog-details-3.jpg') }}" alt="Hình ảnh Blog 3" class="w-full h-auto object-cover">
+                            <img src="{{ asset('img/blog/blog-details/blog-details-3.jpg') }}" alt="Hình ảnh Blog 3" class="w-full h-auto object-cover" loading="lazy" decoding="async">
                         </div>
                     </div>
                     

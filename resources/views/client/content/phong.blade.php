@@ -107,7 +107,8 @@
                                 $roomImg = !empty($phong->anh) ? asset($phong->anh) : asset('img/room/room-1.jpg');
                             @endphp
                             <img src="{{ $roomImg }}" alt="{{ $phong->ten_loai }}"
-                                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                loading="lazy" decoding="async">
                             
                             <div class="absolute top-4 left-4">
                                 <span class="bg-white text-gray-900 px-3 py-1.5 text-sm font-semibold rounded-full shadow-lg">
