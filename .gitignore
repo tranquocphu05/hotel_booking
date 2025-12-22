@@ -28,6 +28,7 @@ Thumbs.db
 *.md
 !README.md
 !CHANGELOG.md
+!KICH_BAN_DEMO_TOT_NGHIEP.md
 
 # Important documentation files
 !SYSTEM_RULES.txt

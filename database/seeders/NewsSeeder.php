@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\News;
-use App\Models\Admin;
+
 use Illuminate\Database\Seeder;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 
@@ -14,19 +14,21 @@ class NewsSeeder extends Seeder
      */
     public function run(): void
     {
-        // Lấy admin đầu tiên
-        $admin = Admin::where('vai_tro', 'admin')->first();
+        // Lấy admin đầu tiên (được tạo từ AdminUserSeeder)
+        $admin = \App\Models\User::where('vai_tro', 'admin')->first();
         
         if (!$admin) {
-            // Tạo admin mặc định nếu chưa có
-            $admin = Admin::create([
+            // Dự phòng nếu AdminUserSeeder chưa chạy
+            $admin = \App\Models\User::create([
                 'username' => 'admin',
-                'email' => 'admin@hotel.com',
-                'password' => bcrypt('password'),
-                'ho_ten' => 'Quản trị viên',
-                'vai_tro' => 'admin'
+                'email' => 'admin@example.com',
+                'password' => bcrypt('Admin@1234'),
+                'ho_ten' => 'Administrator',
+                'vai_tro' => 'admin',
+                'trang_thai' => 'hoat_dong',
             ]);
         }
+
 
         $newsData = [
             [
