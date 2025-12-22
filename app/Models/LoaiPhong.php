@@ -15,6 +15,9 @@ class LoaiPhong extends Model
     protected $fillable = [
         'ten_loai',
         'mo_ta',
+        'suc_chua',          // Số người lớn tối đa
+        'suc_chua_tre_em',   // Số trẻ em tối đa (6-12 tuổi)
+        'suc_chua_em_be',    // Số em bé tối đa (0-5 tuổi)
         'gia_co_ban',
         'gia_khuyen_mai',    // Promotional price
         'so_luong_phong',    // Total number of rooms

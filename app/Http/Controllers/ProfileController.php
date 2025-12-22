@@ -6,6 +6,7 @@ use App\Http\Requests\ProfileUpdateRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\DB;
@@ -18,34 +19,34 @@ class ProfileController extends Controller
      * Display the user's profile form.
      */
     public function edit(Request $request): View
-{
-    $user = $request->user();
+    {
+        $user = $request->user();
 
-    // Lấy lịch sử đặt phòng - Mỗi trang hiển thị 3 phòng
-    $bookings = \App\Models\DatPhong::where('nguoi_dung_id', $user->id)
-        ->with(['loaiPhong', 'phong', 'phongs', 'invoice', 'yeuCauDoiPhongs'])
-        ->orderBy('ngay_dat', 'desc')
-        ->paginate(3);
+        // Lấy lịch sử đặt phòng - Mỗi trang hiển thị 3 phòng
+        $bookings = \App\Models\DatPhong::where('nguoi_dung_id', $user->id)
+            ->with(['loaiPhong', 'phong', 'phongs', 'invoice', 'yeuCauDoiPhongs'])
+            ->orderBy('ngay_dat', 'desc')
+            ->paginate(3);
 
 
-    // Tính toán chính sách hủy cho mỗi booking đã thanh toán (để hiển thị thông tin khi hủy)
-    $cancellationPolicies = [];
-    foreach ($bookings as $booking) {
-        if (
-            $booking->trang_thai === 'da_xac_nhan'
-            && $booking->invoice
-            && $booking->invoice->trang_thai === 'da_thanh_toan'
-        ) {
-            $cancellationPolicies[$booking->id] = $this->calculateCancellationPolicy($booking);
+        // Tính toán chính sách hủy cho mỗi booking đã thanh toán (để hiển thị thông tin khi hủy)
+        $cancellationPolicies = [];
+        foreach ($bookings as $booking) {
+            if (
+                $booking->trang_thai === 'da_xac_nhan'
+                && $booking->invoice
+                && $booking->invoice->trang_thai === 'da_thanh_toan'
+            ) {
+                $cancellationPolicies[$booking->id] = $this->calculateCancellationPolicy($booking);
+            }
         }
-    }
 
-    return view('client.profile.index', [
-        'user'                     => $user,
-        'bookings'                 => $bookings,
-        'cancellationPolicies'     => $cancellationPolicies,
-    ]);
-}
+        return view('client.profile.index', [
+            'user'                     => $user,
+            'bookings'                 => $bookings,
+            'cancellationPolicies'     => $cancellationPolicies,
+        ]);
+    }
 
 
     /**
@@ -95,6 +96,9 @@ class ProfileController extends Controller
             $user->img = 'uploads/avatars/' . $imageName;
             $user->save();
         }
+
+        Cache::forget('dashboard_comments_5star');
+        Cache::forget('gioi_thieu_comments');
 
         if ($request->ajax()) {
             return response()->json([

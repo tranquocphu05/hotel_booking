@@ -112,7 +112,7 @@ class StayGuestController extends Controller
 
         // Per-room validation: ensure adding this guest to the selected room is feasible
         if (!$booking->canAddGuestToRoom($room->id, $guestCategory)) {
-            return back()->with('error', 'Không thể thêm khách vào phòng này: sẽ vượt quá giới hạn của phòng (mỗi phòng tối đa +1 người lớn hoặc +2 trẻ em hoặc +2 em bé). Vui lòng chọn phòng khác.');
+            return back()->with('error', 'Không thể thêm khách vào phòng này: sẽ vượt quá giới hạn của phòng (mỗi phòng tối đa +1 người lớn, +2 trẻ em, +1 em bé). Vui lòng chọn phòng khác.');
         }
 
         // Determine charge rule: <6 free, 6-12 50%, >=13 adult

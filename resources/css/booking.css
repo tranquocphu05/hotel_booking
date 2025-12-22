@@ -665,7 +665,7 @@
 
 .room-selection-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
     gap: 16px;
     margin-bottom: 24px;
 }
@@ -691,6 +691,7 @@
     flex-direction: column;
     gap: 12px;
     flex-shrink: 0;
+    width: 200px;
 }
 
 .room-card--active {
@@ -700,8 +701,8 @@
 }
 
 .room-card__media {
-    width: 240px;
-    min-width: 240px;
+    width: 200px;
+    min-width: 200px;
     aspect-ratio: 4 / 3;
     flex-shrink: 0;
     border-radius: 12px;
@@ -713,8 +714,8 @@
 
 .room-card__selection-area {
     width: 100%;
-    min-width: 240px;
-    max-width: 280px;
+    min-width: 200px;
+    max-width: 200px;
     display: flex;
     flex-direction: column;
 }
@@ -755,6 +756,10 @@
         gap: 12px;
     }
 
+    .room-card__left {
+        width: 100%;
+    }
+
     .room-card__media {
         width: 100%;
         min-width: 100%;
@@ -762,8 +767,24 @@
         margin-bottom: 0;
     }
 
+    .room-card__selection-area {
+        min-width: 100%;
+        max-width: 100%;
+    }
+
     .room-card__content {
         padding: 0;
+        min-width: 100%;
+    }
+
+    .room-card__header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .room-card__header h4 {
+        min-width: 100%;
     }
 }
 
@@ -788,28 +809,33 @@
     flex-direction: column;
     gap: 10px;
     flex: 1;
-    min-width: 0;
+    min-width: 250px;
 }
 
 .room-card__header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 
 .room-card__header h4 {
     font-size: 1.05rem;
     font-weight: 700;
     color: #111827;
+    flex: 1;
+    min-width: 120px;
 }
 
 .room-card__tag {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: #6b7280;
     background: #f3f4f6;
-    padding: 4px 10px;
+    padding: 4px 8px;
     border-radius: 999px;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .room-card__desc {
@@ -826,13 +852,17 @@
 .room-card__amenities {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 8px;
     font-size: 0.85rem;
     color: #4b5563;
 }
 
+.room-card__amenities span {
+    white-space: nowrap;
+}
+
 .room-card__amenities span i {
-    margin-right: 6px;
+    margin-right: 4px;
     color: #f59e0b;
 }
 

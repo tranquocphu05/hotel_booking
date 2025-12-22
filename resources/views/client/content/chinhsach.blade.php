@@ -27,7 +27,7 @@
     {{-- Main Content --}}
     <section class="py-20 bg-gradient-to-b from-gray-50 to-white">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            
+
             {{-- Chính sách Đặt phòng --}}
             <div class="mb-20">
                 <div class="flex flex-col md:flex-row items-center md:items-start gap-8 mb-8">
@@ -48,7 +48,7 @@
                             <ul class="list-disc list-inside ml-4 space-y-2">
                                 <li>Khách hàng phải từ 18 tuổi trở lên để đặt phòng</li>
                                 <li>Cần cung cấp đầy đủ thông tin cá nhân chính xác khi đặt phòng</li>
-                                <li>Thanh toán đặt cọc 30% giá trị phòng để xác nhận đặt phòng</li>
+                                <li>Thanh toán 100% giá trị phòng để xác nhận đặt phòng</li>
                                 <li>Xác nhận đặt phòng sẽ được gửi qua email sau khi thanh toán thành công</li>
                             </ul>
                         </div>
@@ -64,8 +64,8 @@
                     </div>
                     <div class="w-full md:w-1/2 order-1 md:order-2">
                         <div class="relative group overflow-hidden rounded-2xl shadow-2xl">
-                            <img src="{{ asset('img/room/room-1.jpg') }}" 
-                                 alt="Đặt phòng khách sạn" 
+                            <img src="{{ asset('img/room/room-1.jpg') }}"
+                                 alt="Đặt phòng khách sạn"
                                  class="w-full h-80 object-cover transform group-hover:scale-110 transition-transform duration-700">
                             <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
                             <div class="absolute bottom-0 left-0 right-0 p-6 text-white">
@@ -90,27 +90,17 @@
                         <div class="bg-white rounded-2xl p-6 md:p-8 shadow-xl border border-gray-100 hover:shadow-2xl transition-shadow duration-300">
                     <div class="space-y-4 text-gray-700 leading-relaxed">
                         <div>
-                            <h3 class="text-xl font-semibold text-gray-900 mb-2 flex items-center">
-                                <i class="fas fa-calendar-times text-red-500 mr-2"></i>
-                                Hủy phòng miễn phí
-                            </h3>
-                            <ul class="list-disc list-inside ml-4 space-y-2">
-                                <li>Hủy trước 14 ngày: Hoàn tiền 100%</li>
-                                <li>Hủy trước 7 ngày: Hoàn tiền 70%</li>
-                                <li>Hủy trước 3 ngày: Hoàn tiền 50%</li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h3 class="text-xl font-semibold text-gray-900 mb-2 flex items-center">
-                                <i class="fas fa-exclamation-triangle text-orange-500 mr-2"></i>
-                                Hủy phòng có phí
-                            </h3>
-                            <ul class="list-disc list-inside ml-4 space-y-2">
-                                <li>Hủy trong vòng 48 giờ trước ngày check-in: Phí hủy 30% giá trị phòng</li>
-                                <li>Hủy trong vòng 24 giờ hoặc không đến (No-show): Không hoàn tiền</li>
-                                <li>Thời gian hủy được tính theo múi giờ địa phương của khách sạn</li>
-                            </ul>
-                        </div>
+    <h3 class="text-xl font-semibold text-gray-900 mb-2 flex items-center">
+        <i class="fas fa-calendar-times text-green-500 mr-2"></i>
+        Chính sách huỷ phòng - hoàn tiền
+    </h3>
+    <ul class="list-disc list-inside ml-4 space-y-2">
+        <li>Hủy trước 7 ngày trở lên</strong> trước ngày check-in: Hoàn tiền 100%</strong>.</li>
+        <li>Hủy trước 3–6 ngày</strong> trước ngày check-in: Hoàn tiền 50%</strong>.</li>
+        <li>Hủy trước 1–2 ngày</strong> trước ngày check-in: Hoàn tiền 25%</strong>.</li>
+        <li>Hủy trong ngày check-in</strong> hoặc không đến (No-show): Không hoàn tiền</strong>.</li>
+    </ul>
+</div>
                         <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
                             <p class="text-blue-800"><strong>Lưu ý:</strong> Đối với các đặt phòng trong mùa cao điểm hoặc sự kiện đặc biệt, chính sách hủy phòng có thể khác. Vui lòng kiểm tra khi đặt phòng.</p>
                         </div>
@@ -119,8 +109,8 @@
                     </div>
                     <div class="w-full md:w-1/2">
                         <div class="relative group overflow-hidden rounded-2xl shadow-2xl">
-                            <img src="{{ asset('img/room/room-2.jpg') }}" 
-                                 alt="Hủy phòng khách sạn" 
+                            <img src="{{ asset('img/room/room-2.jpg') }}"
+                                 alt="Hủy phòng khách sạn"
                                  class="w-full h-80 object-cover transform group-hover:scale-110 transition-transform duration-700">
                             <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
                             <div class="absolute bottom-0 left-0 right-0 p-6 text-white">
@@ -162,7 +152,7 @@
                                 Quy định thanh toán
                             </h3>
                             <ul class="list-disc list-inside ml-4 space-y-2">
-                                <li>Đặt cọc 30% khi đặt phòng, thanh toán phần còn lại khi check-in</li>
+                                <li>Thanh toán 100% khi đặt phòng.</li>
                                 <li>Đối với đặt phòng trong vòng 48 giờ: Thanh toán toàn bộ khi đặt phòng</li>
                                 <li>Khách sạn có quyền yêu cầu đặt cọc bổ sung cho các dịch vụ đặc biệt</li>
                                 <li>Tất cả giao dịch được mã hóa và bảo mật theo tiêu chuẩn PCI DSS</li>
@@ -173,8 +163,8 @@
                     </div>
                     <div class="w-full md:w-1/2 order-1 md:order-2">
                         <div class="relative group overflow-hidden rounded-2xl shadow-2xl">
-                            <img src="{{ asset('img/room/room-3.jpg') }}" 
-                                 alt="Thanh toán khách sạn" 
+                            <img src="{{ asset('img/room/room-3.jpg') }}"
+                                 alt="Thanh toán khách sạn"
                                  class="w-full h-80 object-cover transform group-hover:scale-110 transition-transform duration-700">
                             <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
                             <div class="absolute bottom-0 left-0 right-0 p-6 text-white">
@@ -251,8 +241,8 @@
                     </div>
                     <div class="w-full md:w-1/2">
                         <div class="relative group overflow-hidden rounded-2xl shadow-2xl">
-                            <img src="{{ asset('img/room/room-4.jpg') }}" 
-                                 alt="Check-in khách sạn" 
+                            <img src="{{ asset('img/room/room-4.jpg') }}"
+                                 alt="Check-in khách sạn"
                                  class="w-full h-80 object-cover transform group-hover:scale-110 transition-transform duration-700">
                             <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
                             <div class="absolute bottom-0 left-0 right-0 p-6 text-white">
@@ -264,28 +254,28 @@
                 </div>
             </div>
 
-            {{-- Chính sách Trẻ em --}}
+            {{-- Chính sách Phụ phí thêm người --}}
             <div class="mb-20">
                 <div class="flex flex-col md:flex-row items-center md:items-start gap-8 mb-8">
                     <div class="w-full md:w-1/2 order-2 md:order-1">
                         <div class="flex items-center mb-6">
                             <div class="w-20 h-20 bg-gradient-to-br from-pink-400 to-rose-600 rounded-2xl flex items-center justify-center mr-4 shadow-lg transform hover:scale-110 transition-transform duration-300">
-                                <i class="fas fa-baby text-white text-3xl"></i>
+                                <i class="fas fa-user-plus text-white text-3xl"></i>
                             </div>
-                            <h2 class="text-3xl md:text-4xl font-bold text-gray-900 bg-gradient-to-r from-pink-600 to-rose-700 bg-clip-text text-transparent">Chính sách Trẻ em</h2>
+                            <h2 class="text-3xl md:text-4xl font-bold text-gray-900 bg-gradient-to-r from-pink-600 to-rose-700 bg-clip-text text-transparent">Chính sách Phụ phí thêm người</h2>
                         </div>
                         <div class="bg-white rounded-2xl p-6 md:p-8 shadow-xl border border-gray-100 hover:shadow-2xl transition-shadow duration-300">
                     <div class="space-y-4 text-gray-700 leading-relaxed">
                         <div>
                             <h3 class="text-xl font-semibold text-gray-900 mb-2 flex items-center">
-                                <i class="fas fa-child text-pink-500 mr-2"></i>
-                                Quy định về trẻ em
+                                <i class="fas fa-user-plus text-blue-500 mr-2"></i>
+                                Chính sách phụ phí thêm người
                             </h3>
                             <ul class="list-disc list-inside ml-4 space-y-2">
-                                <li><strong>Trẻ em dưới 6 tuổi:</strong> Miễn phí khi ngủ chung giường với bố mẹ (không tính vào số lượng khách)</li>
-                                <li><strong>Trẻ em từ 6-12 tuổi:</strong> Phụ thu 30% giá phòng/đêm khi ngủ chung giường</li>
-                                <li><strong>Trẻ em từ 12 tuổi trở lên:</strong> Tính như người lớn</li>
-                                <li>Giường phụ cho trẻ em: Phụ thu 500.000 VNĐ/đêm (nếu có)</li>
+                                <li>Người lớn: Phụ thu 300.000 VNĐ/người/đêm.</li>
+                                <li>Trẻ em (6–12 tuổi): Phụ thu 150.000 VNĐ/người/đêm.</li>
+                                <li>Em bé (dưới 6 tuổi): Miễn phí.</li>
+                                <li>Số lượng tối đa mỗi phòng: 3 người lớn, 2 trẻ em và 2 em bé.</li>
                             </ul>
                         </div>
                         <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
@@ -296,8 +286,8 @@
                     </div>
                     <div class="w-full md:w-1/2 order-1 md:order-2">
                         <div class="relative group overflow-hidden rounded-2xl shadow-2xl">
-                            <img src="{{ asset('img/room/room-5.jpg') }}" 
-                                 alt="Trẻ em tại khách sạn" 
+                            <img src="{{ asset('img/room/room-5.jpg') }}"
+                                 alt="Trẻ em tại khách sạn"
                                  class="w-full h-80 object-cover transform group-hover:scale-110 transition-transform duration-700">
                             <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
                             <div class="absolute bottom-0 left-0 right-0 p-6 text-white">
@@ -341,8 +331,8 @@
                     </div>
                     <div class="w-full md:w-1/2">
                         <div class="relative group overflow-hidden rounded-2xl shadow-2xl">
-                            <img src="{{ asset('img/room/room-6.jpg') }}" 
-                                 alt="Vật nuôi tại khách sạn" 
+                            <img src="{{ asset('img/room/room-6.jpg') }}"
+                                 alt="Vật nuôi tại khách sạn"
                                  class="w-full h-80 object-cover transform group-hover:scale-110 transition-transform duration-700">
                             <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
                             <div class="absolute bottom-0 left-0 right-0 p-6 text-white">
@@ -391,8 +381,8 @@
                     </div>
                     <div class="w-full md:w-1/2 order-1 md:order-2">
                         <div class="relative group overflow-hidden rounded-2xl shadow-2xl">
-                            <img src="{{ asset('img/blog/bg-6.jpg') }}" 
-                                 alt="Không hút thuốc" 
+                            <img src="{{ asset('img/blog/bg-6.jpg') }}"
+                                 alt="Không hút thuốc"
                                  class="w-full h-80 object-cover transform group-hover:scale-110 transition-transform duration-700">
                             <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
                             <div class="absolute bottom-0 left-0 right-0 p-6 text-white">
@@ -445,8 +435,8 @@
                     </div>
                     <div class="w-full md:w-1/2">
                         <div class="relative group overflow-hidden rounded-2xl shadow-2xl">
-                            <img src="{{ asset('img/blog/17.jpg') }}" 
-                                 alt="Bảo mật khách sạn" 
+                            <img src="{{ asset('img/blog/17.jpg') }}"
+                                 alt="Bảo mật khách sạn"
                                  class="w-full h-80 object-cover transform group-hover:scale-110 transition-transform duration-700">
                             <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
                             <div class="absolute bottom-0 left-0 right-0 p-6 text-white">
@@ -523,12 +513,12 @@
                     <h2 class="text-3xl md:text-4xl font-bold mb-4">Có câu hỏi về chính sách?</h2>
                     <p class="text-lg md:text-xl mb-8 opacity-95 max-w-2xl mx-auto">Đội ngũ nhân viên chuyên nghiệp của chúng tôi luôn sẵn sàng hỗ trợ bạn 24/7</p>
                     <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                        <a href="{{ route('client.lienhe') }}" 
+                        <a href="{{ route('client.lienhe') }}"
                            class="inline-flex items-center justify-center px-8 py-4 bg-white text-red-600 rounded-xl font-semibold hover:bg-gray-100 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
                             <i class="fas fa-envelope mr-2 text-lg"></i>
                             Liên hệ ngay
                         </a>
-                        <a href="tel:+84123456789" 
+                        <a href="tel:+84123456789"
                            class="inline-flex items-center justify-center px-8 py-4 bg-white/20 backdrop-blur-sm text-white rounded-xl font-semibold hover:bg-white/30 transition-all duration-300 border-2 border-white/50 hover:border-white shadow-lg hover:shadow-xl transform hover:-translate-y-1">
                             <i class="fas fa-phone mr-2 text-lg"></i>
                             Gọi: 0123 456 789

@@ -16,6 +16,12 @@
 
     <title>@yield('title', config('app.name'))</title>
 
+    @if (request()->routeIs('client.home'))
+        <link rel="preload" as="image" href="{{ asset('img/hero/3.webp') }}">
+        <link rel="preload" as="image" href="{{ asset('img/hero/abc.jpg') }}">
+        <link rel="preload" as="image" href="{{ asset('img/hero/dx.jpg') }}">
+    @endif
+
     {{-- Font Awesome - Load async để không block rendering --}}
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript>
@@ -34,6 +40,10 @@
 
         html {
             font-size: 90%;
+        }
+
+        [x-cloak] {
+            display: none !important;
         }
 
         /* Swiper Custom Styles */

@@ -325,6 +325,9 @@
                                                                         data-room-name="{{ $option->ten_loai }}"
                                                                         data-room-price="{{ $optionPrice }}"
                                                                         data-max-quantity="{{ $initialAvailable }}"
+                                                                        data-max-adults="{{ $option->suc_chua ?? 2 }}"
+                                                                        data-max-children="{{ $option->suc_chua_tre_em ?? 2 }}"
+                                                                        data-max-infants="{{ $option->suc_chua_em_be ?? 2 }}"
                                                                         data-child-fee="{{ $option->phi_tre_em ?? 0 }}"
                                                                         data-infant-fee="{{ $option->phi_em_be ?? 0 }}"
                                                                         onchange="updateRoomCardQuantity('{{ $option->id }}')">
@@ -347,8 +350,10 @@
                                                 <div class="room-card__content">
                                                     <div class="room-card__header">
                                                         <h4>{{ $option->ten_loai }}</h4>
-                                                        <span
-                                                            class="room-card__tag">{{ $option->so_luong_nguoi_toi_da ?? 'Phù hợp 2-3 khách' }}</span>
+                                                        @php
+                                                            $capacityText = 'Phù hợp 2-3 khách';
+                                                        @endphp
+                                                        <span class="room-card__tag">{{ $capacityText }}</span>
                                                     </div>
                                                     <p class="room-card__desc">
                                                         {{ Str::limit($option->mo_ta ?? 'Không gian hiện đại với đầy đủ tiện nghi cho kỳ nghỉ dưỡng thư thái.', 120) }}
@@ -799,6 +804,11 @@
         window.bookingConfig.csrfToken = '{{ csrf_token() }}';
         window.bookingConfig.defaultRoomCount = {{ $loaiPhong->so_luong_phong ?? 0 }};
         window.bookingConfig.userId = {{ auth()->check() ? auth()->id() : 'null' }};
+        
+        // Số khách từ trang chi tiết phòng
+        window.bookingConfig.initialAdults = {{ $adults ?? 2 }};
+        window.bookingConfig.initialChildren = {{ $children ?? 0 }};
+        window.bookingConfig.initialInfants = {{ $infants ?? 0 }};
 
         // Handle back navigation (bfcache) - force reload to get fresh data
         window.addEventListener('pageshow', function(event) {

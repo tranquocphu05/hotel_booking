@@ -312,15 +312,80 @@
                     </ul>
                 </div>
 
+                {{-- Số khách --}}
                 <div>
-                    <label class="block text-base font-medium text-gray-700 mb-2">Số người</label>
-                    <select name="guests"
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-base">
-                        <option value="1">1 người</option>
-                        <option value="2" selected>2 người</option>
-                        <option value="3">3 người</option>
-                        <option value="4">4 người</option>
-                    </select>
+                    <label class="block text-base font-medium text-gray-700 mb-3">Số khách</label>
+                    
+                    {{-- Người lớn --}}
+                    <div class="flex items-center justify-between py-3 border-b border-gray-100">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-user text-gray-500"></i>
+                            <div>
+                                <span class="text-sm font-medium text-gray-700">Người lớn</span>
+                                <p class="text-xs text-gray-400">Từ 13 tuổi trở lên</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="decrementGuest('adults')" class="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-500 hover:border-[#D4AF37] hover:text-[#D4AF37] transition-colors">
+                                <i class="fas fa-minus text-xs"></i>
+                            </button>
+                            <span id="adults_display" class="w-8 text-center text-base font-semibold text-gray-700">2</span>
+                            <input type="hidden" name="adults" id="adults_input" value="2">
+                            <button type="button" onclick="incrementGuest('adults')" class="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-500 hover:border-[#D4AF37] hover:text-[#D4AF37] transition-colors">
+                                <i class="fas fa-plus text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Trẻ em --}}
+                    <div class="flex items-center justify-between py-3 border-b border-gray-100">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-child text-green-500"></i>
+                            <div>
+                                <span class="text-sm font-medium text-gray-700">Trẻ em</span>
+                                <p class="text-xs text-gray-400">Từ 6 - 12 tuổi</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="decrementGuest('children')" class="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-500 hover:border-[#D4AF37] hover:text-[#D4AF37] transition-colors">
+                                <i class="fas fa-minus text-xs"></i>
+                            </button>
+                            <span id="children_display" class="w-8 text-center text-base font-semibold text-gray-700">0</span>
+                            <input type="hidden" name="children" id="children_input" value="0">
+                            <button type="button" onclick="incrementGuest('children')" class="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-500 hover:border-[#D4AF37] hover:text-[#D4AF37] transition-colors">
+                                <i class="fas fa-plus text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Em bé --}}
+                    <div class="flex items-center justify-between py-3">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-baby text-pink-500"></i>
+                            <div>
+                                <span class="text-sm font-medium text-gray-700">Em bé</span>
+                                <p class="text-xs text-gray-400">Dưới 6 tuổi</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="decrementGuest('infants')" class="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-500 hover:border-[#D4AF37] hover:text-[#D4AF37] transition-colors">
+                                <i class="fas fa-minus text-xs"></i>
+                            </button>
+                            <span id="infants_display" class="w-8 text-center text-base font-semibold text-gray-700">0</span>
+                            <input type="hidden" name="infants" id="infants_input" value="0">
+                            <button type="button" onclick="incrementGuest('infants')" class="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-500 hover:border-[#D4AF37] hover:text-[#D4AF37] transition-colors">
+                                <i class="fas fa-plus text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Thông tin sức chứa --}}
+                    <div class="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                        <p class="text-xs text-blue-700">
+                            <i class="fas fa-users mr-1"></i>
+                            <strong>Sức chứa tối đa:</strong> {{ $loaiPhong->suc_chua ?? 2 }} người lớn, {{ $loaiPhong->suc_chua_tre_em ?? 2 }} trẻ em, {{ $loaiPhong->suc_chua_em_be ?? 2 }} em bé
+                        </p>
+                    </div>
                 </div>
             </div>
 
@@ -402,6 +467,37 @@
         ])
     </div>
     <script>
+        // Guest limits from database
+        const guestLimits = {
+            adults: { min: 1, max: {{ $loaiPhong->suc_chua ?? 2 }}, current: 2 },
+            children: { min: 0, max: {{ $loaiPhong->suc_chua_tre_em ?? 2 }}, current: 0 },
+            infants: { min: 0, max: {{ $loaiPhong->suc_chua_em_be ?? 2 }}, current: 0 }
+        };
+
+        // Guest counter functions
+        function incrementGuest(type) {
+            const limit = guestLimits[type];
+            if (limit.current < limit.max) {
+                limit.current++;
+                updateGuestDisplay(type);
+            }
+        }
+
+        function decrementGuest(type) {
+            const limit = guestLimits[type];
+            if (limit.current > limit.min) {
+                limit.current--;
+                updateGuestDisplay(type);
+            }
+        }
+
+        function updateGuestDisplay(type) {
+            const display = document.getElementById(type + '_display');
+            const input = document.getElementById(type + '_input');
+            if (display) display.textContent = guestLimits[type].current;
+            if (input) input.value = guestLimits[type].current;
+        }
+
         function handleBooking(event) {
             // event may be the Event object or the form element when called differently
             const form = event && event.target ? event.target : event;
