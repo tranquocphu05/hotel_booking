@@ -78,6 +78,17 @@ class LoginRequest extends FormRequest
                             DB::table($table)->where('id', $id)->update(['password' => Hash::make($this->input('password'))]);
                             // now attempt to login again
                             if (Auth::attempt($credentials, $this->boolean('remember'))) {
+                                // Kiểm tra trạng thái tài khoản sau khi đăng nhập thành công
+                                $user = Auth::user();
+                                if ($user && $user->trang_thai !== 'hoat_dong') {
+                                    Auth::logout();
+                                    RateLimiter::hit($this->throttleKey());
+                                    $message = 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.';
+                                    session()->flash('login_error', $message);
+                                    throw ValidationException::withMessages([
+                                        'email' => [$message],
+                                    ]);
+                                }
                                 RateLimiter::clear($this->throttleKey());
                                 return;
                             }
@@ -96,6 +107,18 @@ class LoginRequest extends FormRequest
 
             session()->flash('login_error', $message);
 
+            throw ValidationException::withMessages([
+                'email' => [$message],
+            ]);
+        }
+
+        // Kiểm tra trạng thái tài khoản sau khi đăng nhập thành công
+        $user = Auth::user();
+        if ($user && $user->trang_thai !== 'hoat_dong') {
+            Auth::logout();
+            RateLimiter::hit($this->throttleKey());
+            $message = 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.';
+            session()->flash('login_error', $message);
             throw ValidationException::withMessages([
                 'email' => [$message],
             ]);

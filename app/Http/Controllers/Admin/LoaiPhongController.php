@@ -180,6 +180,27 @@ class LoaiPhongController extends Controller
 
         $loaiPhong = LoaiPhong::findOrFail($id);
         // Không xóa dữ liệu; chuyển trạng thái sang "ngung"
+        // Nhưng chỉ cho phép vô hiệu hóa khi không còn phòng / booking đang sử dụng
+
+        // 1. Kiểm tra còn phòng thuộc loại này đang bận (không phải trạng thái 'trong')
+        $hasBusyRooms = $loaiPhong->phongs()
+            ->whereIn('trang_thai', ['dang_thue', 'dang_don', 'bao_tri'])
+            ->exists();
+
+        // 2. Kiểm tra còn booking đang hoạt động / đã thanh toán nhưng chưa trả phòng
+        $hasActiveBookings = $loaiPhong->datPhongs()
+            ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan', 'da_thanh_toan'])
+            ->whereHas('invoice', function ($q) {
+                $q->where('trang_thai', 'da_thanh_toan');
+            })
+            ->exists();
+
+        if ($hasBusyRooms || $hasActiveBookings) {
+            return redirect()
+                ->route('admin.loai_phong.index')
+                ->with('error', 'Không thể vô hiệu hóa loại phòng này vì còn phòng đang được đặt / đang thuê. Chỉ được vô hiệu hóa khi tất cả phòng đã check-out và ở trạng thái Trống.');
+        }
+
         $loaiPhong->update(['trang_thai' => 'ngung']);
 
         // Clear cache
@@ -196,6 +217,29 @@ class LoaiPhongController extends Controller
 
         $loaiPhong = LoaiPhong::findOrFail($id);
         $new = $loaiPhong->trang_thai === 'hoat_dong' ? 'ngung' : 'hoat_dong';
+
+        // Khi chuyển từ hoạt động -> ngưng, cần đảm bảo không còn phòng / booking đang sử dụng
+        if ($loaiPhong->trang_thai === 'hoat_dong' && $new === 'ngung') {
+            // 1. Phòng thuộc loại này phải ở trạng thái 'trong' hết
+            $hasBusyRooms = $loaiPhong->phongs()
+                ->whereIn('trang_thai', ['dang_thue', 'dang_don', 'bao_tri'])
+                ->exists();
+
+            // 2. Không còn booking đã thanh toán nhưng chưa trả phòng
+            $hasActiveBookings = $loaiPhong->datPhongs()
+                ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan', 'da_thanh_toan'])
+                ->whereHas('invoice', function ($q) {
+                    $q->where('trang_thai', 'da_thanh_toan');
+                })
+                ->exists();
+
+            if ($hasBusyRooms || $hasActiveBookings) {
+                return redirect()
+                    ->route('admin.loai_phong.index')
+                    ->with('error', 'Không thể vô hiệu hóa loại phòng này vì còn phòng đang được đặt / đang thuê. Chỉ được vô hiệu hóa khi tất cả phòng đã check-out và ở trạng thái Trống.');
+            }
+        }
+
         $loaiPhong->update(['trang_thai' => $new]);
 
         // Clear cache

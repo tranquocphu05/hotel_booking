@@ -15,7 +15,14 @@ class IsStaff
     public function handle(Request $request, Closure $next)
     {
         if (Auth::check()) {
-            $role = Auth::user()->vai_tro;
+            $user = Auth::user();
+            // Kiểm tra tài khoản bị khóa
+            if ($user->trang_thai !== 'hoat_dong') {
+                Auth::logout();
+                return redirect()->route('login')->with('error', 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.');
+            }
+            
+            $role = $user->vai_tro;
             if (in_array($role, ['admin', 'nhan_vien'])) {
                 return $next($request);
             }

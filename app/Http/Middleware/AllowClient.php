@@ -10,8 +10,17 @@ class AllowClient
 {
     public function handle(Request $request, Closure $next)
     {
-        if (Auth::check() && in_array(Auth::user()->vai_tro, ['admin','khach_hang'])) {
-            return $next($request);
+        if (Auth::check()) {
+            $user = Auth::user();
+            // Kiểm tra tài khoản bị khóa
+            if ($user->trang_thai !== 'hoat_dong') {
+                Auth::logout();
+                return redirect()->route('login')->with('error', 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.');
+            }
+            
+            if (in_array($user->vai_tro, ['admin','khach_hang'])) {
+                return $next($request);
+            }
         }
 
         return redirect()->route('login');
