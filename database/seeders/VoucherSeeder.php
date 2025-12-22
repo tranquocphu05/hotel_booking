@@ -70,7 +70,10 @@ class VoucherSeeder extends Seeder
         ];
 
         foreach ($vouchers as $voucher) {
-            Voucher::create($voucher);
+            Voucher::updateOrCreate(
+                ['ma_voucher' => $voucher['ma_voucher']],
+                $voucher
+            );
         }
 
         $this->command->info('✅ Created ' . count($vouchers) . ' vouchers');

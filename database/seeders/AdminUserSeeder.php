@@ -69,5 +69,56 @@ class AdminUserSeeder extends Seeder
 
         User::updateOrCreate($where, $attributes);
         $this->command->info('Admin user seeded (admin@example.com / Admin@1234)');
+
+        // 2. Sample Staff (nhan_vien)
+        User::updateOrCreate(
+            ['email' => 'staff@example.com'],
+            [
+                'username' => 'nhanvien',
+                'password' => Hash::make('123456'),
+                'ho_ten' => 'Nhân Viên Quản Lý',
+                'vai_tro' => 'nhan_vien',
+                'trang_thai' => 'hoat_dong',
+                'sdt' => '0911222333',
+            ]
+        );
+        $this->command->info('Staff user seeded (staff@example.com / 123456)');
+
+        // 3. Sample Receptionist (le_tan)
+        User::updateOrCreate(
+            ['email' => 'receptionist@example.com'],
+            [
+                'username' => 'letan',
+                'password' => Hash::make('123456'),
+                'ho_ten' => 'Lễ Tân Khách Sạn',
+                'vai_tro' => 'le_tan',
+                'trang_thai' => 'hoat_dong',
+                'sdt' => '0944555666',
+            ]
+        );
+        $this->command->info('Receptionist user seeded (receptionist@example.com / 123456)');
+
+        // 4. Sample Customers (khach_hang)
+        $customers = [
+            ['email' => 'customer1@example.com', 'username' => 'customer1', 'ho_ten' => 'Nguyễn Văn A', 'sdt' => '0901234567', 'cccd' => '123456789'],
+            ['email' => 'customer2@example.com', 'username' => 'customer2', 'ho_ten' => 'Trần Thị B', 'sdt' => '0907654321', 'cccd' => '987654321'],
+            ['email' => 'customer3@example.com', 'username' => 'customer3', 'ho_ten' => 'Lê Văn C', 'sdt' => '0912345678', 'cccd' => '456789123'],
+            ['email' => 'customer4@example.com', 'username' => 'customer4', 'ho_ten' => 'Phạm Thị D', 'sdt' => '0923456789', 'cccd' => '789123456'],
+            ['email' => 'customer5@example.com', 'username' => 'customer5', 'ho_ten' => 'Hoàng Văn E', 'sdt' => '0934567890', 'cccd' => '321654987'],
+        ];
+
+        foreach ($customers as $cust) {
+            User::updateOrCreate(
+                ['email' => $cust['email']],
+                array_merge($cust, [
+                    'password' => Hash::make('123456'),
+                    'vai_tro' => 'khach_hang',
+                    'trang_thai' => 'hoat_dong',
+                ])
+            );
+        }
+        $this->command->info('Sample customers seeded (123456 password)');
     }
+
+
 }
