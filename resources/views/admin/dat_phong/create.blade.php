@@ -459,6 +459,9 @@
         value="{{ $voucher->ma_voucher }}"
         data-value="{{ $voucher->gia_tri }}"
         data-loai-phong="{{ $voucher->loai_phong_id }}"
+        data-min-condition="{{ $voucher->dieu_kien }}"
+        data-start="{{ $voucher->ngay_bat_dau }}"
+        data-end="{{ $voucher->ngay_ket_thuc }}"
         {{ $isDisabled ? 'disabled' : '' }}>
 
     <label for="voucher_{{ $voucher->id }}"
@@ -1411,7 +1414,6 @@
 
                 if (!checkinDate || !checkoutDate) {
                     document.querySelectorAll('.voucher-container').forEach(container => {
-                        container.style.display = 'none';
                         const radio = container.querySelector('.voucher-radio');
                         if (radio) {
                             radio.checked = false;
@@ -1425,15 +1427,32 @@
                     return;
                 }
 
-                document.querySelectorAll('.voucher-container').forEach(container => container.style.display = '');
-                voucherInputs.forEach(v => { v.disabled = true; });
+                // Calculate current room total (to check against voucher min condition)
+                let currentRoomSubtotal = 0;
+                const startDate = new Date(checkinDate);
+                const endDate = new Date(checkoutDate);
+                if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime()) && endDate > startDate) {
+                    document.querySelectorAll('.room-type-checkbox:checked').forEach(checkbox => {
+                        const roomTypeId = checkbox.value;
+                        const quantityInput = document.getElementById('quantity_' + roomTypeId);
+                        const quantity = parseInt(quantityInput?.value || 1);
+                        const basePrice = parseFloat(checkbox.dataset.price || 0);
+                        let current = new Date(startDate.getTime());
+                        while (current < endDate) {
+                            currentRoomSubtotal += basePrice * getMultiplierForDateJS(current) * quantity;
+                            current.setDate(current.getDate() + 1);
+                        }
+                    });
+                }
 
                 voucherInputs.forEach(radio => {
                     const voucherRoomType = radio.dataset.loaiPhong;
                     const vStart = radio.dataset.start || '';
                     const vEnd = radio.dataset.end || '';
+                    const minConditionStr = radio.dataset.minCondition || '';
                     const container = radio.closest('.voucher-container');
 
+                    // 1. Check Date
                     let dateOk = true;
                     if (checkinDate && vStart && vEnd) {
                         const checkin = new Date(checkinDate + 'T00:00:00Z');
@@ -1442,28 +1461,40 @@
                         if (checkin < start || checkin > end) dateOk = false;
                     }
 
-                    if (!dateOk) {
-                        if (container) {
-                            container.style.display = 'none';
-                            radio.checked = false;
-                            radio.disabled = true;
+                    // 2. Check Room Type
+                    const roomOk = (!voucherRoomType || voucherRoomType === 'null' || voucherRoomType === '') ||
+                        (selectedRoomTypes.length > 0 && selectedRoomTypes.includes(voucherRoomType));
+
+                    // 3. Check Min Condition
+                    let minCondition = 0;
+                    const matches = minConditionStr.replace(/[.,]/g, '').match(/(\d+)/);
+                    if (matches) minCondition = parseFloat(matches[1]);
+                    const conditionOk = currentRoomSubtotal >= minCondition;
+
+                    const isAvailable = dateOk && roomOk && conditionOk;
+                    radio.disabled = !isAvailable;
+
+                    // Support for UI feedback
+                    const card = radio.closest('label') || radio.nextElementSibling;
+                    if (card) {
+                        if (!isAvailable) {
+                            card.classList.add('opacity-50', 'bg-gray-50');
+                            card.classList.remove('bg-white');
+                        } else {
+                            card.classList.remove('opacity-50', 'bg-gray-50');
+                            card.classList.add('bg-white');
                         }
-                        return;
-                    } else {
-                        if (container) container.style.display = '';
                     }
 
-                    const roomOk = (!voucherRoomType || voucherRoomType === 'null' || voucherRoomType === '') ||
-                        (selectedRoomTypes.length === 0) ||
-                        selectedRoomTypes.includes(voucherRoomType);
-
-                    radio.disabled = !roomOk;
-
-                    if (container) {
-                        const label = container.querySelector('.voucher-label');
-                        if (label) label.classList.remove('opacity-50', 'cursor-not-allowed');
-                        const overlays = container.querySelectorAll('.voucher-overlay-client, .voucher-overlay-server');
-                        overlays.forEach(o => o.remove());
+                    // If currently checked but no longer available, uncheck it
+                    if (radio.checked && !isAvailable) {
+                        radio.checked = false;
+                        // Trigger recalculation
+                        const voucherIdInput = document.getElementById('voucher_id_input');
+                        const voucherMirror = document.getElementById('voucher_input');
+                        if (voucherIdInput) voucherIdInput.value = '';
+                        if (voucherMirror) voucherMirror.value = '';
+                        if (typeof updateTotalPrice === 'function') updateTotalPrice();
                     }
                 });
             }

@@ -1201,10 +1201,22 @@ class DatPhongController extends Controller
             $voucher = Voucher::where('ma_voucher', $requestVoucher)
                 ->where('so_luong', '>', 0)
                 ->where('trang_thai', 'con_han')
-                ->whereDate('ngay_ket_thuc', '>=', now())
+                ->where('ngay_bat_dau', '<=', $request->ngay_nhan)
+                ->where('ngay_ket_thuc', '>=', $request->ngay_nhan)
                 ->first();
 
             if ($voucher) {
+                // 1. Check Min Order Value (dieu_kien)
+                if (!empty($voucher->dieu_kien)) {
+                    $minCondition = 0;
+                    if (preg_match('/([\d\.]+)/', str_replace('.', '', $voucher->dieu_kien), $matches)) {
+                        $minCondition = floatval($matches[1]);
+                    }
+                    if ($roomBaseTotal < $minCondition) {
+                        return back()->withErrors(['voucher' => 'Đơn hàng không đủ điều kiện tối thiểu để áp dụng mã giảm giá này.'])->withInput();
+                    }
+                }
+
                 $discountValue = floatval($voucher->gia_tri ?? 0);
 
                 // Compute applicable total: if voucher targets a specific loai_phong_id,
@@ -1218,6 +1230,11 @@ class DatPhongController extends Controller
                             $applicableTotal += $rt['gia_rieng'];
                         }
                     }
+                    
+                    // 2. Room Type Specificity Check
+                    if ($applicableTotal <= 0) {
+                        return back()->withErrors(['voucher' => 'Mã giảm giá này không áp dụng cho các loại phòng đã chọn.'])->withInput();
+                    }
                 }
 
                 if ($applicableTotal > 0 && $discountValue > 0) {
@@ -1229,6 +1246,8 @@ class DatPhongController extends Controller
                         $voucherDiscount = intval(min(round($discountValue), $applicableTotal));
                     }
                 }
+            } else {
+                return back()->withErrors(['voucher' => 'Mã giảm giá không hợp lệ, đã hết hạn hoặc hết lượt sử dụng.'])->withInput();
             }
         }
 
@@ -2209,6 +2228,16 @@ class DatPhongController extends Controller
 
                 $discountValue = floatval($voucher->gia_tri ?? 0);
 
+                // Check minimum condition (dieu_kien)
+                $minCondition = 0;
+                if ($voucher->dieu_kien && preg_match('/(\d+)/', str_replace(['.', ','], '', $voucher->dieu_kien), $matches)) {
+                    $minCondition = (float)$matches[1];
+                }
+
+                if ($roomSubtotal < $minCondition) {
+                    return back()->withErrors(['voucher' => 'Tổng tiền phòng (' . number_format($roomSubtotal, 0, ',', '.') . '₫) chưa đạt điều kiện tối thiểu của voucher (' . number_format($minCondition, 0, ',', '.') . '₫)'])->withInput();
+                }
+
                 // Compute applicable room total depending on voucher->loai_phong_id
                 $applicableTotal = 0;
                 if (empty($voucher->loai_phong_id) || $voucher->loai_phong_id === null) {
@@ -2219,6 +2248,10 @@ class DatPhongController extends Controller
                         if (isset($rd['loai_phong_id']) && $rd['loai_phong_id'] == $voucher->loai_phong_id) {
                             $applicableTotal += $rd['price'];
                         }
+                    }
+
+                    if ($applicableTotal <= 0) {
+                        return back()->withErrors(['voucher' => 'Mã giảm giá này không áp dụng cho các loại phòng đã chọn'])->withInput();
                     }
                 }
 
