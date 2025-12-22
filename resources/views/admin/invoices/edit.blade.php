@@ -165,15 +165,31 @@
                         @method('PATCH')
 
                         <!-- Trạng thái thanh toán -->
-                        <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                            <label for="trang_thai" class="block text-gray-900 text-sm font-bold mb-3">
-                                <i class="fas fa-sync-alt mr-2 text-blue-600"></i>Trạng thái thanh toán
-                            </label>
-                            <select name="trang_thai" id="trang_thai" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium">
-                                <option value="cho_thanh_toan" {{ $invoice->trang_thai == 'cho_thanh_toan' ? 'selected' : '' }}>⏳ Chờ thanh toán</option>
-                                <option value="da_thanh_toan" {{ $invoice->trang_thai == 'da_thanh_toan' ? 'selected' : '' }}>✓ Đã thanh toán</option>
-                                <option value="hoan_tien" {{ $invoice->trang_thai == 'hoan_tien' ? 'selected' : '' }}>↻ Hoàn tiền</option>
-                            </select>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                <label for="trang_thai" class="block text-gray-900 text-sm font-bold mb-3">
+                                    <i class="fas fa-sync-alt mr-2 text-blue-600"></i>Trạng thái thanh toán
+                                </label>
+                                <select name="trang_thai" id="trang_thai" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium">
+                                    <option value="cho_thanh_toan" {{ $invoice->trang_thai == 'cho_thanh_toan' ? 'selected' : '' }}>⏳ Chờ thanh toán</option>
+                                    <option value="da_thanh_toan" {{ $invoice->trang_thai == 'da_thanh_toan' ? 'selected' : '' }}>✓ Đã thanh toán</option>
+                                    <option value="hoan_tien" {{ $invoice->trang_thai == 'hoan_tien' ? 'selected' : '' }}>↻ Hoàn tiền</option>
+                                </select>
+                            </div>
+
+                            <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                <label for="phuong_thuc" class="block text-gray-900 text-sm font-bold mb-3">
+                                    <i class="fas fa-wallet mr-2 text-green-600"></i>Phương thức thanh toán
+                                </label>
+                                <select name="phuong_thuc" id="phuong_thuc" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500 font-medium">
+                                    <option value="tien_mat" {{ $invoice->phuong_thuc == 'tien_mat' ? 'selected' : '' }}>💵 Tiền mặt</option>
+                                    <option value="chuyen_khoan" {{ $invoice->phuong_thuc == 'chuyen_khoan' ? 'selected' : '' }}>🏦 Chuyển khoản</option>
+                                    {{-- Keep existing if it was something else, though user wants it limited --}}
+                                    @if(!in_array($invoice->phuong_thuc, ['tien_mat', 'chuyen_khoan', '']))
+                                        <option value="{{ $invoice->phuong_thuc }}" selected>{{ strtoupper(str_replace('_', ' ', $invoice->phuong_thuc)) }}</option>
+                                    @endif
+                                </select>
+                            </div>
                         </div>
 
                         <!-- Inline services picker (same UI as create_extra) -->

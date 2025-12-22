@@ -1105,8 +1105,63 @@
                                     </dd>
                                 </div>
 
+                                @if (($booking->phi_phat_sinh ?? 0) > 0)
+                                    <div class="flex justify-between text-sm">
+                                        <dt class="text-gray-600 font-medium">Phụ phí phát sinh</dt>
+                                        <dd class="font-bold text-red-600">
+                                            +{{ number_format($booking->phi_phat_sinh, 0, ',', '.') }} VNĐ
+                                        </dd>
+                                    </div>
+                                    @php
+                                        $combinedNotes = ($booking->ghi_chu_checkin ?? '') . "\n" . ($booking->ghi_chu_checkout ?? '');
+                                        $feeBreakdown = [];
+                                        
+                                        // Extract Early Check-in Fee
+                                        if (preg_match_all('/Phụ phí check-in sớm: ([\d\.,]+)/i', $combinedNotes, $matches)) {
+                                            $sum = 0;
+                                            foreach($matches[1] as $val) $sum += (float)str_replace(['.', ','], ['', '.'], $val);
+                                            if ($sum > 0) $feeBreakdown[] = ['label' => 'Check-in sớm', 'amount' => $sum];
+                                        }
 
+                                        // Extract Late Check-out Fee
+                                        if (preg_match_all('/Phụ phí check-out trễ: ([\d\.,]+)/i', $combinedNotes, $matches)) {
+                                            $sum = 0;
+                                            foreach($matches[1] as $val) $sum += (float)str_replace(['.', ','], ['', '.'], $val);
+                                            if ($sum > 0) $feeBreakdown[] = ['label' => 'Check-out trễ', 'amount' => $sum];
+                                        }
 
+                                        // Extract Damage Fee (with categories)
+                                        if (preg_match_all('/Phụ phí thiệt hại: ([\d\.,]+) VNĐ(?:\nDanh mục: (.*))?/i', $combinedNotes, $matches)) {
+                                            foreach($matches[1] as $index => $val) {
+                                                $amt = (float)str_replace(['.', ','], ['', '.'], $val);
+                                                $cat = !empty($matches[2][$index]) ? $matches[2][$index] : 'Thiệt hại tài sản';
+                                                if ($amt > 0) {
+                                                    $feeBreakdown[] = ['label' => $cat, 'amount' => $amt];
+                                                }
+                                            }
+                                        }
+                                    @endphp
+
+                                    @if(count($feeBreakdown) > 0)
+                                        <div class="pl-4 space-y-0.5 mb-2">
+                                            @foreach($feeBreakdown as $fee)
+                                                <div class="flex justify-between text-[11px] text-gray-500 italic">
+                                                    <dt>• {{ $fee['label'] }}</dt>
+                                                    <dd>+{{ number_format($fee['amount'], 0, ',', '.') }}₫</dd>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                @endif
+
+                                @if (($tienDichVu ?? 0) > 0)
+                                    <div class="flex justify-between text-sm">
+                                        <dt class="text-gray-600">Tiền dịch vụ</dt>
+                                        <dd class="font-medium text-purple-600">
+                                            +{{ number_format($tienDichVu, 0, ',', '.') }} VNĐ
+                                        </dd>
+                                    </div>
+                                @endif
                                 @if ($giamGia > 0)
                                     <div class="flex justify-between text-sm text-red-600">
                                         <dt>Giảm giá @if ($booking->voucher)

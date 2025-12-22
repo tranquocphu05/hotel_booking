@@ -20,11 +20,179 @@
         min-height: 44px !important;
         padding: .55rem .75rem !important;
         box-shadow: none !important;
+        transition: all 0.2s ease;
     }
     #services_select + .ts-wrapper .ts-control:focus-within{
         border-color:#3b82f6 !important;
         box-shadow: 0 0 0 4px rgba(59,130,246,.15) !important;
     }
+
+    /* Clean SaaS Service Cards */
+    .service-card-custom {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 1rem;
+        padding: 1.25rem;
+        margin-bottom: 1.25rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        transition: all 0.2s ease-in-out;
+        position: relative;
+    }
+    .service-card-custom:hover {
+        border-color: #3b82f6;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+    .service-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    .service-title {
+        font-weight: 700;
+        color: #0f172a;
+        font-size: 1.1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .service-price {
+        font-weight: 600;
+        color: #059669;
+        font-size: 0.875rem;
+        background: #f0fdf4;
+        padding: 0.25rem 0.75rem;
+        border-radius: 0.5rem;
+    }
+
+    /* Professional Segmented Toggle */
+    .segmented-control {
+        display: flex;
+        background: #f1f5f9;
+        padding: 0.25rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    .segmented-control input[type="radio"] {
+        display: none;
+    }
+    .segmented-control label {
+        flex: 1;
+        text-align: center;
+        padding: 0.5rem;
+        cursor: pointer;
+        border-radius: 0.375rem;
+        font-size: 0.813rem;
+        font-weight: 500;
+        transition: all 0.15s ease;
+        color: #64748b;
+    }
+    .segmented-control input[type="radio"]:checked + label {
+        background: #ffffff;
+        color: #2563eb;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Clean Date & Stepper */
+    .service-date-row {
+        background: #f8fafc;
+        border: 1px solid #f1f5f9;
+        border-radius: 0.75rem;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        gap: 0.75rem;
+        align-items: center;
+    }
+    .service-date-row input[type="date"] {
+        border-radius: 0.5rem;
+        border: 1px solid #e2e8f0;
+        padding: 0.5rem;
+        font-size: 0.875rem;
+        background: #ffffff;
+    }
+
+    .stepper-container {
+        display: flex;
+        align-items: center;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+    .stepper-btn {
+        width: 2rem;
+        height: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #64748b;
+        background: #f8fafc;
+    }
+    .stepper-btn:hover {
+        background: #f1f5f9;
+        color: #2563eb;
+    }
+    .stepper-input {
+        width: 2.5rem;
+        text-align: center;
+        font-weight: 600;
+        font-size: 0.875rem;
+        border: none;
+        outline: none;
+    }
+
+    .service-remove-btn {
+        color: #94a3b8;
+        padding: 0.5rem;
+        border-radius: 0.5rem;
+        transition: all 0.2s;
+    }
+    .service-remove-btn:hover {
+        color: #ef4444;
+        background: #fef2f2;
+    }
+
+    .service-add-day {
+        color: #3b82f6;
+        font-weight: 600;
+        font-size: 0.813rem;
+        padding: 0.5rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    /* Clean Room Tags */
+    .entry-room-container {
+        grid-column: 1 / span 3;
+        padding-top: 0.75rem;
+        margin-top: 0.5rem;
+        border-top: 1px solid #f1f5f9;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+    }
+    .room-tag {
+        display: inline-flex;
+        padding: 0.25rem 0.625rem;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #475569;
+        cursor: pointer;
+    }
+    .room-tag:has(input:checked) {
+        background: #eff6ff;
+        border-color: #3b82f6;
+        color: #2563eb;
+    }
+    .room-tag input { display: none; }
 </style>
 @endpush
 
@@ -334,10 +502,10 @@
                                 </div>
 
                                 {{-- Chọn số khách (chung) --}}
-<div class="bg-gray-50 border border-gray-200 rounded-2xl p-5">
-    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
-        Cấu hình khách hàng
-    </p>
+                                <div class="bg-gray-50 border border-gray-200 rounded-2xl p-5 hidden">
+                                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+                                        Cấu hình khách hàng
+                                    </p>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         {{-- Người lớn --}}
@@ -916,9 +1084,15 @@
                         }
 
                         selectedRoomInputs.forEach(inp => {
-                            const ewrap = document.createElement('div'); ewrap.className = 'inline-flex items-center gap-1 mr-2';
-                            const ecb = document.createElement('input'); ecb.type = 'checkbox'; ecb.className = 'entry-room-checkbox'; ecb.setAttribute('data-room-id', inp.value);
-                            ecb.value = inp.value; ecb.checked = true;
+                            const ewrap = document.createElement('label'); 
+                            ewrap.className = 'room-tag';
+                            
+                            const ecb = document.createElement('input'); 
+                            ecb.type = 'checkbox'; 
+                            ecb.className = 'entry-room-checkbox sr-only'; 
+                            ecb.setAttribute('data-room-id', inp.value);
+                            ecb.value = inp.value; 
+                            ecb.checked = true;
                             ecb.onchange = () => {
                                 const serviceId = card.getAttribute('data-service-id');
                                 setTimeout(() => {
@@ -930,8 +1104,12 @@
                                     try { updateTotalPrice(); } catch(e) { console.error('updateTotalPrice error:', e); }
                                 }, 0);
                             };
-                            const elbl = document.createElement('label'); elbl.className='text-xs'; elbl.textContent = inp.getAttribute('data-room-name') || ('Phòng ' + inp.value);
-                            ewrap.appendChild(ecb); ewrap.appendChild(elbl);
+                            
+                            const elbl = document.createElement('span'); 
+                            elbl.textContent = inp.getAttribute('data-room-name') || ('Phòng ' + inp.value);
+                            
+                            ewrap.appendChild(ecb); 
+                            ewrap.appendChild(elbl);
                             entryRoomContainer.appendChild(ewrap);
                         });
                     });
@@ -1876,7 +2054,7 @@
                                 const option = selectEl.querySelector('option[value="' + val + '"]');
                                 if (!option) return;
                                 const serviceId = val;
-                                const serviceName = option.textContent || option.innerText;
+                                const serviceName = (option.textContent || option.innerText).split(' - ')[0];
                                 const servicePrice = parseFloat(option.dataset.price || 0);
                                 const unit = option.dataset.unit || 'cái';
 
@@ -1887,47 +2065,32 @@
                                 const header = document.createElement('div');
                                 header.className = 'service-card-header';
                                 const title = document.createElement('div');
-                                title.innerHTML = `<div class="service-title">${serviceName.split(' - ')[0]}</div>`;
+                                title.className = 'service-title';
+                                title.innerHTML = `<svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg> <span>${serviceName}</span>`;
                                 const price = document.createElement('div');
                                 price.className = 'service-price';
-                                price.innerHTML = `${new Intl.NumberFormat('vi-VN').format(servicePrice)}/${unit}`;
+                                price.innerHTML = `${new Intl.NumberFormat('vi-VN').format(servicePrice)} VNĐ/${unit}`;
                                 header.appendChild(title);
                                 header.appendChild(price);
                                 card.appendChild(header);
 
-                                const roomSection = document.createElement('div');
-                                roomSection.className = 'bg-blue-50 p-3 rounded-lg mt-3 border border-blue-200';
-                                roomSection.id = 'room_selection_' + serviceId;
+                                // Mode selection with Segmented Control
+                                const modeContainer = document.createElement('div');
+                                modeContainer.className = 'segmented-control';
+                                
+                                const globalId = 'global_' + serviceId;
+                                const specificId = 'specific_' + serviceId;
 
-                                const roomToggle = document.createElement('div');
-                                roomToggle.className = 'flex gap-2 mb-2';
-                                const globalRadio = document.createElement('input');
-                                globalRadio.type = 'radio';
-                                globalRadio.name = 'service_room_mode_' + serviceId;
-                                globalRadio.value = 'global';
-                                globalRadio.checked = true;
-                                globalRadio.id = 'global_' + serviceId;
-                                const globalLabel = document.createElement('label');
-                                globalLabel.htmlFor = 'global_' + serviceId;
-                                globalLabel.className = 'text-sm flex items-center gap-2 cursor-pointer';
-                                globalLabel.innerHTML = '<span>Áp dụng tất cả phòng</span>';
+                                modeContainer.innerHTML = `
+                                    <input type="radio" name="service_room_mode_${serviceId}" value="global" id="${globalId}" checked>
+                                    <label for="${globalId}">Áp dụng tất cả phòng</label>
+                                    <input type="radio" name="service_room_mode_${serviceId}" value="specific" id="${specificId}">
+                                    <label for="${specificId}">Chọn phòng riêng</label>
+                                `;
+                                card.appendChild(modeContainer);
 
-                                const specificRadio = document.createElement('input');
-                                specificRadio.type = 'radio';
-                                specificRadio.name = 'service_room_mode_' + serviceId;
-                                specificRadio.value = 'specific';
-                                specificRadio.id = 'specific_' + serviceId;
-
-                                const specificLabel = document.createElement('label');
-                                specificLabel.htmlFor = 'specific_' + serviceId;
-                                specificLabel.className = 'text-sm flex items-center gap-2 cursor-pointer';
-                                specificLabel.innerHTML = '<span>Chọn phòng riêng</span>';
-
-                                roomToggle.appendChild(globalRadio);
-                                roomToggle.appendChild(globalLabel);
-                                roomToggle.appendChild(specificRadio);
-                                roomToggle.appendChild(specificLabel);
-                                roomSection.appendChild(roomToggle);
+                                const globalRadio = modeContainer.querySelector('#' + globalId);
+                                const specificRadio = modeContainer.querySelector('#' + specificId);
 
                                 globalRadio.onchange = () => {
                                     card.querySelectorAll('.entry-room-container').forEach(c => {
@@ -1946,15 +2109,15 @@
                                     try { updateTotalPrice(); } catch(e){}
                                 };
 
-                                roomSection.appendChild(document.createElement('div'));
-                                card.appendChild(roomSection);
-
                                 const rows = document.createElement('div');
                                 rows.id = 'service_dates_' + serviceId;
+                                rows.className = 'space-y-3';
 
                                 function buildDateRow(dateVal) {
                                     const r = document.createElement('div'); r.className = 'service-date-row';
-                                    const d = document.createElement('input'); d.type = 'date'; d.className = 'border rounded p-1'; d.value = dateVal || '';
+                                    
+                                    const d = document.createElement('input'); d.type = 'date'; 
+                                    d.value = dateVal || '';
                                     const rg = getRangeDates(); if (rg.length) { d.min = rg[0]; d.max = rg[rg.length-1]; }
                                     d.addEventListener('focus', function(){ this.dataset.prev = this.value || ''; });
                                     d.addEventListener('change', function(){
@@ -1971,10 +2134,38 @@
                                         }
                                         syncHiddenEntries(serviceId);
                                     });
-                                    const q = document.createElement('input'); q.type = 'number'; q.min = 1; q.value = 1; q.className = 'w-24 border rounded p-1 text-center'; q.onchange = () => syncHiddenEntries(serviceId);
-                                    const rem = document.createElement('button'); rem.type='button'; rem.className='service-remove-btn ml-2'; rem.textContent='Xóa'; rem.onclick = ()=>{ r.remove(); syncHiddenEntries(serviceId); };
-                                    r.appendChild(d); r.appendChild(q); r.appendChild(rem);
-                                    const entryRoomPlaceholder = document.createElement('div'); entryRoomPlaceholder.className = 'entry-room-container mt-2 pl-2 border-l';
+
+                                    // Custom Stepper for Quantity
+                                    const stepper = document.createElement('div');
+                                    stepper.className = 'stepper-container';
+                                    
+                                    const minus = document.createElement('button');
+                                    minus.type = 'button'; minus.className = 'stepper-btn';
+                                    minus.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>';
+                                    
+                                    const q = document.createElement('input');
+                                    q.type = 'number'; q.min = 1; q.value = 1; q.className = 'stepper-input';
+                                    
+                                    const plus = document.createElement('button');
+                                    plus.type = 'button'; plus.className = 'stepper-btn';
+                                    plus.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>';
+                                    
+                                    minus.onclick = () => { if(q.value > 1) { q.value--; syncHiddenEntries(serviceId); } };
+                                    plus.onclick = () => { q.value++; syncHiddenEntries(serviceId); };
+                                    q.onchange = () => syncHiddenEntries(serviceId);
+
+                                    stepper.appendChild(minus);
+                                    stepper.appendChild(q);
+                                    stepper.appendChild(plus);
+                                    
+                                    const rem = document.createElement('button'); rem.type='button'; rem.className='service-remove-btn shadow-sm'; 
+                                    rem.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>`;
+                                    rem.onclick = ()=>{ r.remove(); syncHiddenEntries(serviceId); };
+                                    
+                                    r.appendChild(d); r.appendChild(stepper); r.appendChild(rem);
+                                    
+                                    const entryRoomPlaceholder = document.createElement('div'); 
+                                    entryRoomPlaceholder.className = 'entry-room-container hidden';
                                     r.appendChild(entryRoomPlaceholder);
                                     return r;
                                 }
@@ -1986,13 +2177,18 @@
                                     rows.appendChild(buildDateRow(dateVal));
                                 }
 
-                                const addBtn = document.createElement('button'); addBtn.type='button'; addBtn.className='service-add-day mt-2'; addBtn.textContent='Thêm ngày';
+                                const addBtn = document.createElement('button'); addBtn.type='button'; addBtn.className='service-add-day'; 
+                                addBtn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg> Thêm ngày/lượt`;
                                 addBtn.onclick = function(){
                                     const used = Array.from(rows.querySelectorAll('input[type="date"]')).map(i=>i.value);
                                     const avail = getRangeDates().find(d=>!used.includes(d));
                                     if (avail) {
                                         rows.appendChild(buildDateRow(avail));
                                         try { updateServiceRoomLists(); } catch(e){}
+                                        syncHiddenEntries(serviceId);
+                                    } else if (range.length > 0) {
+                                        // add empty row if range exhausted but user wants more
+                                        rows.appendChild(buildDateRow(''));
                                         syncHiddenEntries(serviceId);
                                     }
                                 };
@@ -2010,27 +2206,16 @@
                                 container.appendChild(hdv);
 
                                 function syncHiddenEntries(id){
-                                    // If no rows remain for this service, remove the service selection entirely
                                     const rowsNow = Array.from(document.querySelectorAll('#service_dates_'+id+' .service-date-row'));
                                     if (rowsNow.length === 0) {
                                         try { ts.removeItem(id); } catch(e){
-                                            // fallback: remove DOM nodes
                                             const card = document.querySelector('[data-service-id="'+id+'"]'); if(card) card.remove();
                                             Array.from(document.querySelectorAll('input[name="services[]"][value="'+id+'"]')).forEach(n=>n.remove());
                                         }
                                         updateTotalPrice();
                                         return;
                                     }
-
-                                    // remove existing entry-hidden inputs for this id
                                     Array.from(document.querySelectorAll('input.entry-hidden[data-service="'+id+'"]')).forEach(n=>n.remove());
-                                    
-                                    // remove existing phong_ids hidden inputs for this service
-                                    Array.from(document.querySelectorAll('input[name="services_data['+id+'][entries][]][phong_ids][]"]')).forEach(n => {
-                                        n.remove();
-                                    });
-
-                                    // Determine current mode
                                     const card = document.querySelector('[data-service-id="'+id+'"]');
                                     const mode = card?.querySelector('input[name="service_room_mode_' + id + '"]:checked')?.value || 'global';
 
@@ -2038,24 +2223,13 @@
                                     rowsNow.forEach((r, idx)=>{
                                         const dateVal = r.querySelector('input[type=date]')?.value || '';
                                         const qty = parseInt(r.querySelector('input[type=number]')?.value || 1);
-                                        
-                                        // Collect per-entry selected rooms (from entry-room-checkboxes inside this row)
                                         const entryRoomChecks = Array.from(r.querySelectorAll('.entry-room-checkbox:checked'));
-                                        
-                                        // If in specific mode and no rooms checked, skip this entry entirely
-                                        if (mode === 'specific' && entryRoomChecks.length === 0) {
-                                            console.log('syncHiddenEntries service', id, 'entry', idx, 'specific mode but NO rooms checked - SKIP');
-                                            return;
-                                        }
-                                        
+                                        if (mode === 'specific' && entryRoomChecks.length === 0) return;
                                         total += qty;
-                                        
-                                        // Create hidden inputs for this entry
                                         const hNgay = document.createElement('input'); hNgay.type='hidden'; hNgay.name='services_data['+id+'][entries]['+idx+'][ngay]'; hNgay.value=dateVal; hNgay.className='entry-hidden'; hNgay.setAttribute('data-service', id);
                                         const hSo = document.createElement('input'); hSo.type='hidden'; hSo.name='services_data['+id+'][entries]['+idx+'][so_luong]'; hSo.value=qty; hSo.className='entry-hidden'; hSo.setAttribute('data-service', id);
                                         container.appendChild(hNgay); container.appendChild(hSo);
 
-                                        // Only add phong_ids if in specific mode
                                         if (mode === 'specific') {
                                             entryRoomChecks.forEach((erc) => {
                                                 const hRoom = document.createElement('input');
@@ -2066,9 +2240,6 @@
                                                 hRoom.setAttribute('data-service', id);
                                                 container.appendChild(hRoom);
                                             });
-                                            console.log('syncHiddenEntries service', id, 'entry', idx, 'specific mode, checked rooms:', entryRoomChecks.length, entryRoomChecks.map(e => e.value));
-                                        } else {
-                                            console.log('syncHiddenEntries service', id, 'entry', idx, 'global mode - apply to all');
                                         }
                                     });
                                     const sumEl = document.getElementById('service_quantity_hidden_'+id); if(sumEl) sumEl.value = total;
