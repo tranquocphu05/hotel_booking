@@ -83,6 +83,7 @@
                                 <h3 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">Chọn loại phòng</h3>
                                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="roomTypesContainer">
                                     @foreach ($loaiPhongs as $loaiPhong)
+                                        @if($loaiPhong->so_luong_trong > 0)
                                         <div class="room-type-card relative">
                                             <input type="checkbox" name="room_types[]" id="loai_phong_{{ $loaiPhong->id }}"
                                                 value="{{ $loaiPhong->id }}" class="sr-only peer room-type-checkbox"
@@ -294,6 +295,7 @@
                                             {{-- Danh sách các phòng cụ thể có sẵn --}}
                                             <div id="available_rooms_{{ $loaiPhong->id }}" class="available-rooms mt-3 grid grid-cols-3 gap-2 hidden"></div>
                                         </div>
+                                        @endif
                                     @endforeach
                                 </div>
                                 @error('room_types')
@@ -1159,6 +1161,10 @@
                             const availabilityText = document.getElementById('availability_text_' + loaiPhongId);
                             const quantityInput = document.getElementById('quantity_' + loaiPhongId);
                             const maxErrorElement = document.getElementById('max_available_error_' + loaiPhongId);
+                            
+                            // Tìm card phòng để ẩn/hiện
+                            const roomCard = document.querySelector(`.room-type-card input[value="${loaiPhongId}"]`)?.closest('.room-type-card');
+                            const roomCheckbox = document.getElementById('loai_phong_' + loaiPhongId);
 
                             if (maxElement) {
                                 maxElement.textContent = availableCount;
@@ -1177,13 +1183,30 @@
 
                             if (maxErrorElement) maxErrorElement.textContent = availableCount;
 
-                            if (quantityInput && parseInt(quantityInput.value) > availableCount && availableCount > 0) {
-                                quantityInput.value = availableCount;
-                                updateQuantityHidden(loaiPhongId);
-                                validateQuantity(quantityInput, loaiPhongId);
-                            } else if (availableCount === 0 && quantityInput) {
-                                quantityInput.value = 0;
-                                updateQuantityHidden(loaiPhongId);
+                            // Ẩn card phòng nếu hết phòng (availableCount === 0)
+                            if (availableCount === 0) {
+                                if (roomCard) {
+                                    roomCard.style.display = 'none';
+                                }
+                                // Bỏ chọn checkbox nếu đang được chọn
+                                if (roomCheckbox && roomCheckbox.checked) {
+                                    roomCheckbox.checked = false;
+                                    toggleRoomType(roomCheckbox, loaiPhongId);
+                                }
+                                if (quantityInput) {
+                                    quantityInput.value = 0;
+                                    updateQuantityHidden(loaiPhongId);
+                                }
+                            } else {
+                                // Hiện lại card phòng nếu có phòng
+                                if (roomCard) {
+                                    roomCard.style.display = '';
+                                }
+                                if (quantityInput && parseInt(quantityInput.value) > availableCount) {
+                                    quantityInput.value = availableCount;
+                                    updateQuantityHidden(loaiPhongId);
+                                    validateQuantity(quantityInput, loaiPhongId);
+                                }
                             }
 
                             const roomsContainer = document.getElementById('available_rooms_' + loaiPhongId);

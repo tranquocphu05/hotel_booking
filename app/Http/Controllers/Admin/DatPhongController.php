@@ -1787,7 +1787,9 @@ class DatPhongController extends Controller
         }
         
         // Lấy danh sách loại phòng thay vì phòng cụ thể
+        // Chỉ lấy loại phòng còn phòng trống (so_luong_trong > 0)
         $loaiPhongs = LoaiPhong::where('trang_thai', 'hoat_dong')
+            ->where('so_luong_trong', '>', 0)
             ->with([
                 'phongs' => function ($q) {
                     $q->where('trang_thai', 'trong'); // chỉ lấy phòng sẵn sàng
