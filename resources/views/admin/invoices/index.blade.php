@@ -160,8 +160,15 @@
               @endphp
             </td>
 
-            <td class="px-3 py-2 text-center text-blue-600 font-semibold">
-              {{ number_format($inv->tong_tien, 0, ',', '.') }} VNĐ
+            <td class="px-3 py-2 text-center font-semibold {{ $inv->isRefund() ? 'text-red-600' : 'text-blue-600' }}">
+              @php
+                  $tongTien = $inv->tong_tien ?? 0;
+                  // Đối với hóa đơn hoàn tiền, hiển thị số dương
+                  if ($inv->isRefund() && $tongTien < 0) {
+                      $tongTien = abs($tongTien);
+                  }
+              @endphp
+              {{ number_format($tongTien, 0, ',', '.') }} VNĐ
             </td>
 
             <td class="px-3 py-2 text-center">
@@ -170,8 +177,10 @@
                 <span class="inline-block px-3 py-1 rounded-full bg-purple-100 text-purple-800 text-xs font-semibold">PHÁT SINH</span>
               @elseif($type === 'PREPAID')
                 <span class="inline-block px-3 py-1 rounded-full bg-green-100 text-green-800 text-xs font-semibold">Chính</span>
+              @elseif($type === 'REFUND')
+                <span class="inline-block px-3 py-1 rounded-full bg-red-100 text-red-800 text-xs font-semibold">HOÀN TIỀN</span>
               @else
-                {{-- Do not display other invoice types; keep the column empty for non-EXTRA/PREPAID --}}
+                {{-- Do not display other invoice types; keep the column empty for non-EXTRA/PREPAID/REFUND --}}
               @endif
             </td>
 

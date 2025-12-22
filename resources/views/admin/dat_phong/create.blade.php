@@ -999,9 +999,13 @@
                     if (!input) return;
                     const currentValue = parseInt(input.value) || 1;
                     if (currentValue > 1) {
+                        const oldValue = currentValue;
                         input.value = currentValue - 1;
                         updateQuantityHidden(roomTypeId);
                         validateQuantity(input, roomTypeId);
+                        
+                        // Tự động giảm số khách theo tỷ lệ số lượng phòng
+                        updateGuestsByRoomQuantity(oldValue, currentValue - 1);
                     }
                 } catch (e) {
                     console.error('decreaseQuantity error for', roomTypeId, e);
@@ -1016,15 +1020,60 @@
                     if (!maxAvailable || maxAvailable <= 0) maxAvailable = Infinity;
                     const currentValue = parseInt(input.value) || 1;
                     if (currentValue < maxAvailable) {
+                        const oldValue = currentValue;
                         input.value = currentValue + 1;
                         updateQuantityHidden(roomTypeId);
                         validateQuantity(input, roomTypeId);
+                        
+                        // Tự động tăng số khách theo tỷ lệ số lượng phòng
+                        updateGuestsByRoomQuantity(oldValue, currentValue + 1);
                     }
                 } catch (e) {
                     console.error('increaseQuantity error for', roomTypeId, e);
                 }
             }
-
+            
+            // Hàm tự động cập nhật số khách khi số lượng phòng thay đổi
+            function updateGuestsByRoomQuantity(oldQuantity, newQuantity) {
+                if (oldQuantity <= 0 || newQuantity <= 0) return;
+                
+                const ratio = newQuantity / oldQuantity;
+                
+                // Lấy số khách hiện tại
+                const adultsInput = document.getElementById('total_adults');
+                const childrenInput = document.getElementById('total_children');
+                const infantsInput = document.getElementById('total_infants');
+                
+                if (adultsInput) {
+                    const currentAdults = parseInt(adultsInput.value) || 2;
+                    const newAdults = Math.max(1, Math.round(currentAdults * ratio));
+                    // Giới hạn tối đa: 3 người lớn/phòng
+                    const maxAdults = newQuantity * 3;
+                    adultsInput.value = Math.min(newAdults, maxAdults);
+                }
+                
+                if (childrenInput) {
+                    const currentChildren = parseInt(childrenInput.value) || 0;
+                    const newChildren = Math.max(0, Math.round(currentChildren * ratio));
+                    // Giới hạn tối đa: 2 trẻ em/phòng
+                    const maxChildren = newQuantity * 2;
+                    childrenInput.value = Math.min(newChildren, maxChildren);
+                }
+                
+                if (infantsInput) {
+                    const currentInfants = parseInt(infantsInput.value) || 0;
+                    const newInfants = Math.max(0, Math.round(currentInfants * ratio));
+                    // Giới hạn tối đa: 2 em bé/phòng
+                    const maxInfants = newQuantity * 2;
+                    infantsInput.value = Math.min(newInfants, maxInfants);
+                }
+                
+                // Cập nhật lại phân bổ cho tất cả loại phòng
+                syncAllGuests();
+            }
+            // Functions for managing total guests (chung cho tất cả loại phòng) - dùng dropdown
+            
+            // Phân bổ số khách từ trường tổng cho tất cả các loại phòng đã chọn
             function updateAllRoomGuests(type) {
                 const totalInput = document.getElementById('total_' + type);
                 if (!totalInput) return;

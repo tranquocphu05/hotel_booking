@@ -18,6 +18,11 @@ class ImpersonationController extends Controller
 
         $target = User::findOrFail($userId);
 
+        // Kiểm tra tài khoản bị khóa
+        if ($target->trang_thai !== 'hoat_dong') {
+            return redirect()->back()->with('error', 'Không thể đăng nhập vào tài khoản đã bị khóa.');
+        }
+
         // store original admin id to stop impersonation later
         session(['impersonator_id' => $admin->id]);
 

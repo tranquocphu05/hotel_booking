@@ -65,24 +65,23 @@
                             </td>
                             <td class="px-3 py-2 text-center space-x-2 whitespace-nowrap">
                                 @hasRole('admin')
-                                @if($u->vai_tro === 'admin')
-                                    @if(($activeAdminCount ?? 0) > 1)
-                                        <a href="{{ route('admin.users.edit', $u) }}" class="inline-flex items-center px-2.5 py-1 rounded bg-yellow-500 text-white text-xs font-semibold hover:bg-yellow-600 transition whitespace-nowrap">Sửa</a>
-                                    @else
-                                        <span class="inline-block max-w-[140px] text-xs text-gray-400 italic truncate align-middle">Admin cuối cùng (không sửa)</span>
-                                    @endif
-                                @else
+                                @php
+                                    $isAdmin = $u->vai_tro === 'admin';
+                                    $isActive = $u->trang_thai === 'hoat_dong';
+                                    $hasMultipleActiveAdmins = ($activeAdminCount ?? 0) > 1;
+                                    // Cho phép sửa nếu: không phải admin HOẶC (là admin VÀ (có >= 2 admin active HOẶC admin đó đang bị khóa))
+                                    $canEdit = !$isAdmin || ($hasMultipleActiveAdmins || !$isActive);
+                                    // Cho phép khóa/mở nếu: không phải admin HOẶC (là admin VÀ (đang active thì cần >= 2 admin active, đang locked thì luôn cho mở))
+                                    $canToggle = !$isAdmin || ($isActive ? $hasMultipleActiveAdmins : true);
+                                @endphp
+                                
+                                @if($canEdit)
                                     <a href="{{ route('admin.users.edit', $u) }}" class="inline-flex items-center px-2.5 py-1 rounded bg-yellow-500 text-white text-xs font-semibold hover:bg-yellow-600 transition whitespace-nowrap">Sửa</a>
+                                @else
+                                    <span class="inline-block max-w-[140px] text-xs text-gray-400 italic truncate align-middle">Admin cuối cùng (không sửa)</span>
                                 @endif
 
-                                @if(auth()->user() && auth()->user()->id !== $u->id)
-                                    <form method="POST" action="{{ route('admin.impersonate', $u->id) }}" style="display:inline">
-                                        @csrf
-                                        <button type="submit" class="inline-flex items-center px-2.5 py-1 rounded bg-blue-500 text-white text-xs font-semibold hover:bg-blue-600 transition whitespace-nowrap">Login</button>
-                                    </form>
-                                @endif
-
-                                @if($u->vai_tro !== 'admin' || (($activeAdminCount ?? 0) > 1))
+                                @if($canToggle)
                                     <form method="POST" action="{{ route('admin.users.toggle', $u) }}" style="display:inline">
                                         @csrf
                                         @method('PUT')
