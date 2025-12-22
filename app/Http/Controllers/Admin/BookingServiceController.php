@@ -36,6 +36,7 @@ class BookingServiceController extends Controller
         $validated = $request->validate([
             'dat_phong_id' => 'required|exists:dat_phong,id',
             'service_id' => 'required|exists:services,id',
+            'phong_id' => 'nullable|exists:phongs,id',
             'quantity' => 'required|integer|min:1',
             'unit_price' => 'required|numeric|min:0',
             'used_at' => 'nullable|date',

@@ -8,6 +8,7 @@
                 </svg>
                 Dịch Vụ Phát Sinh
             </span>
+            {{-- 
             @if($booking->canRequestService())
                 <button onclick="toggleAddServiceForm()" 
                     class="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition shadow-sm">
@@ -17,50 +18,68 @@
                     Thêm Dịch Vụ
                 </button>
             @endif
+            --}}
         </h2>
     </div>
 
     <div class="p-6">
-        @if($booking->canRequestService())
-            {{-- ADD SERVICE FORM (Hidden by default) --}}
+        @if(false && $booking->canRequestService())
+            {{-- ADD SERVICE FORM --}}
             <div id="addServiceForm" class="hidden bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
                 <h3 class="font-medium text-gray-900 mb-3">Thêm dịch vụ mới</h3>
                 <form id="serviceForm" class="space-y-3">
                     @csrf
                     <input type="hidden" name="dat_phong_id" value="{{ $booking->id }}">
                     
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Dịch vụ *</label>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Dịch vụ *</label>
                             <select name="service_id" id="serviceSelect" required
-                                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition duration-200">
                                 <option value="">-- Chọn dịch vụ --</option>
                                 @foreach($services as $service)
                                     <option value="{{ $service->id }}" data-price="{{ $service->price }}" data-unit="{{ $service->unit }}">
-                                        {{ $service->name }} - {{ number_format($service->price) }}đ/{{ $service->unit }}
+                                        {{ $service->name }} ({{ number_format($service->price) }}đ)
                                     </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Phòng</label>
+                            <select name="phong_id" id="roomSelect"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition duration-200">
+                                <option value="">-- Tất cả phòng --</option>
+                                @foreach($booking->phongs as $phong)
+                                    <option value="{{ $phong->id }}">Phòng: {{ $phong->so_phong }}</option>
                                 @endforeach
                             </select>
                         </div>
                         
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Số lượng *</label>
-                            <input type="number" name="quantity" id="quantityInput" min="1" value="1" required
-                                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Số lượng *</label>
+                            <div class="relative">
+                                <input type="number" name="quantity" id="quantityInput" min="1" value="1" required
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition duration-200">
+                                <span id="unitDisplay" class="absolute right-3 top-2 text-gray-400 text-sm"></span>
+                            </div>
                         </div>
                         
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Đơn giá *</label>
-                            <input type="number" name="unit_price" id="unitPriceInput" step="0.01" min="0" required
-                                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Đơn giá *</label>
+                            <div class="relative">
+                                <input type="number" name="unit_price" id="unitPriceInput" step="1000" min="0" required
+                                    class="w-full border border-gray-300 rounded-lg pl-3 pr-8 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition duration-200">
+                                <span class="absolute right-3 top-2 text-gray-400 text-sm">đ</span>
+                            </div>
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Ghi chú</label>
-                        <input type="text" name="ghi_chu" 
-                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                            placeholder="Ví dụ: Phòng 101, giao lúc 14:00...">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Ghi chú / Yêu cầu thêm</label>
+                        <textarea name="ghi_chu" rows="1"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition duration-200"
+                            placeholder="Ví dụ: Giao lúc 14:00, đá ít..."></textarea>
                     </div>
 
                     <div class="flex flex-col sm:flex-row gap-2">
@@ -107,7 +126,7 @@
                                             <span class="inline-block mr-3">Phòng: <span class="font-medium">{{ $bookingService->phong ? ($bookingService->phong->so_phong ?? $bookingService->phong->id) : ($bookingService->phong_id ?? '-') }}</span></span>
                                             Số lượng: <span class="font-medium">{{ $bookingService->quantity }}</span> {{ $bookingService->service->unit }}
                                             × {{ number_format($bookingService->unit_price) }}đ
-                                            = <span class="font-semibold text-purple-600">{{ number_format($bookingService->quantity * $bookingService->unit_price) }}đ</span>
+                                            = <span class="font-semibold text-purple-600">{{ number_format($bookingService->getTotalPrice()) }}đ</span>
                                         </p>
                                         @if($bookingService->used_at)
                                             <p class="text-xs text-gray-500 mt-1">
@@ -144,7 +163,7 @@
                     <div class="flex justify-between items-center">
                         <span class="text-sm font-medium text-gray-700">Tổng tiền dịch vụ:</span>
                         <span class="text-lg font-bold text-purple-600">
-                            {{ number_format($booking->services->sum(function($s) { return $s->quantity * $s->unit_price; })) }}đ
+                            {{ number_format($booking->services->sum(fn($s) => $s->getTotalPrice())) }}đ
                         </span>
                     </div>
                 </div>
@@ -169,12 +188,19 @@ function toggleAddServiceForm() {
     }
 }
 
-// Auto-fill unit price when service is selected
+// Auto-fill unit price and display unit when service is selected
 document.getElementById('serviceSelect')?.addEventListener('change', function() {
     const selectedOption = this.options[this.selectedIndex];
     const price = selectedOption.getAttribute('data-price');
+    const unit = selectedOption.getAttribute('data-unit');
+    
     if (price) {
         document.getElementById('unitPriceInput').value = price;
+    }
+    if (unit) {
+        document.getElementById('unitDisplay').textContent = unit;
+    } else {
+        document.getElementById('unitDisplay').textContent = '';
     }
 });
 

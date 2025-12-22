@@ -1177,6 +1177,9 @@ class InvoiceController extends Controller
 
         // Update invoice status FIRST
         $invoice->trang_thai = $request->input('trang_thai');
+        if ($request->filled('phuong_thuc')) {
+            $invoice->phuong_thuc = $request->input('phuong_thuc');
+        }
         // Ensure invoice_type matches the invoice kind:
         // - EXTRA invoices should keep/remain 'EXTRA'
         // - Non-EXTRA (main) invoices should be set to 'PREPAID'

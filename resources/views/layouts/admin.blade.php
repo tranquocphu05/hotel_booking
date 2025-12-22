@@ -24,6 +24,7 @@
             }
         }
     </script>
+    @stack('styles')
 </head>
 <body class="h-full transition-colors duration-300">
     <!-- Global Loading Overlay -->
@@ -1333,5 +1334,6 @@
             });
         });
     </script>
+    @stack('scripts')
 </body>
 </html>

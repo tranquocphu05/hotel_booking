@@ -169,11 +169,11 @@
                                 ->where('invoice_type', 'REFUND')
                                 ->exists();
                         @endphp
-                        @if (!$hasRefundInvoice)
+                        {{-- @if (!$hasRefundInvoice)
                             <button id="open_adjust_modal" type="button" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-6 rounded-lg flex items-center gap-2 transition">
                                 Remove Service
                             </button>
-                        @endif
+                        @endif --}}
                         <button id="open_refund_modal" type="button" class="bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 px-6 rounded-lg flex items-center gap-2 transition">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
@@ -613,6 +613,54 @@
                                 $displayPhiThemNguoi = $invoicePhiThemNguoi > 0 ? $invoicePhiThemNguoi : ($extraGuestTotal ?? 0);
                             @endphp
 
+                             @if (($phiPhatSinh ?? 0) > 0)
+                                 <div class="flex justify-between text-sm text-gray-600">
+                                     <span class="font-medium">Phụ phí phát sinh</span>
+                                     <span class="font-bold text-red-600">+{{ number_format($phiPhatSinh, 0, ',', '.') }}₫</span>
+                                 </div>
+                                 @php
+                                     $combinedNotes = ($booking->ghi_chu_checkin ?? '') . "\n" . ($booking->ghi_chu_checkout ?? '');
+                                     $feeBreakdown = [];
+                                     
+                                     // Check for Early Check-in
+                                     if (preg_match_all('/Phụ phí check-in sớm: ([\d\.,]+)/i', $combinedNotes, $matches)) {
+                                         $sum = 0;
+                                         foreach($matches[1] as $val) $sum += (float)str_replace(['.', ','], ['', '.'], $val);
+                                         if ($sum > 0) $feeBreakdown[] = ['label' => 'Check-in sớm', 'amount' => $sum];
+                                     }
+
+                                     // Check for Late Check-out
+                                     if (preg_match_all('/Phụ phí check-out trễ: ([\d\.,]+)/i', $combinedNotes, $matches)) {
+                                         $sum = 0;
+                                         foreach($matches[1] as $val) $sum += (float)str_replace(['.', ','], ['', '.'], $val);
+                                         if ($sum > 0) $feeBreakdown[] = ['label' => 'Check-out trễ', 'amount' => $sum];
+                                     }
+
+                                     // Check for Damage Fees (with categories if possible)
+                                     if (preg_match_all('/Phụ phí thiệt hại: ([\d\.,]+) VNĐ(?:\nDanh mục: (.*))?/i', $combinedNotes, $matches)) {
+                                         foreach($matches[1] as $index => $val) {
+                                             $amt = (float)str_replace(['.', ','], ['', '.'], $val);
+                                             $cat = !empty($matches[2][$index]) ? $matches[2][$index] : 'Thiệt hại tài sản';
+                                             if ($amt > 0) {
+                                                 $feeBreakdown[] = ['label' => $cat, 'amount' => $amt];
+                                             }
+                                         }
+                                     }
+                                 @endphp
+
+                                 @if(count($feeBreakdown) > 0)
+                                     <div class="pl-4 space-y-0.5 mb-2">
+                                         @foreach($feeBreakdown as $fee)
+                                             <div class="flex justify-between text-[11px] text-gray-500 italic">
+                                                 <span>• {{ $fee['label'] }}</span>
+                                                 <span>+{{ number_format($fee['amount'], 0, ',', '.') }}₫</span>
+                                             </div>
+                                         @endforeach
+                                     </div>
+                                 @endif
+                             @endif
+
+
                             @if ($displayPhiThemNguoi > 0)
                                 <div class="flex justify-between text-sm text-gray-600">
                                     <span>Phí thêm người</span>
@@ -640,7 +688,7 @@
                                     <p class="text-sm text-gray-600 text-center">
                                         Phương thức:
                                         <span class="font-semibold text-gray-900">
-                                            {{ $invoice->phuong_thuc ? strtoupper(str_replace('_', ' ', $invoice->phuong_thuc)) : 'N/A' }}
+                                            {{ $invoice->phuong_thuc_ui['label'] }}
                                         </span>
                                     </p>
 
@@ -675,6 +723,15 @@
                                         @csrf
                                         @method('PUT')
                                         <input type="hidden" name="trang_thai" value="da_thanh_toan">
+                                        
+                                        <div class="space-y-1 pb-2">
+                                            <label class="text-[10px] font-bold text-gray-500 uppercase">Phương thức thanh toán</label>
+                                            <select name="phuong_thuc" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all" required>
+                                                <option value="tien_mat">💵 Tiền mặt</option>
+                                                <option value="chuyen_khoan">🏦 Chuyển khoản</option>
+                                            </select>
+                                        </div>
+
                                         <button type="submit"
                                             class="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition">
                                             Đánh dấu đã thanh toán
@@ -806,7 +863,7 @@
                                 <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
                                     <div class="flex justify-between items-center">
                                         <span class="text-sm text-gray-600">Phương thức thanh toán</span>
-                                        <span class="text-sm font-semibold text-gray-900">{{ $invoice->phuong_thuc ?? 'N/A' }}</span>
+                                        <span class="text-sm font-semibold text-gray-900">{{ $invoice->phuong_thuc_ui['label'] }}</span>
                                     </div>
                                 </div>
                         
@@ -945,18 +1002,7 @@
                                     $roomNamesDisplay = !empty($roomNames) ? implode(', ', $roomNames) : 'N/A';
                                     
                                     // Format phương thức thanh toán
-                                    $phuongThucDisplay = 'N/A';
-                                    if ($invoice->phuong_thuc) {
-                                        $phuongThuc = strtolower($invoice->phuong_thuc);
-                                        $phuongThucMap = [
-                                            'tien_mat' => 'Tiền mặt',
-                                            'chuyen_khoan' => 'Chuyển khoản',
-                                            'cong_thanh_toan' => 'Cổng thanh toán',
-                                            'the' => 'Thẻ',
-                                            'vi_dien_tu' => 'Ví điện tử',
-                                        ];
-                                        $phuongThucDisplay = $phuongThucMap[$phuongThuc] ?? ucfirst(str_replace('_', ' ', $invoice->phuong_thuc));
-                                    }
+                                    $phuongThucDisplay = $invoice->phuong_thuc_ui['label'];
                                 @endphp
 
                                 <div class="space-y-3 py-4">
@@ -971,6 +1017,31 @@
                                         </div>
                                     </div>
                                 </div>
+
+                                @if ($invoice->trang_thai === 'cho_thanh_toan')
+                                    <form action="{{ route('admin.invoices.update', $invoice->id) }}" method="POST"
+                                        class="pt-3 border-t space-y-2 no-print">
+                                        @csrf
+                                        @method('PUT')
+                                        <input type="hidden" name="trang_thai" value="da_thanh_toan">
+                                        
+                                        <div class="space-y-1 pb-2">
+                                            <label class="text-[10px] font-bold text-gray-500 uppercase">Phương thức thanh toán</label>
+                                            <select name="phuong_thuc" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all" required>
+                                                <option value="tien_mat">💵 Tiền mặt</option>
+                                                <option value="chuyen_khoan">🏦 Chuyển khoản</option>
+                                            </select>
+                                        </div>
+
+                                        <button type="submit"
+                                            class="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition">
+                                            Đánh dấu đã thanh toán
+                                        </button>
+                                        <div class="text-xs text-gray-500 text-center">
+                                            Xác nhận thanh toán cho hóa đơn phát sinh này.
+                                        </div>
+                                    </form>
+                                @endif
 
                                 <div class="border-t-2 border-gray-300"></div>
 

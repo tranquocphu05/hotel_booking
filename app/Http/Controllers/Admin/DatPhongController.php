@@ -1251,8 +1251,8 @@ class DatPhongController extends Controller
             }
         }
 
-        // Tổng cuối cùng: (room base - discount) + surcharges + services
-        $finalTotal = max(0, ($roomBaseTotal - $voucherDiscount) + $totalExtraFee + $totalChildFee + $totalInfantFee + $totalServicePrice);
+        // Tổng cuối cùng: (room base - discount) + surcharges + services + phí phát sinh (thiệt hại, late checkout, v.v.)
+        $finalTotal = max(0, ($roomBaseTotal - $voucherDiscount) + $totalExtraFee + $totalChildFee + $totalInfantFee + $totalServicePrice + ($booking->phi_phat_sinh ?? 0));
 
         Log::info('DatPhong::update - computed totals', [
             'roomBaseTotal' => $roomBaseTotal,
@@ -3434,53 +3434,79 @@ class DatPhongController extends Controller
                 }
 
                 if ($phiThietHai > 0) {
+                    $damageLabels = [
+                        'do_dac_hu_hong' => 'Đồ đạc bị hư hỏng',
+                        'thiet_bi_dien' => 'Thiết bị điện tử bị hỏng',
+                        'noi_that' => 'Nội thất bị hư hỏng',
+                        'san_phong' => 'Sàn phòng bị hư hỏng',
+                        'tuong_phong' => 'Tường phòng bị hư hỏng',
+                        'cua_so_kinh' => 'Cửa sổ/kính bị vỡ',
+                        'minibar_thieu' => 'Minibar thiếu đồ',
+                        'do_dung_phong_thieu' => 'Đồ dùng phòng thiếu',
+                        'tham_trang_tri' => 'Thảm/trang trí bị hư',
+                        'phong_tam' => 'Phòng tắm bị hư hỏng',
+                        'khac' => 'Khác'
+                    ];
+                    $loaiLabel = $damageLabels[$validated['loai_thiet_hai'] ?? ''] ?? ($validated['loai_thiet_hai'] ?? 'Khác');
+
                     $ghiChuCheckout .= ($ghiChuCheckout ? "\n" : '') . "Phụ phí thiệt hại: " . number_format($phiThietHai, 0, ',', '.') . " VNĐ";
+                    $ghiChuCheckout .= "\nDanh mục: " . $loaiLabel;
                     if (!empty($validated['ly_do_phi'])) {
-                        $ghiChuCheckout .= "\n[LY_DO_PHI: " . $validated['ly_do_phi'] . "]";
-                    }
-                    if (!empty($validated['loai_thiet_hai'])) {
-                        $ghiChuCheckout .= "\nDanh mục: " . $validated['loai_thiet_hai'];
+                        $ghiChuCheckout .= "\nMô tả: " . $validated['ly_do_phi'];
                     }
                 }
 
-                // Update booking-level phụ phí & ghi chú
+                // Update booking-level phụ phí & ghi chú (append nếu đã có ghi chú từ phòng trước)
                 $booking->phi_phat_sinh = $tongPhiPhatSinh;
-                $booking->ghi_chu_checkout = trim($ghiChuCheckout);
+                $newGhiChu = trim($ghiChuCheckout);
+                if ($booking->ghi_chu_checkout && $newGhiChu) {
+                    $booking->ghi_chu_checkout .= "\n---\n" . $newGhiChu;
+                } elseif ($newGhiChu) {
+                    $booking->ghi_chu_checkout = $newGhiChu;
+                }
                 $booking->nguoi_checkout = Auth::user()->ho_ten;
 
                 // Chưa set thoi_gian_checkout & trang_thai = 'da_tra' vội,
                 // sẽ quyết định sau khi xử lý từng phòng
 
-                // Cập nhật tổng tiền booking và invoice
+                // Update invoice thông qua recalcTotal
                 \App\Services\BookingPriceCalculator::recalcTotal($booking);
 
                 // Refresh booking để lấy giá trị mới nhất
                 $booking->refresh();
 
-                // Update invoice với giá trị mới từ booking
-                if ($booking->invoice) {
-                    $tongMoi = $booking->invoice->tien_phong
-                        + $booking->invoice->tien_dich_vu
-                        + $tongPhiPhatSinh
-                        - $booking->invoice->giam_gia;
-
-                    $booking->invoice->update([
-                        'phi_phat_sinh' => $tongPhiPhatSinh,
-                        'tong_tien' => $booking->tong_tien,
-                        'con_lai' => max(0, $booking->tong_tien - ($booking->invoice->da_thanh_toan ?? 0)),
+                // Tạo bản ghi thanh toán cho PHẦN PHỤ PHÍ MỚI PHÁT SINH trong lần checkout này
+                $phiMoi = $phiCheckoutTre + $phiThietHai;
+                if ($booking->invoice && $phiMoi > 0) {
+                    ThanhToan::create([
+                        'hoa_don_id' => $booking->invoice->id,
+                        'loai' => 'phi_phat_sinh',
+                        'so_tien' => $phiMoi,
+                        'ngay_thanh_toan' => now(),
+                        'trang_thai' => 'pending',
+                        'ghi_chu' => 'Phụ phí phát sinh khi check-out (Phòng ' . $phongsToCheckout->pluck('so_phong')->implode(', ') . ')',
                     ]);
+                }
 
-                    // Create payment record for additional fees if any
-                    if ($tongPhiPhatSinh > 0) {
-                        ThanhToan::create([
+                // Nếu là lần đầu tiên có bất kỳ phụ phí nào (bao gồm cả các phụ phí cũ chưa được tạo record payment)
+                // và chúng ta chưa bao giờ tạo payment record cho phi_phat_sinh, hãy tạo cho phần cũ nếu cần.
+                // Tuy nhiên thực tế early checkin thường đã cộng vào tổng nhưng chưa có payment record.
+                // Ở đây ta ưu tiên ghi nhận theo từng đợt checkout phòng để kế toán dễ đối soát.
+                if ($booking->invoice && $phiPhatSinhHienTai > 0) {
+                     $hasExistingPayment = ThanhToan::where('hoa_don_id', $booking->invoice->id)
+                        ->where('loai', 'phi_phat_sinh')
+                        ->exists();
+                     
+                     if (!$hasExistingPayment) {
+                         ThanhToan::create([
                             'hoa_don_id' => $booking->invoice->id,
                             'loai' => 'phi_phat_sinh',
-                            'so_tien' => $tongPhiPhatSinh,
+                            'so_tien' => $phiPhatSinhHienTai,
                             'ngay_thanh_toan' => now(),
                             'trang_thai' => 'pending',
-                            'ghi_chu' => 'Phụ phí phát sinh khi check-out',
+                            'ghi_chu' => 'Phụ phí phát sinh trước checkout (ví dụ: check-in sớm)',
                         ]);
-                    }
+                     }
                 }
 
                 // Update room status to 'trong' ngay sau checkout để phòng có thể đặt được cho những ngày tiếp theo

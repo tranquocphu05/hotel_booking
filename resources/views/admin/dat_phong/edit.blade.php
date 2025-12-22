@@ -281,8 +281,8 @@
                                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                         @enderror
                                     </div>
-                                    <div class="md:col-span-4 mt-2">
-                                        <label class="block text-sm font-semibold text-gray-600 mb-6 uppercase tracking-wide text-[11px]">Cấu hình khách hàng</label>
+                                    <div class="md:col-span-4 mt-2 hidden">
+                                        <label class="block text-sm font-semibold text-gray-600 mb-6 uppercase tracking-wide text-[11px] hidden">Cấu hình khách hàng</label>
                                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-8">
                                             {{-- Người lớn --}}
                                             <div class="bg-blue-50/50 border border-blue-100 rounded-[2.5rem] p-6 transition-all hover:shadow-md group text-center sm:text-left">
@@ -409,189 +409,172 @@
                         </div>
 
                         <style>
+                            /* Clean SaaS Service Cards */
                             .service-card-custom {
-                                border-radius: 10px;
-                                background: linear-gradient(135deg, #e0f2fe 0%, #bfdbfe 100%);
-                                border: 1.5px solid #2563eb;
-                                /* blue-600 */
-                                padding: 0.875rem;
-                                box-shadow: 0 6px 18px rgba(37, 99, 235, 0.06);
+                                background: #ffffff;
+                                border: 1px solid #e2e8f0;
+                                border-radius: 1rem;
+                                padding: 1.25rem;
+                                margin-bottom: 1.25rem;
+                                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+                                transition: all 0.2s ease-in-out;
+                                position: relative;
                             }
-
-                            /* responsive grid for cards */
-                            .service-card-grid {
-                                display: grid;
-                                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-                                gap: 0.75rem
+                            .service-card-custom:hover {
+                                border-color: #3b82f6;
+                                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
                             }
-
                             .service-card-header {
                                 display: flex;
                                 justify-content: space-between;
-                                align-items: center;
-                                margin-bottom: 0.5rem;
-                                padding-bottom: 0.4rem;
-                                border-bottom: 1.5px solid #bfdbfe
+                                align-items: flex-start;
+                                margin-bottom: 1rem;
+                                padding-bottom: 0.75rem;
+                                border-bottom: 1px solid #f1f5f9;
                             }
-
-                            .service-card-header .service-title {
-                                color: #1e40af;
-                                font-weight: 600;
-                                font-size: 0.95rem
-                            }
-
-                            .service-card-header .service-price {
-                                color: #1e3a8a;
-                                font-weight: 600;
-                                font-size: 0.85rem
-                            }
-
-                            .service-date-row {
+                            .service-title {
+                                font-weight: 700;
+                                color: #0f172a;
+                                font-size: 1.1rem;
                                 display: flex;
-                                gap: 0.5rem;
                                 align-items: center;
-                                margin-top: 0.5rem;
-                                padding: 0.4rem;
-                                background: #ffffff;
-                                border-radius: 6px;
-                                border: 1px solid #bfdbfe
+                                gap: 0.5rem;
                             }
-
-                            .service-date-row input[type=date] {
-                                border: 1px solid #93c5fd;
-                                padding: 0.35rem 0.5rem;
-                                border-radius: 5px;
-                                background: #eff6ff;
-                                font-size: 0.85rem;
-                                flex: 1
-                            }
-
-                            .service-date-row input[type=number] {
-                                border: 1px solid #93c5fd;
-                                padding: 0.35rem 0.5rem;
-                                border-radius: 5px;
-                                background: #eff6ff;
-                                width: 64px;
-                                text-align: center;
-                                font-size: 0.85rem
-                            }
-
-                            .service-add-day {
-                                background: linear-gradient(135deg, #93c5fd 0%, #2563eb 100%);
-                                color: #08203a;
-                                padding: 0.4rem 0.6rem;
-                                border-radius: 6px;
-                                border: 1.5px solid #60a5fa;
-                                cursor: pointer;
+                            .service-price {
                                 font-weight: 600;
-                                font-size: 0.85rem
+                                color: #059669;
+                                font-size: 0.875rem;
+                                background: #f0fdf4;
+                                padding: 0.25rem 0.75rem;
+                                border-radius: 0.5rem;
                             }
 
-                            .service-add-day:hover {
-                                background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-                                box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12)
+                            /* Professional Segmented Toggle */
+                            .segmented-control {
+                                display: flex;
+                                background: #f1f5f9;
+                                padding: 0.25rem;
+                                border-radius: 0.5rem;
+                                margin-bottom: 1rem;
+                            }
+                            .segmented-control input[type="radio"] {
+                                display: none;
+                            }
+                            .segmented-control label {
+                                flex: 1;
+                                text-align: center;
+                                padding: 0.5rem;
+                                cursor: pointer;
+                                border-radius: 0.375rem;
+                                font-size: 0.813rem;
+                                font-weight: 500;
+                                transition: all 0.15s ease;
+                                color: #64748b;
+                            }
+                            .segmented-control input[type="radio"]:checked + label {
+                                background: #ffffff;
+                                color: #2563eb;
+                                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+                            }
+
+                            /* Clean Date & Stepper */
+                            .service-date-row {
+                                background: #f8fafc;
+                                border: 1px solid #f1f5f9;
+                                border-radius: 0.75rem;
+                                padding: 1rem;
+                                margin-bottom: 0.75rem;
+                                display: grid;
+                                grid-template-columns: 1fr auto auto;
+                                gap: 0.75rem;
+                                align-items: center;
+                            }
+                            .service-date-row input[type="date"] {
+                                border-radius: 0.5rem;
+                                border: 1px solid #e2e8f0;
+                                padding: 0.5rem;
+                                font-size: 0.875rem;
+                                background: #ffffff;
+                            }
+
+                            .stepper-container {
+                                display: flex;
+                                align-items: center;
+                                background: #ffffff;
+                                border: 1px solid #e2e8f0;
+                                border-radius: 0.5rem;
+                                overflow: hidden;
+                            }
+                            .stepper-btn {
+                                width: 2rem;
+                                height: 2rem;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                color: #64748b;
+                                background: #f8fafc;
+                            }
+                            .stepper-btn:hover {
+                                background: #f1f5f9;
+                                color: #2563eb;
+                            }
+                            .stepper-input {
+                                width: 2.5rem;
+                                text-align: center;
+                                font-weight: 600;
+                                font-size: 0.875rem;
+                                border: none;
+                                outline: none;
                             }
 
                             .service-remove-btn {
-                                background: #fee2e2;
-                                color: #991b1b;
-                                padding: 0.3rem 0.5rem;
-                                border-radius: 5px;
-                                border: 1px solid #fecaca;
-                                cursor: pointer;
-                                font-weight: 600;
-                                font-size: 0.8rem
+                                color: #94a3b8;
+                                padding: 0.5rem;
+                                border-radius: 0.5rem;
+                                transition: all 0.2s;
                             }
-
                             .service-remove-btn:hover {
-                                background: #fca5a5;
-                                box-shadow: 0 3px 10px rgba(185, 28, 28, 0.12)
+                                color: #ef4444;
+                                background: #fef2f2;
                             }
 
-                            /* selected list item hover */
-                            #selected_services_list .service-card-custom {
-                                transition: all .18s ease
-                            }
-
-                            #selected_services_list .service-card-custom:hover {
-                                transform: translateY(-4px);
-                                box-shadow: 0 10px 26px rgba(37, 99, 235, 0.12)
-                            }
-
-                            /* Room mode selection */
-                            .service-room-mode {
-                                display: flex;
-                                gap: 0.75rem;
-                                margin-top: 0.75rem;
-                                padding: 0.75rem;
-                                background: #f0fdf4;
-                                border: 1.5px solid #86efac;
-                                border-radius: 8px
-                            }
-
-                            .service-room-mode label {
-                                display: flex;
-                                align-items: center;
-                                gap: 0.4rem;
-                                font-size: 0.85rem;
-                                color: #166534;
+                            .service-add-day {
+                                color: #3b82f6;
                                 font-weight: 600;
-                                cursor: pointer
+                                font-size: 0.813rem;
+                                padding: 0.5rem;
+                                display: inline-flex;
+                                align-items: center;
+                                gap: 0.25rem;
                             }
 
-                            .service-room-mode input[type=radio] {
-                                cursor: pointer
-                            }
-
-                            /* Room container for per-entry selection */
+                            /* Clean Room Tags */
                             .entry-room-container {
-                                margin-top: 0.75rem;
-                                padding: 0.75rem;
-                                background: #f8f4ff;
-                                border: 1.5px solid #d8b4fe;
-                                border-radius: 6px
-                            }
-
-                            .entry-room-container .checkbox-group {
+                                grid-column: 1 / span 3;
+                                padding-top: 0.75rem;
+                                margin-top: 0.5rem;
+                                border-top: 1px solid #f1f5f9;
                                 display: flex;
                                 flex-wrap: wrap;
-                                gap: 0.5rem
+                                gap: 0.4rem;
                             }
-
-                            .entry-room-container .checkbox-group label {
-                                display: flex;
-                                align-items: center;
-                                gap: 0.35rem;
-                                background: white;
-                                padding: 0.3rem 0.5rem;
-                                border: 1px solid #d8b4fe;
-                                border-radius: 5px;
-                                font-size: 0.8rem;
+                            .room-tag {
+                                display: inline-flex;
+                                padding: 0.25rem 0.625rem;
+                                background: #ffffff;
+                                border: 1px solid #e2e8f0;
+                                border-radius: 0.375rem;
+                                font-size: 0.75rem;
+                                font-weight: 500;
+                                color: #475569;
                                 cursor: pointer;
-                                transition: all 0.15s ease
                             }
-
-                            .entry-room-container .checkbox-group label:hover {
-                                background: #faf5ff;
-                                border-color: #c084fc
+                            .room-tag:has(input:checked) {
+                                background: #eff6ff;
+                                border-color: #3b82f6;
+                                color: #2563eb;
                             }
-
-                            .entry-room-container .checkbox-group input[type=checkbox] {
-                                cursor: pointer;
-                                width: 14px;
-                                height: 14px
-                            }
-
-                            .entry-room-container .checkbox-group input[type=checkbox]:checked+span {
-                                color: #7e22ce;
-                                font-weight: 600
-                            }
-
-                            .entry-room-container .checkbox-group span {
-                                color: #6b21a8;
-                                font-size: 0.8rem;
-                                font-weight: 500
-                            }
+                            .room-tag input { display: none; }
                         </style>
 
                         <div class="bg-gray-50 p-4 rounded-lg">
@@ -1013,14 +996,13 @@
                 }
             }
 
-            function buildDateRow(serviceId, dateVal = '') {
+            function buildDateRow(serviceId, dateVal = '', qtyVal = 1) {
                 const idx = 'new_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                 const r = document.createElement('div');
                 r.className = 'service-date-row';
 
                 const d = document.createElement('input');
                 d.type = 'date';
-                d.className = 'border rounded p-1';
                 d.value = dateVal || '';
                 const rg = getRangeDates();
                 if (rg.length) {
@@ -1049,17 +1031,33 @@
                     syncHiddenEntries(serviceId);
                 });
 
+                // Custom Stepper for Quantity
+                const stepper = document.createElement('div');
+                stepper.className = 'stepper-container';
+                
+                const minus = document.createElement('button');
+                minus.type = 'button'; minus.className = 'stepper-btn';
+                minus.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>';
+                
                 const q = document.createElement('input');
-                q.type = 'number';
-                q.min = 1;
-                q.value = 1;
-                q.className = 'w-24 border rounded p-1 text-center';
+                q.type = 'number'; q.min = 1; q.value = qtyVal || 1; q.className = 'stepper-input';
+                
+                const plus = document.createElement('button');
+                plus.type = 'button'; plus.className = 'stepper-btn';
+                plus.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>';
+                
+                minus.onclick = () => { if(q.value > 1) { q.value--; syncHiddenEntries(serviceId); } };
+                plus.onclick = () => { q.value++; syncHiddenEntries(serviceId); };
                 q.onchange = () => syncHiddenEntries(serviceId);
+
+                stepper.appendChild(minus);
+                stepper.appendChild(q);
+                stepper.appendChild(plus);
 
                 const rem = document.createElement('button');
                 rem.type = 'button';
-                rem.className = 'service-remove-btn ml-2';
-                rem.textContent = 'Xóa';
+                rem.className = 'service-remove-btn shadow-sm';
+                rem.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>`;
                 rem.onclick = () => {
                     r.remove();
                     syncHiddenEntries(serviceId);
@@ -1067,14 +1065,13 @@
                 };
 
                 r.appendChild(d);
-                r.appendChild(q);
+                r.appendChild(stepper);
                 r.appendChild(rem);
 
-                // Entry room container for per-room selection - INLINE
-                const entryRoomContainer = document.createElement('div');
-                entryRoomContainer.className = 'entry-room-container';
-                entryRoomContainer.style.display = 'none';
-                r.appendChild(entryRoomContainer);
+                // Entry room container for per-room selection
+                const entryRoomPlaceholder = document.createElement('div');
+                entryRoomPlaceholder.className = 'entry-room-container hidden';
+                r.appendChild(entryRoomPlaceholder);
 
                 return r;
             }
@@ -1144,12 +1141,13 @@
                         roomsArray.forEach(pid => {
                             const pidInt = parseInt(pid);
                             const label = roomMapData[pid] || pid;
-                            const ewrap = document.createElement('div');
-                            ewrap.className = 'inline-flex items-center gap-1 mr-2';
+                            
+                            const ewrap = document.createElement('label');
+                            ewrap.className = 'room-tag';
 
                             const ecb = document.createElement('input');
                             ecb.type = 'checkbox';
-                            ecb.className = 'entry-room-checkbox';
+                            ecb.className = 'entry-room-checkbox sr-only';
                             ecb.setAttribute('data-room-id', pid);
                             ecb.value = pid;
 
@@ -1162,28 +1160,17 @@
                             try {
                                 const phongIdsForDate = (entriesByDate[dateValRow]?.phong_ids || [])
                                     .map(p => parseInt(p));
-                                // Only pre-check if this service entry explicitly contains this room
-                                // (i.e. the room was saved for this service in DB). Do NOT auto-check
-                                // when admin merely selects rooms in the room list — user should
-                                // manually choose service rooms.
                                 if (phongIdsForDate.includes(pidInt)) {
                                     ecb.checked = true;
-                                    console.log('Pre-checked service', serviceId, 'date', dateValRow,
-                                        'room', pidInt);
                                 }
-                            } catch (e) {
-                                // ignore parsing issues
-                            }
+                            } catch (e) {}
 
-                            const elbl = document.createElement('label');
-                            elbl.className = 'text-xs cursor-pointer';
+                            const elbl = document.createElement('span');
                             elbl.textContent = label;
 
                             ewrap.appendChild(ecb);
                             ewrap.appendChild(elbl);
                             entryRoomContainer.appendChild(ewrap);
-                            // debug marker
-                            //console.log('Appended checkbox for service', serviceId, 'room', pid, 'row date', r.querySelector('input[type=date]')?.value);
                         });
                     });
 
@@ -1219,38 +1206,23 @@
                 header.appendChild(price);
                 card.appendChild(header);
 
-                // Room selection radios
-                const roomSection = document.createElement('div');
-                roomSection.className = 'service-room-mode';
+                // Mode selection with Segmented Control
+                const modeContainer = document.createElement('div');
+                modeContainer.className = 'segmented-control';
+                
+                const globalId = 'global_' + sid;
+                const specificId = 'specific_' + sid;
 
-                const globalRadio = document.createElement('input');
-                globalRadio.type = 'radio';
-                globalRadio.name = 'service_room_mode_' + sid;
-                globalRadio.value = 'global';
-                globalRadio.checked = !hasSpecific;
-                globalRadio.id = 'global_' + sid;
+                modeContainer.innerHTML = `
+                    <input type="radio" name="service_room_mode_${sid}" value="global" id="${globalId}" ${!hasSpecific ? 'checked' : ''}>
+                    <label for="${globalId}">Áp dụng tất cả phòng</label>
+                    <input type="radio" name="service_room_mode_${sid}" value="specific" id="${specificId}" ${hasSpecific ? 'checked' : ''}>
+                    <label for="${specificId}">Chọn phòng riêng</label>
+                `;
+                card.appendChild(modeContainer);
 
-                const globalLabel = document.createElement('label');
-                globalLabel.htmlFor = 'global_' + sid;
-                globalLabel.className = 'text-sm flex items-center gap-2 cursor-pointer';
-                globalLabel.innerHTML = '<span>Áp dụng tất cả phòng</span>';
-
-                const specificRadio = document.createElement('input');
-                specificRadio.type = 'radio';
-                specificRadio.name = 'service_room_mode_' + sid;
-                specificRadio.value = 'specific';
-                specificRadio.checked = hasSpecific;
-                specificRadio.id = 'specific_' + sid;
-
-                const specificLabel = document.createElement('label');
-                specificLabel.htmlFor = 'specific_' + sid;
-                specificLabel.className = 'text-sm flex items-center gap-2 cursor-pointer';
-                specificLabel.innerHTML = '<span>Chọn phòng riêng</span>';
-
-                roomSection.appendChild(globalRadio);
-                roomSection.appendChild(globalLabel);
-                roomSection.appendChild(specificRadio);
-                roomSection.appendChild(specificLabel);
+                const globalRadio = modeContainer.querySelector('#' + globalId);
+                const specificRadio = modeContainer.querySelector('#' + specificId);
 
                 globalRadio.onchange = () => {
                     card.querySelectorAll('.entry-room-container').forEach(c => {
@@ -1268,11 +1240,10 @@
                     window.computeTotals && window.computeTotals();
                 };
 
-                card.appendChild(roomSection);
-
                 // Date rows container
                 const rows = document.createElement('div');
                 rows.id = 'service_dates_' + sid;
+                rows.className = 'space-y-3';
 
                 // Render existing entries - GROUP BY DATE to avoid duplicates
                 if (existing.length > 0) {
@@ -1311,7 +1282,7 @@
                 const addBtn = document.createElement('button');
                 addBtn.type = 'button';
                 addBtn.className = 'service-add-day mt-3';
-                addBtn.textContent = '+ Thêm ngày';
+                addBtn.innerHTML = `<svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg> Thêm ngày/lượt`;
                 addBtn.onclick = () => {
                     const used = Array.from(rows.querySelectorAll('input[type="date"]')).map(i => i.value);
                     const avail = getRangeDates().find(d => !used.includes(d));

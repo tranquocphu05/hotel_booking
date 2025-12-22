@@ -897,13 +897,12 @@ class DatPhong extends Model
     }
 
     /**
-     * Check if guest can request services (checked in but not checked out)
+     * Check if guest can request services (checked in and not cancelled)
      */
     public function canRequestService()
     {
         return $this->thoi_gian_checkin
-            && !$this->thoi_gian_checkout
-            && $this->trang_thai === 'da_xac_nhan';
+            && in_array($this->trang_thai, ['da_xac_nhan', 'da_tra']);
     }
 
     /**

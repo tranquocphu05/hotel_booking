@@ -57,12 +57,20 @@ class Invoice extends Model
 
     public function getPhuongThucUiAttribute(): array
     {
+        if (empty($this->phuong_thuc)) {
+            return [
+                'label' => $this->trang_thai === 'cho_thanh_toan' ? 'Chưa chọn' : 'N/A',
+                'bg' => 'bg-gray-50',
+                'text' => 'text-gray-400'
+            ];
+        }
+
         return match ($this->phuong_thuc) {
-            'tien_mat'     => ['label' => 'Tiền mặt',      'bg' => 'bg-gray-100',   'text' => 'text-gray-700'],
-            'vnpay'        => ['label' => 'VNPAY',         'bg' => 'bg-blue-100',   'text' => 'text-blue-700'],
-            'momo'         => ['label' => 'MoMo',          'bg' => 'bg-pink-100',   'text' => 'text-pink-700'],
-            'chuyen_khoan' => ['label' => 'Chuyển khoản',  'bg' => 'bg-indigo-100', 'text' => 'text-indigo-700'],
-            default        => ['label' => 'Khác',          'bg' => 'bg-gray-100',   'text' => 'text-gray-700'],
+            'tien_mat'     => ['label' => 'Tiền mặt',      'bg' => 'bg-emerald-50',   'text' => 'text-emerald-700'],
+            'vnpay'        => ['label' => 'VNPAY',         'bg' => 'bg-blue-50',      'text' => 'text-blue-700'],
+            'momo'         => ['label' => 'MoMo',          'bg' => 'bg-pink-50',      'text' => 'text-pink-700'],
+            'chuyen_khoan' => ['label' => 'Chuyển khoản',  'bg' => 'bg-indigo-50',    'text' => 'text-indigo-700'],
+            default        => ['label' => 'Khác',          'bg' => 'bg-gray-100',     'text' => 'text-gray-700'],
         };
     }
 
