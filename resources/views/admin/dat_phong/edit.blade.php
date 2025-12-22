@@ -706,6 +706,7 @@
                                             data-loai-phong="{{ $voucher->loai_phong_id }}"
                                             data-start="{{ $voucher->ngay_bat_dau ? date('Y-m-d', strtotime($voucher->ngay_bat_dau)) : '' }}"
                                             data-end="{{ $voucher->ngay_ket_thuc ? date('Y-m-d', strtotime($voucher->ngay_ket_thuc)) : '' }}"
+                                            data-min-condition="{{ $voucher->dieu_kien }}"
                                             {{ $booking->voucher_id === $voucher->id ? 'checked' : '' }}> <label
                                             for="voucher_{{ $voucher->id }}"
                                             class="block p-4 bg-gray-50 border-2 border-gray-200 rounded-xl cursor-pointer relative transition-all duration-300 ease-in-out
@@ -2287,7 +2288,6 @@
                 // If either date is missing, hide all voucher UI and clear selection
                 if (!checkinDate || !checkoutDate) {
                     document.querySelectorAll('.voucher-container').forEach(container => {
-                        container.style.display = 'none';
                         const radio = container.querySelector('.voucher-radio');
                         if (radio) {
                             radio.checked = false;
@@ -2301,20 +2301,44 @@
                     return;
                 }
 
+                // Calculate current room total (to check against voucher min condition)
+                let currentRoomSubtotal = 0;
+                const startDate = new Date(checkinDate);
+                const endDate = new Date(checkoutDate);
+                if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime()) && endDate > startDate) {
+                    document.querySelectorAll('.room-item').forEach(item => {
+                        const idx = item.getAttribute('data-room-index');
+                        const select = item.querySelector('.room-type-select');
+                        const qtyInput = item.querySelector('input[data-room-index]');
+                        if (select && select.value && qtyInput) {
+                            const quantity = parseInt(qtyInput.value) || 1;
+                            const priceInput = document.getElementById(`room_gia_rieng_${idx}`);
+                            const unitPerNight = parseFloat(priceInput?.dataset.unitPerNight || 0);
+                            
+                            let current = new Date(startDate.getTime());
+                            while (current < endDate) {
+                                // Note: In edit page we might need to use a JS version of getting multiplier
+                                // If getMultiplierForDateAdmin exists, use it. Otherwise assume 1 for simplicity of min-check
+                                const mult = (typeof getMultiplierForDateJS === 'function') ? getMultiplierForDateJS(current) : 1;
+                                currentRoomSubtotal += unitPerNight * mult * quantity;
+                                current.setDate(current.getDate() + 1);
+                            }
+                        }
+                    });
+                }
+
                 // show voucher containers when dates are set
                 document.querySelectorAll('.voucher-container').forEach(container => container.style.display = '');
 
-                // Disable all vouchers first
-                voucherInputs.forEach(v => v.disabled = true);
-
-                // Enable/disable vouchers based on room type compatibility AND date range
+                // Enable/disable vouchers based on room type compatibility AND date range AND min condition
                 voucherInputs.forEach(radio => {
                     const voucherRoomType = radio.dataset.loaiPhong;
                     const vStart = radio.dataset.start || '';
                     const vEnd = radio.dataset.end || '';
+                    const minConditionStr = radio.dataset.minCondition || '';
                     const container = radio.closest('.voucher-container');
 
-                    // Date check: check-in date must be within [start, end] inclusive
+                    // 1. Date check
                     let dateOk = true;
                     if (checkinDate && vStart && vEnd) {
                         const checkin = new Date(checkinDate + 'T00:00:00Z');
@@ -2323,30 +2347,37 @@
                         if (checkin < start || checkin > end) dateOk = false;
                     }
 
-                    // If date is not ok, hide the voucher completely
-                    if (!dateOk) {
-                        if (container) {
-                            container.style.display = 'none';
-                            radio.checked = false;
-                            radio.disabled = true;
-                        }
-                        return;
-                    } else {
-                        if (container) container.style.display = '';
-                    }
+                    // 2. Room Type check
+                    const roomOk = (!voucherRoomType || voucherRoomType === 'null' || voucherRoomType === '') ||
+                        (selectedRoomTypes.length > 0 && selectedRoomTypes.includes(voucherRoomType));
 
-                    // If voucher has no loai_phong_id restriction or matches selected room type
-                    const roomOk = (!voucherRoomType || voucherRoomType === 'null' || voucherRoomType === '') || (
-                        selectedRoomTypes.length === 0) || selectedRoomTypes.includes(voucherRoomType);
+                    // 3. Min Condition check
+                    let minCondition = 0;
+                    const matches = minConditionStr.replace(/[.,]/g, '').match(/(\d+)/);
+                    if (matches) minCondition = parseFloat(matches[1]);
+                    const conditionOk = currentRoomSubtotal >= minCondition;
 
-                    // Enable/disable based on room type only (no visible message)
-                    radio.disabled = !roomOk;
+                    const isAvailable = dateOk && roomOk && conditionOk;
+                    radio.disabled = !isAvailable;
 
                     if (container) {
-                        const label = container.querySelector('.voucher-label');
-                        if (label) label.classList.remove('opacity-50', 'cursor-not-allowed');
-                        const overlays = container.querySelectorAll('.voucher-overlay-client, .voucher-overlay-server');
-                        overlays.forEach(o => o.remove());
+                        if (!isAvailable) {
+                            container.classList.add('opacity-50');
+                            container.style.pointerEvents = 'none';
+                        } else {
+                            container.classList.remove('opacity-50');
+                            container.style.pointerEvents = '';
+                        }
+                    }
+
+                    // If currently checked but no longer available, uncheck it
+                    if (radio.checked && !isAvailable) {
+                        radio.checked = false;
+                        const voucherIdInput = document.getElementById('voucher_id_input');
+                        const voucherMirror = document.getElementById('voucher_input');
+                        if (voucherIdInput) voucherIdInput.value = '';
+                        if (voucherMirror) voucherMirror.value = '';
+                        if (typeof window.computeTotals === 'function') window.computeTotals();
                     }
                 });
             }
