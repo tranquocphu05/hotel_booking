@@ -73,10 +73,10 @@ class BookingSeeder extends Seeder
                 'duration' => 3,
                 'count' => 3,
             ],
-            // Hiện tại: Đang ở (da_nhan_phong / da_xac_nhan + rooms assigned)
+            // Hiện tại: Đang ở (da_xac_nhan + rooms assigned + check-in)
             [
                 'label' => 'Hiện tại: Đang ở',
-                'trang_thai' => 'da_nhan_phong',
+                'trang_thai' => 'da_xac_nhan', // Sửa từ 'da_nhan_phong' thành 'da_xac_nhan' (giá trị hợp lệ trong ENUM)
                 'inv_status' => 'da_thanh_toan',
                 'days_ago' => 1,
                 'duration' => 2,
@@ -148,7 +148,7 @@ class BookingSeeder extends Seeder
                         'cccd' => $user->cccd,
                         'ly_do_huy' => $scen['ly_do_huy'] ?? null,
                         'ngay_huy' => isset($scen['ly_do_huy']) ? Carbon::now() : null,
-                        'thoi_gian_checkin' => ($scen['trang_thai'] === 'da_tra' || $scen['trang_thai'] === 'da_nhan_phong') ? (clone $ngayNhan)->setTime(14, 0) : null,
+                        'thoi_gian_checkin' => ($scen['trang_thai'] === 'da_tra' || $scen['trang_thai'] === 'da_xac_nhan') ? (clone $ngayNhan)->setTime(14, 0) : null,
                         'thoi_gian_checkout' => ($scen['trang_thai'] === 'da_tra') ? (clone $ngayTra)->setTime(11, 0) : null,
                     ]);
 
@@ -175,10 +175,10 @@ class BookingSeeder extends Seeder
                     if ($scen['inv_status'] === 'da_thanh_toan') {
                         \App\Models\ThanhToan::create([
                             'hoa_don_id' => $invoice->id,
-                            'loai' => 'thanh_toan',
+                            'loai' => 'tien_phong', // Sửa từ 'thanh_toan' thành 'tien_phong' (giá trị hợp lệ trong ENUM)
                             'so_tien' => $totalPrice,
                             'ngay_thanh_toan' => (clone $ngayNhan)->subHours(rand(1, 12)),
-                            'trang_thai' => 'thanh_cong',
+                            'trang_thai' => 'success', // Sửa từ 'thanh_cong' thành 'success' (giá trị hợp lệ trong ENUM)
                         ]);
                     }
 
@@ -197,7 +197,7 @@ class BookingSeeder extends Seeder
                     ]);
 
                     // 5. Assign Rooms & Gán khách
-                    if (in_array($scen['trang_thai'], ['da_nhan_phong', 'da_tra', 'da_xac_nhan'])) {
+                    if (in_array($scen['trang_thai'], ['da_xac_nhan', 'da_tra'])) {
                         $rooms = Phong::where('loai_phong_id', $loaiPhong->id)
                             ->where('trang_thai', 'trong')
                             ->take($soLuong)
@@ -209,13 +209,15 @@ class BookingSeeder extends Seeder
 
                             foreach ($rooms as $room) {
                                 // Update room status
-                                if ($scen['trang_thai'] === 'da_nhan_phong') {
+                                if ($scen['trang_thai'] === 'da_xac_nhan' && isset($booking->thoi_gian_checkin)) {
+                                    // Đã check-in: phòng đang được thuê
                                     $room->update(['trang_thai' => 'dang_thue']);
                                 } elseif ($scen['trang_thai'] === 'da_tra') {
+                                    // Đã trả phòng: phòng đang dọn
                                     $room->update(['trang_thai' => 'dang_don']);
                                 } elseif ($scen['trang_thai'] === 'da_xac_nhan') {
-                                    // Normally not occupied yet, but for seeding we might want to show assigned
-                                    $room->update(['trang_thai' => 'da_dat']);
+                                    // Đã xác nhận nhưng chưa check-in: giữ nguyên trạng thái trống
+                                    // Không cần update, phòng vẫn ở trạng thái 'trong'
                                 }
 
                                 // 6. Create StayGuest
@@ -223,7 +225,6 @@ class BookingSeeder extends Seeder
                                     'dat_phong_id' => $booking->id,
                                     'phong_id' => $room->id,
                                     'full_name' => "Khách đi kèm của " . $user->ho_ten,
-                                    'ten_khach' => "Khách đi kèm",
                                     'dob' => Carbon::today()->subYears(rand(20, 40)),
                                     'created_by' => $admin ? $admin->id : null,
                                     'created_at' => Carbon::now(),
